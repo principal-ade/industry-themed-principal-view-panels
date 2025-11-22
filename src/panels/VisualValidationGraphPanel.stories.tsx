@@ -138,9 +138,10 @@ export const Loading: Story = {
 };
 
 /**
- * No configuration file found in project
+ * Empty state - no configuration file found in project
+ * Shows educational content and copyable template to get started
  */
-export const NoConfiguration: Story = {
+export const EmptyState: Story = {
   args: {} as never,
   render: () => {
     const mockSlices = new Map<string, DataSlice>();
