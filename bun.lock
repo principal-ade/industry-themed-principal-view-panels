@@ -6,8 +6,8 @@
       "dependencies": {
         "@principal-ade/industry-theme": "^0.1.2",
         "@principal-ade/panel-framework-core": "^0.1.2",
-        "@principal-ai/visual-validation-core": "^0.2.0",
-        "@principal-ai/visual-validation-react": "^0.2.1",
+        "@principal-ai/visual-validation-core": "^0.2.1",
+        "@principal-ai/visual-validation-react": "^0.2.2",
         "@xyflow/react": "^12.0.0",
         "clsx": "^2.1.1",
         "framer-motion": "^11.0.0",
@@ -206,9 +206,9 @@
 
     "@principal-ai/repository-abstraction": ["@principal-ai/repository-abstraction@0.2.4", "", {}, "sha512-UxVmCiUA0rhgQek+yxfWIoA8VEYCfLljU/eHd4Vx/MwvISAas4IVYS/i8kFmZD4q92XHYBFzyZyOQSg9sIq2FA=="],
 
-    "@principal-ai/visual-validation-core": ["@principal-ai/visual-validation-core@0.2.0", "", { "dependencies": { "date-fns": "^3.0.0", "zod": "^3.22.0" } }, "sha512-NzmAOncmPzlXDWNnBWYCupBQa6igeSUOv1lIxcru1z6MrmwwyFP/2w8qyynTMWuGdKpvGZ2E5X7JwovElkSjuA=="],
+    "@principal-ai/visual-validation-core": ["@principal-ai/visual-validation-core@0.2.1", "", { "dependencies": { "date-fns": "^3.0.0", "zod": "^3.22.0" } }, "sha512-yqtz8dxtn8kWN0zFkEd4J5iu5rPv3V+4ZqUL3uDc3Dt+Skg7EQoaTyhA6vdJtpswWcn2ElA2PqJDrr7dia3fgw=="],
 
-    "@principal-ai/visual-validation-react": ["@principal-ai/visual-validation-react@0.2.1", "", { "dependencies": { "@principal-ai/visual-validation-core": "^0.2.0", "@xyflow/react": "^12.0.0", "elkjs": "^0.9.0", "framer-motion": "^11.0.0", "lucide-react": "^0.554.0", "zustand": "^4.5.0" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" } }, "sha512-+Wz9xITn8Y06fXsoAWOmcu1EGbhUVy3vxXiEJ8bOCEj3eJsQhuJLMxq2mMsAh7zuxmSVyjNvG4gKQ7SuN8LOEg=="],
+    "@principal-ai/visual-validation-react": ["@principal-ai/visual-validation-react@0.2.2", "", { "dependencies": { "@principal-ai/visual-validation-core": "^0.2.1", "@xyflow/react": "^12.0.0", "elkjs": "^0.9.0", "framer-motion": "^11.0.0", "lucide-react": "^0.554.0", "zustand": "^4.5.0" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" } }, "sha512-66Sz5aV9cjNvLCQmJC0/dZzTzkULS1QYVji/VbKvY4al1JEtYquy/lFOmLD/E5GbRv4/2QDRciCgbs4+mwhDRQ=="],
 
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.0-beta.27", "", {}, "sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA=="],
 

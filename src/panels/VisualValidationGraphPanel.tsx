@@ -3,9 +3,9 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/visual-validation-react';
 import type { PathBasedGraphConfiguration, NodeState, EdgeState } from '@principal-ai/visual-validation-core';
+import { GraphConverter } from '@principal-ai/visual-validation-core';
 import { FileText, AlertCircle, Loader, ExternalLink, BookOpen, ChevronDown } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './visual-validation/ConfigLoader';
-import { GraphConverter } from './visual-validation/GraphConverter';
 
 interface GraphPanelState {
   config: PathBasedGraphConfiguration | null;

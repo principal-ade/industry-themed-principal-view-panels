@@ -40,8 +40,8 @@
     }
   },
   "dependencies": {
-    "@principal-ai/visual-validation-core": "^0.2.0",
-    "@principal-ai/visual-validation-react": "^0.2.1",
+    "@principal-ai/visual-validation-core": "^0.2.1",
+    "@principal-ai/visual-validation-react": "^0.2.2",
     "@principal-ade/industry-theme": "^0.1.2",
     "@principal-ade/panel-framework-core": "^0.1.2",
     "@xyflow/react": "^12.0.0",
