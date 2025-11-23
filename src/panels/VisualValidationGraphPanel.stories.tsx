@@ -44,10 +44,11 @@ export const SimpleConfiguration: Story = {
   args: {} as never,
   render: () => {
     const mockSlices = new Map<string, DataSlice>();
+    const fileTreeData = createMockFileTree('simple');
     mockSlices.set('fileTree', {
       scope: 'repository',
       name: 'fileTree',
-      data: createMockFileTree('simple'),
+      data: fileTreeData,
       loading: false,
       error: null,
       refresh: async () => {},
@@ -62,7 +63,20 @@ export const SimpleConfiguration: Story = {
           },
           hasSlice: (name: string) => mockSlices.has(name),
           isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
-        }}
+          repositoryPath: '/mock/repository',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return { content: file.content };
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
       >
         {(props) => <VisualValidationGraphPanel {...props} />}
       </MockPanelProvider>
@@ -78,10 +92,11 @@ export const ComplexConfiguration: Story = {
   args: {} as never,
   render: () => {
     const mockSlices = new Map<string, DataSlice>();
+    const fileTreeData = createMockFileTree('complex');
     mockSlices.set('fileTree', {
       scope: 'repository',
       name: 'fileTree',
-      data: createMockFileTree('complex'),
+      data: fileTreeData,
       loading: false,
       error: null,
       refresh: async () => {},
@@ -96,7 +111,20 @@ export const ComplexConfiguration: Story = {
           },
           hasSlice: (name: string) => mockSlices.has(name),
           isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
-        }}
+          repositoryPath: '/mock/repository',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return { content: file.content };
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
       >
         {(props) => <VisualValidationGraphPanel {...props} />}
       </MockPanelProvider>
@@ -178,17 +206,22 @@ export const InvalidYAML: Story = {
   args: {} as never,
   render: () => {
     const mockSlices = new Map<string, DataSlice>();
+    const fileTreeData = {
+      allFiles: [
+        {
+          path: 'vvf.config.yaml',
+          relativePath: 'vvf.config.yaml',
+          name: 'vvf.config.yaml',
+          content: 'invalid: yaml: content:\n  - missing\n    proper\n  indentation',
+        },
+        { path: 'src/api/index.ts', relativePath: 'src/api/index.ts', name: 'index.ts', content: '// API code' },
+        { path: 'README.md', relativePath: 'README.md', name: 'README.md', content: '# Project' },
+      ],
+    };
     mockSlices.set('fileTree', {
       scope: 'repository',
       name: 'fileTree',
-      data: [
-        {
-          path: 'vvf.config.yaml',
-          content: 'invalid: yaml: content:\n  - missing\n    proper\n  indentation',
-        },
-        { path: 'src/api/index.ts', content: '// API code' },
-        { path: 'README.md', content: '# Project' },
-      ],
+      data: fileTreeData,
       loading: false,
       error: null,
       refresh: async () => {},
@@ -203,7 +236,20 @@ export const InvalidYAML: Story = {
           },
           hasSlice: (name: string) => mockSlices.has(name),
           isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
-        }}
+          repositoryPath: '/mock/repository',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return { content: file.content };
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
       >
         {(props) => <VisualValidationGraphPanel {...props} />}
       </MockPanelProvider>
@@ -218,12 +264,12 @@ export const MissingMetadata: Story = {
   args: {} as never,
   render: () => {
     const mockSlices = new Map<string, DataSlice>();
-    mockSlices.set('fileTree', {
-      scope: 'repository',
-      name: 'fileTree',
-      data: [
+    const fileTreeData = {
+      allFiles: [
         {
           path: 'vvf.config.yaml',
+          relativePath: 'vvf.config.yaml',
+          name: 'vvf.config.yaml',
           content: `nodeTypes:
   api-handler:
     shape: rectangle
@@ -234,9 +280,14 @@ export const MissingMetadata: Story = {
       - 'src/api/**/*.ts'
 `,
         },
-        { path: 'src/api/index.ts', content: '// API code' },
-        { path: 'README.md', content: '# Project' },
+        { path: 'src/api/index.ts', relativePath: 'src/api/index.ts', name: 'index.ts', content: '// API code' },
+        { path: 'README.md', relativePath: 'README.md', name: 'README.md', content: '# Project' },
       ],
+    };
+    mockSlices.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeData,
       loading: false,
       error: null,
       refresh: async () => {},
@@ -251,7 +302,20 @@ export const MissingMetadata: Story = {
           },
           hasSlice: (name: string) => mockSlices.has(name),
           isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
-        }}
+          repositoryPath: '/mock/repository',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return { content: file.content };
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
       >
         {(props) => <VisualValidationGraphPanel {...props} />}
       </MockPanelProvider>
@@ -288,10 +352,11 @@ export const CustomRepository: Story = {
   args: {} as never,
   render: () => {
     const mockSlices = new Map<string, DataSlice>();
+    const fileTreeData = createMockFileTree('complex');
     mockSlices.set('fileTree', {
       scope: 'repository',
       name: 'fileTree',
-      data: createMockFileTree('complex'),
+      data: fileTreeData,
       loading: false,
       error: null,
       refresh: async () => {},
@@ -319,7 +384,20 @@ export const CustomRepository: Story = {
           },
           hasSlice: (name: string) => mockSlices.has(name),
           isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
-        }}
+          repositoryPath: '/Users/developer/principal-ai/repository-traffic-controller',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return { content: file.content };
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
       >
         {(props) => <VisualValidationGraphPanel {...props} />}
       </MockPanelProvider>
@@ -334,10 +412,11 @@ export const WorkspaceScope: Story = {
   args: {} as never,
   render: () => {
     const mockSlices = new Map<string, DataSlice>();
+    const fileTreeData = createMockFileTree('none');
     mockSlices.set('fileTree', {
       scope: 'repository',
       name: 'fileTree',
-      data: createMockFileTree('none'),
+      data: fileTreeData,
       loading: false,
       error: null,
       refresh: async () => {},
@@ -359,7 +438,20 @@ export const WorkspaceScope: Story = {
           },
           hasSlice: (name: string) => mockSlices.has(name),
           isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
-        }}
+          repositoryPath: '/Users/developer/my-workspace',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return { content: file.content };
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
       >
         {(props) => <VisualValidationGraphPanel {...props} />}
       </MockPanelProvider>

@@ -169,20 +169,31 @@ export const mockComplexConfigYAML = YAML.dump(mockComplexConfig);
 
 // Mock file tree with config
 export const createMockFileTree = (config: 'simple' | 'complex' | 'none') => {
-  const files: Array<{ path: string; content?: string }> = [];
+  const files: Array<{ path: string; relativePath: string; name: string; content?: string }> = [];
 
   if (config === 'simple') {
-    files.push({ path: 'vvf.config.yaml', content: mockSimpleConfigYAML });
+    files.push({
+      path: 'vvf.config.yaml',
+      relativePath: 'vvf.config.yaml',
+      name: 'vvf.config.yaml',
+      content: mockSimpleConfigYAML
+    });
   } else if (config === 'complex') {
-    files.push({ path: 'vvf.config.yaml', content: mockComplexConfigYAML });
+    files.push({
+      path: 'vvf.config.yaml',
+      relativePath: 'vvf.config.yaml',
+      name: 'vvf.config.yaml',
+      content: mockComplexConfigYAML
+    });
   }
 
   // Add some other files for realism
   files.push(
-    { path: 'src/api/index.ts', content: '// API code' },
-    { path: 'src/db/client.ts', content: '// DB code' },
-    { path: 'README.md', content: '# Project' }
+    { path: 'src/api/index.ts', relativePath: 'src/api/index.ts', name: 'index.ts', content: '// API code' },
+    { path: 'src/db/client.ts', relativePath: 'src/db/client.ts', name: 'client.ts', content: '// DB code' },
+    { path: 'README.md', relativePath: 'README.md', name: 'README.md', content: '# Project' }
   );
 
-  return files;
+  // Return in the expected structure with allFiles property
+  return { allFiles: files };
 };
