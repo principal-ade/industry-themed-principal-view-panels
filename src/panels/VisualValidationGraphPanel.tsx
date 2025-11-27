@@ -257,11 +257,26 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
     }
   }, [state.config, state.availableConfigs, loadConfiguration]);
 
-  // Load configuration on mount
+  // Load configuration on mount and when fileTree slice finishes loading
+  const fileTreeLoading = context.hasSlice('fileTree') && context.isSliceLoading('fileTree');
+  const fileTreeLoadingRef = useRef(fileTreeLoading);
+
   useEffect(() => {
+    // Initial load
     loadConfiguration();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-load when fileTree transitions from loading to loaded
+  useEffect(() => {
+    const wasLoading = fileTreeLoadingRef.current;
+    fileTreeLoadingRef.current = fileTreeLoading;
+
+    if (wasLoading && !fileTreeLoading) {
+      // fileTree just finished loading, reload config
+      loadConfiguration();
+    }
+  }, [fileTreeLoading, loadConfiguration]);
 
   // Subscribe to data refresh events
   useEffect(() => {
