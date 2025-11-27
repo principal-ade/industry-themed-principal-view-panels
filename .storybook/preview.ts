@@ -1,4 +1,5 @@
 import type { Preview } from '@storybook/react';
+import '@xyflow/react/dist/style.css';
 
 const preview: Preview = {
   parameters: {

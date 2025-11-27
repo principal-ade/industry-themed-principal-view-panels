@@ -44,7 +44,7 @@
     "@principal-ade/panel-framework-core": "^0.1.2",
     "@principal-ai/repository-abstraction": "0.2.5",
     "@principal-ai/visual-validation-core": "0.4.0",
-    "@principal-ai/visual-validation-react": "0.4.2",
+    "@principal-ai/visual-validation-react": "0.5.3",
     "@xyflow/react": "^12.0.0",
     "clsx": "^2.1.1",
     "framer-motion": "^11.0.0",
