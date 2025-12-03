@@ -1,5 +1,4 @@
-import { parseYaml, isYamlFile, getConfigNameFromFilename } from '@principal-ai/visual-validation-core';
-import type { PathBasedGraphConfiguration } from '@principal-ai/visual-validation-core';
+import type { ExtendedCanvas } from '@principal-ai/visual-validation-core';
 
 export interface ConfigFile {
   /** Unique identifier for this config (derived from filename) */
@@ -13,25 +12,36 @@ export interface ConfigFile {
 }
 
 /**
- * Utility for loading and parsing configuration files from .vgc/ folder
- * Uses the framework's YamlParser for parsing and validation
+ * Check if a filename is a canvas file
+ */
+function isCanvasFile(filename: string): boolean {
+  return filename.endsWith('.canvas');
+}
+
+/**
+ * Extract config name from canvas filename
+ */
+function getConfigNameFromFilename(filename: string): string {
+  return filename.replace(/\.canvas$/, '');
+}
+
+/**
+ * Utility for loading and parsing .canvas configuration files from .vgc/ folder
  */
 export class ConfigLoader {
   /**
-   * Parse YAML content to config object using framework's parser
+   * Parse JSON canvas content
    */
-  static parseYaml(content: string, filename?: string): PathBasedGraphConfiguration {
-    const result = parseYaml(content, filename);
-
-    if (!result.success || !result.data) {
-      throw new Error(result.error || 'Failed to parse YAML');
+  static parseCanvas(content: string): ExtendedCanvas {
+    try {
+      return JSON.parse(content) as ExtendedCanvas;
+    } catch (error) {
+      throw new Error(`Failed to parse canvas JSON: ${(error as Error).message}`);
     }
-
-    return result.data;
   }
 
   /**
-   * Find all config files in the .vgc/ folder
+   * Find all .canvas files in the .vgc/ folder
    * Returns array of config files with metadata
    */
   static findConfigs(files: Array<{ path?: string; relativePath?: string; name?: string }>): ConfigFile[] {
@@ -42,10 +52,8 @@ export class ConfigLoader {
       const filePath = file.relativePath || file.path || '';
       const fileName = file.name || '';
 
-      // Check for configs in .vgc/ folder
-      // Match files like: .vgc/architecture.yaml or .vgc/data-flow.yml
-      if (filePath.startsWith(`${VGC_FOLDER}/`) && isYamlFile(fileName)) {
-        // Extract config name using framework's utility
+      // Check for .canvas files in .vgc/ folder
+      if (filePath.startsWith(`${VGC_FOLDER}/`) && isCanvasFile(fileName)) {
         const configName = getConfigNameFromFilename(fileName);
 
         // Convert kebab-case to Title Case for display

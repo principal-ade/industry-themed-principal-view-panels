@@ -6,8 +6,8 @@ import { createMockFileTree } from '../mocks/vvfConfigs';
 import type { DataSlice } from '../types';
 
 /**
- * VisualValidationGraphPanel visualizes vvf.config.yaml files as interactive graphs.
- * It demonstrates graph rendering with ReactFlow and configuration parsing.
+ * VisualValidationGraphPanel visualizes .canvas files as interactive graphs.
+ * It demonstrates graph rendering with ReactFlow and ExtendedCanvas format.
  */
 const meta = {
   title: 'Panels/VisualValidationGraphPanel',
@@ -17,7 +17,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Visualizes Visual Validation Framework configuration files as interactive graph diagrams. Supports multiple node types, edge styles, and real-time updates.',
+          'Visualizes .canvas configuration files as interactive graph diagrams. Supports multiple node types, edge styles, and real-time updates.',
       },
     },
   },
@@ -248,85 +248,19 @@ export const EmptyState: Story = {
 };
 
 /**
- * Invalid YAML configuration
+ * Invalid JSON configuration
  */
-export const InvalidYAML: Story = {
+export const InvalidJSON: Story = {
   args: {} as never,
   render: () => {
     const mockSlices = new Map<string, DataSlice>();
     const fileTreeData = {
       allFiles: [
         {
-          path: 'vvf.config.yaml',
-          relativePath: 'vvf.config.yaml',
-          name: 'vvf.config.yaml',
-          content: 'invalid: yaml: content:\n  - missing\n    proper\n  indentation',
-        },
-        { path: 'src/api/index.ts', relativePath: 'src/api/index.ts', name: 'index.ts', content: '// API code' },
-        { path: 'README.md', relativePath: 'README.md', name: 'README.md', content: '# Project' },
-      ],
-    };
-    mockSlices.set('fileTree', {
-      scope: 'repository',
-      name: 'fileTree',
-      data: fileTreeData,
-      loading: false,
-      error: null,
-      refresh: async () => {},
-    });
-
-    return (
-      <MockPanelProvider
-        contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): DataSlice<T> | undefined => {
-            return mockSlices.get(name) as DataSlice<T> | undefined;
-          },
-          hasSlice: (name: string) => mockSlices.has(name),
-          isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
-          repositoryPath: '/mock/repository',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any}
-        actionsOverrides={{
-          readFile: async (path: string) => {
-            const fileName = path.split('/').pop() || '';
-            const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
-            if (!file || !file.content) {
-              throw new Error(`File not found: ${path}`);
-            }
-            return { content: file.content };
-          },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any}
-      >
-        {(props) => <VisualValidationGraphPanel {...props} />}
-      </MockPanelProvider>
-    );
-  },
-};
-
-/**
- * Missing required metadata
- */
-export const MissingMetadata: Story = {
-  args: {} as never,
-  render: () => {
-    const mockSlices = new Map<string, DataSlice>();
-    const fileTreeData = {
-      allFiles: [
-        {
-          path: 'vvf.config.yaml',
-          relativePath: 'vvf.config.yaml',
-          name: 'vvf.config.yaml',
-          content: `nodeTypes:
-  api-handler:
-    shape: rectangle
-    icon: server
-    color: '#3b82f6'
-    dataSchema: {}
-    sources:
-      - 'src/api/**/*.ts'
-`,
+          path: '.vgc/invalid.canvas',
+          relativePath: '.vgc/invalid.canvas',
+          name: 'invalid.canvas',
+          content: '{ invalid json content',
         },
         { path: 'src/api/index.ts', relativePath: 'src/api/index.ts', name: 'index.ts', content: '// API code' },
         { path: 'README.md', relativePath: 'README.md', name: 'README.md', content: '# Project' },

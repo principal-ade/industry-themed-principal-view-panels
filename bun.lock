@@ -8,8 +8,8 @@
         "@principal-ade/panel-framework-core": "^0.1.5",
         "@principal-ade/utcp-panel-event": "^0.1.0",
         "@principal-ai/repository-abstraction": "0.2.5",
-        "@principal-ai/visual-validation-core": "0.4.0",
-        "@principal-ai/visual-validation-react": "0.5.3",
+        "@principal-ai/visual-validation-core": "0.5.0",
+        "@principal-ai/visual-validation-react": "0.6.0",
         "@xyflow/react": "^12.0.0",
         "clsx": "^2.1.1",
         "framer-motion": "^11.0.0",
@@ -208,9 +208,9 @@
 
     "@principal-ai/repository-abstraction": ["@principal-ai/repository-abstraction@0.2.5", "", {}, "sha512-MnHoEq1Th979+ZRAVH9rhpdxFh8igB0VfRhOXhzWkwAhk4JgU455ucsjYk9OK0ZiVhsTTz9cbrQyTaEzhghoQA=="],
 
-    "@principal-ai/visual-validation-core": ["@principal-ai/visual-validation-core@0.4.0", "", { "dependencies": { "@principal-ai/repository-abstraction": "^0.2.5", "date-fns": "^3.0.0", "js-yaml": "^4.1.0", "zod": "^3.22.0" } }, "sha512-tfwrL1rpdo+Pi8V8vGgYgBSGslXXkXM2zutjo9IC+20OstEjxph7b7KsSscud0Nh7Y9JxHhDK4Ayygtl/bXFkg=="],
+    "@principal-ai/visual-validation-core": ["@principal-ai/visual-validation-core@0.5.0", "", { "dependencies": { "@principal-ai/repository-abstraction": "^0.2.5", "date-fns": "^3.0.0", "js-yaml": "^4.1.0", "zod": "^3.22.0" } }, "sha512-pbA7TBJF1U0L32Ui5b0/n25fbOgDEb9xa34+Na1zUH3bvCO2gSL+eLXjATLWRYm+7ko6DNWXA2MxAQmQbPx/EQ=="],
 
-    "@principal-ai/visual-validation-react": ["@principal-ai/visual-validation-react@0.5.3", "", { "dependencies": { "@principal-ai/visual-validation-core": "^0.4.0", "@xyflow/react": "^12.0.0", "elkjs": "^0.9.0", "framer-motion": "^11.0.0", "lucide-react": "^0.554.0", "zustand": "^4.5.0" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" } }, "sha512-RsdSIoQOyd+WgP/dnlN1BZ/+GNuAj4aPBqQpB1ZuLjOcoRRqBtJT9o0fPLsQ6hkEqHJuDJG05eke54mst85jqw=="],
+    "@principal-ai/visual-validation-react": ["@principal-ai/visual-validation-react@0.6.0", "", { "dependencies": { "@principal-ai/visual-validation-core": "^0.5.0", "@xyflow/react": "^12.0.0", "elkjs": "^0.9.0", "framer-motion": "^11.0.0", "lucide-react": "^0.554.0", "zustand": "^4.5.0" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" } }, "sha512-Bn0SeJdzDVhPYzIP/abVWB9Nyj4HTFvO/X4zfl5bwAko9gfr+zQbO2jRnpfxgzmKJX1ziOjBKeMJHR40W8XBPQ=="],
 
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.0-beta.27", "", {}, "sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA=="],
 

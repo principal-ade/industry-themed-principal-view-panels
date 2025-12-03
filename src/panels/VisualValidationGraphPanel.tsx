@@ -3,17 +3,14 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/visual-validation-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/visual-validation-react';
-import type { PathBasedGraphConfiguration, NodeState, EdgeState } from '@principal-ai/visual-validation-core';
-import { GraphConverter } from '@principal-ai/visual-validation-core';
+import type { ExtendedCanvas } from '@principal-ai/visual-validation-core';
 import { Loader, ChevronDown, Save, X, Lock, Unlock } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './visual-validation/ConfigLoader';
 import { ErrorStateContent } from './visual-validation/ErrorStateContent';
 import { EmptyStateContent } from './visual-validation/EmptyStateContent';
 
 interface GraphPanelState {
-  config: PathBasedGraphConfiguration | null;
-  nodes: NodeState[];
-  edges: EdgeState[];
+  canvas: ExtendedCanvas | null;
   loading: boolean;
   error: string | null;
   availableConfigs: ConfigFile[];
@@ -27,7 +24,7 @@ interface GraphPanelState {
 /**
  * Visual Validation Graph Panel
  *
- * Visualizes vvf.config.yaml configuration files as interactive graph diagrams
+ * Visualizes .canvas configuration files as interactive graph diagrams
  * with full editing support for nodes, edges, and positions.
  */
 export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
@@ -41,9 +38,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
   const graphRef = useRef<GraphRendererHandle>(null);
 
   const [state, setState] = useState<GraphPanelState>({
-    config: null,
-    nodes: [],
-    edges: [],
+    canvas: null,
     loading: true,
     error: null,
     availableConfigs: [],
@@ -87,9 +82,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
       if (!fileTreeData?.allFiles) {
         setState(prev => ({
           ...prev,
-          config: null,
-          nodes: [],
-          edges: [],
+          canvas: null,
           loading: false,
           error: null,
           availableConfigs: [],
@@ -103,9 +96,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
       if (availableConfigs.length === 0) {
         setState(prev => ({
           ...prev,
-          config: null,
-          nodes: [],
-          edges: [],
+          canvas: null,
           loading: false,
           error: null,
           availableConfigs: [],
@@ -146,14 +137,11 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
       }
 
       const configContent = (fileResult as { content: string }).content;
-      const config = ConfigLoader.parseYaml(configContent);
-      const { nodes, edges } = GraphConverter.configToGraph(config);
+      const canvas = ConfigLoader.parseCanvas(configContent);
 
       setState(prev => ({
         ...prev,
-        config,
-        nodes,
-        edges,
+        canvas,
         loading: false,
         error: null,
         availableConfigs,
@@ -167,9 +155,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
       console.error('[VisualValidation] Error during config load:', error);
       setState(prev => ({
         ...prev,
-        config: null,
-        nodes: [],
-        edges: [],
+        canvas: null,
         loading: false,
         error: (error as Error).message
       }));
@@ -201,7 +187,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
 
   // Save all pending changes
   const saveAllChanges = useCallback(async () => {
-    if (!state.config || !graphRef.current) return;
+    if (!state.canvas || !graphRef.current) return;
 
     const pendingChanges = graphRef.current.getPendingChanges();
     if (!pendingChanges.hasChanges) return;
@@ -227,21 +213,15 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
         throw new Error('Selected config not found');
       }
 
-      // Apply changes to config
-      const updatedConfig = applyChangesToConfig(state.config, pendingChanges);
+      // Apply changes to canvas
+      const updatedCanvas = applyChangesToCanvas(state.canvas, pendingChanges);
 
-      // Serialize to YAML
-      const yaml = await import('js-yaml');
-      const yamlContent = yaml.dump(updatedConfig, {
-        indent: 2,
-        lineWidth: -1,
-        noRefs: true,
-        sortKeys: false
-      });
+      // Serialize to JSON
+      const jsonContent = JSON.stringify(updatedCanvas, null, 2);
 
       // Write to file
       const fullPath = `${repositoryPath}/${selectedConfig.path}`;
-      await writeFile(fullPath, yamlContent);
+      await writeFile(fullPath, jsonContent);
 
       // Reload to verify and reset state
       await loadConfiguration(selectedConfigIdRef.current || undefined);
@@ -255,7 +235,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
         error: `Failed to save: ${(error as Error).message}`
       }));
     }
-  }, [state.config, state.availableConfigs, loadConfiguration]);
+  }, [state.canvas, state.availableConfigs, loadConfiguration]);
 
   // Load configuration on mount and when fileTree slice finishes loading
   const fileTreeLoading = context.hasSlice('fileTree') && context.isSliceLoading('fileTree');
@@ -287,6 +267,10 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Get counts from canvas
+  const nodeCount = state.canvas?.nodes?.length ?? 0;
+  const edgeCount = state.canvas?.edges?.length ?? 0;
+
   if (state.loading) {
     return (
       <div style={{
@@ -307,7 +291,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
     return <ErrorStateContent theme={theme} error={state.error} onRetry={() => loadConfiguration()} />;
   }
 
-  if (!state.config) {
+  if (!state.canvas) {
     return <EmptyStateContent theme={theme} />;
   }
 
@@ -321,7 +305,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
     }}>
       {/* Header */}
       <div style={{
-        padding: `${theme.space[4]} ${theme.space[5]}`,
+        padding: '16px 20px',
         borderBottom: `1px solid ${theme.colors.border}`,
         backgroundColor: theme.colors.background,
         flexShrink: 0
@@ -335,7 +319,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
                 fontWeight: theme.fontWeights.medium,
                 color: theme.colors.text
               }}>
-                {state.config.metadata.name}
+                {state.canvas.vv?.name || 'Untitled'}
               </h2>
 
               {/* Config Selector */}
@@ -386,14 +370,16 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
               gap: theme.space[2],
               marginTop: theme.space[1]
             }}>
-              <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textMuted }}>
-                v{state.config.metadata.version}
-              </span>
-              {state.config.metadata.description && (
+              {state.canvas.vv?.version && (
+                <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textMuted }}>
+                  v{state.canvas.vv.version}
+                </span>
+              )}
+              {state.canvas.vv?.description && (
                 <>
                   <span style={{ color: theme.colors.textMuted }}>•</span>
                   <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textMuted }}>
-                    {state.config.metadata.description}
+                    {state.canvas.vv.description}
                   </span>
                 </>
               )}
@@ -403,7 +389,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[3] }}>
             {/* Node/Edge count */}
             <div style={{ fontSize: theme.fontSizes[1], color: theme.colors.textMuted }}>
-              {state.nodes.length} component{state.nodes.length !== 1 ? 's' : ''} • {state.edges.length} connection{state.edges.length !== 1 ? 's' : ''}
+              {nodeCount} component{nodeCount !== 1 ? 's' : ''} • {edgeCount} connection{edgeCount !== 1 ? 's' : ''}
             </div>
 
             {/* Edit Mode Controls */}
@@ -521,9 +507,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
       <div style={{ flex: 1, position: 'relative' }}>
         <GraphRenderer
           ref={graphRef}
-          configuration={state.config}
-          nodes={state.nodes}
-          edges={state.edges}
+          canvas={state.canvas}
           showMinimap={false}
           showControls={true}
           showBackground={true}
@@ -536,49 +520,46 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
 };
 
 /**
- * Apply pending changes from GraphRenderer to the config
+ * Apply pending changes from GraphRenderer to the canvas
  */
-function applyChangesToConfig(
-  config: PathBasedGraphConfiguration,
+function applyChangesToCanvas(
+  canvas: ExtendedCanvas,
   changes: PendingChanges
-): PathBasedGraphConfiguration {
-  let updatedConfig: PathBasedGraphConfiguration = JSON.parse(JSON.stringify(config));
-  let hasPositionChanges = false;
+): ExtendedCanvas {
+  const updatedCanvas: ExtendedCanvas = JSON.parse(JSON.stringify(canvas));
 
   // Apply position changes
   for (const { nodeId, position } of changes.positionChanges) {
-    hasPositionChanges = true;
-    if (updatedConfig.nodeTypes[nodeId]) {
-      updatedConfig.nodeTypes[nodeId] = {
-        ...updatedConfig.nodeTypes[nodeId],
-        position: { x: Math.round(position.x), y: Math.round(position.y) }
-      };
+    const node = updatedCanvas.nodes?.find(n => n.id === nodeId);
+    if (node) {
+      node.x = Math.round(position.x);
+      node.y = Math.round(position.y);
     }
   }
 
   // Apply node updates
   for (const { nodeId, updates } of changes.nodeUpdates) {
-    if (updatedConfig.nodeTypes[nodeId]) {
-      const nodeType = updatedConfig.nodeTypes[nodeId];
-
-      // Handle type rename
+    const node = updatedCanvas.nodes?.find(n => n.id === nodeId);
+    if (node) {
+      // Handle type/id rename
       if (updates.type && updates.type !== nodeId) {
-        delete updatedConfig.nodeTypes[nodeId];
-        updatedConfig.nodeTypes[updates.type] = nodeType;
-        // Update allowedConnections references
-        updatedConfig.allowedConnections = updatedConfig.allowedConnections.map(conn => ({
-          ...conn,
-          from: conn.from === nodeId ? updates.type! : conn.from,
-          to: conn.to === nodeId ? updates.type! : conn.to
-        }));
+        node.id = updates.type;
+        // Update edge references
+        if (updatedCanvas.edges) {
+          for (const edge of updatedCanvas.edges) {
+            if (edge.fromNode === nodeId) edge.fromNode = updates.type;
+            if (edge.toNode === nodeId) edge.toNode = updates.type;
+          }
+        }
       }
 
-      // Handle data updates (icon, etc.)
+      // Handle data updates
       if (updates.data) {
-        const targetId = updates.type || nodeId;
-        const icon = updates.data.icon as string | undefined;
-        if (icon) {
-          updatedConfig.nodeTypes[targetId].icon = icon;
+        if (updates.data.icon && node.vv) {
+          node.vv.icon = updates.data.icon as string;
+        }
+        if (updates.data.label !== undefined && 'text' in node) {
+          (node as { text?: string }).text = updates.data.label as string;
         }
       }
     }
@@ -586,39 +567,41 @@ function applyChangesToConfig(
 
   // Apply node deletions
   for (const nodeId of changes.deletedNodeIds) {
-    delete updatedConfig.nodeTypes[nodeId];
-    updatedConfig.allowedConnections = updatedConfig.allowedConnections.filter(
-      conn => conn.from !== nodeId && conn.to !== nodeId
-    );
-  }
-
-  // Apply edge creations
-  for (const { from, to, type } of changes.createdEdges) {
-    const exists = updatedConfig.allowedConnections.some(
-      conn => conn.from === from && conn.to === to && conn.via === type
-    );
-    if (!exists) {
-      updatedConfig.allowedConnections.push({ from, to, via: type });
+    if (updatedCanvas.nodes) {
+      updatedCanvas.nodes = updatedCanvas.nodes.filter(n => n.id !== nodeId);
+    }
+    if (updatedCanvas.edges) {
+      updatedCanvas.edges = updatedCanvas.edges.filter(
+        e => e.fromNode !== nodeId && e.toNode !== nodeId
+      );
     }
   }
 
-  // Apply edge deletions
+  // Apply edge creations
+  for (const { from, to, type, sourceHandle, targetHandle } of changes.createdEdges) {
+    if (!updatedCanvas.edges) {
+      updatedCanvas.edges = [];
+    }
+    // Generate a unique ID for the new edge
+    const edgeId = `edge-${from}-${to}-${Date.now()}`;
+    updatedCanvas.edges.push({
+      id: edgeId,
+      fromNode: from,
+      toNode: to,
+      fromSide: sourceHandle as 'top' | 'right' | 'bottom' | 'left' | undefined,
+      toSide: targetHandle as 'top' | 'right' | 'bottom' | 'left' | undefined,
+      vv: { edgeType: type },
+    });
+  }
+
+  // Apply edge deletions (match by from/to/type since id is not available)
   for (const { from, to, type } of changes.deletedEdges) {
-    updatedConfig.allowedConnections = updatedConfig.allowedConnections.filter(
-      conn => !(conn.from === from && conn.to === to && conn.via === type)
-    );
+    if (updatedCanvas.edges) {
+      updatedCanvas.edges = updatedCanvas.edges.filter(
+        e => !(e.fromNode === from && e.toNode === to && e.vv?.edgeType === type)
+      );
+    }
   }
 
-  // Set layout to manual if positions changed
-  if (hasPositionChanges) {
-    updatedConfig = {
-      ...updatedConfig,
-      display: {
-        ...updatedConfig.display,
-        layout: 'manual'
-      }
-    };
-  }
-
-  return updatedConfig;
+  return updatedCanvas;
 }

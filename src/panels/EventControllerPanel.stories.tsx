@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useState, useCallback } from 'react';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/visual-validation-react';
-import type { GraphConfiguration, NodeState, EdgeState, GraphEvent } from '@principal-ai/visual-validation-core';
+import type { ExtendedCanvas, GraphEvent } from '@principal-ai/visual-validation-core';
 import { EventControllerPanel } from './EventControllerPanel';
 
 /**
@@ -37,119 +37,99 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Sample configuration for the graph
-const sampleConfiguration: GraphConfiguration = {
-  metadata: {
+// Sample canvas for the graph
+const sampleCanvas: ExtendedCanvas = {
+  nodes: [
+    {
+      id: 'client-1',
+      type: 'text',
+      x: 100,
+      y: 150,
+      width: 120,
+      height: 80,
+      text: 'Client A',
+      color: '#3b82f6',
+      vv: {
+        nodeType: 'client',
+        shape: 'circle',
+        icon: 'Monitor',
+        states: {
+          disconnected: { label: 'Disconnected', color: '#6b7280' },
+          connecting: { label: 'Connecting', color: '#f59e0b' },
+          connected: { label: 'Connected', color: '#10b981' },
+        },
+      },
+    },
+    {
+      id: 'server-1',
+      type: 'text',
+      x: 350,
+      y: 150,
+      width: 140,
+      height: 80,
+      text: 'Server',
+      color: '#8b5cf6',
+      vv: {
+        nodeType: 'server',
+        shape: 'rectangle',
+        icon: 'Server',
+        states: {
+          idle: { label: 'Idle', color: '#6b7280' },
+          processing: { label: 'Processing', color: '#3b82f6' },
+          completed: { label: 'Completed', color: '#10b981' },
+          error: { label: 'Error', color: '#ef4444' },
+        },
+      },
+    },
+    {
+      id: 'database-1',
+      type: 'text',
+      x: 600,
+      y: 150,
+      width: 120,
+      height: 100,
+      text: 'Database',
+      color: '#10b981',
+      vv: {
+        nodeType: 'database',
+        shape: 'hexagon',
+        icon: 'Database',
+      },
+    },
+  ],
+  edges: [
+    {
+      id: 'edge-client-server',
+      fromNode: 'client-1',
+      toNode: 'server-1',
+      vv: { edgeType: 'websocket' },
+    },
+    {
+      id: 'edge-server-db',
+      fromNode: 'server-1',
+      toNode: 'database-1',
+      vv: { edgeType: 'query' },
+    },
+  ],
+  vv: {
     name: 'Event Playback Demo',
     version: '1.0.0',
     description: 'Demonstrates event playback between panels',
-  },
-  nodeTypes: {
-    server: {
-      shape: 'rectangle',
-      color: '#8b5cf6',
-      icon: 'Server',
-      dataSchema: {
-        name: { type: 'string', required: true, displayInLabel: true },
+    edgeTypes: {
+      websocket: {
+        style: 'solid',
+        color: '#60a5fa',
+        directed: true,
+        animation: { type: 'flow', duration: 1000 },
       },
-      states: {
-        idle: { label: 'Idle', color: '#6b7280' },
-        processing: { label: 'Processing', color: '#3b82f6' },
-        completed: { label: 'Completed', color: '#10b981' },
-        error: { label: 'Error', color: '#ef4444' },
-      },
-    },
-    client: {
-      shape: 'circle',
-      color: '#3b82f6',
-      icon: 'Monitor',
-      dataSchema: {
-        name: { type: 'string', required: true, displayInLabel: true },
-      },
-      states: {
-        disconnected: { label: 'Disconnected', color: '#6b7280' },
-        connecting: { label: 'Connecting', color: '#f59e0b' },
-        connected: { label: 'Connected', color: '#10b981' },
-      },
-    },
-    database: {
-      shape: 'hexagon',
-      color: '#10b981',
-      icon: 'Database',
-      dataSchema: {
-        name: { type: 'string', required: true, displayInLabel: true },
+      query: {
+        style: 'dashed',
+        color: '#34d399',
+        directed: true,
       },
     },
   },
-  edgeTypes: {
-    websocket: {
-      style: 'solid',
-      color: '#60a5fa',
-      directed: true,
-      animated: true,
-    },
-    query: {
-      style: 'dashed',
-      color: '#34d399',
-      directed: true,
-    },
-  },
-  allowedConnections: [
-    { from: 'client', to: 'server', via: 'websocket' },
-    { from: 'server', to: 'database', via: 'query' },
-    { from: 'server', to: 'client', via: 'websocket' },
-  ],
 };
-
-// Sample nodes
-const sampleNodes: NodeState[] = [
-  {
-    id: 'client-1',
-    type: 'client',
-    data: { name: 'Client A' },
-    position: { x: 100, y: 150 },
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: 'server-1',
-    type: 'server',
-    data: { name: 'Server' },
-    position: { x: 350, y: 150 },
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: 'database-1',
-    type: 'database',
-    data: { name: 'Database' },
-    position: { x: 600, y: 150 },
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-];
-
-// Sample edges
-const sampleEdges: EdgeState[] = [
-  {
-    id: 'edge-client-server',
-    from: 'client-1',
-    to: 'server-1',
-    type: 'websocket',
-    data: {},
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: 'edge-server-db',
-    from: 'server-1',
-    to: 'database-1',
-    type: 'query',
-    data: {},
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-];
 
 // Create a sequence of events that simulate a request flow
 const createEventSequence = (): GraphEvent[] => {
@@ -286,12 +266,8 @@ export const CombinedPanelDemo: Story = {
         {/* Graph Panel - Takes most of the space */}
         <div style={{ flex: 1, position: 'relative' }}>
           <GraphRenderer
-            configuration={sampleConfiguration}
-            nodes={sampleNodes}
-            edges={sampleEdges}
+            canvas={sampleCanvas}
             events={events}
-            width="100%"
-            height="100%"
             showMinimap={false}
             showControls={true}
             showBackground={true}
@@ -301,16 +277,11 @@ export const CombinedPanelDemo: Story = {
           />
         </div>
 
-        {/* Event Controller Panel - Sidebar */}
-        <div style={{ width: '320px', borderLeft: '1px solid #333' }}>
+        {/* Event Controller Panel - Fixed width sidebar */}
+        <div style={{ width: '350px', borderLeft: '1px solid #2a2a4a' }}>
           <EventControllerPanel
             events={eventSequence}
             onEventsEmit={handleEventsEmit}
-            onPlaybackStateChange={(state) => {
-              console.log('Playback state:', state);
-            }}
-            defaultSpeed={1}
-            loop={false}
           />
         </div>
       </div>
@@ -319,286 +290,126 @@ export const CombinedPanelDemo: Story = {
 };
 
 /**
- * With Looping - Auto-restarts when reaching the end
+ * Standalone Event Controller - Shows the panel in isolation
  */
-export const WithLooping: Story = {
+export const StandaloneController: Story = {
   args: {
-    events: [],
-    onEventsEmit: () => {},
+    events: createEventSequence(),
+    onEventsEmit: (events) => console.log('Events emitted:', events.length),
   },
-  render: () => {
-    const [events, setEvents] = useState<GraphEvent[]>([]);
-    const eventSequence = React.useMemo(() => createEventSequence(), []);
-
-    const handleEventsEmit = useCallback((emittedEvents: GraphEvent[]) => {
-      setEvents(emittedEvents);
-    }, []);
-
-    return (
-      <div style={{ display: 'flex', height: '100vh' }}>
-        <div style={{ flex: 1, position: 'relative' }}>
-          <GraphRenderer
-            configuration={sampleConfiguration}
-            nodes={sampleNodes}
-            edges={sampleEdges}
-            events={events}
-            width="100%"
-            height="100%"
-            showMinimap={false}
-            showControls={true}
-            showBackground={true}
-          />
-        </div>
-
-        <div style={{ width: '320px', borderLeft: '1px solid #333' }}>
-          <EventControllerPanel
-            events={eventSequence}
-            onEventsEmit={handleEventsEmit}
-            defaultSpeed={1}
-            loop={true}
-          />
-        </div>
-      </div>
-    );
-  },
+  render: (args) => (
+    <div style={{ width: '350px', height: '600px', margin: '20px auto' }}>
+      <EventControllerPanel {...args} />
+    </div>
+  ),
 };
 
 /**
- * Auto-Play - Starts playing automatically on mount
- */
-export const AutoPlay: Story = {
-  args: {
-    events: [],
-    onEventsEmit: () => {},
-  },
-  render: () => {
-    const [events, setEvents] = useState<GraphEvent[]>([]);
-    const eventSequence = React.useMemo(() => createEventSequence(), []);
-
-    const handleEventsEmit = useCallback((emittedEvents: GraphEvent[]) => {
-      setEvents(emittedEvents);
-    }, []);
-
-    return (
-      <div style={{ display: 'flex', height: '100vh' }}>
-        <div style={{ flex: 1, position: 'relative' }}>
-          <GraphRenderer
-            configuration={sampleConfiguration}
-            nodes={sampleNodes}
-            edges={sampleEdges}
-            events={events}
-            width="100%"
-            height="100%"
-            showMinimap={false}
-            showControls={true}
-            showBackground={true}
-          />
-        </div>
-
-        <div style={{ width: '320px', borderLeft: '1px solid #333' }}>
-          <EventControllerPanel
-            events={eventSequence}
-            onEventsEmit={handleEventsEmit}
-            defaultSpeed={1}
-            autoPlay={true}
-            loop={true}
-          />
-        </div>
-      </div>
-    );
-  },
-};
-
-/**
- * Fast Playback - Default speed set to 2x
- */
-export const FastPlayback: Story = {
-  args: {
-    events: [],
-    onEventsEmit: () => {},
-  },
-  render: () => {
-    const [events, setEvents] = useState<GraphEvent[]>([]);
-    const eventSequence = React.useMemo(() => createEventSequence(), []);
-
-    const handleEventsEmit = useCallback((emittedEvents: GraphEvent[]) => {
-      setEvents(emittedEvents);
-    }, []);
-
-    return (
-      <div style={{ display: 'flex', height: '100vh' }}>
-        <div style={{ flex: 1, position: 'relative' }}>
-          <GraphRenderer
-            configuration={sampleConfiguration}
-            nodes={sampleNodes}
-            edges={sampleEdges}
-            events={events}
-            width="100%"
-            height="100%"
-            showMinimap={false}
-            showControls={true}
-            showBackground={true}
-          />
-        </div>
-
-        <div style={{ width: '320px', borderLeft: '1px solid #333' }}>
-          <EventControllerPanel
-            events={eventSequence}
-            onEventsEmit={handleEventsEmit}
-            defaultSpeed={2}
-          />
-        </div>
-      </div>
-    );
-  },
-};
-
-/**
- * Empty State - No events loaded
+ * Empty State - Shows controller with no events
  */
 export const EmptyState: Story = {
   args: {
     events: [],
     onEventsEmit: () => {},
   },
-  render: () => {
-    const [events, setEvents] = useState<GraphEvent[]>([]);
-
-    const handleEventsEmit = useCallback((emittedEvents: GraphEvent[]) => {
-      setEvents(emittedEvents);
-    }, []);
-
-    return (
-      <div style={{ display: 'flex', height: '100vh' }}>
-        <div style={{ flex: 1, position: 'relative' }}>
-          <GraphRenderer
-            configuration={sampleConfiguration}
-            nodes={sampleNodes}
-            edges={sampleEdges}
-            events={events}
-            width="100%"
-            height="100%"
-            showMinimap={false}
-            showControls={true}
-            showBackground={true}
-          />
-        </div>
-
-        <div style={{ width: '320px', borderLeft: '1px solid #333' }}>
-          <EventControllerPanel
-            events={[]}
-            onEventsEmit={handleEventsEmit}
-          />
-        </div>
-      </div>
-    );
-  },
+  render: (args) => (
+    <div style={{ width: '350px', height: '400px', margin: '20px auto' }}>
+      <EventControllerPanel {...args} />
+    </div>
+  ),
 };
 
 /**
- * Standalone Controller - Just the event controller panel
- */
-export const StandaloneController: Story = {
-  args: {
-    events: [],
-    onEventsEmit: () => {},
-  },
-  render: () => {
-    const eventSequence = React.useMemo(() => createEventSequence(), []);
-
-    return (
-      <div style={{ width: '320px', height: '600px', margin: '20px auto' }}>
-        <EventControllerPanel
-          events={eventSequence}
-          onEventsEmit={(events) => {
-            console.log('Events emitted:', events.length);
-          }}
-          onPlaybackStateChange={(state) => {
-            console.log('Playback state:', state);
-          }}
-        />
-      </div>
-    );
-  },
-};
-
-/**
- * Many Events - Demonstrates scrolling in the event list
+ * Many Events - Shows controller with a large number of events
  */
 export const ManyEvents: Story = {
   args: {
+    events: Array.from({ length: 50 }, (_, i) => ({
+      id: `evt-${i}`,
+      type: i % 2 === 0 ? 'state_changed' : 'edge_animated',
+      timestamp: Date.now() + i * 200,
+      category: i % 2 === 0 ? 'state' : 'edge',
+      operation: 'update',
+      payload: {
+        nodeId: `node-${i % 3}`,
+        newState: ['idle', 'processing', 'completed'][i % 3],
+      },
+    })) as GraphEvent[],
+    onEventsEmit: (events) => console.log('Events emitted:', events.length),
+  },
+  render: (args) => (
+    <div style={{ width: '350px', height: '600px', margin: '20px auto' }}>
+      <EventControllerPanel {...args} />
+    </div>
+  ),
+};
+
+/**
+ * Full Integration Demo - Complete demo with all features
+ */
+export const FullIntegrationDemo: Story = {
+  args: {
     events: [],
     onEventsEmit: () => {},
   },
   render: () => {
     const [events, setEvents] = useState<GraphEvent[]>([]);
-
-    // Create a longer sequence of events
-    const eventSequence = React.useMemo(() => {
-      const baseTime = Date.now();
-      const events: GraphEvent[] = [];
-
-      for (let i = 0; i < 20; i++) {
-        events.push({
-          id: `evt-${i * 2}`,
-          type: 'edge_animated',
-          timestamp: baseTime + (i * 800),
-          category: 'edge',
-          operation: 'animate',
-          payload: {
-            operation: 'animate',
-            edgeId: i % 2 === 0 ? 'edge-client-server' : 'edge-server-db',
-            edgeType: i % 2 === 0 ? 'websocket' : 'query',
-            from: i % 2 === 0 ? 'client-1' : 'server-1',
-            to: i % 2 === 0 ? 'server-1' : 'database-1',
-            animation: {
-              duration: 600,
-              direction: 'forward' as const,
-            },
-          },
-        });
-        events.push({
-          id: `evt-${i * 2 + 1}`,
-          type: 'state_changed',
-          timestamp: baseTime + (i * 800) + 400,
-          category: 'state',
-          operation: 'update',
-          payload: {
-            nodeId: 'server-1',
-            newState: i % 3 === 0 ? 'processing' : i % 3 === 1 ? 'completed' : 'idle',
-          },
-        });
-      }
-
-      return events;
-    }, []);
+    const [processedCount, setProcessedCount] = useState(0);
+    const eventSequence = React.useMemo(() => createEventSequence(), []);
 
     const handleEventsEmit = useCallback((emittedEvents: GraphEvent[]) => {
       setEvents(emittedEvents);
     }, []);
 
+    const handleEventProcessed = useCallback(() => {
+      setProcessedCount((prev) => prev + 1);
+    }, []);
+
     return (
-      <div style={{ display: 'flex', height: '100vh' }}>
-        <div style={{ flex: 1, position: 'relative' }}>
-          <GraphRenderer
-            configuration={sampleConfiguration}
-            nodes={sampleNodes}
-            edges={sampleEdges}
-            events={events}
-            width="100%"
-            height="100%"
-            showMinimap={false}
-            showControls={true}
-            showBackground={true}
-          />
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        {/* Stats bar */}
+        <div
+          style={{
+            padding: '12px 20px',
+            background: '#2a2a4a',
+            borderBottom: '1px solid #3a3a5a',
+            display: 'flex',
+            gap: '24px',
+            fontSize: '14px',
+          }}
+        >
+          <span style={{ color: '#a0a0c0' }}>
+            Total Events: <strong style={{ color: '#fff' }}>{eventSequence.length}</strong>
+          </span>
+          <span style={{ color: '#a0a0c0' }}>
+            Processed: <strong style={{ color: '#10b981' }}>{processedCount}</strong>
+          </span>
+          <span style={{ color: '#a0a0c0' }}>
+            Current Queue: <strong style={{ color: '#60a5fa' }}>{events.length}</strong>
+          </span>
         </div>
 
-        <div style={{ width: '320px', borderLeft: '1px solid #333' }}>
-          <EventControllerPanel
-            events={eventSequence}
-            onEventsEmit={handleEventsEmit}
-            defaultSpeed={2}
-          />
+        {/* Main content */}
+        <div style={{ display: 'flex', flex: 1 }}>
+          {/* Graph Panel */}
+          <div style={{ flex: 1, position: 'relative' }}>
+            <GraphRenderer
+              canvas={sampleCanvas}
+              events={events}
+              showMinimap={false}
+              showControls={true}
+              showBackground={true}
+              onEventProcessed={handleEventProcessed}
+            />
+          </div>
+
+          {/* Event Controller Panel */}
+          <div style={{ width: '350px', borderLeft: '1px solid #2a2a4a' }}>
+            <EventControllerPanel
+              events={eventSequence}
+              onEventsEmit={handleEventsEmit}
+            />
+          </div>
         </div>
       </div>
     );
