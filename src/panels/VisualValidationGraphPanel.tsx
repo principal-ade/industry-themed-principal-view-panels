@@ -241,6 +241,11 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
   const fileTreeLoading = context.hasSlice('fileTree') && context.isSliceLoading('fileTree');
   const fileTreeLoadingRef = useRef(fileTreeLoading);
 
+  // Track fileTree data for change detection
+  const fileTreeSlice = context.hasSlice('fileTree') ? context.getSlice('fileTree') : null;
+  const fileTreeData = fileTreeSlice?.data as { allFiles?: Array<{ path?: string; relativePath?: string; name?: string }> } | null;
+  const fileTreeDataRef = useRef(fileTreeData);
+
   useEffect(() => {
     // Initial load
     loadConfiguration();
@@ -257,6 +262,23 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
       loadConfiguration();
     }
   }, [fileTreeLoading, loadConfiguration]);
+
+  // Reload when fileTree data changes (e.g., files added/modified/deleted on disk)
+  useEffect(() => {
+    const prevData = fileTreeDataRef.current;
+    fileTreeDataRef.current = fileTreeData;
+
+    // Skip if this is the initial render or if we're still loading
+    if (prevData === null || fileTreeLoading) {
+      return;
+    }
+
+    // Check if the data reference actually changed
+    if (prevData !== fileTreeData && fileTreeData !== null) {
+      console.log('[VisualValidationGraph] File tree data changed, reloading...');
+      loadConfiguration();
+    }
+  }, [fileTreeData, fileTreeLoading, loadConfiguration]);
 
   // Subscribe to data refresh events
   useEffect(() => {
