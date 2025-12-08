@@ -1,0 +1,95 @@
+version: "1.0.0"
+name: "Visual Validation Panel Library"
+
+nodeComponents:
+  # Core Panel Components
+  panel:
+    shape: rectangle
+    color: "#6366f1"
+    description: "UI Panel component for displaying content"
+    tags: ["ui", "panel", "react"]
+
+  graph-renderer:
+    shape: hexagon
+    color: "#8b5cf6"
+    description: "GraphRenderer component using @xyflow/react"
+    tags: ["visualization", "graph", "core"]
+
+  adapter:
+    shape: diamond
+    color: "#06b6d4"
+    description: "Adapter for bridging interfaces"
+    tags: ["adapter", "integration"]
+
+  loader:
+    shape: circle
+    color: "#10b981"
+    description: "Configuration/Library loader component"
+    tags: ["loader", "config"]
+
+  tool:
+    shape: rectangle
+    color: "#f59e0b"
+    description: "UTCP-compatible panel tool"
+    tags: ["tool", "utcp", "api"]
+
+  # State Components
+  state:
+    shape: circle
+    color: "#ec4899"
+    description: "State management component"
+    tags: ["state", "react"]
+
+  context:
+    shape: hexagon
+    color: "#84cc16"
+    description: "React context provider"
+    tags: ["context", "react", "provider"]
+
+  # External Dependencies
+  external-lib:
+    shape: rectangle
+    color: "#64748b"
+    description: "External library dependency"
+    tags: ["external", "dependency"]
+
+edgeComponents:
+  # Data Flow
+  data-flow:
+    color: "#6366f1"
+    description: "Data flows from source to target"
+    directed: true
+    tags: ["data", "flow"]
+
+  # Component Composition
+  uses:
+    color: "#8b5cf6"
+    description: "Component uses/imports another"
+    directed: true
+    tags: ["import", "composition"]
+
+  # Event Flow
+  emits:
+    color: "#f59e0b"
+    description: "Component emits events"
+    directed: true
+    tags: ["event", "emit"]
+
+  listens:
+    color: "#10b981"
+    description: "Component listens to events"
+    directed: true
+    tags: ["event", "subscribe"]
+
+  # State Management
+  provides:
+    color: "#84cc16"
+    description: "Provides context/state to children"
+    directed: true
+    tags: ["context", "provider"]
+
+  consumes:
+    color: "#ec4899"
+    description: "Consumes context/state"
+    directed: true
+    tags: ["context", "consumer"]

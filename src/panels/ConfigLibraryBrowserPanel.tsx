@@ -190,8 +190,9 @@ export const ConfigLibraryBrowserPanel: React.FC<PanelComponentProps> = ({
         }
       }
 
-      // Add YAML configs
+      // Add YAML configs (excluding library.yaml which is not a canvas config)
       for (const name of configNames) {
+        if (name === 'library') continue;
         if (!canvasConfigs.find(c => c.id === name)) {
           const displayName = name
             .split('-')
