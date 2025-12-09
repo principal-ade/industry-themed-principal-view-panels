@@ -682,9 +682,9 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
             </label>
             <input
               type="range"
-              min="100"
+              min="30"
               max="400"
-              step="25"
+              step="10"
               value={state.layoutConfig.nodeSpacingX}
               onChange={(e) => updateLayoutConfig({ nodeSpacingX: Number(e.target.value) })}
               style={{ width: 80, cursor: 'pointer' }}
@@ -710,9 +710,9 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
             </label>
             <input
               type="range"
-              min="80"
+              min="30"
               max="300"
-              step="25"
+              step="10"
               value={state.layoutConfig.nodeSpacingY}
               onChange={(e) => updateLayoutConfig({ nodeSpacingY: Number(e.target.value) })}
               style={{ width: 80, cursor: 'pointer' }}
