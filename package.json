@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/visual-validation-panel",
-  "version": "0.3.15",
+  "version": "0.3.16",
   "description": "Visual Validation Graph Panel for visualizing graph configurations from .vgc/ folder as interactive diagrams",
   "type": "module",
   "main": "dist/panels.bundle.js",
