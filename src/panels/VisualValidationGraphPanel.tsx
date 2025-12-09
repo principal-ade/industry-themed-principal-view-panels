@@ -4,8 +4,9 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/visual-validation-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/visual-validation-react';
 import type { ExtendedCanvas } from '@principal-ai/visual-validation-core';
-import { Loader, ChevronDown, Save, X, Lock, Unlock } from 'lucide-react';
+import { Loader, ChevronDown, Save, X, Lock, Unlock, LayoutGrid } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './visual-validation/ConfigLoader';
+import { applySugiyamaLayout } from './visual-validation/forceLayout';
 import { ErrorStateContent } from './visual-validation/ErrorStateContent';
 import { EmptyStateContent } from './visual-validation/EmptyStateContent';
 
@@ -19,6 +20,8 @@ interface GraphPanelState {
   isEditMode: boolean;
   hasUnsavedChanges: boolean;
   isSaving: boolean;
+  // Incremented when layout changes to force GraphRenderer remount
+  layoutVersion: number;
 }
 
 /**
@@ -45,7 +48,8 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
     selectedConfigId: null,
     isEditMode: false,
     hasUnsavedChanges: false,
-    isSaving: false
+    isSaving: false,
+    layoutVersion: 0
   });
 
   // Store context and actions in refs to avoid recreation of callbacks
@@ -237,6 +241,26 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
     }
   }, [state.canvas, state.availableConfigs, loadConfiguration]);
 
+  // Apply auto-layout using Sugiyama (hierarchical) algorithm
+  // Falls back to force-directed layout if graph has cycles
+  const applyAutoLayout = useCallback(() => {
+    if (!state.canvas) return;
+
+    const layoutedCanvas = applySugiyamaLayout(state.canvas, {
+      direction: 'TB',
+      nodeSpacingX: 200,
+      nodeSpacingY: 150,
+    });
+
+    setState(prev => ({
+      ...prev,
+      canvas: layoutedCanvas,
+      isEditMode: true,
+      hasUnsavedChanges: true,
+      layoutVersion: prev.layoutVersion + 1,
+    }));
+  }, [state.canvas]);
+
   // Load configuration on mount and when fileTree slice finishes loading
   const fileTreeLoading = context.hasSlice('fileTree') && context.isSliceLoading('fileTree');
   const fileTreeLoadingRef = useRef(fileTreeLoading);
@@ -417,6 +441,30 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[3] }}>
+            {/* Auto Layout Button */}
+            <button
+              onClick={applyAutoLayout}
+              disabled={state.isSaving}
+              title="Auto-arrange nodes using force-directed layout"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.space[1],
+                padding: `${theme.space[1]} ${theme.space[2]}`,
+                fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
+                color: theme.colors.text,
+                backgroundColor: theme.colors.backgroundSecondary,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radii[1],
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <LayoutGrid size={14} />
+              <span>Auto Layout</span>
+            </button>
+
             {/* Edit Mode Controls */}
             <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2] }}>
               {/* Save/Discard buttons */}
@@ -531,6 +579,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
       {/* Graph */}
       <div style={{ flex: 1, position: 'relative' }}>
         <GraphRenderer
+          key={`graph-${state.layoutVersion}`}
           ref={graphRef}
           canvas={state.canvas}
           showMinimap={false}
