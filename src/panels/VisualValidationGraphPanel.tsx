@@ -3,7 +3,7 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/visual-validation-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/visual-validation-react';
-import type { ExtendedCanvas } from '@principal-ai/visual-validation-core';
+import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/visual-validation-core';
 import { Loader, ChevronDown, Save, X, Lock, Unlock, LayoutGrid } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './visual-validation/ConfigLoader';
 import { applySugiyamaLayout } from './visual-validation/forceLayout';
@@ -12,6 +12,7 @@ import { EmptyStateContent } from './visual-validation/EmptyStateContent';
 
 interface GraphPanelState {
   canvas: ExtendedCanvas | null;
+  library: ComponentLibrary | null;
   loading: boolean;
   error: string | null;
   availableConfigs: ConfigFile[];
@@ -42,6 +43,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
 
   const [state, setState] = useState<GraphPanelState>({
     canvas: null,
+    library: null,
     loading: true,
     error: null,
     availableConfigs: [],
@@ -87,6 +89,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
         setState(prev => ({
           ...prev,
           canvas: null,
+          library: null,
           loading: false,
           error: null,
           availableConfigs: [],
@@ -101,6 +104,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
         setState(prev => ({
           ...prev,
           canvas: null,
+          library: null,
           loading: false,
           error: null,
           availableConfigs: [],
@@ -143,9 +147,26 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
       const configContent = (fileResult as { content: string }).content;
       const canvas = ConfigLoader.parseCanvas(configContent);
 
+      // Load library.yaml if it exists
+      let library: ComponentLibrary | null = null;
+      const libraryPath = ConfigLoader.findLibraryPath(fileTreeData.allFiles);
+      if (libraryPath) {
+        try {
+          const libraryFullPath = `${repositoryPath}/${libraryPath}`;
+          const libraryResult = await readFile(libraryFullPath);
+          if (libraryResult && typeof libraryResult === 'object' && 'content' in libraryResult) {
+            library = ConfigLoader.parseLibrary((libraryResult as { content: string }).content);
+          }
+        } catch (libraryError) {
+          // Library loading is optional, don't fail the whole operation
+          console.warn('[VisualValidation] Failed to load library.yaml:', libraryError);
+        }
+      }
+
       setState(prev => ({
         ...prev,
         canvas,
+        library,
         loading: false,
         error: null,
         availableConfigs,
@@ -160,6 +181,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
       setState(prev => ({
         ...prev,
         canvas: null,
+        library: null,
         loading: false,
         error: (error as Error).message
       }));
@@ -591,6 +613,7 @@ export const VisualValidationGraphPanel: React.FC<PanelComponentProps> = ({
           key={`graph-${state.layoutVersion}`}
           ref={graphRef}
           canvas={state.canvas}
+          library={state.library ?? undefined}
           showMinimap={false}
           showControls={true}
           showBackground={true}

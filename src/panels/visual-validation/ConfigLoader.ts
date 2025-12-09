@@ -1,4 +1,5 @@
-import type { ExtendedCanvas } from '@principal-ai/visual-validation-core';
+import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/visual-validation-core';
+import yaml from 'js-yaml';
 
 export interface ConfigFile {
   /** Unique identifier for this config (derived from filename) */
@@ -38,6 +39,37 @@ export class ConfigLoader {
     } catch (error) {
       throw new Error(`Failed to parse canvas JSON: ${(error as Error).message}`);
     }
+  }
+
+  /**
+   * Parse YAML library content
+   */
+  static parseLibrary(content: string): ComponentLibrary {
+    try {
+      return yaml.load(content) as ComponentLibrary;
+    } catch (error) {
+      throw new Error(`Failed to parse library YAML: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Find the library.yaml file in the .vgc/ folder
+   * Returns the relative path if found, null otherwise
+   */
+  static findLibraryPath(files: Array<{ path?: string; relativePath?: string; name?: string }>): string | null {
+    const VGC_FOLDER = '.vgc';
+
+    for (const file of files) {
+      const filePath = file.relativePath || file.path || '';
+      const fileName = file.name || '';
+
+      if (filePath === `${VGC_FOLDER}/library.yaml` ||
+          (filePath.startsWith(`${VGC_FOLDER}/`) && fileName === 'library.yaml')) {
+        return filePath;
+      }
+    }
+
+    return null;
   }
 
   /**
