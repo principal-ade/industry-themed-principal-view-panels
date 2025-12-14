@@ -25,6 +25,7 @@ const sampleGraphConfig: PathBasedGraphConfiguration = {
   },
   nodeTypes: {
     'lock-manager': {
+      description: 'Manages repository locks',
       shape: 'rectangle',
       icon: 'lock',
       color: '#3b82f6',
@@ -45,6 +46,7 @@ const sampleGraphConfig: PathBasedGraphConfiguration = {
       ],
     },
     'github-api': {
+      description: 'GitHub API client',
       shape: 'hexagon',
       icon: 'github',
       color: '#22c55e',
@@ -52,6 +54,7 @@ const sampleGraphConfig: PathBasedGraphConfiguration = {
       sources: ['lib/github-api-client.ts', 'services/github/*.ts'],
     },
     'request-handler': {
+      description: 'Handles incoming requests',
       shape: 'rectangle',
       icon: 'server',
       color: '#f59e0b',

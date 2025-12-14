@@ -51,6 +51,7 @@ const sampleCanvas: ExtendedCanvas = {
       color: '#3b82f6',
       pv: {
         nodeType: 'client',
+        description: 'Client connection node',
         shape: 'circle',
         icon: 'Monitor',
         states: {
@@ -71,6 +72,7 @@ const sampleCanvas: ExtendedCanvas = {
       color: '#8b5cf6',
       pv: {
         nodeType: 'server',
+        description: 'Server processing node',
         shape: 'rectangle',
         icon: 'Server',
         states: {
@@ -92,6 +94,7 @@ const sampleCanvas: ExtendedCanvas = {
       color: '#10b981',
       pv: {
         nodeType: 'database',
+        description: 'Database storage node',
         shape: 'hexagon',
         icon: 'Database',
       },

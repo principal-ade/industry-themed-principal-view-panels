@@ -24,6 +24,7 @@ const controlTowerConfig: PathBasedGraphConfiguration = {
   },
   nodeTypes: {
     server: {
+      description: 'Central server component',
       shape: 'rectangle',
       icon: 'server',
       color: '#8b5cf6',
@@ -35,6 +36,7 @@ const controlTowerConfig: PathBasedGraphConfiguration = {
       ],
     },
     'client-a': {
+      description: 'Client connection',
       shape: 'circle',
       icon: 'user',
       color: '#3b82f6',
@@ -45,6 +47,7 @@ const controlTowerConfig: PathBasedGraphConfiguration = {
       ],
     },
     transport: {
+      description: 'Transport layer adapter',
       shape: 'diamond',
       icon: 'radio',
       color: '#06b6d4',
@@ -56,6 +59,7 @@ const controlTowerConfig: PathBasedGraphConfiguration = {
       ],
     },
     'room-manager': {
+      description: 'Manages room subscriptions',
       shape: 'hexagon',
       icon: 'users',
       color: '#22c55e',
@@ -63,6 +67,7 @@ const controlTowerConfig: PathBasedGraphConfiguration = {
       sources: ['src/abstractions/DefaultRoomManager.ts'],
     },
     'lock-manager': {
+      description: 'Manages distributed locks',
       shape: 'hexagon',
       icon: 'lock',
       color: '#f59e0b',
@@ -70,6 +75,7 @@ const controlTowerConfig: PathBasedGraphConfiguration = {
       sources: ['src/abstractions/DefaultLockManager.ts'],
     },
     'presence-manager': {
+      description: 'Tracks user presence',
       shape: 'hexagon',
       icon: 'activity',
       color: '#ec4899',
@@ -77,6 +83,7 @@ const controlTowerConfig: PathBasedGraphConfiguration = {
       sources: ['src/abstractions/DefaultPresenceManager.ts'],
     },
     auth: {
+      description: 'Authentication adapter',
       shape: 'rectangle',
       icon: 'shield',
       color: '#ef4444',

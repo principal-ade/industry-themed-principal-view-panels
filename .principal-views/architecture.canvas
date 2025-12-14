@@ -5,26 +5,32 @@
     "description": "Architecture diagram of the Principal View Panel package",
     "nodeTypes": {
       "panel": {
+        "description": "UI panel component",
         "shape": "rectangle",
         "color": "#6366f1"
       },
-            "adapter": {
+      "adapter": {
+        "description": "Adapter for external systems",
         "shape": "diamond",
         "color": "#06b6d4"
       },
       "loader": {
+        "description": "Data loader component",
         "shape": "circle",
         "color": "#10b981"
       },
       "tool": {
+        "description": "Interactive tool component",
         "shape": "rectangle",
         "color": "#f59e0b"
       },
       "external-lib": {
+        "description": "External library dependency",
         "shape": "rectangle",
         "color": "#64748b"
       },
       "context": {
+        "description": "React context provider",
         "shape": "hexagon",
         "color": "#84cc16"
       }
@@ -55,6 +61,7 @@
       "height": 80,
       "pv": {
         "nodeType": "panel",
+        "description": "Main graph visualization panel",
         "icon": "layout-dashboard"
       }
     },
@@ -68,6 +75,7 @@
       "height": 80,
       "pv": {
         "nodeType": "panel",
+        "description": "Configuration and library browser panel",
         "icon": "folder-tree"
       }
     },
@@ -81,6 +89,7 @@
       "height": 80,
       "pv": {
         "nodeType": "panel",
+        "description": "Event playback controller panel",
         "icon": "play-circle"
       }
     },
@@ -94,6 +103,7 @@
       "height": 70,
       "pv": {
         "nodeType": "loader",
+        "description": "Loads graph configuration files",
         "icon": "file-json"
       }
     },
@@ -107,6 +117,7 @@
       "height": 70,
       "pv": {
         "nodeType": "loader",
+        "description": "Loads component library definitions",
         "icon": "library"
       }
     },
@@ -120,6 +131,7 @@
       "height": 70,
       "pv": {
         "nodeType": "adapter",
+        "description": "Filesystem adapter for panel operations",
         "icon": "hard-drive"
       }
     },
@@ -133,6 +145,7 @@
       "height": 60,
       "pv": {
         "nodeType": "tool",
+        "description": "Tool to focus on a specific node",
         "icon": "target"
       }
     },
@@ -146,6 +159,7 @@
       "height": 60,
       "pv": {
         "nodeType": "tool",
+        "description": "Tool to reset the view",
         "icon": "rotate-ccw"
       }
     },
@@ -159,6 +173,7 @@
       "height": 60,
       "pv": {
         "nodeType": "tool",
+        "description": "Tool to trigger events",
         "icon": "zap"
       }
     },
@@ -172,6 +187,7 @@
       "height": 60,
       "pv": {
         "nodeType": "external-lib",
+        "description": "Core library for Principal View",
         "icon": "box"
       }
     },
@@ -185,6 +201,7 @@
       "height": 60,
       "pv": {
         "nodeType": "external-lib",
+        "description": "React components for Principal View",
         "icon": "box"
       }
     },
@@ -198,6 +215,7 @@
       "height": 60,
       "pv": {
         "nodeType": "context",
+        "description": "Industry theme context provider",
         "icon": "palette"
       }
     }
