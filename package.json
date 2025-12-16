@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/principal-view-panels",
-  "version": "0.1.6",
+  "version": "0.1.8",
   "description": "Principal View Graph Panels for visualizing graph configurations from .principal-views/ folder as interactive diagrams",
   "type": "module",
   "main": "dist/panels.bundle.js",
@@ -30,7 +30,7 @@
   "license": "MIT",
   "scripts": {
     "build": "bun run clean && bun run build:panel && bun run build:tools && bun run build:types",
-    "build:panel": "vite build",
+    "build:panel": "NODE_ENV=production vite build",
     "build:tools": "bun build ./src/tools/index.ts --outfile ./dist/tools.bundle.js --format esm --target browser",
     "build:types": "tsc --project tsconfig.build.json --emitDeclarationOnly --declaration --declarationMap",
     "dev": "vite build --watch",
