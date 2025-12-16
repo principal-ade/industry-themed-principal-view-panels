@@ -83,6 +83,9 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
   const selectedConfigIdRef = useRef<string | null>(null);
   selectedConfigIdRef.current = state.selectedConfigId;
 
+  // Track if we should skip the next file change (after save)
+  const skipNextFileChangeRef = useRef(false);
+
   const loadConfiguration = useCallback(async (configId?: string) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -275,10 +278,19 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
       const fullPath = `${repositoryPath}/${selectedConfig.path}`;
       await writeFile(fullPath, jsonContent);
 
-      // Reload to verify and reset state
-      await loadConfiguration(selectedConfigIdRef.current || undefined);
+      // Skip the next file change event since we caused it
+      skipNextFileChangeRef.current = true;
 
-      setState(prev => ({ ...prev, isSaving: false, hasUnsavedChanges: false }));
+      // Update local state with the saved canvas (no reload needed)
+      setState(prev => ({
+        ...prev,
+        canvas: updatedCanvas,
+        isSaving: false,
+        hasUnsavedChanges: false
+      }));
+
+      // Reset the GraphRenderer's edit state
+      graphRef.current?.resetEditState();
     } catch (error) {
       console.error('[PrincipalView] Error saving changes:', error);
       setState(prev => ({
@@ -287,7 +299,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
         error: `Failed to save: ${(error as Error).message}`
       }));
     }
-  }, [state.canvas, state.availableConfigs, loadConfiguration]);
+  }, [state.canvas, state.availableConfigs]);
 
   // Toggle layout config panel visibility
   const toggleLayoutConfig = useCallback(() => {
@@ -349,6 +361,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
   }, [fileTreeLoading, loadConfiguration]);
 
   // Reload when fileTree data changes (e.g., files added/modified/deleted on disk)
+  // Only reload if the change affects the currently selected config or library
   useEffect(() => {
     const prevData = fileTreeDataRef.current;
     fileTreeDataRef.current = fileTreeData;
@@ -358,12 +371,53 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
       return;
     }
 
+    // Skip if we just saved (we caused this file change)
+    if (skipNextFileChangeRef.current) {
+      skipNextFileChangeRef.current = false;
+      return;
+    }
+
     // Check if the data reference actually changed
     if (prevData !== fileTreeData && fileTreeData !== null) {
-      console.log('[PrincipalViewGraph] File tree data changed, reloading...');
-      loadConfiguration();
+      // Find the currently selected config path
+      const selectedConfig = state.availableConfigs.find(c => c.id === selectedConfigIdRef.current);
+      if (!selectedConfig) {
+        // No config selected, check if new configs appeared
+        const newConfigs = ConfigLoader.findConfigs(fileTreeData.allFiles || []);
+        if (newConfigs.length > 0) {
+          console.log('[PrincipalViewGraph] New configs available, reloading...');
+          loadConfiguration();
+        }
+        return;
+      }
+
+      // Check if the selected config file changed
+      const prevFiles = prevData.allFiles || [];
+      const newFiles = fileTreeData.allFiles || [];
+
+      // Find the selected config in both old and new file lists
+      const prevConfigFile = prevFiles.find(f => (f.path || f.relativePath) === selectedConfig.path);
+      const newConfigFile = newFiles.find(f => (f.path || f.relativePath) === selectedConfig.path);
+
+      // Check if library.yaml changed
+      const libraryPath = ConfigLoader.findLibraryPath(newFiles);
+      const prevLibraryFile = libraryPath ? prevFiles.find(f => (f.path || f.relativePath) === libraryPath) : null;
+      const newLibraryFile = libraryPath ? newFiles.find(f => (f.path || f.relativePath) === libraryPath) : null;
+
+      // Only reload if current config or library file changed/appeared/disappeared
+      const configChanged = prevConfigFile !== newConfigFile;
+      const libraryChanged = prevLibraryFile !== newLibraryFile;
+
+      if (configChanged || libraryChanged) {
+        console.log('[PrincipalViewGraph] Current config or library changed, reloading...', {
+          configChanged,
+          libraryChanged,
+          configPath: selectedConfig.path
+        });
+        loadConfiguration();
+      }
     }
-  }, [fileTreeData, fileTreeLoading, loadConfiguration]);
+  }, [fileTreeData, fileTreeLoading, loadConfiguration, state.availableConfigs]);
 
   // Subscribe to data refresh events
   useEffect(() => {
