@@ -1115,6 +1115,20 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
 };
 
 /**
+ * Convert React Flow handle ID back to canvas side format.
+ * Source handles have '-out' suffix (e.g., 'right-out' -> 'right')
+ * Target handles are already in side format (e.g., 'left' -> 'left')
+ */
+function handleToCanvasSide(handle?: string): 'top' | 'right' | 'bottom' | 'left' | undefined {
+  if (!handle) return undefined;
+  const side = handle.replace(/-out$/, '');
+  if (side === 'top' || side === 'right' || side === 'bottom' || side === 'left') {
+    return side;
+  }
+  return undefined;
+}
+
+/**
  * Apply pending changes from GraphRenderer to the canvas
  */
 function applyChangesToCanvas(
@@ -1183,8 +1197,9 @@ function applyChangesToCanvas(
       id: edgeId,
       fromNode: from,
       toNode: to,
-      fromSide: sourceHandle as 'top' | 'right' | 'bottom' | 'left' | undefined,
-      toSide: targetHandle as 'top' | 'right' | 'bottom' | 'left' | undefined,
+      // Convert React Flow handle IDs back to canvas side format
+      fromSide: handleToCanvasSide(sourceHandle),
+      toSide: handleToCanvasSide(targetHandle),
       pv: { edgeType: type },
     });
   }
