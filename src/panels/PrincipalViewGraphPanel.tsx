@@ -4,7 +4,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core';
-import { Loader, ChevronDown, Save, X, Lock, Unlock, LayoutGrid } from 'lucide-react';
+import { Loader, Save, X, Lock, Unlock, LayoutGrid, PanelLeft, FileJson, HelpCircle } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './principal-view/ConfigLoader';
 import { applySugiyamaLayout } from './principal-view/forceLayout';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
@@ -14,13 +14,20 @@ interface LayoutConfig {
   direction: 'TB' | 'BT' | 'LR' | 'RL';
   nodeSpacingX: number;
   nodeSpacingY: number;
+  autoUpdateEdgeSides: boolean;
 }
 
 const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   direction: 'TB',
   nodeSpacingX: 100,
   nodeSpacingY: 100,
+  autoUpdateEdgeSides: false,
 };
+
+interface ConfigDescription {
+  name: string;
+  description: string | null;
+}
 
 interface GraphPanelState {
   canvas: ExtendedCanvas | null;
@@ -28,7 +35,12 @@ interface GraphPanelState {
   loading: boolean;
   error: string | null;
   availableConfigs: ConfigFile[];
+  configDescriptions: Record<string, ConfigDescription>;
   selectedConfigId: string | null;
+  // Canvas selector overlay
+  showCanvasSelector: boolean;
+  // Help overlay
+  showHelp: boolean;
   // Edit mode state
   isEditMode: boolean;
   hasUnsavedChanges: boolean;
@@ -36,7 +48,6 @@ interface GraphPanelState {
   // Incremented when layout changes to force GraphRenderer remount
   layoutVersion: number;
   // Layout configuration
-  showLayoutConfig: boolean;
   layoutConfig: LayoutConfig;
 }
 
@@ -62,12 +73,14 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
     loading: true,
     error: null,
     availableConfigs: [],
+    configDescriptions: {},
     selectedConfigId: null,
+    showCanvasSelector: false,
+    showHelp: false,
     isEditMode: false,
     hasUnsavedChanges: false,
     isSaving: false,
     layoutVersion: 0,
-    showLayoutConfig: false,
     layoutConfig: DEFAULT_LAYOUT_CONFIG,
   });
 
@@ -87,7 +100,8 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
   const skipNextFileChangeRef = useRef(false);
 
   const loadConfiguration = useCallback(async (configId?: string) => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    // Only show loading spinner on initial load, not when switching configs
+    setState(prev => ({ ...prev, loading: prev.canvas === null, error: null }));
 
     try {
       const ctx = contextRef.current;
@@ -183,6 +197,41 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
         }
       }
 
+      // Load descriptions for all configs (in background, don't block)
+      const configDescriptions: Record<string, ConfigDescription> = {};
+      // Add the current canvas description
+      configDescriptions[selectedConfig.id] = {
+        name: canvas.pv?.name || selectedConfig.name,
+        description: canvas.pv?.description || null,
+      };
+
+      // Load other configs in parallel (don't await, let it happen in background)
+      const loadOtherDescriptions = async () => {
+        for (const config of availableConfigs) {
+          if (config.id === selectedConfig.id) continue;
+          try {
+            const configFullPath = `${repositoryPath}/${config.path}`;
+            const configResult = await readFile(configFullPath);
+            if (configResult && typeof configResult === 'object' && 'content' in configResult) {
+              const configCanvas = ConfigLoader.parseCanvas((configResult as { content: string }).content);
+              setState(prev => ({
+                ...prev,
+                configDescriptions: {
+                  ...prev.configDescriptions,
+                  [config.id]: {
+                    name: configCanvas.pv?.name || config.name,
+                    description: configCanvas.pv?.description || null,
+                  },
+                },
+              }));
+            }
+          } catch {
+            // Ignore errors for individual configs
+          }
+        }
+      };
+      loadOtherDescriptions();
+
       setState(prev => ({
         ...prev,
         canvas,
@@ -190,6 +239,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
         loading: false,
         error: null,
         availableConfigs,
+        configDescriptions,
         selectedConfigId: selectedConfig.id,
         hasUnsavedChanges: false
       }));
@@ -212,6 +262,21 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
   const handlePendingChangesChange = useCallback((hasChanges: boolean) => {
     setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
   }, []);
+
+  // Toggle canvas selector overlay
+  const toggleCanvasSelector = useCallback(() => {
+    setState(prev => ({ ...prev, showCanvasSelector: !prev.showCanvasSelector }));
+  }, []);
+
+  // Toggle help overlay
+  const toggleHelp = useCallback(() => {
+    setState(prev => ({ ...prev, showHelp: !prev.showHelp }));
+  }, []);
+
+  // Handle canvas selection from overlay
+  const handleCanvasSelect = useCallback((configId: string) => {
+    loadConfiguration(configId);
+  }, [loadConfiguration]);
 
   // Toggle edit mode
   const toggleEditMode = useCallback(() => {
@@ -300,11 +365,6 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
       }));
     }
   }, [state.canvas, state.availableConfigs]);
-
-  // Toggle layout config panel visibility
-  const toggleLayoutConfig = useCallback(() => {
-    setState(prev => ({ ...prev, showLayoutConfig: !prev.showLayoutConfig }));
-  }, []);
 
   // Update layout config
   const updateLayoutConfig = useCallback((updates: Partial<LayoutConfig>) => {
@@ -474,137 +534,68 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
     }}>
       {/* Header */}
       <div style={{
-        padding: '16px 20px',
+        height: 39,
         borderBottom: `1px solid ${theme.colors.border}`,
         backgroundColor: theme.colors.background,
-        flexShrink: 0
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        boxSizing: 'content-box'
       }}>
-        {/* Title Row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: theme.space[3] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[3] }}>
+        {/* Canvas Selector Toggle - flush left, full height */}
+        {state.availableConfigs.length > 1 && (
+          <button
+            onClick={toggleCanvasSelector}
+            disabled={state.hasUnsavedChanges}
+            title={state.hasUnsavedChanges ? 'Save or discard changes before switching' : 'Switch canvas'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 40,
+              height: 39,
+              padding: 0,
+              backgroundColor: state.showCanvasSelector ? theme.colors.primary : 'transparent',
+              color: state.showCanvasSelector ? 'white' : theme.colors.textMuted,
+              border: 'none',
+              borderRight: `1px solid ${theme.colors.border}`,
+              cursor: state.hasUnsavedChanges ? 'not-allowed' : 'pointer',
+              opacity: state.hasUnsavedChanges ? 0.5 : 1,
+              transition: 'all 0.15s',
+              flexShrink: 0,
+            }}
+          >
+            <PanelLeft size={18} />
+          </button>
+        )}
+
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', gap: theme.space[3] }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2] }}>
             <h2 style={{
-              margin: 0,
-              fontSize: theme.fontSizes[3],
-              fontWeight: theme.fontWeights.medium,
-              color: theme.colors.text
+            margin: 0,
+            fontSize: theme.fontSizes[3],
+            fontWeight: theme.fontWeights.medium,
+            color: theme.colors.text
+          }}>
+            {state.canvas.pv?.name || 'Untitled'}
+          </h2>
+
+          {/* Unsaved changes indicator */}
+          {state.isEditMode && state.hasUnsavedChanges && (
+            <span style={{
+              fontSize: theme.fontSizes[1],
+              color: theme.colors.warning || '#f59e0b',
+              fontStyle: 'italic'
             }}>
-              {state.canvas.pv?.name || 'Untitled'}
-            </h2>
-
-            {/* Config Selector */}
-            {state.availableConfigs.length > 1 && (
-              <div style={{ position: 'relative' }}>
-                <select
-                  value={state.selectedConfigId || ''}
-                  onChange={(e) => loadConfiguration(e.target.value)}
-                  disabled={state.hasUnsavedChanges}
-                  style={{
-                    appearance: 'none',
-                    padding: `${theme.space[1]} ${theme.space[4]} ${theme.space[1]} ${theme.space[2]}`,
-                    fontSize: theme.fontSizes[1],
-                    fontFamily: theme.fonts.body,
-                    color: theme.colors.text,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: theme.radii[1],
-                    cursor: state.hasUnsavedChanges ? 'not-allowed' : 'pointer',
-                    outline: 'none',
-                    opacity: state.hasUnsavedChanges ? 0.6 : 1,
-                    transition: 'all 0.2s'
-                  }}
-                  title={state.hasUnsavedChanges ? 'Save or discard changes before switching configs' : undefined}
-                >
-                  {state.availableConfigs.map(config => (
-                    <option key={config.id} value={config.id}>{config.name}</option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={14}
-                  style={{
-                    position: 'absolute',
-                    right: theme.space[1],
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    pointerEvents: 'none',
-                    color: theme.colors.textMuted
-                  }}
-                />
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[3] }}>
-            {/* Auto Layout Button */}
-            <button
-              onClick={toggleLayoutConfig}
-              disabled={state.isSaving}
-              title="Configure and apply auto-layout"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.space[1],
-                padding: `${theme.space[1]} ${theme.space[2]}`,
-                fontSize: theme.fontSizes[1],
-                fontFamily: theme.fonts.body,
-                color: state.showLayoutConfig ? 'white' : theme.colors.text,
-                backgroundColor: state.showLayoutConfig ? theme.colors.primary : theme.colors.backgroundSecondary,
-                border: `1px solid ${state.showLayoutConfig ? theme.colors.primary : theme.colors.border}`,
-                borderRadius: theme.radii[1],
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              <LayoutGrid size={14} />
-              <span>Auto Layout</span>
-            </button>
-
-            {/* Edit Mode Toggle */}
-            <button
-              onClick={toggleEditMode}
-              disabled={state.isSaving}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.space[1],
-                padding: `${theme.space[1]} ${theme.space[2]}`,
-                fontSize: theme.fontSizes[1],
-                fontFamily: theme.fonts.body,
-                color: state.isEditMode ? 'white' : theme.colors.text,
-                backgroundColor: state.isEditMode ? theme.colors.primary : theme.colors.backgroundSecondary,
-                border: `1px solid ${state.isEditMode ? theme.colors.primary : theme.colors.border}`,
-                borderRadius: theme.radii[1],
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              {state.isEditMode ? <Unlock size={14} /> : <Lock size={14} />}
-              <span>{state.isEditMode ? 'Editing' : 'Edit'}</span>
-            </button>
-          </div>
+              Unsaved changes
+            </span>
+          )}
         </div>
 
-        {/* Version/Description Row OR Save/Discard Controls */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.space[2],
-          marginTop: theme.space[2]
-        }}>
-          {state.isEditMode && state.hasUnsavedChanges ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2] }}>
+          {/* Save/Discard buttons when there are unsaved changes */}
+          {state.isEditMode && state.hasUnsavedChanges && (
             <>
-              {/* Unsaved indicator */}
-              <span style={{
-                fontSize: theme.fontSizes[1],
-                color: theme.colors.warning || '#f59e0b',
-                fontStyle: 'italic'
-              }}>
-                Unsaved changes
-              </span>
-
-              {/* Spacer */}
-              <div style={{ flex: 1 }} />
-
-              {/* Save button */}
               <button
                 onClick={saveAllChanges}
                 disabled={state.isSaving}
@@ -632,7 +623,6 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
                 <span>Save</span>
               </button>
 
-              {/* Discard button */}
               <button
                 onClick={discardChanges}
                 disabled={state.isSaving}
@@ -656,192 +646,469 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
                 <span>Discard</span>
               </button>
             </>
-          ) : (
-            <>
-              {state.canvas.pv?.version && (
-                <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textMuted }}>
-                  v{state.canvas.pv.version}
-                </span>
-              )}
-              {state.canvas.pv?.description && (
-                <>
-                  {state.canvas.pv?.version && <span style={{ color: theme.colors.textMuted }}>•</span>}
-                  <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textMuted }}>
-                    {state.canvas.pv.description}
-                  </span>
-                </>
-              )}
-            </>
           )}
+
+          </div>
         </div>
+
+        {/* Help Button - flush right, full height */}
+        <button
+          onClick={toggleHelp}
+          title="Help & Getting Started"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 40,
+            height: 39,
+            padding: 0,
+            backgroundColor: state.showHelp ? theme.colors.primary : 'transparent',
+            color: state.showHelp ? 'white' : theme.colors.textMuted,
+            border: 'none',
+            borderLeft: `1px solid ${theme.colors.border}`,
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            flexShrink: 0,
+          }}
+        >
+          <HelpCircle size={18} />
+        </button>
+
+        {/* Edit Mode Toggle - flush right, full height */}
+        <button
+          onClick={toggleEditMode}
+          disabled={state.isSaving}
+          title={state.isEditMode ? 'Exit edit mode' : 'Enter edit mode'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 40,
+            height: 39,
+            padding: 0,
+            backgroundColor: state.isEditMode ? theme.colors.primary : 'transparent',
+            color: state.isEditMode ? 'white' : theme.colors.textMuted,
+            border: 'none',
+            borderLeft: `1px solid ${theme.colors.border}`,
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            flexShrink: 0,
+          }}
+        >
+          {state.isEditMode ? <Unlock size={18} /> : <Lock size={18} />}
+        </button>
       </div>
 
-      {/* Layout Configuration Row */}
-      {state.showLayoutConfig && (
-        <div style={{
-          padding: `${theme.space[3]}px 20px`,
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderBottom: `1px solid ${theme.colors.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.space[4],
-          flexWrap: 'wrap'
-        }}>
-          {/* Direction */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2] }}>
-            <label style={{
-              fontSize: theme.fontSizes[1],
-              color: theme.colors.textMuted,
-              fontWeight: theme.fontWeights.medium
+      {/* Main content area with overlays and graph */}
+      <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}>
+        {/* Canvas Selector Overlay */}
+        {state.showCanvasSelector && (
+          <div style={{
+            width: 280,
+            height: '100%',
+            backgroundColor: theme.colors.background,
+            borderRight: `1px solid ${theme.colors.border}`,
+            display: 'flex',
+            flexDirection: 'column',
+            flexShrink: 0,
+            overflow: 'hidden',
+          }}>
+            {/* Overlay Header */}
+            <div style={{
+              height: 39,
+              padding: '0 16px',
+              borderBottom: `1px solid ${theme.colors.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexShrink: 0,
+              boxSizing: 'content-box'
             }}>
-              Direction
-            </label>
-            <div style={{ display: 'flex', gap: theme.space[1] }}>
-              {(['TB', 'BT', 'LR', 'RL'] as const).map((dir) => (
-                <button
-                  key={dir}
-                  onClick={() => updateLayoutConfig({ direction: dir })}
-                  title={{
-                    TB: 'Top to Bottom',
-                    BT: 'Bottom to Top',
-                    LR: 'Left to Right',
-                    RL: 'Right to Left'
-                  }[dir]}
-                  style={{
-                    padding: `${theme.space[1]} ${theme.space[2]}`,
+              <span style={{
+                fontSize: theme.fontSizes[2],
+                fontWeight: theme.fontWeights.medium,
+                color: theme.colors.text
+              }}>
+                Canvas Files
+              </span>
+              <button
+                onClick={toggleCanvasSelector}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 24,
+                  height: 24,
+                  padding: 0,
+                  backgroundColor: 'transparent',
+                  color: theme.colors.textMuted,
+                  border: 'none',
+                  borderRadius: theme.radii[1],
+                  cursor: 'pointer',
+                  transition: 'color 0.15s'
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Canvas List */}
+            <div style={{
+              flex: 1,
+              overflow: 'auto',
+              padding: theme.space[2],
+            }}>
+              {state.availableConfigs.map(config => {
+                const isSelected = config.id === state.selectedConfigId;
+                const description = state.configDescriptions[config.id];
+                const displayName = description?.name || config.name;
+                const displayDescription = description?.description;
+
+                return (
+                  <button
+                    key={config.id}
+                    onClick={() => handleCanvasSelect(config.id)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      gap: theme.space[1],
+                      width: '100%',
+                      padding: `${theme.space[2]}px ${theme.space[3]}px`,
+                      marginBottom: theme.space[1],
+                      backgroundColor: isSelected ? `${theme.colors.primary}15` : 'transparent',
+                      color: theme.colors.text,
+                      border: isSelected ? `1px solid ${theme.colors.primary}40` : `1px solid transparent`,
+                      borderRadius: theme.radii[2],
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.space[2],
+                      width: '100%',
+                    }}>
+                      <FileJson
+                        size={16}
+                        style={{
+                          color: isSelected ? theme.colors.primary : theme.colors.textMuted,
+                          flexShrink: 0
+                        }}
+                      />
+                      <span style={{
+                        fontSize: theme.fontSizes[1],
+                        fontWeight: isSelected ? theme.fontWeights.medium : theme.fontWeights.body,
+                        color: isSelected ? theme.colors.primary : theme.colors.text,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {displayName}
+                      </span>
+                    </div>
+                    {displayDescription && (
+                      <span style={{
+                        fontSize: theme.fontSizes[0],
+                        color: theme.colors.textMuted,
+                        paddingLeft: theme.space[4] + theme.space[2],
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                      }}>
+                        {displayDescription}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Graph */}
+        <div style={{ flex: 1, position: 'relative' }}>
+          <GraphRenderer
+            key={`graph-${state.layoutVersion}`}
+            ref={graphRef}
+            canvas={state.canvas}
+            library={state.library ?? undefined}
+            showMinimap={false}
+            showControls={true}
+            showBackground={true}
+            editable={state.isEditMode}
+            autoUpdateEdgeSides={state.layoutConfig.autoUpdateEdgeSides}
+            onPendingChangesChange={handlePendingChangesChange}
+          />
+        </div>
+
+        {/* Edit Tools Overlay - Right side */}
+        {state.isEditMode && (
+          <div style={{
+            width: 220,
+            height: '100%',
+            backgroundColor: theme.colors.background,
+            borderLeft: `1px solid ${theme.colors.border}`,
+            display: 'flex',
+            flexDirection: 'column',
+            flexShrink: 0,
+            overflow: 'hidden',
+          }}>
+            {/* Overlay Header */}
+            <div style={{
+              height: 39,
+              padding: '0 16px',
+              borderBottom: `1px solid ${theme.colors.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+              boxSizing: 'content-box'
+            }}>
+              <span style={{
+                fontSize: theme.fontSizes[2],
+                fontWeight: theme.fontWeights.medium,
+                color: theme.colors.text
+              }}>
+                Edit Tools
+              </span>
+            </div>
+
+            {/* Tools Content */}
+            <div style={{
+              flex: 1,
+              overflow: 'auto',
+              padding: theme.space[3],
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.space[4],
+            }}>
+              {/* Auto Layout Section */}
+              <div>
+                <div style={{
+                  fontSize: theme.fontSizes[1],
+                  fontWeight: theme.fontWeights.medium,
+                  color: theme.colors.text,
+                  marginBottom: theme.space[2],
+                }}>
+                  Auto Layout
+                </div>
+
+                {/* Direction */}
+                <div style={{ marginBottom: theme.space[3] }}>
+                  <label style={{
+                    display: 'block',
                     fontSize: theme.fontSizes[0],
-                    fontFamily: theme.fonts.monospace,
-                    color: state.layoutConfig.direction === dir ? 'white' : theme.colors.text,
-                    backgroundColor: state.layoutConfig.direction === dir ? theme.colors.primary : theme.colors.background,
-                    border: `1px solid ${state.layoutConfig.direction === dir ? theme.colors.primary : theme.colors.border}`,
+                    color: theme.colors.textMuted,
+                    marginBottom: theme.space[1],
+                  }}>
+                    Direction
+                  </label>
+                  <div style={{ display: 'flex', gap: theme.space[1] }}>
+                    {(['TB', 'BT', 'LR', 'RL'] as const).map((dir) => (
+                      <button
+                        key={dir}
+                        onClick={() => updateLayoutConfig({ direction: dir })}
+                        title={{
+                          TB: 'Top to Bottom',
+                          BT: 'Bottom to Top',
+                          LR: 'Left to Right',
+                          RL: 'Right to Left'
+                        }[dir]}
+                        style={{
+                          flex: 1,
+                          padding: `${theme.space[1]}px`,
+                          fontSize: theme.fontSizes[0],
+                          fontFamily: theme.fonts.monospace,
+                          color: state.layoutConfig.direction === dir ? 'white' : theme.colors.text,
+                          backgroundColor: state.layoutConfig.direction === dir ? theme.colors.primary : theme.colors.backgroundSecondary,
+                          border: `1px solid ${state.layoutConfig.direction === dir ? theme.colors.primary : theme.colors.border}`,
+                          borderRadius: theme.radii[1],
+                          cursor: 'pointer',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        {dir}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Horizontal Spacing */}
+                <div style={{ marginBottom: theme.space[3] }}>
+                  <label style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: theme.fontSizes[0],
+                    color: theme.colors.textMuted,
+                    marginBottom: theme.space[1],
+                  }}>
+                    <span>H-Spacing</span>
+                    <span style={{ fontFamily: theme.fonts.monospace }}>{state.layoutConfig.nodeSpacingX}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="30"
+                    max="400"
+                    step="10"
+                    value={state.layoutConfig.nodeSpacingX}
+                    onChange={(e) => updateLayoutConfig({ nodeSpacingX: Number(e.target.value) })}
+                    style={{ width: '100%', cursor: 'pointer' }}
+                  />
+                </div>
+
+                {/* Vertical Spacing */}
+                <div style={{ marginBottom: theme.space[3] }}>
+                  <label style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: theme.fontSizes[0],
+                    color: theme.colors.textMuted,
+                    marginBottom: theme.space[1],
+                  }}>
+                    <span>V-Spacing</span>
+                    <span style={{ fontFamily: theme.fonts.monospace }}>{state.layoutConfig.nodeSpacingY}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="30"
+                    max="300"
+                    step="10"
+                    value={state.layoutConfig.nodeSpacingY}
+                    onChange={(e) => updateLayoutConfig({ nodeSpacingY: Number(e.target.value) })}
+                    style={{ width: '100%', cursor: 'pointer' }}
+                  />
+                </div>
+
+                {/* Apply Button */}
+                <button
+                  onClick={applyAutoLayout}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: theme.space[1],
+                    width: '100%',
+                    padding: `${theme.space[2]}px`,
+                    fontSize: theme.fontSizes[1],
+                    fontFamily: theme.fonts.body,
+                    color: 'white',
+                    backgroundColor: theme.colors.primary,
+                    border: 'none',
                     borderRadius: theme.radii[1],
                     cursor: 'pointer',
                     transition: 'all 0.15s'
                   }}
                 >
-                  {dir}
+                  <LayoutGrid size={14} />
+                  <span>Apply Layout</span>
                 </button>
-              ))}
+              </div>
+
+              {/* Edge Settings Section */}
+              <div>
+                <div style={{
+                  fontSize: theme.fontSizes[1],
+                  fontWeight: theme.fontWeights.medium,
+                  color: theme.colors.text,
+                  marginBottom: theme.space[2],
+                }}>
+                  Edge Settings
+                </div>
+
+                {/* Auto Update Edge Sides Toggle */}
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.space[2],
+                  cursor: 'pointer',
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={state.layoutConfig.autoUpdateEdgeSides}
+                    onChange={(e) => updateLayoutConfig({ autoUpdateEdgeSides: e.target.checked })}
+                    style={{
+                      width: 16,
+                      height: 16,
+                      cursor: 'pointer',
+                      accentColor: theme.colors.primary,
+                    }}
+                  />
+                  <span style={{
+                    fontSize: theme.fontSizes[1],
+                    color: theme.colors.text,
+                  }}>
+                    Auto-update edge sides
+                  </span>
+                </label>
+                <span style={{
+                  display: 'block',
+                  fontSize: theme.fontSizes[0],
+                  color: theme.colors.textMuted,
+                  marginTop: theme.space[1],
+                  lineHeight: 1.4,
+                }}>
+                  Automatically adjust edge connection points when nodes are moved
+                </span>
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Horizontal Spacing */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2] }}>
-            <label style={{
-              fontSize: theme.fontSizes[1],
-              color: theme.colors.textMuted,
-              fontWeight: theme.fontWeights.medium
-            }}>
-              H-Spacing
-            </label>
-            <input
-              type="range"
-              min="30"
-              max="400"
-              step="10"
-              value={state.layoutConfig.nodeSpacingX}
-              onChange={(e) => updateLayoutConfig({ nodeSpacingX: Number(e.target.value) })}
-              style={{ width: 80, cursor: 'pointer' }}
-            />
-            <span style={{
-              fontSize: theme.fontSizes[0],
-              color: theme.colors.textMuted,
-              fontFamily: theme.fonts.monospace,
-              minWidth: 32
-            }}>
-              {state.layoutConfig.nodeSpacingX}
-            </span>
-          </div>
-
-          {/* Vertical Spacing */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2] }}>
-            <label style={{
-              fontSize: theme.fontSizes[1],
-              color: theme.colors.textMuted,
-              fontWeight: theme.fontWeights.medium
-            }}>
-              V-Spacing
-            </label>
-            <input
-              type="range"
-              min="30"
-              max="300"
-              step="10"
-              value={state.layoutConfig.nodeSpacingY}
-              onChange={(e) => updateLayoutConfig({ nodeSpacingY: Number(e.target.value) })}
-              style={{ width: 80, cursor: 'pointer' }}
-            />
-            <span style={{
-              fontSize: theme.fontSizes[0],
-              color: theme.colors.textMuted,
-              fontFamily: theme.fonts.monospace,
-              minWidth: 32
-            }}>
-              {state.layoutConfig.nodeSpacingY}
-            </span>
-          </div>
-
-          {/* Spacer */}
-          <div style={{ flex: 1 }} />
-
-          {/* Apply Button */}
-          <button
-            onClick={applyAutoLayout}
-            style={{
+        {/* Help Overlay */}
+        {state.showHelp && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}>
+            <div style={{
+              position: 'relative',
+              width: '90%',
+              maxWidth: 500,
+              maxHeight: '80%',
+              backgroundColor: theme.colors.background,
+              borderRadius: theme.radii[3],
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+              overflow: 'hidden',
               display: 'flex',
-              alignItems: 'center',
-              gap: theme.space[1],
-              padding: `${theme.space[1]} ${theme.space[3]}`,
-              fontSize: theme.fontSizes[1],
-              fontFamily: theme.fonts.body,
-              color: 'white',
-              backgroundColor: theme.colors.primary,
-              border: 'none',
-              borderRadius: theme.radii[1],
-              cursor: 'pointer',
-              transition: 'all 0.15s'
-            }}
-          >
-            <LayoutGrid size={14} />
-            <span>Apply Layout</span>
-          </button>
-
-          {/* Close Button */}
-          <button
-            onClick={toggleLayoutConfig}
-            title="Close layout options"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: theme.space[1],
-              fontSize: theme.fontSizes[1],
-              color: theme.colors.textMuted,
-              backgroundColor: 'transparent',
-              border: 'none',
-              borderRadius: theme.radii[1],
-              cursor: 'pointer',
-              transition: 'all 0.15s'
-            }}
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
-
-      {/* Graph */}
-      <div style={{ flex: 1, position: 'relative' }}>
-        <GraphRenderer
-          key={`graph-${state.layoutVersion}`}
-          ref={graphRef}
-          canvas={state.canvas}
-          library={state.library ?? undefined}
-          showMinimap={false}
-          showControls={true}
-          showBackground={true}
-          editable={state.isEditMode}
-          onPendingChangesChange={handlePendingChangesChange}
-        />
+              flexDirection: 'column',
+            }}>
+              {/* Close button */}
+              <button
+                onClick={toggleHelp}
+                style={{
+                  position: 'absolute',
+                  top: theme.space[2],
+                  right: theme.space[2],
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 32,
+                  height: 32,
+                  padding: 0,
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  color: theme.colors.textMuted,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.radii[2],
+                  cursor: 'pointer',
+                  zIndex: 1,
+                  transition: 'all 0.15s',
+                }}
+              >
+                <X size={16} />
+              </button>
+              <EmptyStateContent theme={theme} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

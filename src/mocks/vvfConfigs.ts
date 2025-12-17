@@ -707,7 +707,7 @@ export const mockNodeColorsCanvasJSON = JSON.stringify(mockNodeColorsCanvas, nul
 export const mockColorPriorityCanvasJSON = JSON.stringify(mockColorPriorityCanvas, null, 2);
 
 // Mock file tree with canvas files using .principal-views/ folder structure
-export const createMockFileTree = (config: 'simple' | 'complex' | 'control-tower' | 'node-colors' | 'color-priority' | 'none') => {
+export const createMockFileTree = (config: 'simple' | 'complex' | 'control-tower' | 'node-colors' | 'color-priority' | 'multiple' | 'none') => {
   const files: Array<{ path: string; relativePath: string; name: string; content?: string }> = [];
 
   if (config === 'simple') {
@@ -745,6 +745,34 @@ export const createMockFileTree = (config: 'simple' | 'complex' | 'control-tower
       name: 'color-priority.canvas',
       content: mockColorPriorityCanvasJSON,
     });
+  } else if (config === 'multiple') {
+    // Multiple canvas files for testing the canvas selector
+    files.push(
+      {
+        path: '.principal-views/simple-service.canvas',
+        relativePath: '.principal-views/simple-service.canvas',
+        name: 'simple-service.canvas',
+        content: mockSimpleCanvasJSON,
+      },
+      {
+        path: '.principal-views/traffic-controller.canvas',
+        relativePath: '.principal-views/traffic-controller.canvas',
+        name: 'traffic-controller.canvas',
+        content: mockComplexCanvasJSON,
+      },
+      {
+        path: '.principal-views/control-tower.canvas',
+        relativePath: '.principal-views/control-tower.canvas',
+        name: 'control-tower.canvas',
+        content: mockControlTowerCanvasJSON,
+      },
+      {
+        path: '.principal-views/node-colors.canvas',
+        relativePath: '.principal-views/node-colors.canvas',
+        name: 'node-colors.canvas',
+        content: mockNodeColorsCanvasJSON,
+      }
+    );
   }
 
   // Add some other files for realism

@@ -485,6 +485,54 @@ export const ColorPriorityTest: Story = {
 };
 
 /**
+ * Multiple Configurations - demonstrates the canvas selector overlay
+ * Click the panel icon next to the title to open the canvas selector
+ */
+export const MultipleConfigurations: Story = {
+  args: {} as never,
+  render: () => {
+    const mockSlices = new Map<string, DataSlice>();
+    const fileTreeData = createMockFileTree('multiple');
+    mockSlices.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeData,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          slices: mockSlices,
+          getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+            return mockSlices.get(name) as DataSlice<T> | undefined;
+          },
+          hasSlice: (name: string) => mockSlices.has(name),
+          isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+          repositoryPath: '/mock/repository',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return { content: file.content };
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+      >
+        {(props) => <PrincipalViewGraphPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
  * Empty project with workspace scope only
  */
 export const WorkspaceScope: Story = {

@@ -1,5 +1,4 @@
 import { PrincipalViewGraphPanel } from './panels/PrincipalViewGraphPanel';
-import { ConfigLibraryBrowserPanel } from './panels/ConfigLibraryBrowserPanel';
 import { EventControllerPanel } from './panels/EventControllerPanel';
 import type { PanelDefinition, PanelContextValue } from './types';
 import { principalViewPanelTools, principalViewPanelToolsMetadata } from './tools';
@@ -7,9 +6,6 @@ import { principalViewPanelTools, principalViewPanelToolsMetadata } from './tool
 // Re-export components for direct usage
 export { EventControllerPanel } from './panels/EventControllerPanel';
 export type { EventControllerPanelProps, PlaybackState, PlaybackStatus } from './panels/EventControllerPanel';
-
-export { ConfigLibraryBrowserPanel } from './panels/ConfigLibraryBrowserPanel';
-export type { ConfigSelectedEventPayload } from './panels/ConfigLibraryBrowserPanel';
 
 // Re-export adapter for external use
 export { PanelFileSystemAdapter } from './adapters/PanelFileSystemAdapter';
@@ -52,38 +48,6 @@ export const panels: PanelDefinition[] = [
     onUnmount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log('Principal View Graph Panel unmounting');
-    },
-  },
-  {
-    metadata: {
-      id: 'principal-ai.config-library-browser',
-      name: 'Config Browser',
-      icon: '📚',
-      version: '0.1.0',
-      author: 'Principal AI',
-      description: 'Browse and select .canvas configurations and component libraries',
-      slices: ['fileTree'], // Data slices this panel depends on
-    },
-    component: ConfigLibraryBrowserPanel,
-
-    // Optional: Called when this specific panel is mounted
-    onMount: async (context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log(
-        'Config Library Browser Panel mounted',
-        context.currentScope.repository?.path
-      );
-
-      // Refresh file tree if available
-      if (context.hasSlice('fileTree') && !context.isSliceLoading('fileTree')) {
-        await context.refresh('repository', 'fileTree');
-      }
-    },
-
-    // Optional: Called when this specific panel is unmounted
-    onUnmount: async (_context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log('Config Library Browser Panel unmounting');
     },
   },
 ];
