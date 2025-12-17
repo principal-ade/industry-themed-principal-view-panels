@@ -1186,7 +1186,17 @@ function applyChangesToCanvas(
     }
   }
 
-  // Apply edge creations
+  // Apply edge deletions FIRST (before creations, so reconnected edges work correctly)
+  // Match by from/to/type since id is not available in pending changes
+  for (const { from, to, type } of changes.deletedEdges) {
+    if (updatedCanvas.edges) {
+      updatedCanvas.edges = updatedCanvas.edges.filter(
+        e => !(e.fromNode === from && e.toNode === to && e.pv?.edgeType === type)
+      );
+    }
+  }
+
+  // Apply edge creations AFTER deletions
   for (const { from, to, type, sourceHandle, targetHandle } of changes.createdEdges) {
     if (!updatedCanvas.edges) {
       updatedCanvas.edges = [];
@@ -1202,15 +1212,6 @@ function applyChangesToCanvas(
       toSide: handleToCanvasSide(targetHandle),
       pv: { edgeType: type },
     });
-  }
-
-  // Apply edge deletions (match by from/to/type since id is not available)
-  for (const { from, to, type } of changes.deletedEdges) {
-    if (updatedCanvas.edges) {
-      updatedCanvas.edges = updatedCanvas.edges.filter(
-        e => !(e.fromNode === from && e.toNode === to && e.pv?.edgeType === type)
-      );
-    }
   }
 
   return updatedCanvas;

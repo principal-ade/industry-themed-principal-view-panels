@@ -75,6 +75,19 @@ export const SimpleConfiguration: Story = {
             }
             return { content: file.content };
           },
+          writeFile: async (path: string, content: string) => {
+            // Update mock file tree with new content
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (file) {
+              file.content = content;
+              console.log('[Storybook Mock] Saved file:', path);
+              console.log('[Storybook Mock] Content:', JSON.parse(content));
+            } else {
+              console.log('[Storybook Mock] Would save to:', path);
+              console.log('[Storybook Mock] Content:', JSON.parse(content));
+            }
+          },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
@@ -123,6 +136,15 @@ export const ComplexConfiguration: Story = {
             }
             return { content: file.content };
           },
+          writeFile: async (path: string, content: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (file) {
+              file.content = content;
+              console.log('[Storybook Mock] Saved file:', path);
+              console.log('[Storybook Mock] Content:', JSON.parse(content));
+            }
+          },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
@@ -170,6 +192,15 @@ export const ControlTowerConfiguration: Story = {
               throw new Error(`File not found: ${path}`);
             }
             return { content: file.content };
+          },
+          writeFile: async (path: string, content: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (file) {
+              file.content = content;
+              console.log('[Storybook Mock] Saved file:', path);
+              console.log('[Storybook Mock] Content:', JSON.parse(content));
+            }
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
@@ -296,6 +327,15 @@ export const InvalidJSON: Story = {
             }
             return { content: file.content };
           },
+          writeFile: async (path: string, content: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (file) {
+              file.content = content;
+              console.log('[Storybook Mock] Saved file:', path);
+              console.log('[Storybook Mock] Content:', JSON.parse(content));
+            }
+          },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
@@ -378,6 +418,15 @@ export const CustomRepository: Story = {
             }
             return { content: file.content };
           },
+          writeFile: async (path: string, content: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (file) {
+              file.content = content;
+              console.log('[Storybook Mock] Saved file:', path);
+              console.log('[Storybook Mock] Content:', JSON.parse(content));
+            }
+          },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
@@ -425,6 +474,15 @@ export const NodeColorsDemo: Story = {
               throw new Error(`File not found: ${path}`);
             }
             return { content: file.content };
+          },
+          writeFile: async (path: string, content: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (file) {
+              file.content = content;
+              console.log('[Storybook Mock] Saved file:', path);
+              console.log('[Storybook Mock] Content:', JSON.parse(content));
+            }
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
@@ -475,6 +533,15 @@ export const ColorPriorityTest: Story = {
             }
             return { content: file.content };
           },
+          writeFile: async (path: string, content: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (file) {
+              file.content = content;
+              console.log('[Storybook Mock] Saved file:', path);
+              console.log('[Storybook Mock] Content:', JSON.parse(content));
+            }
+          },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
@@ -522,6 +589,15 @@ export const MultipleConfigurations: Story = {
               throw new Error(`File not found: ${path}`);
             }
             return { content: file.content };
+          },
+          writeFile: async (path: string, content: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (file) {
+              file.content = content;
+              console.log('[Storybook Mock] Saved file:', path);
+              console.log('[Storybook Mock] Content:', JSON.parse(content));
+            }
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
@@ -576,6 +652,15 @@ export const WorkspaceScope: Story = {
               throw new Error(`File not found: ${path}`);
             }
             return { content: file.content };
+          },
+          writeFile: async (path: string, content: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (file) {
+              file.content = content;
+              console.log('[Storybook Mock] Saved file:', path);
+              console.log('[Storybook Mock] Content:', JSON.parse(content));
+            }
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
