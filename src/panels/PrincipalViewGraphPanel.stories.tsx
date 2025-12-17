@@ -73,7 +73,7 @@ export const SimpleConfiguration: Story = {
             if (!file || !file.content) {
               throw new Error(`File not found: ${path}`);
             }
-            return { content: file.content };
+            return file.content;
           },
           writeFile: async (path: string, content: string) => {
             // Update mock file tree with new content
@@ -134,7 +134,7 @@ export const ComplexConfiguration: Story = {
             if (!file || !file.content) {
               throw new Error(`File not found: ${path}`);
             }
-            return { content: file.content };
+            return file.content;
           },
           writeFile: async (path: string, content: string) => {
             const fileName = path.split('/').pop() || '';
@@ -191,7 +191,7 @@ export const ControlTowerConfiguration: Story = {
             if (!file || !file.content) {
               throw new Error(`File not found: ${path}`);
             }
-            return { content: file.content };
+            return file.content;
           },
           writeFile: async (path: string, content: string) => {
             const fileName = path.split('/').pop() || '';
@@ -325,7 +325,7 @@ export const InvalidJSON: Story = {
             if (!file || !file.content) {
               throw new Error(`File not found: ${path}`);
             }
-            return { content: file.content };
+            return file.content;
           },
           writeFile: async (path: string, content: string) => {
             const fileName = path.split('/').pop() || '';
@@ -416,7 +416,7 @@ export const CustomRepository: Story = {
             if (!file || !file.content) {
               throw new Error(`File not found: ${path}`);
             }
-            return { content: file.content };
+            return file.content;
           },
           writeFile: async (path: string, content: string) => {
             const fileName = path.split('/').pop() || '';
@@ -473,7 +473,7 @@ export const NodeColorsDemo: Story = {
             if (!file || !file.content) {
               throw new Error(`File not found: ${path}`);
             }
-            return { content: file.content };
+            return file.content;
           },
           writeFile: async (path: string, content: string) => {
             const fileName = path.split('/').pop() || '';
@@ -531,7 +531,7 @@ export const ColorPriorityTest: Story = {
             if (!file || !file.content) {
               throw new Error(`File not found: ${path}`);
             }
-            return { content: file.content };
+            return file.content;
           },
           writeFile: async (path: string, content: string) => {
             const fileName = path.split('/').pop() || '';
@@ -588,7 +588,7 @@ export const MultipleConfigurations: Story = {
             if (!file || !file.content) {
               throw new Error(`File not found: ${path}`);
             }
-            return { content: file.content };
+            return file.content;
           },
           writeFile: async (path: string, content: string) => {
             const fileName = path.split('/').pop() || '';
@@ -651,7 +651,7 @@ export const WorkspaceScope: Story = {
             if (!file || !file.content) {
               throw new Error(`File not found: ${path}`);
             }
-            return { content: file.content };
+            return file.content;
           },
           writeFile: async (path: string, content: string) => {
             const fileName = path.split('/').pop() || '';

@@ -172,13 +172,12 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
       }
 
       const fullPath = `${repositoryPath}/${selectedConfig.path}`;
-      const fileResult = await readFile(fullPath);
+      const configContent = await readFile(fullPath);
 
-      if (!fileResult || typeof fileResult !== 'object' || !('content' in fileResult)) {
+      if (!configContent || typeof configContent !== 'string') {
         throw new Error('Failed to read config file');
       }
 
-      const configContent = (fileResult as { content: string }).content;
       const canvas = ConfigLoader.parseCanvas(configContent);
 
       // Load library.yaml if it exists
@@ -187,9 +186,9 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
       if (libraryPath) {
         try {
           const libraryFullPath = `${repositoryPath}/${libraryPath}`;
-          const libraryResult = await readFile(libraryFullPath);
-          if (libraryResult && typeof libraryResult === 'object' && 'content' in libraryResult) {
-            library = ConfigLoader.parseLibrary((libraryResult as { content: string }).content);
+          const libraryContent = await readFile(libraryFullPath);
+          if (libraryContent && typeof libraryContent === 'string') {
+            library = ConfigLoader.parseLibrary(libraryContent);
           }
         } catch (libraryError) {
           // Library loading is optional, don't fail the whole operation
@@ -211,9 +210,9 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
           if (config.id === selectedConfig.id) continue;
           try {
             const configFullPath = `${repositoryPath}/${config.path}`;
-            const configResult = await readFile(configFullPath);
-            if (configResult && typeof configResult === 'object' && 'content' in configResult) {
-              const configCanvas = ConfigLoader.parseCanvas((configResult as { content: string }).content);
+            const configContentStr = await readFile(configFullPath);
+            if (configContentStr && typeof configContentStr === 'string') {
+              const configCanvas = ConfigLoader.parseCanvas(configContentStr);
               setState(prev => ({
                 ...prev,
                 configDescriptions: {

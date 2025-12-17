@@ -163,7 +163,7 @@ export const createMockContext = (
  */
 export const createMockActions = (
   overrides?: Partial<PanelActions> & {
-    readFile?: (path: string) => Promise<{ content: string }>;
+    readFile?: (path: string) => Promise<string>;
     writeFile?: (path: string, content: string) => Promise<void>;
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -188,7 +188,7 @@ export const createMockActions = (
   readFile: async (path: string) => {
     // eslint-disable-next-line no-console
     console.log('[Mock] Reading file:', path);
-    return { content: '{}' };
+    return '{}';
   },
   writeFile: async (path: string, content: string) => {
     // eslint-disable-next-line no-console
@@ -251,7 +251,7 @@ export const MockPanelProvider: React.FC<{
   children: (props: PanelComponentProps) => React.ReactNode;
   contextOverrides?: Partial<PanelContextValue>;
   actionsOverrides?: Partial<PanelActions> & {
-    readFile?: (path: string) => Promise<{ content: string }>;
+    readFile?: (path: string) => Promise<string>;
     writeFile?: (path: string, content: string) => Promise<void>;
   };
 }> = ({ children, contextOverrides, actionsOverrides }) => {
