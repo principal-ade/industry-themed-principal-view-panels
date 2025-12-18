@@ -4,7 +4,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core';
-import { Loader, Save, X, Lock, Unlock, LayoutGrid, PanelLeft, FileJson, HelpCircle } from 'lucide-react';
+import { Loader, Save, X, Lock, Unlock, LayoutGrid, PanelLeft, FileJson, HelpCircle, Copy, Check, Info } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './principal-view/ConfigLoader';
 import { applySugiyamaLayout } from './principal-view/forceLayout';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
@@ -41,6 +41,8 @@ interface GraphPanelState {
   showCanvasSelector: boolean;
   // Help overlay
   showHelp: boolean;
+  // Legend overlay
+  showLegend: boolean;
   // Edit mode state
   isEditMode: boolean;
   hasUnsavedChanges: boolean;
@@ -77,6 +79,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
     selectedConfigId: null,
     showCanvasSelector: false,
     showHelp: false,
+    showLegend: false,
     isEditMode: false,
     hasUnsavedChanges: false,
     isSaving: false,
@@ -98,6 +101,9 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
 
   // Track if we should skip the next file change (after save)
   const skipNextFileChangeRef = useRef(false);
+
+  // Track "copied" feedback for copy path button
+  const [pathCopied, setPathCopied] = useState(false);
 
   const loadConfiguration = useCallback(async (configId?: string) => {
     // Only show loading spinner on initial load, not when switching configs
@@ -271,6 +277,22 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
   const toggleHelp = useCallback(() => {
     setState(prev => ({ ...prev, showHelp: !prev.showHelp }));
   }, []);
+
+  // Toggle legend overlay
+  const toggleLegend = useCallback(() => {
+    setState(prev => ({ ...prev, showLegend: !prev.showLegend }));
+  }, []);
+
+  // Copy current config path to clipboard
+  const copyConfigPath = useCallback(() => {
+    const currentConfig = state.availableConfigs.find(c => c.id === state.selectedConfigId);
+    if (currentConfig?.path) {
+      navigator.clipboard.writeText(currentConfig.path).then(() => {
+        setPathCopied(true);
+        setTimeout(() => setPathCopied(false), 2000);
+      });
+    }
+  }, [state.availableConfigs, state.selectedConfigId]);
 
   // Handle canvas selection from overlay
   const handleCanvasSelect = useCallback((configId: string) => {
@@ -579,6 +601,26 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
             {state.canvas.pv?.name || 'Untitled'}
           </h2>
 
+          {/* Copy path button */}
+          <button
+            onClick={copyConfigPath}
+            title={pathCopied ? 'Copied!' : 'Copy path to clipboard'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: theme.space[1],
+              backgroundColor: 'transparent',
+              color: pathCopied ? (theme.colors.success || '#22c55e') : theme.colors.textMuted,
+              border: 'none',
+              borderRadius: theme.radii[0],
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            {pathCopied ? <Check size={14} /> : <Copy size={14} />}
+          </button>
+
           {/* Unsaved changes indicator */}
           {state.isEditMode && state.hasUnsavedChanges && (
             <span style={{
@@ -649,6 +691,29 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
 
           </div>
         </div>
+
+        {/* Legend Button - flush right, full height */}
+        <button
+          onClick={toggleLegend}
+          title="Edge Legend"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 40,
+            height: 39,
+            padding: 0,
+            backgroundColor: state.showLegend ? theme.colors.primary : 'transparent',
+            color: state.showLegend ? 'white' : theme.colors.textMuted,
+            border: 'none',
+            borderLeft: `1px solid ${theme.colors.border}`,
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            flexShrink: 0,
+          }}
+        >
+          <Info size={18} />
+        </button>
 
         {/* Help Button - flush right, full height */}
         <button
@@ -1106,6 +1171,100 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
               </button>
               <EmptyStateContent theme={theme} />
             </div>
+          </div>
+        )}
+
+        {/* Legend Bar */}
+        {state.showLegend && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 40,
+            backgroundColor: theme.colors.background,
+            borderBottom: `1px solid ${theme.colors.border}`,
+            padding: `0 ${theme.space[3]}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.space[4],
+            overflowX: 'auto',
+            zIndex: 50,
+            boxSizing: 'border-box',
+          }}>
+            <span style={{
+              fontSize: theme.fontSizes[1],
+              fontWeight: theme.fontWeights.medium,
+              color: theme.colors.textMuted,
+              flexShrink: 0,
+            }}>
+              Edges:
+            </span>
+
+            {state.canvas?.pv?.edgeTypes && Object.keys(state.canvas.pv.edgeTypes).length > 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[4], flexWrap: 'wrap' }}>
+                {Object.entries(state.canvas.pv.edgeTypes).map(([typeName, edgeType]) => (
+                  <div
+                    key={typeName}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.space[2],
+                    }}
+                  >
+                    {/* Edge visual representation */}
+                    <svg width="40" height="12" style={{ flexShrink: 0 }}>
+                      <defs>
+                        <marker
+                          id={`legend-arrow-${typeName}`}
+                          markerWidth="8"
+                          markerHeight="6"
+                          refX="7"
+                          refY="3"
+                          orient="auto"
+                        >
+                          <polygon
+                            points="0 0, 8 3, 0 6"
+                            fill={edgeType.color || '#64748b'}
+                          />
+                        </marker>
+                      </defs>
+                      <line
+                        x1="2"
+                        y1="6"
+                        x2="32"
+                        y2="6"
+                        stroke={edgeType.color || '#64748b'}
+                        strokeWidth={Math.min(edgeType.width || 2, 3)}
+                        strokeDasharray={
+                          edgeType.style === 'dashed' ? '4,2' :
+                          edgeType.style === 'dotted' ? '2,2' : undefined
+                        }
+                        markerEnd={edgeType.directed ? `url(#legend-arrow-${typeName})` : undefined}
+                      />
+                    </svg>
+
+                    {/* Edge type name */}
+                    <span style={{
+                      fontSize: theme.fontSizes[1],
+                      color: theme.colors.text,
+                      textTransform: 'capitalize',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {typeName.replace(/-/g, ' ')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span style={{
+                fontSize: theme.fontSizes[1],
+                color: theme.colors.textMuted,
+                fontStyle: 'italic',
+              }}>
+                No edge types defined
+              </span>
+            )}
           </div>
         )}
       </div>
