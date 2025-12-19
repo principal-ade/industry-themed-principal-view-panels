@@ -4,7 +4,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core';
-import { Loader, Save, X, Lock, Unlock, LayoutGrid, PanelLeft, FileJson, HelpCircle, Copy, Check, Info } from 'lucide-react';
+import { Loader, Save, X, Pencil, LayoutGrid, PanelLeft, FileJson, HelpCircle, Copy, Check, Info } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './principal-view/ConfigLoader';
 import { applySugiyamaLayout } from './principal-view/forceLayout';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
@@ -759,7 +759,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
             flexShrink: 0,
           }}
         >
-          {state.isEditMode ? <Unlock size={18} /> : <Lock size={18} />}
+          <Pencil size={18} />
         </button>
       </div>
 
