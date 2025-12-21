@@ -1304,6 +1304,15 @@ function applyChangesToCanvas(
     }
   }
 
+  // Apply dimension changes
+  for (const { nodeId, dimensions } of changes.dimensionChanges) {
+    const node = updatedCanvas.nodes?.find(n => n.id === nodeId);
+    if (node) {
+      node.width = dimensions.width;
+      node.height = dimensions.height;
+    }
+  }
+
   // Apply node updates
   for (const { nodeId, updates } of changes.nodeUpdates) {
     const node = updatedCanvas.nodes?.find(n => n.id === nodeId);
