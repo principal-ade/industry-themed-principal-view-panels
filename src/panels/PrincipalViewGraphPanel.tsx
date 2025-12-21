@@ -768,14 +768,17 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
         {/* Canvas Selector Overlay */}
         {state.showCanvasSelector && (
           <div style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
             width: 280,
             height: '100%',
             backgroundColor: theme.colors.background,
             borderRight: `1px solid ${theme.colors.border}`,
             display: 'flex',
             flexDirection: 'column',
-            flexShrink: 0,
             overflow: 'hidden',
+            zIndex: 1000,
           }}>
             {/* Overlay Header */}
             <div style={{
