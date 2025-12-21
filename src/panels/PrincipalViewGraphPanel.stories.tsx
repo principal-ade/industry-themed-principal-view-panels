@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import React, { useState } from 'react';
 import { PrincipalViewGraphPanel } from './PrincipalViewGraphPanel';
-import { ThemeProvider } from '@principal-ade/industry-theme';
+import { ThemeProvider, useTheme } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import { createMockFileTree } from '../mocks/vvfConfigs';
 import type { DataSlice } from '../types';
+import { EditableConfigurablePanelLayout, type PanelLayout } from '@principal-ade/panel-layouts';
 
 /**
  * PrincipalViewGraphPanel visualizes .canvas files as interactive graphs.
@@ -669,4 +671,117 @@ export const WorkspaceScope: Story = {
       </MockPanelProvider>
     );
   },
+};
+
+/**
+ * Resizable Panel Layout - replicates Electron environment
+ * This story wraps the panel in EditableConfigurablePanelLayout to reproduce
+ * the ResizeObserver issues seen in the Electron app
+ */
+const ResizablePanelLayoutInner: React.FC = () => {
+  const { theme } = useTheme();
+  const [layout, setLayout] = useState<PanelLayout>({
+    left: 'placeholder',
+    middle: 'principalView',
+    right: 'placeholder',
+  });
+  const [collapsed, setCollapsed] = useState({ left: false, right: false });
+
+  const mockSlices = new Map<string, DataSlice>();
+  const fileTreeData = createMockFileTree('complex');
+  mockSlices.set('fileTree', {
+    scope: 'repository',
+    name: 'fileTree',
+    data: fileTreeData,
+    loading: false,
+    error: null,
+    refresh: async () => {},
+  });
+
+  const panels = [
+    {
+      id: 'placeholder',
+      label: 'Placeholder',
+      content: (
+        <div style={{ padding: 20, color: theme.colors.textMuted }}>
+          Placeholder panel - resize this to trigger ResizeObserver
+        </div>
+      ),
+    },
+    {
+      id: 'principalView',
+      label: 'Principal View',
+      content: (
+        <MockPanelProvider
+          contextOverrides={{
+            slices: mockSlices,
+            getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+              return mockSlices.get(name) as DataSlice<T> | undefined;
+            },
+            hasSlice: (name: string) => mockSlices.has(name),
+            isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+            repositoryPath: '/mock/repository',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any}
+          actionsOverrides={{
+            readFile: async (path: string) => {
+              const fileName = path.split('/').pop() || '';
+              const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
+              if (!file || !file.content) {
+                throw new Error(`File not found: ${path}`);
+              }
+              return file.content;
+            },
+            writeFile: async (path: string, content: string) => {
+              const fileName = path.split('/').pop() || '';
+              const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+              if (file) {
+                file.content = content;
+                console.log('[Storybook Mock] Saved file:', path);
+                console.log('[Storybook Mock] Content:', JSON.parse(content));
+              }
+            },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any}
+        >
+          {(props) => (
+            <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+              <PrincipalViewGraphPanel {...props} />
+            </div>
+          )}
+        </MockPanelProvider>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: theme.colors.background }}>
+      <EditableConfigurablePanelLayout
+        panels={panels}
+        layout={layout}
+        onLayoutChange={setLayout}
+        isEditMode={false}
+        collapsiblePanels={{ left: true, right: true }}
+        defaultSizes={{ left: 25, middle: 50, right: 25 }}
+        minSizes={{ left: 15, middle: 30, right: 15 }}
+        collapsed={collapsed}
+        showCollapseButtons={false}
+        theme={theme}
+      />
+    </div>
+  );
+};
+
+export const ResizablePanelLayout: Story = {
+  args: {} as never,
+  decorators: [
+    (Story) => (
+      <ThemeProvider>
+        <div style={{ height: '100vh', width: '100vw' }}>
+          <Story />
+        </div>
+      </ThemeProvider>
+    ),
+  ],
+  render: () => <ResizablePanelLayoutInner />,
 };
