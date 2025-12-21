@@ -17,7 +17,6 @@ export const mockSimpleCanvas: ExtendedCanvas = {
       color: '#3b82f6',
       pv: {
         nodeType: 'api-handler',
-        description: 'Handles incoming API requests',
         shape: 'rectangle',
         icon: 'Server',
         sources: ['src/api/**/*.ts'],
@@ -34,7 +33,6 @@ export const mockSimpleCanvas: ExtendedCanvas = {
       color: '#8b5cf6',
       pv: {
         nodeType: 'database',
-        description: 'Database storage layer',
         shape: 'hexagon',
         icon: 'Database',
         sources: ['src/db/**/*.ts'],
@@ -51,7 +49,6 @@ export const mockSimpleCanvas: ExtendedCanvas = {
       color: '#06b6d4',
       pv: {
         nodeType: 'logger',
-        description: 'Logging service',
         shape: 'circle',
         icon: 'FileText',
         sources: ['src/logger.ts'],
@@ -81,7 +78,6 @@ export const mockSimpleCanvas: ExtendedCanvas = {
   pv: {
     name: 'Simple Service',
     version: '1.0.0',
-    description: 'Basic service with API and database',
     edgeTypes: {
       query: {
         style: 'solid',
@@ -112,7 +108,6 @@ export const mockControlTowerCanvas: ExtendedCanvas = {
       color: '#8b5cf6',
       pv: {
         nodeType: 'server',
-        description: 'Central server component',
         shape: 'rectangle',
         icon: 'Server',
         sources: ['src/server/BaseServer.ts', 'src/server/ServerBuilder.ts'],
@@ -129,7 +124,6 @@ export const mockControlTowerCanvas: ExtendedCanvas = {
       color: '#3b82f6',
       pv: {
         nodeType: 'client',
-        description: 'Client connection',
         shape: 'circle',
         icon: 'User',
         sources: ['src/client/BaseClient.ts'],
@@ -146,7 +140,6 @@ export const mockControlTowerCanvas: ExtendedCanvas = {
       color: '#06b6d4',
       pv: {
         nodeType: 'transport',
-        description: 'Transport layer adapter',
         shape: 'diamond',
         icon: 'Radio',
         sources: ['src/adapters/websocket/WebSocketServerTransportAdapter.ts'],
@@ -163,7 +156,6 @@ export const mockControlTowerCanvas: ExtendedCanvas = {
       color: '#22c55e',
       pv: {
         nodeType: 'room-manager',
-        description: 'Manages room subscriptions',
         shape: 'hexagon',
         icon: 'Users',
         sources: ['src/abstractions/DefaultRoomManager.ts'],
@@ -180,7 +172,6 @@ export const mockControlTowerCanvas: ExtendedCanvas = {
       color: '#f59e0b',
       pv: {
         nodeType: 'lock-manager',
-        description: 'Manages distributed locks',
         shape: 'hexagon',
         icon: 'Lock',
         sources: ['src/abstractions/DefaultLockManager.ts'],
@@ -197,7 +188,6 @@ export const mockControlTowerCanvas: ExtendedCanvas = {
       color: '#ec4899',
       pv: {
         nodeType: 'presence-manager',
-        description: 'Tracks user presence',
         shape: 'hexagon',
         icon: 'Activity',
         sources: ['src/abstractions/DefaultPresenceManager.ts'],
@@ -214,7 +204,6 @@ export const mockControlTowerCanvas: ExtendedCanvas = {
       color: '#ef4444',
       pv: {
         nodeType: 'auth',
-        description: 'Authentication adapter',
         shape: 'rectangle',
         icon: 'Shield',
         sources: ['src/abstractions/AuthAdapter.ts'],
@@ -235,7 +224,6 @@ export const mockControlTowerCanvas: ExtendedCanvas = {
   pv: {
     name: 'Control Tower Core - Client-Server Demo',
     version: '0.1.19',
-    description: 'Alpha testing: Server with two client connections',
     edgeTypes: {
       'websocket-connection': {
         style: 'solid',
@@ -295,7 +283,6 @@ export const mockComplexCanvas: ExtendedCanvas = {
       color: '#3b82f6',
       pv: {
         nodeType: 'request-handler',
-        description: 'Handles incoming requests',
         shape: 'rectangle',
         icon: 'Server',
         sources: ['app/handlers/**/*.ts'],
@@ -312,7 +299,6 @@ export const mockComplexCanvas: ExtendedCanvas = {
       color: '#8b5cf6',
       pv: {
         nodeType: 'lock-manager',
-        description: 'Manages repository locks',
         shape: 'rectangle',
         icon: 'Lock',
         sources: ['lib/lock-manager.ts', 'lib/branch-aware-lock-manager.ts'],
@@ -335,7 +321,6 @@ export const mockComplexCanvas: ExtendedCanvas = {
       color: '#22c55e',
       pv: {
         nodeType: 'github-api',
-        description: 'GitHub API client',
         shape: 'hexagon',
         icon: 'Github',
         sources: ['lib/github-api-client.ts', 'services/github/**/*.ts'],
@@ -352,7 +337,6 @@ export const mockComplexCanvas: ExtendedCanvas = {
       color: '#64748b',
       pv: {
         nodeType: 'database',
-        description: 'Database storage',
         shape: 'hexagon',
         icon: 'Database',
         sources: ['lib/db/**/*.ts'],
@@ -368,7 +352,6 @@ export const mockComplexCanvas: ExtendedCanvas = {
   pv: {
     name: 'Repository Traffic Controller',
     version: '2.1.0',
-    description: 'GitHub webhook processing with lock management',
     edgeTypes: {
       'webhook-flow': {
         style: 'solid',
@@ -415,7 +398,6 @@ export const mockNodeColorsCanvas: ExtendedCanvas = {
       text: '@app/core',
       pv: {
         nodeType: 'package',
-        description: 'Core package',
         shape: 'rectangle',
         fill: '#3b82f6',
         stroke: '#1d4ed8',
@@ -432,7 +414,6 @@ export const mockNodeColorsCanvas: ExtendedCanvas = {
       text: '@app/api',
       pv: {
         nodeType: 'package',
-        description: 'API package',
         shape: 'rectangle',
         fill: '#8b5cf6',
         stroke: '#6d28d9',
@@ -449,7 +430,6 @@ export const mockNodeColorsCanvas: ExtendedCanvas = {
       text: 'Button',
       pv: {
         nodeType: 'component',
-        description: 'React component',
         shape: 'rectangle',
         fill: '#10b981',
         stroke: '#047857',
@@ -466,7 +446,6 @@ export const mockNodeColorsCanvas: ExtendedCanvas = {
       text: 'useAuth',
       pv: {
         nodeType: 'hook',
-        description: 'React hook',
         shape: 'circle',
         fill: '#06b6d4',
         stroke: '#0891b2',
@@ -483,7 +462,6 @@ export const mockNodeColorsCanvas: ExtendedCanvas = {
       text: 'formatDate',
       pv: {
         nodeType: 'utility',
-        description: 'Utility function',
         shape: 'diamond',
         fill: '#f59e0b',
         stroke: '#d97706',
@@ -500,7 +478,6 @@ export const mockNodeColorsCanvas: ExtendedCanvas = {
       text: 'User',
       pv: {
         nodeType: 'type-def',
-        description: 'Type definition',
         shape: 'hexagon',
         fill: '#ec4899',
         stroke: '#db2777',
@@ -517,7 +494,6 @@ export const mockNodeColorsCanvas: ExtendedCanvas = {
       text: 'lodash',
       pv: {
         nodeType: 'external-dep',
-        description: 'External dependency',
         shape: 'rectangle',
         fill: '#6b7280',
         stroke: '#4b5563',
@@ -536,7 +512,6 @@ export const mockNodeColorsCanvas: ExtendedCanvas = {
   pv: {
     name: 'Code City - Node Colors Demo',
     version: '1.0.0',
-    description: 'Demonstrates pv.fill and pv.stroke color properties for different node types',
     edgeTypes: {
       dependency: {
         style: 'solid',
@@ -584,7 +559,6 @@ export const mockColorPriorityCanvas: ExtendedCanvas = {
       color: '#ff0000', // This should be ignored because pv.fill is set
       pv: {
         nodeType: 'service-with-fill',
-        description: 'Service with pv.fill',
         shape: 'rectangle',
         fill: '#3b82f6', // Blue - should be used
         stroke: '#1d4ed8', // Darker blue
@@ -602,7 +576,6 @@ export const mockColorPriorityCanvas: ExtendedCanvas = {
       color: '#22c55e', // Green - should be used as fill
       pv: {
         nodeType: 'service-canvas-color',
-        description: 'Service with canvas color',
         shape: 'rectangle',
         // No fill/stroke - uses node.color
         icon: 'Server',
@@ -619,7 +592,6 @@ export const mockColorPriorityCanvas: ExtendedCanvas = {
       // No color property - should show default gray #888
       pv: {
         nodeType: 'service-no-color',
-        description: 'Service with no color',
         shape: 'rectangle',
         // No fill/stroke - uses default gray
         icon: 'Server',
@@ -635,7 +607,6 @@ export const mockColorPriorityCanvas: ExtendedCanvas = {
       text: 'pv.stroke only',
       pv: {
         nodeType: 'database',
-        description: 'Database with stroke only',
         shape: 'hexagon',
         // No fill - stroke will be used for both
         stroke: '#8b5cf6',
@@ -652,7 +623,6 @@ export const mockColorPriorityCanvas: ExtendedCanvas = {
       text: 'Circle',
       pv: {
         nodeType: 'endpoint',
-        description: 'Circle-shaped endpoint',
         shape: 'circle',
         fill: '#06b6d4',
         stroke: '#0891b2',
@@ -669,7 +639,6 @@ export const mockColorPriorityCanvas: ExtendedCanvas = {
       text: 'Diamond',
       pv: {
         nodeType: 'decision',
-        description: 'Diamond-shaped decision',
         shape: 'diamond',
         fill: '#f59e0b',
         stroke: '#d97706',
@@ -687,7 +656,6 @@ export const mockColorPriorityCanvas: ExtendedCanvas = {
   pv: {
     name: 'Color Priority Test',
     version: '1.0.0',
-    description: 'Tests color priority: pv.fill > node.color > default',
     edgeTypes: {
       flow: {
         style: 'solid',
