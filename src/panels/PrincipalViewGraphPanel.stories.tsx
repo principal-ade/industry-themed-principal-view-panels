@@ -674,6 +674,126 @@ export const WorkspaceScope: Story = {
 };
 
 /**
+ * Node Sizing Test - demonstrates that width/height from canvas are applied
+ * All nodes are rectangles but with different explicit sizes
+ */
+export const NodeSizingTest: Story = {
+  args: {} as never,
+  render: () => {
+    const canvasWithSizes = {
+      nodes: [
+        {
+          id: 'small',
+          type: 'text',
+          x: 50,
+          y: 100,
+          width: 80,
+          height: 60,
+          text: 'Small (80x60)',
+          color: '#3b82f6',
+          pv: { nodeType: 'service', shape: 'rectangle', icon: 'Box' },
+        },
+        {
+          id: 'medium',
+          type: 'text',
+          x: 200,
+          y: 100,
+          width: 140,
+          height: 100,
+          text: 'Medium (140x100)',
+          color: '#10b981',
+          pv: { nodeType: 'service', shape: 'rectangle', icon: 'Box' },
+        },
+        {
+          id: 'large',
+          type: 'text',
+          x: 400,
+          y: 100,
+          width: 200,
+          height: 150,
+          text: 'Large (200x150)',
+          color: '#f59e0b',
+          pv: { nodeType: 'service', shape: 'rectangle', icon: 'Box' },
+        },
+        {
+          id: 'wide',
+          type: 'text',
+          x: 100,
+          y: 300,
+          width: 250,
+          height: 80,
+          text: 'Wide (250x80)',
+          color: '#8b5cf6',
+          pv: { nodeType: 'service', shape: 'rectangle', icon: 'Box' },
+        },
+        {
+          id: 'tall',
+          type: 'text',
+          x: 450,
+          y: 280,
+          width: 100,
+          height: 180,
+          text: 'Tall (100x180)',
+          color: '#ef4444',
+          pv: { nodeType: 'service', shape: 'rectangle', icon: 'Box' },
+        },
+      ],
+      edges: [],
+      pv: {
+        name: 'Node Sizing Test',
+        version: '1.0.0',
+        nodeTypes: { service: { shape: 'rectangle', color: '#666' } },
+        edgeTypes: {},
+      },
+    };
+
+    const fileTreeData = {
+      allFiles: [
+        {
+          path: '.principal-views/sizing-test.canvas',
+          relativePath: '.principal-views/sizing-test.canvas',
+          name: 'sizing-test.canvas',
+          content: JSON.stringify(canvasWithSizes, null, 2),
+        },
+      ],
+    };
+
+    const mockSlices = new Map<string, DataSlice>();
+    mockSlices.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeData,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          slices: mockSlices,
+          getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+            return mockSlices.get(name) as DataSlice<T> | undefined;
+          },
+          hasSlice: (name: string) => mockSlices.has(name),
+          isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+          repositoryPath: '/mock/repository',
+        } as never}
+        actionsOverrides={{
+          readFile: async () => JSON.stringify(canvasWithSizes, null, 2),
+          writeFile: async (path: string, content: string) => {
+            console.log('[Storybook Mock] Saved:', path);
+            console.log('[Storybook Mock] Content:', JSON.parse(content));
+          },
+        } as never}
+      >
+        {(props) => <PrincipalViewGraphPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
  * Resizable Panel Layout - replicates Electron environment
  * This story wraps the panel in EditableConfigurablePanelLayout to reproduce
  * the ResizeObserver issues seen in the Electron app
