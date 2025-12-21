@@ -368,15 +368,14 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
       skipNextFileChangeRef.current = true;
 
       // Update local state with the saved canvas (no reload needed)
+      // Also increment layoutVersion to force GraphRenderer remount with fresh canvas
       setState(prev => ({
         ...prev,
         canvas: updatedCanvas,
         isSaving: false,
-        hasUnsavedChanges: false
+        hasUnsavedChanges: false,
+        layoutVersion: prev.layoutVersion + 1
       }));
-
-      // Reset the GraphRenderer's edit state
-      graphRef.current?.resetEditState();
     } catch (error) {
       console.error('[PrincipalView] Error saving changes:', error);
       setState(prev => ({
