@@ -268,6 +268,20 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
     setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
   }, []);
 
+  // Handle source click - emit custom event for other panels to consume
+  const handleSourceClick = useCallback((nodeId: string, source: string) => {
+    eventsRef.current.emit({
+      type: 'custom',
+      source: 'principal-view-graph',
+      timestamp: Date.now(),
+      payload: {
+        action: 'sourceClick',
+        nodeId,
+        source,
+      },
+    });
+  }, []);
+
   // Toggle canvas selector overlay
   const toggleCanvasSelector = useCallback(() => {
     setState(prev => ({ ...prev, showCanvasSelector: !prev.showCanvasSelector }));
@@ -909,6 +923,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
             editable={state.isEditMode}
             autoUpdateEdgeSides={state.layoutConfig.autoUpdateEdgeSides}
             onPendingChangesChange={handlePendingChangesChange}
+            onSourceClick={handleSourceClick}
           />
         </div>
 
