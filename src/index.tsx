@@ -1,4 +1,5 @@
 import { PrincipalViewGraphPanel } from './panels/PrincipalViewGraphPanel';
+import { TraceViewerPanel } from './panels/TraceViewerPanel';
 import { EventControllerPanel } from './panels/EventControllerPanel';
 import type { PanelDefinition, PanelContextValue } from './types';
 import { principalViewPanelTools, principalViewPanelToolsMetadata } from './tools';
@@ -6,6 +7,8 @@ import { principalViewPanelTools, principalViewPanelToolsMetadata } from './tool
 // Re-export components for direct usage
 export { EventControllerPanel } from './panels/EventControllerPanel';
 export type { EventControllerPanelProps, PlaybackState, PlaybackStatus } from './panels/EventControllerPanel';
+
+export { TraceViewerPanel } from './panels/TraceViewerPanel';
 
 // Re-export adapter for external use
 export { PanelFileSystemAdapter } from './adapters/PanelFileSystemAdapter';
@@ -48,6 +51,36 @@ export const panels: PanelDefinition[] = [
     onUnmount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log('Principal View Graph Panel unmounting');
+    },
+  },
+  {
+    metadata: {
+      id: 'principal-ai.trace-viewer',
+      name: 'Trace Viewer',
+      icon: '📊',
+      version: '0.1.0',
+      author: 'Principal AI',
+      description: 'Visualizes OpenTelemetry traces captured from test runs as canvas diagrams',
+      slices: ['fileTree'],
+    },
+    component: TraceViewerPanel,
+
+    onMount: async (context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log(
+        'Trace Viewer Panel mounted',
+        context.currentScope.repository?.path
+      );
+
+      // Refresh file tree if available
+      if (context.hasSlice('fileTree') && !context.isSliceLoading('fileTree')) {
+        await context.refresh('repository', 'fileTree');
+      }
+    },
+
+    onUnmount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Trace Viewer Panel unmounting');
     },
   },
 ];
