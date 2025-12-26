@@ -200,6 +200,36 @@ export const TraceViewerPanel: React.FC<PanelComponentProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Subscribe to trace:load events from other panels (e.g., TelemetryCoveragePanel)
+  useEffect(() => {
+    const unsubscribe = eventsRef.current.on('trace:load', (event) => {
+      const payload = event.payload as {
+        traceId?: string;
+        tracePath?: string;
+        packagePath?: string;
+      };
+
+      if (payload.traceId) {
+        // Direct trace ID provided
+        loadTrace(payload.traceId);
+      } else if (payload.tracePath) {
+        // Convert trace path to trace ID
+        // Path format: packages/core/__traces__/test-run.canvas.json or __traces__/test-run.canvas.json
+        const pathMatch = payload.tracePath.match(
+          /(?:packages\/([^/]+)\/)?__traces__\/(.+)\.canvas\.json$/
+        );
+        if (pathMatch) {
+          const packageName = pathMatch[1];
+          const baseName = pathMatch[2];
+          const traceId = packageName ? `${packageName}-${baseName}` : baseName;
+          loadTrace(traceId);
+        }
+      }
+    });
+    return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Loading state
   if (state.loading) {
     return (
