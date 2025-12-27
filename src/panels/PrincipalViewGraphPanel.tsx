@@ -237,6 +237,10 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
       };
       loadOtherDescriptions();
 
+      // Reset the GraphRenderer's edit state BEFORE updating state
+      // This prevents stale state from affecting the new render
+      graphRef.current?.resetEditState();
+
       setState(prev => ({
         ...prev,
         canvas,
@@ -248,9 +252,6 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
         selectedConfigId: selectedConfig.id,
         hasUnsavedChanges: false
       }));
-
-      // Reset the GraphRenderer's edit state when we reload
-      graphRef.current?.resetEditState();
     } catch (error) {
       console.error('[PrincipalView] Error during config load:', error);
       setState(prev => ({
@@ -913,7 +914,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
         {/* Graph */}
         <div style={{ flex: 1, position: 'relative' }}>
           <GraphRenderer
-            key={`graph-${state.layoutVersion}`}
+            key={`graph-${state.selectedConfigId}-${state.layoutVersion}`}
             ref={graphRef}
             canvas={state.canvas}
             library={state.library ?? undefined}
