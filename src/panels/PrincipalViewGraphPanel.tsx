@@ -4,7 +4,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core';
-import { Loader, Save, X, Pencil, LayoutGrid, PanelLeft, FileJson, HelpCircle, Copy, Check, Info } from 'lucide-react';
+import { Loader, Save, X, Pencil, LayoutGrid, PanelLeft, FileJson, HelpCircle, Copy, Check, Info, MessageSquareOff } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './principal-view/ConfigLoader';
 import { applySugiyamaLayout } from './principal-view/forceLayout';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
@@ -43,6 +43,8 @@ interface GraphPanelState {
   showHelp: boolean;
   // Legend overlay
   showLegend: boolean;
+  // Tooltips on hover
+  showTooltips: boolean;
   // Edit mode state
   isEditMode: boolean;
   hasUnsavedChanges: boolean;
@@ -80,6 +82,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
     showCanvasSelector: false,
     showHelp: false,
     showLegend: false,
+    showTooltips: true,
     isEditMode: false,
     hasUnsavedChanges: false,
     isSaving: false,
@@ -296,6 +299,11 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
   // Toggle legend overlay
   const toggleLegend = useCallback(() => {
     setState(prev => ({ ...prev, showLegend: !prev.showLegend }));
+  }, []);
+
+  // Toggle tooltips
+  const toggleTooltips = useCallback(() => {
+    setState(prev => ({ ...prev, showTooltips: !prev.showTooltips }));
   }, []);
 
   // Copy current config path to clipboard
@@ -706,6 +714,29 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
           </div>
         </div>
 
+        {/* Tooltips Toggle Button - flush right, full height */}
+        <button
+          onClick={toggleTooltips}
+          title={state.showTooltips ? 'Disable hover tooltips' : 'Enable hover tooltips'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 40,
+            height: 39,
+            padding: 0,
+            backgroundColor: !state.showTooltips ? theme.colors.primary : 'transparent',
+            color: !state.showTooltips ? 'white' : theme.colors.textMuted,
+            border: 'none',
+            borderLeft: `1px solid ${theme.colors.border}`,
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            flexShrink: 0,
+          }}
+        >
+          <MessageSquareOff size={18} />
+        </button>
+
         {/* Legend Button - flush right, full height */}
         <button
           onClick={toggleLegend}
@@ -921,6 +952,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
             showMinimap={false}
             showControls={true}
             showBackground={true}
+            showTooltips={state.showTooltips}
             editable={state.isEditMode}
             autoUpdateEdgeSides={state.layoutConfig.autoUpdateEdgeSides}
             onPendingChangesChange={handlePendingChangesChange}

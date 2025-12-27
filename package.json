@@ -59,7 +59,7 @@
     "@principal-ade/panel-framework-core": "^0.1.10",
     "@principal-ade/utcp-panel-event": "^0.1.0",
     "@principal-ai/principal-view-core": "0.5.15",
-    "@principal-ai/principal-view-react": "0.6.24",
+    "@principal-ai/principal-view-react": "0.6.25",
     "@principal-ai/repository-abstraction": "0.2.5",
     "@xyflow/react": "^12.0.0",
     "clsx": "^2.1.1",
