@@ -612,13 +612,17 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
           </button>
         )}
 
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', gap: theme.space[3] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2] }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', gap: theme.space[3], minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2], minWidth: 0, flex: 1 }}>
             <h2 style={{
             margin: 0,
             fontSize: theme.fontSizes[3],
             fontWeight: theme.fontWeights.medium,
-            color: theme.colors.text
+            color: theme.colors.text,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
           }}>
             {state.canvas.pv?.name || 'Untitled'}
           </h2>
@@ -655,7 +659,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2] }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2], flexShrink: 0 }}>
           {/* Save/Discard buttons when there are unsaved changes */}
           {state.isEditMode && state.hasUnsavedChanges && (
             <>

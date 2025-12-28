@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { PrincipalViewGraphPanel } from './PrincipalViewGraphPanel';
 import { ThemeProvider, useTheme } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
@@ -904,4 +904,301 @@ export const ResizablePanelLayout: Story = {
     ),
   ],
   render: () => <ResizablePanelLayoutInner />,
+};
+
+/**
+ * Edge Disappearing Debug - simulates conditions that might cause edges to vanish
+ * Use the controls to:
+ * - Simulate file reload (as if the file changed on disk)
+ * - Toggle fileTree loading state
+ * - Rapidly switch between canvas versions
+ */
+const EdgeDisappearingDebugInner: React.FC = () => {
+  const { theme } = useTheme();
+  const [version, setVersion] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [canvasVariant, setCanvasVariant] = useState<'with-edges' | 'fewer-edges' | 'no-edges'>('with-edges');
+  const fileTreeDataRef = useRef(createMockFileTree('complex'));
+  const mockSlicesRef = useRef(new Map<string, DataSlice>());
+  const [, forceUpdate] = useState({});
+
+  // tldraw architecture canvas - complex real-world example (14 nodes, 17 edges)
+  const tldrawArchitecture = {
+    pv: {
+      name: 'tldraw Architecture',
+      version: '1.0.0',
+      nodeTypes: {
+        CorePackage: { description: 'Core SDK package', color: 4, icon: 'Package' },
+        SupportPackage: { description: 'Supporting library package', color: 5, icon: 'Box' },
+        Application: { description: 'Application or demo', color: 2, icon: 'Globe' },
+      },
+      edgeTypes: {
+        Depends: { style: 'solid', label: 'depends on' },
+        Uses: { style: 'dashed', label: 'uses' },
+      },
+    },
+    nodes: [
+      { id: 'state', type: 'geo', x: 236, y: 795, width: 200, height: 100, color: 5, pv: { nodeType: 'SupportPackage', shape: 'rectangle', name: '@tldraw/state', description: 'Reactive signals library for state management' } },
+      { id: 'utils', type: 'geo', x: -6, y: 795, width: 200, height: 100, color: 5, pv: { nodeType: 'SupportPackage', shape: 'rectangle', name: '@tldraw/utils', description: 'Shared utility functions' } },
+      { id: 'validate', type: 'geo', x: 207, y: 237, width: 200, height: 100, color: 5, pv: { nodeType: 'SupportPackage', shape: 'rectangle', name: '@tldraw/validate', description: 'Lightweight validation library' } },
+      { id: 'store', type: 'geo', x: -202, y: 516, width: 200, height: 100, color: 4, pv: { nodeType: 'CorePackage', shape: 'rectangle', name: '@tldraw/store', description: 'Reactive client-side database' } },
+      { id: 'tlschema', type: 'geo', x: -209, y: 241, width: 200, height: 100, color: 4, pv: { nodeType: 'CorePackage', shape: 'rectangle', name: '@tldraw/tlschema', description: 'Type definitions and validators' } },
+      { id: 'assets', type: 'geo', x: 377, y: -20, width: 200, height: 100, color: 5, pv: { nodeType: 'SupportPackage', shape: 'rectangle', name: '@tldraw/assets', description: 'Icons, fonts, and translations' } },
+      { id: 'editor', type: 'geo', x: -12, y: 73, width: 200, height: 100, color: 4, pv: { nodeType: 'CorePackage', shape: 'rectangle', name: '@tldraw/editor', description: 'Foundational infinite canvas editor' } },
+      { id: 'sync', type: 'geo', x: -417, y: 74, width: 200, height: 100, color: 4, pv: { nodeType: 'CorePackage', shape: 'rectangle', name: '@tldraw/sync', description: 'Multiplayer synchronization SDK' } },
+      { id: 'tldraw', type: 'geo', x: -12, y: -120, width: 200, height: 100, color: 4, pv: { nodeType: 'CorePackage', shape: 'rectangle', name: '@tldraw/tldraw', description: 'Complete batteries-included SDK' } },
+      { id: 'examples', type: 'geo', x: -216, y: -336, width: 150, height: 80, color: 2, pv: { nodeType: 'Application', shape: 'circle', name: 'examples', description: 'SDK examples and demos' } },
+      { id: 'docs', type: 'geo', x: 12, y: -340, width: 150, height: 80, color: 2, pv: { nodeType: 'Application', shape: 'circle', name: 'docs', description: 'Documentation site (tldraw.dev)' } },
+      { id: 'dotcom-client', type: 'geo', x: 458, y: -345, width: 150, height: 80, color: 2, pv: { nodeType: 'Application', shape: 'circle', name: 'dotcom', description: 'tldraw.com application' } },
+      { id: 'dotcom-sync', type: 'geo', x: -397, y: -98, width: 160, height: 80, color: 2, pv: { nodeType: 'Application', shape: 'circle', name: 'sync-worker', description: 'Multiplayer backend worker' } },
+      { id: 'vscode', type: 'geo', x: 230, y: -342, width: 150, height: 80, color: 2, pv: { nodeType: 'Application', shape: 'circle', name: 'vscode', description: 'VSCode extension' } },
+    ],
+    edges: [
+      { id: 'edge-store-state', fromNode: 'store', fromSide: 'bottom', toNode: 'state', toSide: 'top', pv: { edgeType: 'Depends' } },
+      { id: 'edge-store-utils', fromNode: 'store', fromSide: 'bottom', toNode: 'utils', toSide: 'top', pv: { edgeType: 'Depends' } },
+      { id: 'edge-tlschema-store', fromNode: 'tlschema', fromSide: 'bottom', toNode: 'store', toSide: 'top', pv: { edgeType: 'Depends' } },
+      { id: 'edge-tlschema-validate', fromNode: 'tlschema', fromSide: 'right', toNode: 'validate', toSide: 'left', pv: { edgeType: 'Depends' } },
+      { id: 'edge-editor-store', fromNode: 'editor', fromSide: 'bottom', toNode: 'store', toSide: 'top', pv: { edgeType: 'Depends' } },
+      { id: 'edge-editor-tlschema', fromNode: 'editor', fromSide: 'bottom', toNode: 'tlschema', toSide: 'top', pv: { edgeType: 'Depends' } },
+      { id: 'edge-editor-state', fromNode: 'editor', fromSide: 'bottom', toNode: 'state', toSide: 'top', pv: { edgeType: 'Depends' } },
+      { id: 'edge-editor-utils', fromNode: 'editor', fromSide: 'bottom', toNode: 'utils', toSide: 'top', pv: { edgeType: 'Depends' } },
+      { id: 'edge-tldraw-editor', fromNode: 'tldraw', fromSide: 'bottom', toNode: 'editor', toSide: 'top', pv: { edgeType: 'Depends' } },
+      { id: 'edge-tldraw-assets', fromNode: 'tldraw', fromSide: 'right', toNode: 'assets', toSide: 'left', pv: { edgeType: 'Depends' } },
+      { id: 'edge-sync-store', fromNode: 'sync', fromSide: 'bottom', toNode: 'store', toSide: 'top', pv: { edgeType: 'Depends' } },
+      { id: 'edge-sync-tlschema', fromNode: 'sync', fromSide: 'bottom', toNode: 'tlschema', toSide: 'top', pv: { edgeType: 'Depends' } },
+      { id: 'edge-examples-tldraw', fromNode: 'examples', fromSide: 'bottom', toNode: 'tldraw', toSide: 'top', pv: { edgeType: 'Uses' } },
+      { id: 'edge-docs-tldraw', fromNode: 'docs', fromSide: 'bottom', toNode: 'tldraw', toSide: 'top', pv: { edgeType: 'Uses' } },
+      { id: 'edge-dotcom-tldraw', fromNode: 'dotcom-client', fromSide: 'bottom', toNode: 'tldraw', toSide: 'right', pv: { edgeType: 'Uses' } },
+      { id: 'edge-dotcom-sync', fromNode: 'dotcom-sync', fromSide: 'bottom', toNode: 'sync', toSide: 'top', pv: { edgeType: 'Uses' } },
+      { id: 'edge-vscode-tldraw', fromNode: 'vscode', fromSide: 'bottom', toNode: 'tldraw', toSide: 'top', pv: { edgeType: 'Uses' } },
+    ],
+  };
+
+  // Canvas variants to simulate file changes - using tldraw architecture as base
+  const canvasVariants = {
+    'with-edges': tldrawArchitecture,
+    'fewer-edges': {
+      ...tldrawArchitecture,
+      pv: { ...tldrawArchitecture.pv, name: 'tldraw Architecture (Fewer Edges)' },
+      edges: tldrawArchitecture.edges.slice(0, 5), // Only first 5 edges
+    },
+    'no-edges': {
+      ...tldrawArchitecture,
+      pv: { ...tldrawArchitecture.pv, name: 'tldraw Architecture (No Edges)' },
+      edges: [],
+    },
+  };
+
+  // Create file tree data based on current variant
+  const createFileTreeData = useCallback((variant: typeof canvasVariant) => ({
+    allFiles: [
+      {
+        path: '.principal-views/debug.canvas',
+        relativePath: '.principal-views/debug.canvas',
+        name: 'debug.canvas',
+        content: JSON.stringify(canvasVariants[variant], null, 2),
+      },
+    ],
+  }), []);
+
+  // Update file tree data when variant changes
+  const updateFileTree = useCallback((variant: typeof canvasVariant) => {
+    fileTreeDataRef.current = createFileTreeData(variant);
+    mockSlicesRef.current.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeDataRef.current,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+    setVersion(v => v + 1);
+    forceUpdate({});
+  }, [createFileTreeData]);
+
+  // Simulate loading state toggle
+  const toggleLoading = useCallback(() => {
+    setIsLoading(prev => {
+      const newLoading = !prev;
+      mockSlicesRef.current.set('fileTree', {
+        scope: 'repository',
+        name: 'fileTree',
+        data: newLoading ? null : fileTreeDataRef.current,
+        loading: newLoading,
+        error: null,
+        refresh: async () => {},
+      });
+      forceUpdate({});
+      return newLoading;
+    });
+  }, []);
+
+  // Simulate rapid file changes
+  const simulateRapidChanges = useCallback(async () => {
+    const variants: Array<typeof canvasVariant> = ['with-edges', 'fewer-edges', 'no-edges', 'with-edges'];
+    for (const variant of variants) {
+      setCanvasVariant(variant);
+      updateFileTree(variant);
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }, [updateFileTree]);
+
+  // Simulate loading cycle
+  const simulateLoadingCycle = useCallback(async () => {
+    toggleLoading(); // Start loading
+    await new Promise(resolve => setTimeout(resolve, 200));
+    toggleLoading(); // Stop loading
+  }, [toggleLoading]);
+
+  // Initialize mock slices
+  if (mockSlicesRef.current.size === 0) {
+    fileTreeDataRef.current = createFileTreeData(canvasVariant);
+    mockSlicesRef.current.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeDataRef.current,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+  }
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Control Panel */}
+      <div style={{
+        padding: '12px 16px',
+        background: theme.colors.surface,
+        borderBottom: `1px solid ${theme.colors.border}`,
+        display: 'flex',
+        gap: 12,
+        alignItems: 'center',
+        flexWrap: 'wrap',
+      }}>
+        <span style={{ color: theme.colors.text, fontWeight: 500 }}>Edge Debug Controls:</span>
+
+        <select
+          value={canvasVariant}
+          onChange={(e) => {
+            const variant = e.target.value as typeof canvasVariant;
+            setCanvasVariant(variant);
+            updateFileTree(variant);
+          }}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 4,
+            border: `1px solid ${theme.colors.border}`,
+            background: theme.colors.background,
+            color: theme.colors.text,
+          }}
+        >
+          <option value="with-edges">Full tldraw (17 edges)</option>
+          <option value="fewer-edges">Fewer Edges (5)</option>
+          <option value="no-edges">No Edges (0)</option>
+        </select>
+
+        <button
+          onClick={() => updateFileTree(canvasVariant)}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 4,
+            border: `1px solid ${theme.colors.border}`,
+            background: theme.colors.primary,
+            color: 'white',
+            cursor: 'pointer',
+          }}
+        >
+          Simulate File Reload
+        </button>
+
+        <button
+          onClick={toggleLoading}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 4,
+            border: `1px solid ${theme.colors.border}`,
+            background: isLoading ? '#ef4444' : theme.colors.background,
+            color: isLoading ? 'white' : theme.colors.text,
+            cursor: 'pointer',
+          }}
+        >
+          {isLoading ? 'Stop Loading' : 'Start Loading'}
+        </button>
+
+        <button
+          onClick={simulateRapidChanges}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 4,
+            border: `1px solid ${theme.colors.border}`,
+            background: '#f59e0b',
+            color: 'white',
+            cursor: 'pointer',
+          }}
+        >
+          Rapid Changes (x4)
+        </button>
+
+        <button
+          onClick={simulateLoadingCycle}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 4,
+            border: `1px solid ${theme.colors.border}`,
+            background: '#8b5cf6',
+            color: 'white',
+            cursor: 'pointer',
+          }}
+        >
+          Loading Cycle
+        </button>
+
+        <span style={{ color: theme.colors.textMuted, fontSize: 12 }}>
+          Version: {version} | Check console for edge counts
+        </span>
+      </div>
+
+      {/* Graph Panel */}
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        <MockPanelProvider
+          key={version}
+          contextOverrides={{
+            slices: mockSlicesRef.current,
+            getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+              return mockSlicesRef.current.get(name) as DataSlice<T> | undefined;
+            },
+            hasSlice: (name: string) => mockSlicesRef.current.has(name),
+            isSliceLoading: (name: string) => mockSlicesRef.current.get(name)?.loading || false,
+            repositoryPath: '/mock/repository',
+          } as never}
+          actionsOverrides={{
+            readFile: async () => {
+              const file = fileTreeDataRef.current.allFiles[0];
+              return file?.content || '{}';
+            },
+            writeFile: async (path: string, content: string) => {
+              console.log('[Mock] File saved:', path);
+              if (fileTreeDataRef.current.allFiles[0]) {
+                fileTreeDataRef.current.allFiles[0].content = content;
+              }
+            },
+          } as never}
+        >
+          {(props) => <PrincipalViewGraphPanel {...props} />}
+        </MockPanelProvider>
+      </div>
+    </div>
+  );
+};
+
+export const EdgeDisappearingDebug: Story = {
+  args: {} as never,
+  parameters: {
+    docs: {
+      description: {
+        story: 'Debug story for investigating edge disappearing issues. Use the controls to simulate file reloads, loading states, and rapid canvas changes. Watch the browser console for edge count logs.',
+      },
+    },
+  },
+  render: () => <EdgeDisappearingDebugInner />,
 };

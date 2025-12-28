@@ -374,6 +374,11 @@ export const TraceViewerPanel: React.FC<PanelComponentProps> = ({
             fontSize: theme.fontSizes[3],
             fontWeight: (theme.fontWeights?.medium as number) || 500,
             color: theme.colors.text,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+            flex: 1,
           }}
         >
           {state.metadata?.name || 'Trace Viewer'}
@@ -389,14 +394,12 @@ export const TraceViewerPanel: React.FC<PanelComponentProps> = ({
               color: theme.colors.textMuted,
               backgroundColor: theme.colors.backgroundSecondary,
               borderRadius: theme.radii?.[1] || 4,
+              flexShrink: 0,
             }}
           >
             {selectedTrace.packageName}
           </span>
         )}
-
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
 
         {/* Trace selector dropdown */}
         {state.availableTraces.length > 1 && (
