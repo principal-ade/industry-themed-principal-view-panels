@@ -14,14 +14,12 @@ interface LayoutConfig {
   direction: 'TB' | 'BT' | 'LR' | 'RL';
   nodeSpacingX: number;
   nodeSpacingY: number;
-  autoUpdateEdgeSides: boolean;
 }
 
 const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   direction: 'TB',
   nodeSpacingX: 100,
   nodeSpacingY: 100,
-  autoUpdateEdgeSides: false,
 };
 
 interface ConfigDescription {
@@ -958,7 +956,6 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
             showBackground={true}
             showTooltips={state.showTooltips}
             editable={state.isEditMode}
-            autoUpdateEdgeSides={state.layoutConfig.autoUpdateEdgeSides}
             onPendingChangesChange={handlePendingChangesChange}
             onSourceClick={handleSourceClick}
           />
@@ -1124,53 +1121,6 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
                   <LayoutGrid size={14} />
                   <span>Apply Layout</span>
                 </button>
-              </div>
-
-              {/* Edge Settings Section */}
-              <div>
-                <div style={{
-                  fontSize: theme.fontSizes[1],
-                  fontWeight: theme.fontWeights.medium,
-                  color: theme.colors.text,
-                  marginBottom: theme.space[2],
-                }}>
-                  Edge Settings
-                </div>
-
-                {/* Auto Update Edge Sides Toggle */}
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.space[2],
-                  cursor: 'pointer',
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={state.layoutConfig.autoUpdateEdgeSides}
-                    onChange={(e) => updateLayoutConfig({ autoUpdateEdgeSides: e.target.checked })}
-                    style={{
-                      width: 16,
-                      height: 16,
-                      cursor: 'pointer',
-                      accentColor: theme.colors.primary,
-                    }}
-                  />
-                  <span style={{
-                    fontSize: theme.fontSizes[1],
-                    color: theme.colors.text,
-                  }}>
-                    Auto-update edge sides
-                  </span>
-                </label>
-                <span style={{
-                  display: 'block',
-                  fontSize: theme.fontSizes[0],
-                  color: theme.colors.textMuted,
-                  marginTop: theme.space[1],
-                  lineHeight: 1.4,
-                }}>
-                  Automatically adjust edge connection points when nodes are moved
-                </span>
               </div>
             </div>
           </div>
