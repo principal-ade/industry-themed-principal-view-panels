@@ -4,23 +4,10 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core';
-import { Loader, Save, X, Pencil, LayoutGrid, PanelLeft, FileJson, HelpCircle, Copy, Check, Info, MessageSquareOff } from 'lucide-react';
+import { Loader, Save, X, Pencil, PanelLeft, FileJson, HelpCircle, Copy, Check, Info, MessageSquareOff } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './principal-view/ConfigLoader';
-import { applySugiyamaLayout } from './principal-view/forceLayout';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
-
-interface LayoutConfig {
-  direction: 'TB' | 'BT' | 'LR' | 'RL';
-  nodeSpacingX: number;
-  nodeSpacingY: number;
-}
-
-const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
-  direction: 'TB',
-  nodeSpacingX: 100,
-  nodeSpacingY: 100,
-};
 
 interface ConfigDescription {
   name: string;
@@ -47,10 +34,6 @@ interface GraphPanelState {
   isEditMode: boolean;
   hasUnsavedChanges: boolean;
   isSaving: boolean;
-  // Incremented when layout changes to force GraphRenderer remount
-  layoutVersion: number;
-  // Layout configuration
-  layoutConfig: LayoutConfig;
 }
 
 /**
@@ -84,8 +67,6 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
     isEditMode: false,
     hasUnsavedChanges: false,
     isSaving: false,
-    layoutVersion: 0,
-    layoutConfig: DEFAULT_LAYOUT_CONFIG,
   });
 
   // Store context and actions in refs to avoid recreation of callbacks
@@ -389,13 +370,11 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
       skipNextFileChangeRef.current = true;
 
       // Update local state with the saved canvas (no reload needed)
-      // Also increment layoutVersion to force GraphRenderer remount with fresh canvas
       setState(prev => ({
         ...prev,
         canvas: updatedCanvas,
         isSaving: false,
         hasUnsavedChanges: false,
-        layoutVersion: prev.layoutVersion + 1
       }));
     } catch (error) {
       console.error('[PrincipalView] Error saving changes:', error);
@@ -406,34 +385,6 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
       }));
     }
   }, [state.canvas, state.availableConfigs]);
-
-  // Update layout config
-  const updateLayoutConfig = useCallback((updates: Partial<LayoutConfig>) => {
-    setState(prev => ({
-      ...prev,
-      layoutConfig: { ...prev.layoutConfig, ...updates },
-    }));
-  }, []);
-
-  // Apply auto-layout using Sugiyama (hierarchical) algorithm
-  // Falls back to force-directed layout if graph has cycles
-  const applyAutoLayout = useCallback(() => {
-    if (!state.canvas) return;
-
-    const layoutedCanvas = applySugiyamaLayout(state.canvas, {
-      direction: state.layoutConfig.direction,
-      nodeSpacingX: state.layoutConfig.nodeSpacingX,
-      nodeSpacingY: state.layoutConfig.nodeSpacingY,
-    });
-
-    setState(prev => ({
-      ...prev,
-      canvas: layoutedCanvas,
-      isEditMode: true,
-      hasUnsavedChanges: true,
-      layoutVersion: prev.layoutVersion + 1,
-    }));
-  }, [state.canvas, state.layoutConfig]);
 
   // Load configuration on mount and when fileTree slice finishes loading
   const fileTreeLoading = context.hasSlice('fileTree') && context.isSliceLoading('fileTree');
@@ -947,7 +898,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
         {/* Graph */}
         <div style={{ flex: 1, position: 'relative' }}>
           <GraphRenderer
-            key={`graph-${state.selectedConfigId}-${state.layoutVersion}`}
+            key={`graph-${state.selectedConfigId}`}
             ref={graphRef}
             canvas={state.canvas}
             library={state.library ?? undefined}
@@ -960,171 +911,6 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
             onSourceClick={handleSourceClick}
           />
         </div>
-
-        {/* Edit Tools Overlay - Right side */}
-        {state.isEditMode && (
-          <div style={{
-            width: 220,
-            height: '100%',
-            backgroundColor: theme.colors.background,
-            borderLeft: `1px solid ${theme.colors.border}`,
-            display: 'flex',
-            flexDirection: 'column',
-            flexShrink: 0,
-            overflow: 'hidden',
-          }}>
-            {/* Overlay Header */}
-            <div style={{
-              height: 39,
-              padding: '0 16px',
-              borderBottom: `1px solid ${theme.colors.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              flexShrink: 0,
-              boxSizing: 'content-box'
-            }}>
-              <span style={{
-                fontSize: theme.fontSizes[2],
-                fontWeight: theme.fontWeights.medium,
-                color: theme.colors.text
-              }}>
-                Edit Tools
-              </span>
-            </div>
-
-            {/* Tools Content */}
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              padding: theme.space[3],
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.space[4],
-            }}>
-              {/* Auto Layout Section */}
-              <div>
-                <div style={{
-                  fontSize: theme.fontSizes[1],
-                  fontWeight: theme.fontWeights.medium,
-                  color: theme.colors.text,
-                  marginBottom: theme.space[2],
-                }}>
-                  Auto Layout
-                </div>
-
-                {/* Direction */}
-                <div style={{ marginBottom: theme.space[3] }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: theme.fontSizes[0],
-                    color: theme.colors.textMuted,
-                    marginBottom: theme.space[1],
-                  }}>
-                    Direction
-                  </label>
-                  <div style={{ display: 'flex', gap: theme.space[1] }}>
-                    {(['TB', 'BT', 'LR', 'RL'] as const).map((dir) => (
-                      <button
-                        key={dir}
-                        onClick={() => updateLayoutConfig({ direction: dir })}
-                        title={{
-                          TB: 'Top to Bottom',
-                          BT: 'Bottom to Top',
-                          LR: 'Left to Right',
-                          RL: 'Right to Left'
-                        }[dir]}
-                        style={{
-                          flex: 1,
-                          padding: `${theme.space[1]}px`,
-                          fontSize: theme.fontSizes[0],
-                          fontFamily: theme.fonts.monospace,
-                          color: state.layoutConfig.direction === dir ? 'white' : theme.colors.text,
-                          backgroundColor: state.layoutConfig.direction === dir ? theme.colors.primary : theme.colors.backgroundSecondary,
-                          border: `1px solid ${state.layoutConfig.direction === dir ? theme.colors.primary : theme.colors.border}`,
-                          borderRadius: theme.radii[1],
-                          cursor: 'pointer',
-                          transition: 'all 0.15s'
-                        }}
-                      >
-                        {dir}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Horizontal Spacing */}
-                <div style={{ marginBottom: theme.space[3] }}>
-                  <label style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: theme.fontSizes[0],
-                    color: theme.colors.textMuted,
-                    marginBottom: theme.space[1],
-                  }}>
-                    <span>H-Spacing</span>
-                    <span style={{ fontFamily: theme.fonts.monospace }}>{state.layoutConfig.nodeSpacingX}</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="30"
-                    max="400"
-                    step="10"
-                    value={state.layoutConfig.nodeSpacingX}
-                    onChange={(e) => updateLayoutConfig({ nodeSpacingX: Number(e.target.value) })}
-                    style={{ width: '100%', cursor: 'pointer' }}
-                  />
-                </div>
-
-                {/* Vertical Spacing */}
-                <div style={{ marginBottom: theme.space[3] }}>
-                  <label style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: theme.fontSizes[0],
-                    color: theme.colors.textMuted,
-                    marginBottom: theme.space[1],
-                  }}>
-                    <span>V-Spacing</span>
-                    <span style={{ fontFamily: theme.fonts.monospace }}>{state.layoutConfig.nodeSpacingY}</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="30"
-                    max="300"
-                    step="10"
-                    value={state.layoutConfig.nodeSpacingY}
-                    onChange={(e) => updateLayoutConfig({ nodeSpacingY: Number(e.target.value) })}
-                    style={{ width: '100%', cursor: 'pointer' }}
-                  />
-                </div>
-
-                {/* Apply Button */}
-                <button
-                  onClick={applyAutoLayout}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: theme.space[1],
-                    width: '100%',
-                    padding: `${theme.space[2]}px`,
-                    fontSize: theme.fontSizes[1],
-                    fontFamily: theme.fonts.body,
-                    color: 'white',
-                    backgroundColor: theme.colors.primary,
-                    border: 'none',
-                    borderRadius: theme.radii[1],
-                    cursor: 'pointer',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <LayoutGrid size={14} />
-                  <span>Apply Layout</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Help Overlay */}
         {state.showHelp && (
