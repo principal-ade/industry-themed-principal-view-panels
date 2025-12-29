@@ -937,6 +937,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
             showControls={true}
             showBackground={true}
             backgroundVariant={state.showGridLines ? 'lines' : 'dots'}
+            backgroundGap={state.showGridLines ? 75 : undefined}
             showTooltips={state.showTooltips}
             editable={state.isEditMode}
             onPendingChangesChange={handlePendingChangesChange}
