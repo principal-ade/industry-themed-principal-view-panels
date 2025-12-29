@@ -4,7 +4,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core';
-import { Loader, Save, X, Pencil, PanelLeft, FileJson, HelpCircle, Copy, Check, Info, MessageSquareOff, Grid3X3 } from 'lucide-react';
+import { Loader, Save, X, Pencil, PanelLeft, FileJson, HelpCircle, Copy, Check, Info, MessageSquareOff, Grid3X3, RefreshCw } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
@@ -674,6 +674,31 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
 
           </div>
         </div>
+
+        {/* Refresh Button - flush right, full height */}
+        <button
+          onClick={() => loadConfiguration()}
+          disabled={state.hasUnsavedChanges}
+          title={state.hasUnsavedChanges ? 'Save or discard changes before refreshing' : 'Refresh'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 40,
+            height: 39,
+            padding: 0,
+            backgroundColor: 'transparent',
+            color: theme.colors.textMuted,
+            border: 'none',
+            borderLeft: `1px solid ${theme.colors.border}`,
+            cursor: state.hasUnsavedChanges ? 'not-allowed' : 'pointer',
+            opacity: state.hasUnsavedChanges ? 0.5 : 1,
+            transition: 'all 0.15s',
+            flexShrink: 0,
+          }}
+        >
+          <RefreshCw size={18} />
+        </button>
 
         {/* Tooltips Toggle Button - flush right, full height */}
         <button
