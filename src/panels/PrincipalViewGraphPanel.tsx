@@ -4,7 +4,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core';
-import { Loader, Save, X, Pencil, PanelLeft, FileJson, HelpCircle, Copy, Check, Info, MessageSquareOff, Grid3X3, RefreshCw } from 'lucide-react';
+import { Loader, Save, X, Pencil, PanelLeft, FileJson, HelpCircle, Copy, Check, Info, MessageSquareOff, Grid3X3, RefreshCw, Crosshair } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
@@ -292,6 +292,45 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
   const toggleGridLines = useCallback(() => {
     setState(prev => ({ ...prev, showGridLines: !prev.showGridLines }));
   }, []);
+
+  // Recenter node coordinates so the bounding box center is at (0,0)
+  // This allows saving coordinates that don't require fitView adjustment on load
+  const recenterCoordinates = useCallback(() => {
+    if (!state.canvas?.nodes || state.canvas.nodes.length === 0) return;
+
+    // Calculate bounding box of all nodes
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+
+    for (const node of state.canvas.nodes) {
+      minX = Math.min(minX, node.x);
+      maxX = Math.max(maxX, node.x + node.width);
+      minY = Math.min(minY, node.y);
+      maxY = Math.max(maxY, node.y + node.height);
+    }
+
+    // Calculate center of bounding box
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    // Skip if already centered (within 1px tolerance)
+    if (Math.abs(centerX) < 1 && Math.abs(centerY) < 1) return;
+
+    // Deep clone the canvas and shift all node coordinates
+    const updatedCanvas: ExtendedCanvas = JSON.parse(JSON.stringify(state.canvas));
+    if (updatedCanvas.nodes) {
+      for (const node of updatedCanvas.nodes) {
+        node.x = Math.round(node.x - centerX);
+        node.y = Math.round(node.y - centerY);
+      }
+    }
+
+    setState(prev => ({
+      ...prev,
+      canvas: updatedCanvas,
+      hasUnsavedChanges: true,
+    }));
+  }, [state.canvas]);
 
   // Copy current config path to clipboard
   const copyConfigPath = useCallback(() => {
@@ -746,6 +785,31 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
           <Grid3X3 size={18} />
         </button>
 
+        {/* Recenter Coordinates Button - only visible in edit mode */}
+        {state.isEditMode && (
+          <button
+            onClick={recenterCoordinates}
+            title="Recenter coordinates (shift all nodes so center is at origin)"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 40,
+              height: 39,
+              padding: 0,
+              backgroundColor: 'transparent',
+              color: theme.colors.textMuted,
+              border: 'none',
+              borderLeft: `1px solid ${theme.colors.border}`,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              flexShrink: 0,
+            }}
+          >
+            <Crosshair size={18} />
+          </button>
+        )}
+
         {/* Legend Button - flush right, full height */}
         <button
           onClick={toggleLegend}
@@ -964,6 +1028,7 @@ export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
             backgroundVariant={state.showGridLines ? 'lines' : 'dots'}
             backgroundGap={state.showGridLines ? 75 : undefined}
             showTooltips={state.showTooltips}
+            fitViewDuration={0}
             editable={state.isEditMode}
             onPendingChangesChange={handlePendingChangesChange}
             onSourceClick={handleSourceClick}

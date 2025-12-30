@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { PrincipalViewGraphPanel } from './PrincipalViewGraphPanel';
 import { ThemeProvider, useTheme } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
@@ -1201,4 +1201,350 @@ export const EdgeDisappearingDebug: Story = {
     },
   },
   render: () => <EdgeDisappearingDebugInner />,
+};
+
+/**
+ * Recenter Coordinates Test - tests the recenter button functionality
+ * Nodes are intentionally positioned with a non-zero center offset.
+ * Use the crosshair button (in edit mode) to recenter, then save.
+ * Switch to another config and back to verify persistence.
+ */
+const RecenterCoordinatesTestInner: React.FC = () => {
+  const { theme } = useTheme();
+  const [lastSaveTime, setLastSaveTime] = useState<string | null>(null);
+  const [, forceUpdate] = useState({});
+  const [viewport, setViewport] = useState<{ x: number; y: number; zoom: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Track viewport changes by observing the React Flow transform
+  useEffect(() => {
+    const checkViewport = () => {
+      if (!containerRef.current) return;
+
+      // React Flow applies transform to .react-flow__viewport
+      const viewportEl = containerRef.current.querySelector('.react-flow__viewport') as HTMLElement;
+      if (!viewportEl) return;
+
+      const transform = viewportEl.style.transform;
+      // Parse transform: "translate(Xpx, Ypx) scale(Z)"
+      const match = transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)\s*scale\(([-\d.]+)\)/);
+      if (match) {
+        const newViewport = {
+          x: Math.round(parseFloat(match[1])),
+          y: Math.round(parseFloat(match[2])),
+          zoom: Math.round(parseFloat(match[3]) * 100) / 100,
+        };
+        setViewport(prev => {
+          if (!prev || prev.x !== newViewport.x || prev.y !== newViewport.y || prev.zoom !== newViewport.zoom) {
+            return newViewport;
+          }
+          return prev;
+        });
+      }
+    };
+
+    // Check periodically and after fitView settles
+    const interval = setInterval(checkViewport, 200);
+    const timeout = setTimeout(checkViewport, 500); // After fitView animation
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  // Canvas with nodes far from origin (center should be around x:500, y:350)
+  const offCenterCanvas1 = {
+    nodes: [
+      {
+        id: 'node-a',
+        type: 'text',
+        x: 300,
+        y: 200,
+        width: 140,
+        height: 80,
+        text: 'Node A',
+        pv: { nodeType: 'service', shape: 'rectangle', fill: '#3b82f6', stroke: '#1d4ed8', icon: 'Server' },
+      },
+      {
+        id: 'node-b',
+        type: 'text',
+        x: 550,
+        y: 200,
+        width: 140,
+        height: 80,
+        text: 'Node B',
+        pv: { nodeType: 'service', shape: 'rectangle', fill: '#8b5cf6', stroke: '#6d28d9', icon: 'Database' },
+      },
+      {
+        id: 'node-c',
+        type: 'text',
+        x: 425,
+        y: 400,
+        width: 140,
+        height: 100,
+        text: 'Node C',
+        pv: { nodeType: 'service', shape: 'hexagon', fill: '#22c55e', stroke: '#16a34a', icon: 'Cpu' },
+      },
+    ],
+    edges: [
+      { id: 'e1', fromNode: 'node-a', toNode: 'node-b', pv: { edgeType: 'flow' } },
+      { id: 'e2', fromNode: 'node-a', toNode: 'node-c', pv: { edgeType: 'flow' } },
+      { id: 'e3', fromNode: 'node-b', toNode: 'node-c', pv: { edgeType: 'flow' } },
+    ],
+    pv: {
+      name: 'Off-Center Canvas 1',
+      description: 'Nodes positioned around (500, 350) - use recenter to shift to origin',
+      version: '1.0.0',
+      edgeTypes: {
+        flow: { style: 'solid', color: '#64748b', width: 2, directed: true },
+      },
+    },
+  };
+
+  // Another canvas with different offset (center around x:800, y:600)
+  const offCenterCanvas2 = {
+    nodes: [
+      {
+        id: 'api',
+        type: 'text',
+        x: 600,
+        y: 400,
+        width: 160,
+        height: 80,
+        text: 'API Gateway',
+        pv: { nodeType: 'api', shape: 'rectangle', fill: '#06b6d4', stroke: '#0891b2', icon: 'Globe' },
+      },
+      {
+        id: 'auth',
+        type: 'text',
+        x: 850,
+        y: 400,
+        width: 140,
+        height: 80,
+        text: 'Auth Service',
+        pv: { nodeType: 'auth', shape: 'rectangle', fill: '#ef4444', stroke: '#dc2626', icon: 'Shield' },
+      },
+      {
+        id: 'db',
+        type: 'text',
+        x: 600,
+        y: 600,
+        width: 140,
+        height: 100,
+        text: 'Database',
+        pv: { nodeType: 'db', shape: 'hexagon', fill: '#f59e0b', stroke: '#d97706', icon: 'Database' },
+      },
+      {
+        id: 'cache',
+        type: 'text',
+        x: 850,
+        y: 600,
+        width: 140,
+        height: 100,
+        text: 'Cache',
+        pv: { nodeType: 'cache', shape: 'circle', fill: '#ec4899', stroke: '#db2777', icon: 'Zap' },
+      },
+    ],
+    edges: [
+      { id: 'e1', fromNode: 'api', toNode: 'auth', pv: { edgeType: 'http' } },
+      { id: 'e2', fromNode: 'api', toNode: 'db', pv: { edgeType: 'query' } },
+      { id: 'e3', fromNode: 'auth', toNode: 'cache', pv: { edgeType: 'cache-lookup' } },
+    ],
+    pv: {
+      name: 'Off-Center Canvas 2',
+      description: 'Nodes positioned around (800, 600) - use recenter to shift to origin',
+      version: '1.0.0',
+      edgeTypes: {
+        http: { style: 'solid', color: '#06b6d4', width: 2, directed: true },
+        query: { style: 'dashed', color: '#f59e0b', width: 2, directed: true },
+        'cache-lookup': { style: 'dotted', color: '#ec4899', width: 1, directed: true },
+      },
+    },
+  };
+
+  // Store file contents with refs so they persist across renders
+  const fileContentsRef = useRef<Record<string, string>>({
+    'off-center-1.canvas': JSON.stringify(offCenterCanvas1, null, 2),
+    'off-center-2.canvas': JSON.stringify(offCenterCanvas2, null, 2),
+  });
+
+  const fileTreeData = {
+    allFiles: [
+      {
+        path: '.principal-views/off-center-1.canvas',
+        relativePath: '.principal-views/off-center-1.canvas',
+        name: 'off-center-1.canvas',
+        get content() { return fileContentsRef.current['off-center-1.canvas']; },
+        set content(val: string) { fileContentsRef.current['off-center-1.canvas'] = val; },
+      },
+      {
+        path: '.principal-views/off-center-2.canvas',
+        relativePath: '.principal-views/off-center-2.canvas',
+        name: 'off-center-2.canvas',
+        get content() { return fileContentsRef.current['off-center-2.canvas']; },
+        set content(val: string) { fileContentsRef.current['off-center-2.canvas'] = val; },
+      },
+      { path: 'README.md', relativePath: 'README.md', name: 'README.md', content: '# Test' },
+    ],
+  };
+
+  const mockSlices = new Map<string, DataSlice>();
+  mockSlices.set('fileTree', {
+    scope: 'repository',
+    name: 'fileTree',
+    data: fileTreeData,
+    loading: false,
+    error: null,
+    refresh: async () => {},
+  });
+
+  // Helper to calculate bounding box info
+  const calculateBounds = (content: string) => {
+    try {
+      const canvas = JSON.parse(content);
+      if (!canvas.nodes || canvas.nodes.length === 0) {
+        return { minX: 0, minY: 0, maxX: 0, maxY: 0, centerX: 0, centerY: 0, width: 0, height: 0 };
+      }
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const node of canvas.nodes) {
+        minX = Math.min(minX, node.x);
+        maxX = Math.max(maxX, node.x + node.width);
+        minY = Math.min(minY, node.y);
+        maxY = Math.max(maxY, node.y + node.height);
+      }
+      return {
+        minX: Math.round(minX),
+        minY: Math.round(minY),
+        maxX: Math.round(maxX),
+        maxY: Math.round(maxY),
+        centerX: Math.round((minX + maxX) / 2),
+        centerY: Math.round((minY + maxY) / 2),
+        width: Math.round(maxX - minX),
+        height: Math.round(maxY - minY),
+      };
+    } catch {
+      return { minX: 0, minY: 0, maxX: 0, maxY: 0, centerX: 0, centerY: 0, width: 0, height: 0 };
+    }
+  };
+
+  const bounds1 = calculateBounds(fileContentsRef.current['off-center-1.canvas']);
+  const bounds2 = calculateBounds(fileContentsRef.current['off-center-2.canvas']);
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Info Panel */}
+      <div style={{
+        padding: '12px 16px',
+        background: theme.colors.surface,
+        borderBottom: `1px solid ${theme.colors.border}`,
+        fontSize: 12,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4, color: theme.colors.text }}>
+              Recenter Coordinates Test
+            </div>
+            <div style={{ color: theme.colors.textMuted, fontSize: 11 }}>
+              1. Pencil → edit mode | 2. Crosshair → recenter | 3. Save | 4. Switch configs to verify
+            </div>
+          </div>
+          {lastSaveTime && (
+            <div style={{ color: theme.colors.success || '#22c55e', fontWeight: 500 }}>
+              Saved: {lastSaveTime}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: 32, marginTop: 12, flexWrap: 'wrap' }}>
+          {/* Canvas 1 bounds */}
+          <div style={{ background: theme.colors.background, padding: '8px 12px', borderRadius: 4, border: `1px solid ${theme.colors.border}` }}>
+            <div style={{ fontWeight: 600, color: theme.colors.text, marginBottom: 4 }}>Canvas 1 Bounds</div>
+            <div style={{ fontFamily: 'monospace', fontSize: 11, lineHeight: 1.6 }}>
+              <div><span style={{ color: theme.colors.textMuted }}>X range:</span> <span style={{ color: theme.colors.primary }}>{bounds1.minX}</span> → <span style={{ color: theme.colors.primary }}>{bounds1.maxX}</span></div>
+              <div><span style={{ color: theme.colors.textMuted }}>Y range:</span> <span style={{ color: theme.colors.primary }}>{bounds1.minY}</span> → <span style={{ color: theme.colors.primary }}>{bounds1.maxY}</span></div>
+              <div><span style={{ color: theme.colors.textMuted }}>Center:</span> <span style={{ color: bounds1.centerX === 0 && bounds1.centerY === 0 ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>({bounds1.centerX}, {bounds1.centerY})</span></div>
+              <div><span style={{ color: theme.colors.textMuted }}>Size:</span> {bounds1.width} × {bounds1.height}</div>
+            </div>
+          </div>
+
+          {/* Canvas 2 bounds */}
+          <div style={{ background: theme.colors.background, padding: '8px 12px', borderRadius: 4, border: `1px solid ${theme.colors.border}` }}>
+            <div style={{ fontWeight: 600, color: theme.colors.text, marginBottom: 4 }}>Canvas 2 Bounds</div>
+            <div style={{ fontFamily: 'monospace', fontSize: 11, lineHeight: 1.6 }}>
+              <div><span style={{ color: theme.colors.textMuted }}>X range:</span> <span style={{ color: theme.colors.primary }}>{bounds2.minX}</span> → <span style={{ color: theme.colors.primary }}>{bounds2.maxX}</span></div>
+              <div><span style={{ color: theme.colors.textMuted }}>Y range:</span> <span style={{ color: theme.colors.primary }}>{bounds2.minY}</span> → <span style={{ color: theme.colors.primary }}>{bounds2.maxY}</span></div>
+              <div><span style={{ color: theme.colors.textMuted }}>Center:</span> <span style={{ color: bounds2.centerX === 0 && bounds2.centerY === 0 ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>({bounds2.centerX}, {bounds2.centerY})</span></div>
+              <div><span style={{ color: theme.colors.textMuted }}>Size:</span> {bounds2.width} × {bounds2.height}</div>
+            </div>
+          </div>
+
+          {/* Current Viewport */}
+          <div style={{ background: theme.colors.background, padding: '8px 12px', borderRadius: 4, border: `1px solid ${theme.colors.border}` }}>
+            <div style={{ fontWeight: 600, color: theme.colors.text, marginBottom: 4 }}>Current Viewport (fitView result)</div>
+            {viewport ? (
+              <div style={{ fontFamily: 'monospace', fontSize: 11, lineHeight: 1.6 }}>
+                <div><span style={{ color: theme.colors.textMuted }}>translate:</span> <span style={{ color: '#22c55e', fontWeight: 600 }}>({viewport.x}, {viewport.y})</span></div>
+                <div><span style={{ color: theme.colors.textMuted }}>zoom:</span> <span style={{ color: theme.colors.primary }}>{viewport.zoom}</span></div>
+                <div style={{ marginTop: 4, fontSize: 10, color: theme.colors.textMuted }}>
+                  To skip fitView animation, set initial viewport to these values
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: 11, color: theme.colors.textMuted }}>Loading...</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Graph Panel */}
+      <div ref={containerRef} style={{ flex: 1, overflow: 'hidden' }}>
+        <MockPanelProvider
+          contextOverrides={{
+            slices: mockSlices,
+            getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+              return mockSlices.get(name) as DataSlice<T> | undefined;
+            },
+            hasSlice: (name: string) => mockSlices.has(name),
+            isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+            repositoryPath: '/mock/repository',
+          } as never}
+          actionsOverrides={{
+            readFile: async (path: string) => {
+              const fileName = path.split('/').pop() || '';
+              const content = fileContentsRef.current[fileName];
+              if (!content) throw new Error(`File not found: ${path}`);
+              return content;
+            },
+            writeFile: async (path: string, content: string) => {
+              const fileName = path.split('/').pop() || '';
+              fileContentsRef.current[fileName] = content;
+              setLastSaveTime(new Date().toLocaleTimeString());
+              forceUpdate({}); // Trigger re-render to update center display
+
+              // Log the new bounds for verification
+              const bounds = calculateBounds(content);
+              console.log(`[RecenterTest] Saved ${fileName}`);
+              console.log(`  Bounds: X(${bounds.minX} → ${bounds.maxX}), Y(${bounds.minY} → ${bounds.maxY})`);
+              console.log(`  Center: (${bounds.centerX}, ${bounds.centerY}), Size: ${bounds.width} × ${bounds.height}`);
+            },
+          } as never}
+        >
+          {(props) => <PrincipalViewGraphPanel {...props} />}
+        </MockPanelProvider>
+      </div>
+    </div>
+  );
+};
+
+export const RecenterCoordinatesTest: Story = {
+  args: {} as never,
+  parameters: {
+    docs: {
+      description: {
+        story: 'Tests the recenter coordinates button. Canvases have intentionally off-center node positions. Enter edit mode, click the crosshair button to recenter, save, then switch configs to verify persistence.',
+      },
+    },
+  },
+  render: () => <RecenterCoordinatesTestInner />,
 };
