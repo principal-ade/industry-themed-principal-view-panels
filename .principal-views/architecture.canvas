@@ -62,7 +62,7 @@
       "pv": {
         "nodeType": "panel",
         "description": "Main graph visualization panel",
-        "icon": "layout-dashboard"
+        "icon": "LayoutDashboard"
       }
     },
     {
@@ -76,7 +76,7 @@
       "pv": {
         "nodeType": "panel",
         "description": "Configuration and library browser panel",
-        "icon": "folder-tree"
+        "icon": "FolderTree"
       }
     },
     {
@@ -90,7 +90,7 @@
       "pv": {
         "nodeType": "panel",
         "description": "Event playback controller panel",
-        "icon": "play-circle"
+        "icon": "PlayCircle"
       }
     },
     {
@@ -104,7 +104,7 @@
       "pv": {
         "nodeType": "loader",
         "description": "Loads graph configuration files",
-        "icon": "file-json"
+        "icon": "FileJson"
       }
     },
     {
@@ -118,7 +118,7 @@
       "pv": {
         "nodeType": "loader",
         "description": "Loads component library definitions",
-        "icon": "library"
+        "icon": "Library"
       }
     },
     {
@@ -132,7 +132,7 @@
       "pv": {
         "nodeType": "adapter",
         "description": "Filesystem adapter for panel operations",
-        "icon": "hard-drive"
+        "icon": "HardDrive"
       }
     },
     {
@@ -146,7 +146,7 @@
       "pv": {
         "nodeType": "tool",
         "description": "Tool to focus on a specific node",
-        "icon": "target"
+        "icon": "Target"
       }
     },
     {
@@ -160,7 +160,7 @@
       "pv": {
         "nodeType": "tool",
         "description": "Tool to reset the view",
-        "icon": "rotate-ccw"
+        "icon": "RotateCcw"
       }
     },
     {
@@ -174,7 +174,7 @@
       "pv": {
         "nodeType": "tool",
         "description": "Tool to trigger events",
-        "icon": "zap"
+        "icon": "Zap"
       }
     },
     {
@@ -188,7 +188,7 @@
       "pv": {
         "nodeType": "external-lib",
         "description": "Core library for Principal View",
-        "icon": "box"
+        "icon": "Box"
       }
     },
     {
@@ -202,7 +202,7 @@
       "pv": {
         "nodeType": "external-lib",
         "description": "React components for Principal View",
-        "icon": "box"
+        "icon": "Box"
       }
     },
     {
@@ -216,7 +216,7 @@
       "pv": {
         "nodeType": "context",
         "description": "Industry theme context provider",
-        "icon": "palette"
+        "icon": "Palette"
       }
     }
   ],
