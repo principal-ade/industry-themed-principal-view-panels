@@ -12,6 +12,7 @@ import {
   type ExecutionSpan,
 } from './execution-viewer/ExecutionLoader';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
+import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 
 interface ExecutionPanelState {
   canvas: ExtendedCanvas | null;
@@ -25,6 +26,7 @@ interface ExecutionPanelState {
   isPlaying: boolean;
   currentSpanIndex: number;
   currentEventIndex: number;
+  highlightedNodeId: string | null;
 }
 
 /**
@@ -52,6 +54,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
     isPlaying: false,
     currentSpanIndex: 0,
     currentEventIndex: 0,
+    highlightedNodeId: null,
   });
 
   // Store context and actions in refs
@@ -68,6 +71,9 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
 
   // Playback timer ref
   const playbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Event-to-node mapping cache
+  const eventNodeMapRef = useRef<Map<string, string>>(new Map());
 
   const loadExecution = useCallback(async (executionId?: string) => {
     setState(prev => ({ ...prev, loading: prev.canvas === null, error: null }));
@@ -175,6 +181,13 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
         }
       }
 
+      // Build event-to-node mapping for this canvas
+      if (canvas) {
+        eventNodeMapRef.current = buildEventToNodeMap(canvas);
+      } else {
+        eventNodeMapRef.current = new Map();
+      }
+
       setState(prev => ({
         ...prev,
         canvas,
@@ -186,6 +199,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
         selectedExecutionId: selectedExecution.id,
         currentSpanIndex: 0,
         currentEventIndex: 0,
+        highlightedNodeId: null,
       }));
     } catch (error) {
       console.error('[ExecutionViewer] Error loading execution:', error);
@@ -232,6 +246,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
       isPlaying: false,
       currentSpanIndex: 0,
       currentEventIndex: 0,
+      highlightedNodeId: null,
     }));
   }, []);
 
@@ -256,22 +271,36 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
         const currentSpan = spans[prev.currentSpanIndex];
         const spanEventCount = currentSpan?.events?.length || 0;
 
+        let newSpanIndex = prev.currentSpanIndex;
+        let newEventIndex = prev.currentEventIndex;
+
         // Move to next event
         if (prev.currentEventIndex < spanEventCount - 1) {
-          return { ...prev, currentEventIndex: prev.currentEventIndex + 1 };
+          newEventIndex = prev.currentEventIndex + 1;
         }
-
         // Move to next span
-        if (prev.currentSpanIndex < spans.length - 1) {
-          return {
-            ...prev,
-            currentSpanIndex: prev.currentSpanIndex + 1,
-            currentEventIndex: 0,
-          };
+        else if (prev.currentSpanIndex < spans.length - 1) {
+          newSpanIndex = prev.currentSpanIndex + 1;
+          newEventIndex = 0;
+        }
+        // Reached end, stop playback
+        else {
+          return { ...prev, isPlaying: false };
         }
 
-        // Reached end, stop playback
-        return { ...prev, isPlaying: false };
+        // Get the new current event and map to node
+        const newSpan = spans[newSpanIndex];
+        const newEvent = newSpan?.events?.[newEventIndex];
+        const highlightedNodeId = newEvent
+          ? mapEventToNodeId(newEvent, prev.canvas)
+          : null;
+
+        return {
+          ...prev,
+          currentSpanIndex: newSpanIndex,
+          currentEventIndex: newEventIndex,
+          highlightedNodeId,
+        };
       });
     }, 800); // 800ms per event
 
@@ -560,6 +589,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
               showBackground={true}
               backgroundVariant="lines"
               showTooltips={true}
+              highlightedNodeId={state.highlightedNodeId}
             />
           </div>
         ) : (
@@ -616,6 +646,17 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
                   return (
                     <div
                       key={eventIdx}
+                      onClick={() => {
+                        // Map event to canvas node
+                        const highlightedNodeId = mapEventToNodeId(event, state.canvas);
+
+                        setState(prev => ({
+                          ...prev,
+                          currentSpanIndex: spanIdx,
+                          currentEventIndex: eventIdx,
+                          highlightedNodeId,
+                        }));
+                      }}
                       style={{
                         padding: '8px',
                         marginBottom: '4px',
@@ -624,6 +665,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
                         borderRadius: '4px',
                         fontSize: '12px',
                         opacity: isPast ? 0.5 : 1,
+                        cursor: 'pointer',
                       }}
                     >
                       <div style={{ fontWeight: 600, color: '#fff', marginBottom: '4px' }}>
