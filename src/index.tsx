@@ -1,5 +1,6 @@
 import { PrincipalViewGraphPanel } from './panels/PrincipalViewGraphPanel';
 import { TraceViewerPanel } from './panels/TraceViewerPanel';
+import { ExecutionViewerPanel } from './panels/ExecutionViewerPanel';
 import { EventControllerPanel } from './panels/EventControllerPanel';
 import type { PanelDefinition, PanelContextValue } from './types';
 import { principalViewPanelTools, principalViewPanelToolsMetadata } from './tools';
@@ -9,6 +10,7 @@ export { EventControllerPanel } from './panels/EventControllerPanel';
 export type { EventControllerPanelProps, PlaybackState, PlaybackStatus } from './panels/EventControllerPanel';
 
 export { TraceViewerPanel } from './panels/TraceViewerPanel';
+export { ExecutionViewerPanel } from './panels/ExecutionViewerPanel';
 
 // Re-export adapter for external use
 export { PanelFileSystemAdapter } from './adapters/PanelFileSystemAdapter';
@@ -81,6 +83,36 @@ export const panels: PanelDefinition[] = [
     onUnmount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log('Trace Viewer Panel unmounting');
+    },
+  },
+  {
+    metadata: {
+      id: 'principal-ai.execution-viewer',
+      name: 'Execution Viewer',
+      icon: '⚡',
+      version: '0.1.0',
+      author: 'Principal AI',
+      description: 'Visualizes execution artifacts (test runs) overlaid on canvas diagrams with playback controls',
+      slices: ['fileTree'],
+    },
+    component: ExecutionViewerPanel,
+
+    onMount: async (context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log(
+        'Execution Viewer Panel mounted',
+        context.currentScope.repository?.path
+      );
+
+      // Refresh file tree if available
+      if (context.hasSlice('fileTree') && !context.isSliceLoading('fileTree')) {
+        await context.refresh('repository', 'fileTree');
+      }
+    },
+
+    onUnmount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Execution Viewer Panel unmounting');
     },
   },
 ];
