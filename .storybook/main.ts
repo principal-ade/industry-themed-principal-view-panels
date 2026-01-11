@@ -23,7 +23,17 @@ const config: StorybookConfig = {
       propFilter: (prop) =>
         prop.parent ? !/node_modules/.test(prop.parent.fileName) : true,
     },
-  }
+  },
+
+  async viteFinal(config) {
+    return {
+      ...config,
+      optimizeDeps: {
+        ...config.optimizeDeps,
+        exclude: [...(config.optimizeDeps?.exclude || []), '@opentelemetry/api'],
+      },
+    };
+  },
 };
 
 export default config;

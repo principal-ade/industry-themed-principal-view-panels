@@ -55,9 +55,7 @@ export interface ExecutionArtifact {
     framework?: string;
     status?: 'success' | 'error';
   };
-  spans?: ExecutionSpan[];
-  // Support direct array format (legacy)
-  [key: number]: ExecutionSpan;
+  spans: ExecutionSpan[];
 }
 
 /**
@@ -101,14 +99,6 @@ export class ExecutionLoader {
   static parseExecutionArtifact(content: string): ExecutionArtifact {
     try {
       const parsed = JSON.parse(content);
-
-      // Handle both formats:
-      // 1. { metadata: {...}, spans: [...] }
-      // 2. Direct array: [...]
-      if (Array.isArray(parsed)) {
-        return { spans: parsed };
-      }
-
       return parsed as ExecutionArtifact;
     } catch (error) {
       throw new Error(`Failed to parse execution artifact JSON: ${(error as Error).message}`);
@@ -116,27 +106,10 @@ export class ExecutionLoader {
   }
 
   /**
-   * Get spans array from artifact (handles both formats)
+   * Get spans array from artifact
    */
   static getSpans(artifact: ExecutionArtifact): ExecutionSpan[] {
-    if (artifact.spans) {
-      return artifact.spans;
-    }
-
-    // Legacy format: direct array
-    if (Array.isArray(artifact)) {
-      return artifact as any as ExecutionSpan[];
-    }
-
-    // Check if artifact is indexed object (legacy)
-    const spans: ExecutionSpan[] = [];
-    for (const key in artifact) {
-      if (!isNaN(Number(key))) {
-        spans.push(artifact[key as any] as ExecutionSpan);
-      }
-    }
-
-    return spans;
+    return artifact.spans;
   }
 
   /**

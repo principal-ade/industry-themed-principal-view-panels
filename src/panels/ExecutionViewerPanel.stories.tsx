@@ -394,32 +394,3 @@ export const ExecutionWithoutCanvas: Story = {
     );
   },
 };
-
-/**
- * Legacy format (direct array without metadata)
- */
-export const LegacyFormat: Story = {
-  args: {} as never,
-  render: () => {
-    const mock = createMockProvider([
-      {
-        path: '.principal-views/__executions__/graph-converter-execution.spans.json',
-        relativePath: '.principal-views/__executions__/graph-converter-execution.spans.json',
-        name: 'graph-converter-execution.spans.json',
-        content: JSON.stringify(mockExecutionArtifact.spans), // Direct array
-      },
-      {
-        path: '.principal-views/graph-converter-execution.otel.canvas',
-        relativePath: '.principal-views/graph-converter-execution.otel.canvas',
-        name: 'graph-converter-execution.otel.canvas',
-        content: JSON.stringify(mockGraphConverterCanvas),
-      },
-    ]);
-
-    return (
-      <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
-        {(props) => <ExecutionViewerPanel {...props} />}
-      </MockPanelProvider>
-    );
-  },
-};
