@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
-import { GraphRenderer } from '@principal-ai/principal-view-react';
+import { GraphRenderer, TestEventPanel } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, GraphEvent } from '@principal-ai/principal-view-core';
 import { Loader, ChevronDown, Activity, Play, Pause, RotateCcw } from 'lucide-react';
 import {
@@ -248,6 +248,22 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
       currentEventIndex: 0,
       highlightedNodeId: null,
     }));
+  }, []);
+
+  const handleSpanIndexChange = useCallback((newSpanIndex: number) => {
+    setState(prev => {
+      const spans = prev.execution ? ExecutionLoader.getSpans(prev.execution) : [];
+      const newSpan = spans[newSpanIndex];
+      const newEvent = newSpan?.events?.[0]; // Start at first event of new span
+      const highlightedNodeId = newEvent ? mapEventToNodeId(newEvent, prev.canvas) : null;
+
+      return {
+        ...prev,
+        currentSpanIndex: newSpanIndex,
+        currentEventIndex: 0,
+        highlightedNodeId,
+      };
+    });
   }, []);
 
   // Playback effect
@@ -613,79 +629,13 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
         )}
 
         {/* Event Timeline */}
-        <div style={{ flex: '0 0 40%', borderLeft: '1px solid #333', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #333' }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 600 }}>
-              Execution Events
-            </h3>
-            <div style={{ fontSize: '12px', color: '#999' }}>
-              Span {state.currentSpanIndex + 1} of {ExecutionLoader.getSpans(state.execution || {}).length}
-              {' • '}
-              Event {state.currentEventIndex + 1}
-            </div>
-          </div>
-
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
-            {ExecutionLoader.getSpans(state.execution || {}).map((span, spanIdx) => (
-              <div key={span.id} style={{ marginBottom: '24px' }}>
-                <div
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    marginBottom: '8px',
-                    color: spanIdx === state.currentSpanIndex ? '#3b82f6' : '#ccc',
-                  }}
-                >
-                  {span.name}
-                </div>
-                {span.events?.map((event, eventIdx) => {
-                  const isActive = spanIdx === state.currentSpanIndex && eventIdx === state.currentEventIndex;
-                  const isPast = spanIdx < state.currentSpanIndex ||
-                    (spanIdx === state.currentSpanIndex && eventIdx < state.currentEventIndex);
-
-                  return (
-                    <div
-                      key={eventIdx}
-                      onClick={() => {
-                        // Map event to canvas node
-                        const highlightedNodeId = mapEventToNodeId(event, state.canvas);
-
-                        setState(prev => ({
-                          ...prev,
-                          currentSpanIndex: spanIdx,
-                          currentEventIndex: eventIdx,
-                          highlightedNodeId,
-                        }));
-                      }}
-                      style={{
-                        padding: '8px',
-                        marginBottom: '4px',
-                        background: isActive ? '#3b82f610' : 'transparent',
-                        border: `1px solid ${isActive ? '#3b82f6' : '#333'}`,
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        opacity: isPast ? 0.5 : 1,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <div style={{ fontWeight: 600, color: '#fff', marginBottom: '4px' }}>
-                        {event.name}
-                      </div>
-                      {event.attributes && Object.keys(event.attributes).length > 0 && (
-                        <div style={{ color: '#999', fontFamily: 'monospace', fontSize: '11px' }}>
-                          {Object.entries(event.attributes).map(([key, value]) => (
-                            <div key={key}>
-                              {key}: {JSON.stringify(value)}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+        <div style={{ flex: '0 0 40%', borderLeft: '1px solid #333', overflow: 'hidden' }}>
+          <TestEventPanel
+            spans={state.execution ? ExecutionLoader.getSpans(state.execution) as any : []}
+            currentSpanIndex={state.currentSpanIndex}
+            currentEventIndex={state.currentEventIndex}
+            onSpanIndexChange={handleSpanIndexChange}
+          />
         </div>
       </div>
 
