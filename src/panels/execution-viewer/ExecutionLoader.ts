@@ -13,6 +13,19 @@ export interface ExecutionFile {
   packageName?: string;
 }
 
+export interface CanvasFile {
+  /** Unique identifier for this canvas (derived from filename) */
+  id: string;
+  /** Display name for this canvas */
+  name: string;
+  /** Full file path */
+  path: string;
+  /** Whether this is from a config folder or standalone */
+  source: 'folder' | 'standalone';
+  /** Canvas basename (without .otel.canvas or .canvas extension) */
+  basename: string;
+}
+
 export interface ExecutionMetadata {
   /** Execution name */
   name: string;
@@ -214,6 +227,45 @@ export class ExecutionLoader {
   }
 
   /**
+   * Find all .otel.canvas and .canvas files in the file tree
+   */
+  static findCanvasFiles(
+    files: Array<{ path?: string; relativePath?: string; name?: string }>
+  ): CanvasFile[] {
+    const canvasFiles: CanvasFile[] = [];
+    const VGC_FOLDER = '.principal-views';
+
+    for (const file of files) {
+      const filePath = file.relativePath || file.path || '';
+      const fileName = file.name || filePath.split('/').pop() || '';
+
+      // Check for .otel.canvas or .canvas files in .principal-views/ folder
+      if (filePath.startsWith(`${VGC_FOLDER}/`) &&
+          (fileName.endsWith('.otel.canvas') || fileName.endsWith('.canvas'))) {
+        // Extract basename (remove .otel.canvas or .canvas extension)
+        const basename = fileName.replace(/\.otel\.canvas$/, '').replace(/\.canvas$/, '');
+
+        // Convert kebab-case to Title Case for display
+        const displayName = basename
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+
+        canvasFiles.push({
+          id: basename,
+          name: displayName,
+          path: filePath,
+          source: 'folder',
+          basename,
+        });
+      }
+    }
+
+    // Sort by name
+    return canvasFiles.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
    * Find execution artifact for a given canvas file path
    */
   static findExecutionForCanvas(
@@ -222,7 +274,7 @@ export class ExecutionLoader {
   ): ExecutionFile | null {
     // Extract canvas basename
     const canvasFilename = canvasPath.split('/').pop() || '';
-    const canvasBasename = canvasFilename.replace(/\.otel\.canvas$/, '');
+    const canvasBasename = canvasFilename.replace(/\.otel\.canvas$/, '').replace(/\.canvas$/, '');
 
     // Find all execution files
     const executions = ExecutionLoader.findExecutionFiles(files);

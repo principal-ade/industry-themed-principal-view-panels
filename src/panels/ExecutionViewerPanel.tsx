@@ -7,6 +7,7 @@ import { Loader, ChevronDown, Activity, Play, Pause, RotateCcw } from 'lucide-re
 import {
   ExecutionLoader,
   type ExecutionFile,
+  type CanvasFile,
   type ExecutionMetadata,
   type ExecutionArtifact,
   type ExecutionSpan,
@@ -120,9 +121,10 @@ interface ExecutionPanelState {
   metadata: ExecutionMetadata | null;
   loading: boolean;
   error: string | null;
-  availableExecutions: ExecutionFile[];
-  selectedExecutionId: string | null;
-  showExecutionSelector: boolean;
+  availableCanvases: CanvasFile[];
+  selectedCanvasId: string | null;
+  linkedExecution: ExecutionFile | null;
+  showCanvasSelector: boolean;
   isPlaying: boolean;
   currentSpanIndex: number;
   currentEventIndex: number;
@@ -148,9 +150,10 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
     metadata: null,
     loading: true,
     error: null,
-    availableExecutions: [],
-    selectedExecutionId: null,
-    showExecutionSelector: false,
+    availableCanvases: [],
+    selectedCanvasId: null,
+    linkedExecution: null,
+    showCanvasSelector: false,
     isPlaying: false,
     currentSpanIndex: 0,
     currentEventIndex: 0,
@@ -165,9 +168,9 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
   actionsRef.current = actions;
   eventsRef.current = events;
 
-  // Track selected execution ID in ref
-  const selectedExecutionIdRef = useRef<string | null>(null);
-  selectedExecutionIdRef.current = state.selectedExecutionId;
+  // Track selected canvas ID in ref
+  const selectedCanvasIdRef = useRef<string | null>(null);
+  selectedCanvasIdRef.current = state.selectedCanvasId;
 
   // Playback timer ref
   const playbackTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -175,17 +178,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
   // Event-to-node mapping cache
   const eventNodeMapRef = useRef<Map<string, string>>(new Map());
 
-  // Helper function to find canvas files
-  const findCanvasFiles = useCallback((files: Array<{ path?: string; relativePath?: string; name?: string }>) => {
-    return files
-      .filter(file => {
-        const path = file.relativePath || file.path || '';
-        return path.endsWith('.otel.canvas') || path.endsWith('.canvas');
-      })
-      .map(file => file.relativePath || file.path || '');
-  }, []);
-
-  const loadExecution = useCallback(async (executionId?: string) => {
+  const loadCanvas = useCallback(async (canvasId?: string) => {
     setState(prev => ({ ...prev, loading: prev.canvas === null, error: null }));
 
     try {
@@ -214,62 +207,44 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
           metadata: null,
           loading: false,
           error: null,
-          availableExecutions: [],
-          selectedExecutionId: null,
+          availableCanvases: [],
+          selectedCanvasId: null,
+          linkedExecution: null,
         }));
         return;
       }
 
-      const availableExecutions = ExecutionLoader.findExecutionFiles(fileTreeData.allFiles);
+      // Find all available canvas files
+      const availableCanvases = ExecutionLoader.findCanvasFiles(fileTreeData.allFiles);
 
-      // If no executions, try to load a canvas anyway
-      if (availableExecutions.length === 0) {
-        const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
-        const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
-
-        let canvas: ExtendedCanvas | null = null;
-
-        if (readFile && repositoryPath) {
-          const canvasFiles = findCanvasFiles(fileTreeData.allFiles);
-          if (canvasFiles.length > 0) {
-            try {
-              const fullCanvasPath = `${repositoryPath}/${canvasFiles[0]}`;
-              const canvasContent = await readFile(fullCanvasPath);
-              if (canvasContent && typeof canvasContent === 'string') {
-                canvas = JSON.parse(canvasContent) as ExtendedCanvas;
-              }
-            } catch (error) {
-              console.warn('[ExecutionViewer] Failed to load canvas:', error);
-            }
-          }
-        }
-
+      if (availableCanvases.length === 0) {
         setState(prev => ({
           ...prev,
-          canvas,
+          canvas: null,
           execution: null,
           metadata: null,
           loading: false,
           error: null,
-          availableExecutions: [],
-          selectedExecutionId: null,
+          availableCanvases: [],
+          selectedCanvasId: null,
+          linkedExecution: null,
         }));
         return;
       }
 
-      // Select execution
-      let selectedExecution: ExecutionFile;
-      if (executionId) {
-        const found = availableExecutions.find(e => e.id === executionId);
+      // Select canvas
+      let selectedCanvas: CanvasFile;
+      if (canvasId) {
+        const found = availableCanvases.find(c => c.id === canvasId);
         if (!found) {
-          throw new Error(`Execution with ID '${executionId}' not found`);
+          throw new Error(`Canvas with ID '${canvasId}' not found`);
         }
-        selectedExecution = found;
-      } else if (selectedExecutionIdRef.current) {
-        const found = availableExecutions.find(e => e.id === selectedExecutionIdRef.current);
-        selectedExecution = found || availableExecutions[0];
+        selectedCanvas = found;
+      } else if (selectedCanvasIdRef.current) {
+        const found = availableCanvases.find(c => c.id === selectedCanvasIdRef.current);
+        selectedCanvas = found || availableCanvases[0];
       } else {
-        selectedExecution = availableExecutions[0];
+        selectedCanvas = availableCanvases[0];
       }
 
       const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
@@ -282,42 +257,40 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
         throw new Error('Repository path not available');
       }
 
-      // Load execution artifact
-      const fullExecutionPath = `${repositoryPath}/${selectedExecution.path}`;
-      const executionContent = await readFile(fullExecutionPath);
+      // Load canvas file
+      const fullCanvasPath = `${repositoryPath}/${selectedCanvas.path}`;
+      const canvasContent = await readFile(fullCanvasPath);
 
-      if (!executionContent || typeof executionContent !== 'string') {
-        throw new Error('Failed to read execution file');
+      if (!canvasContent || typeof canvasContent !== 'string') {
+        throw new Error('Failed to read canvas file');
       }
 
-      const execution = ExecutionLoader.parseExecutionArtifact(executionContent);
-      const metadata = ExecutionLoader.getExecutionMetadata(execution);
+      const canvas = JSON.parse(canvasContent) as ExtendedCanvas;
 
-      // Load matching canvas
-      const canvasPath = ExecutionLoader.findCanvasForExecution(
-        selectedExecution.path,
+      // Try to find matching execution for this canvas
+      const linkedExecution = ExecutionLoader.findExecutionForCanvas(
+        selectedCanvas.path,
         fileTreeData.allFiles
       );
 
-      let canvas: ExtendedCanvas | null = null;
-      if (canvasPath) {
+      let execution: ExecutionArtifact | null = null;
+      let metadata: ExecutionMetadata | null = null;
+
+      if (linkedExecution) {
         try {
-          const fullCanvasPath = `${repositoryPath}/${canvasPath}`;
-          const canvasContent = await readFile(fullCanvasPath);
-          if (canvasContent && typeof canvasContent === 'string') {
-            canvas = JSON.parse(canvasContent) as ExtendedCanvas;
+          const fullExecutionPath = `${repositoryPath}/${linkedExecution.path}`;
+          const executionContent = await readFile(fullExecutionPath);
+          if (executionContent && typeof executionContent === 'string') {
+            execution = ExecutionLoader.parseExecutionArtifact(executionContent);
+            metadata = ExecutionLoader.getExecutionMetadata(execution);
           }
         } catch (error) {
-          console.warn('[ExecutionViewer] Failed to load canvas:', error);
+          console.warn('[ExecutionViewer] Failed to load linked execution:', error);
         }
       }
 
       // Build event-to-node mapping for this canvas
-      if (canvas) {
-        eventNodeMapRef.current = buildEventToNodeMap(canvas);
-      } else {
-        eventNodeMapRef.current = new Map();
-      }
+      eventNodeMapRef.current = buildEventToNodeMap(canvas);
 
       setState(prev => ({
         ...prev,
@@ -326,36 +299,37 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
         metadata,
         loading: false,
         error: null,
-        availableExecutions,
-        selectedExecutionId: selectedExecution.id,
+        availableCanvases,
+        selectedCanvasId: selectedCanvas.id,
+        linkedExecution,
         currentSpanIndex: 0,
         currentEventIndex: 0,
         highlightedNodeId: null,
       }));
     } catch (error) {
-      console.error('[ExecutionViewer] Error loading execution:', error);
+      console.error('[ExecutionViewer] Error loading canvas:', error);
       setState(prev => ({
         ...prev,
         loading: false,
         error: (error as Error).message,
       }));
     }
-  }, [findCanvasFiles]);
+  }, []);
 
   // Initial load and fileTree changes
   useEffect(() => {
-    loadExecution();
-  }, [loadExecution]);
+    loadCanvas();
+  }, [loadCanvas]);
 
-  // Listen for custom events to switch executions
+  // Listen for custom events to switch canvases
   useEffect(() => {
     if (!events) return;
 
     const handleEvent = (event: any) => {
-      if (event.type === 'custom' && event.action === 'selectExecution') {
-        const executionId = event.payload?.executionId;
-        if (executionId) {
-          loadExecution(executionId);
+      if (event.type === 'custom' && event.action === 'selectCanvas') {
+        const canvasId = event.payload?.canvasId;
+        if (canvasId) {
+          loadCanvas(canvasId);
         }
       }
     };
@@ -364,7 +338,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
     return () => {
       events.off('custom', handleEvent);
     };
-  }, [events, loadExecution]);
+  }, [events, loadCanvas]);
 
   // Playback control
   const handlePlayPause = useCallback(() => {
@@ -459,8 +433,8 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
     };
   }, [state.isPlaying, state.execution]);
 
-  // Render empty state only if no canvas and no executions
-  if (!state.loading && state.availableExecutions.length === 0 && !state.canvas) {
+  // Render empty state only if no canvas files found
+  if (!state.loading && state.availableCanvases.length === 0) {
     return (
       <div
         style={{
@@ -475,7 +449,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
         <div style={{ textAlign: 'center', maxWidth: '600px', padding: '20px' }}>
           <Activity size={48} style={{ margin: '0 auto 20px', opacity: 0.3 }} />
           <h2 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: 600 }}>
-            No Execution Artifacts or Canvas Found
+            No Canvas Files Found
           </h2>
           <p style={{ margin: '0 0 20px 0', color: theme.colors.textSecondary, lineHeight: 1.5 }}>
             Execution artifacts should be saved to <code>__executions__/*.spans.json</code> or{' '}
@@ -541,8 +515,8 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
     );
   }
 
-  const selectedExecution = state.availableExecutions.find(
-    e => e.id === state.selectedExecutionId
+  const selectedCanvas = state.availableCanvases.find(
+    c => c.id === state.selectedCanvasId
   );
 
   return (
@@ -567,10 +541,10 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
         }}
       >
         {/* Execution Selector - Only show if executions are available */}
-        {state.availableExecutions.length > 0 && (
+        {state.availableCanvases.length > 0 && (
           <div style={{ position: 'relative' }}>
             <button
-              onClick={() => setState(prev => ({ ...prev, showExecutionSelector: !prev.showExecutionSelector }))}
+              onClick={() => setState(prev => ({ ...prev, showCanvasSelector: !prev.showCanvasSelector }))}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -585,25 +559,25 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
               }}
             >
               <Activity size={16} />
-              <span>{selectedExecution?.name || 'Select Execution'}</span>
-              {selectedExecution?.packageName && (
+              <span>{selectedCanvas?.name || 'Select Canvas'}</span>
+              {state.linkedExecution && (
                 <span
                   style={{
                     padding: '2px 6px',
-                    background: '#3b82f6',
+                    background: '#22c55e',
                     borderRadius: '3px',
                     fontSize: '11px',
                     fontWeight: 600,
                   }}
                 >
-                  {selectedExecution.packageName}
+                  has execution
                 </span>
               )}
               <ChevronDown size={16} />
             </button>
 
             {/* Execution Selector Dropdown */}
-            {state.showExecutionSelector && (
+            {state.showCanvasSelector && (
               <>
                 <div
                   style={{
@@ -611,7 +585,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
                     inset: 0,
                     zIndex: 999,
                   }}
-                  onClick={() => setState(prev => ({ ...prev, showExecutionSelector: false }))}
+                  onClick={() => setState(prev => ({ ...prev, showCanvasSelector: false }))}
                 />
                 <div
                   style={{
@@ -629,17 +603,17 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
                     zIndex: 1000,
                   }}
                 >
-                  {state.availableExecutions.map((execution) => (
+                  {state.availableCanvases.map((canvas) => (
                     <button
-                      key={execution.id}
+                      key={canvas.id}
                       onClick={() => {
-                        loadExecution(execution.id);
-                        setState(prev => ({ ...prev, showExecutionSelector: false }));
+                        loadCanvas(canvas.id);
+                        setState(prev => ({ ...prev, showCanvasSelector: false }));
                       }}
                       style={{
                         width: '100%',
                         padding: '10px 16px',
-                        background: execution.id === state.selectedExecutionId ? '#3b82f6' : 'transparent',
+                        background: canvas.id === state.selectedCanvasId ? '#3b82f6' : 'transparent',
                         border: 'none',
                         borderBottom: '1px solid #3a3a3a',
                         color: '#fff',
@@ -652,20 +626,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
                       }}
                     >
                       <Activity size={14} />
-                      <span style={{ flex: 1 }}>{execution.name}</span>
-                      {execution.packageName && (
-                        <span
-                          style={{
-                            padding: '2px 6px',
-                            background: execution.id === state.selectedExecutionId ? '#2563eb' : '#3b82f6',
-                            borderRadius: '3px',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {execution.packageName}
-                        </span>
-                      )}
+                      <span style={{ flex: 1 }}>{canvas.name}</span>
                     </button>
                   ))}
                 </div>
@@ -679,9 +640,9 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
           <div style={{ fontSize: '14px', fontWeight: 600 }}>
             {state.metadata?.name || (state.canvas ? 'Canvas Viewer' : 'Execution Viewer')}
           </div>
-          {selectedExecution && (
+          {selectedCanvas && (
             <div style={{ fontSize: '11px', color: '#999', marginTop: '2px' }}>
-              {selectedExecution.path}
+              {selectedCanvas.path}
             </div>
           )}
         </div>
@@ -807,9 +768,9 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
             }}
           >
             <div style={{ textAlign: 'center' }}>
-              <p>No matching canvas found</p>
+              <p>Canvas not loaded</p>
               <p style={{ fontSize: '12px', marginTop: '8px' }}>
-                Expected: {selectedExecution?.canvasBasename}.otel.canvas
+                {selectedCanvas?.path || 'No canvas selected'}
               </p>
             </div>
           </div>
