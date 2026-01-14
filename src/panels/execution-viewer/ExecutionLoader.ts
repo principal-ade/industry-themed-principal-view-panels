@@ -227,7 +227,7 @@ export class ExecutionLoader {
   }
 
   /**
-   * Find all .otel.canvas and .canvas files in the file tree
+   * Find all .otel.canvas files in the file tree
    */
   static findCanvasFiles(
     files: Array<{ path?: string; relativePath?: string; name?: string }>
@@ -239,11 +239,10 @@ export class ExecutionLoader {
       const filePath = file.relativePath || file.path || '';
       const fileName = file.name || filePath.split('/').pop() || '';
 
-      // Check for .otel.canvas or .canvas files in .principal-views/ folder
-      if (filePath.startsWith(`${VGC_FOLDER}/`) &&
-          (fileName.endsWith('.otel.canvas') || fileName.endsWith('.canvas'))) {
-        // Extract basename (remove .otel.canvas or .canvas extension)
-        const basename = fileName.replace(/\.otel\.canvas$/, '').replace(/\.canvas$/, '');
+      // Check for .otel.canvas files only in .principal-views/ folder
+      if (filePath.startsWith(`${VGC_FOLDER}/`) && fileName.endsWith('.otel.canvas')) {
+        // Extract basename (remove .otel.canvas extension)
+        const basename = fileName.replace(/\.otel\.canvas$/, '');
 
         // Convert kebab-case to Title Case for display
         const displayName = basename
@@ -272,9 +271,9 @@ export class ExecutionLoader {
     canvasPath: string,
     files: Array<{ path?: string; relativePath?: string; name?: string }>
   ): ExecutionFile | null {
-    // Extract canvas basename
+    // Extract canvas basename (only for .otel.canvas files)
     const canvasFilename = canvasPath.split('/').pop() || '';
-    const canvasBasename = canvasFilename.replace(/\.otel\.canvas$/, '').replace(/\.canvas$/, '');
+    const canvasBasename = canvasFilename.replace(/\.otel\.canvas$/, '');
 
     // Find all execution files
     const executions = ExecutionLoader.findExecutionFiles(files);
@@ -285,6 +284,7 @@ export class ExecutionLoader {
 
   /**
    * Find canvas file for a given execution artifact path
+   * Prioritizes .otel.canvas files over regular .canvas files
    */
   static findCanvasForExecution(
     executionPath: string,
@@ -293,12 +293,22 @@ export class ExecutionLoader {
     const executionFilename = executionPath.split('/').pop() || '';
     const canvasBasename = getCanvasBasename(executionFilename);
 
-    // Look for matching canvas file
+    // First, look for .otel.canvas files
     for (const file of files) {
       const filePath = file.relativePath || file.path || '';
       const fileName = file.name || filePath.split('/').pop() || '';
 
-      if (fileName === `${canvasBasename}.otel.canvas` || fileName === `${canvasBasename}.canvas`) {
+      if (fileName === `${canvasBasename}.otel.canvas`) {
+        return filePath;
+      }
+    }
+
+    // Fallback to regular .canvas files
+    for (const file of files) {
+      const filePath = file.relativePath || file.path || '';
+      const fileName = file.name || filePath.split('/').pop() || '';
+
+      if (fileName === `${canvasBasename}.canvas`) {
         return filePath;
       }
     }
