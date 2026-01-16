@@ -31,7 +31,25 @@ export default defineConfig(({ mode: _mode }) => ({
     },
     rollupOptions: {
       // Externalize peer dependencies - these come from the host application
-      external: ['react', 'react-dom', 'react/jsx-runtime', '@opentelemetry/api'],
+      external: [
+        'react',
+        'react-dom',
+        'react/jsx-runtime',
+        '@opentelemetry/api',
+        // Externalize Node.js built-ins to prevent bundling
+        /^node:/,
+        /^fs($|\/)/,
+        /^path($|\/)/,
+        /^child_process($|\/)/,
+        /^stream($|\/)/,
+        /^events($|\/)/,
+        /^string_decoder($|\/)/,
+        // Externalize packages with Node.js code that we don't use in browser
+        '@principal-ai/codebase-quality-lenses',
+        'glob',
+        'minipass',
+        'path-scurry',
+      ],
       output: {
         globals: {
           react: 'React',
