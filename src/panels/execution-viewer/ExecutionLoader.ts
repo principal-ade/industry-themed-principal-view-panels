@@ -24,6 +24,8 @@ export interface CanvasFile {
   source: 'folder' | 'standalone';
   /** Canvas basename (without .otel.canvas or .canvas extension) */
   basename: string;
+  /** Type of canvas file */
+  type: 'otel' | 'regular';
 }
 
 export interface ExecutionMetadata {
@@ -227,7 +229,7 @@ export class ExecutionLoader {
   }
 
   /**
-   * Find all .otel.canvas files in the file tree
+   * Find all .canvas files (both .otel.canvas and regular .canvas) in the file tree
    */
   static findCanvasFiles(
     files: Array<{ path?: string; relativePath?: string; name?: string }>
@@ -239,24 +241,38 @@ export class ExecutionLoader {
       const filePath = file.relativePath || file.path || '';
       const fileName = file.name || filePath.split('/').pop() || '';
 
-      // Check for .otel.canvas files only in .principal-views/ folder
-      if (filePath.startsWith(`${VGC_FOLDER}/`) && fileName.endsWith('.otel.canvas')) {
-        // Extract basename (remove .otel.canvas extension)
-        const basename = fileName.replace(/\.otel\.canvas$/, '');
+      // Check for .canvas files in .principal-views/ folder
+      if (filePath.startsWith(`${VGC_FOLDER}/`)) {
+        let basename: string | null = null;
+        let type: 'otel' | 'regular' | null = null;
 
-        // Convert kebab-case to Title Case for display
-        const displayName = basename
-          .split('-')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(' ');
+        // Check for .otel.canvas files
+        if (fileName.endsWith('.otel.canvas')) {
+          basename = fileName.replace(/\.otel\.canvas$/, '');
+          type = 'otel';
+        }
+        // Check for regular .canvas files (but not .otel.canvas)
+        else if (fileName.endsWith('.canvas') && !fileName.endsWith('.otel.canvas')) {
+          basename = fileName.replace(/\.canvas$/, '');
+          type = 'regular';
+        }
 
-        canvasFiles.push({
-          id: basename,
-          name: displayName,
-          path: filePath,
-          source: 'folder',
-          basename,
-        });
+        if (basename && type) {
+          // Convert kebab-case to Title Case for display
+          const displayName = basename
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+
+          canvasFiles.push({
+            id: basename,
+            name: displayName,
+            path: filePath,
+            source: 'folder',
+            basename,
+            type,
+          });
+        }
       }
     }
 

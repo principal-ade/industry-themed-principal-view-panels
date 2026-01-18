@@ -1,4 +1,4 @@
-import { PrincipalViewGraphPanel } from './panels/PrincipalViewGraphPanel';
+import { CanvasEditorPanel } from './panels/CanvasEditorPanel';
 import { TraceViewerPanel } from './panels/TraceViewerPanel';
 import { CanvasDetailPanel } from './panels/CanvasDetailPanel';
 import { EventControllerPanel } from './panels/EventControllerPanel';
@@ -11,6 +11,7 @@ export { EventControllerPanel } from './panels/EventControllerPanel';
 export type { EventControllerPanelProps, PlaybackState, PlaybackStatus } from './panels/EventControllerPanel';
 
 export { TraceViewerPanel } from './panels/TraceViewerPanel';
+export { CanvasEditorPanel } from './panels/CanvasEditorPanel';
 export { CanvasDetailPanel } from './panels/CanvasDetailPanel';
 export type { CanvasDetailPanelProps } from './panels/CanvasDetailPanel';
 export { CanvasListPanel } from './panels/CanvasListPanel';
@@ -26,23 +27,23 @@ export type { FileTreeEntry, PanelFileSystemAdapterOptions } from './adapters/Pa
 export const panels: PanelDefinition[] = [
   {
     metadata: {
-      id: 'principal-ai.principal-view-graph',
-      name: 'Principal View Graph',
-      icon: '🕸️',
+      id: 'principal-ai.canvas-editor',
+      name: 'Canvas Editor',
+      icon: '🎨',
       version: '0.1.0',
       author: 'Principal AI',
-      description: 'Visualizes .canvas configuration files as interactive graph diagrams',
+      description: 'Edits .canvas configuration files as interactive graph diagrams',
       slices: ['fileTree'], // Data slices this panel depends on
       // UTCP-compatible tools this panel exposes
       tools: principalViewPanelTools,
     },
-    component: PrincipalViewGraphPanel,
+    component: CanvasEditorPanel,
 
     // Optional: Called when this specific panel is mounted
     onMount: async (context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log(
-        'Principal View Graph Panel mounted',
+        'Canvas Editor Panel mounted',
         context.currentScope.repository?.path
       );
 
@@ -55,7 +56,7 @@ export const panels: PanelDefinition[] = [
     // Optional: Called when this specific panel is unmounted
     onUnmount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
-      console.log('Principal View Graph Panel unmounting');
+      console.log('Canvas Editor Panel unmounting');
     },
   },
   {
@@ -156,7 +157,7 @@ export const panels: PanelDefinition[] = [
  */
 export const onPackageLoad = async () => {
   // eslint-disable-next-line no-console
-  console.log('Panel package loaded - Principal View Graph Panel');
+  console.log('Panel package loaded - Principal View Panels');
 };
 
 /**
@@ -165,7 +166,7 @@ export const onPackageLoad = async () => {
  */
 export const onPackageUnload = async () => {
   // eslint-disable-next-line no-console
-  console.log('Panel package unloading - Principal View Graph Panel');
+  console.log('Panel package unloading - Principal View Panels');
 };
 
 /**

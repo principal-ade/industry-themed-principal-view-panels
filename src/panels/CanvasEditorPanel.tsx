@@ -44,7 +44,7 @@ interface GraphPanelState {
  * Visualizes .canvas configuration files as interactive graph diagrams
  * with full editing support for nodes, edges, and positions.
  */
-export const PrincipalViewGraphPanel: React.FC<PanelComponentProps> = ({
+export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
   context,
   actions,
   events

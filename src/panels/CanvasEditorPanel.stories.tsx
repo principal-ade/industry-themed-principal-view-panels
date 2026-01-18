@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { PrincipalViewGraphPanel } from './PrincipalViewGraphPanel';
+import { CanvasEditorPanel } from './CanvasEditorPanel';
 import { ThemeProvider, useTheme } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import { createMockFileTree } from '../mocks/vvfConfigs';
@@ -8,12 +8,12 @@ import type { DataSlice } from '../types';
 import { EditableConfigurablePanelLayout, type PanelLayout } from '@principal-ade/panel-layouts';
 
 /**
- * PrincipalViewGraphPanel visualizes .canvas files as interactive graphs.
+ * CanvasEditorPanel visualizes .canvas files as interactive graphs.
  * It demonstrates graph rendering with ReactFlow and ExtendedCanvas format.
  */
 const meta = {
-  title: 'Panels/PrincipalViewGraphPanel',
-  component: PrincipalViewGraphPanel,
+  title: 'Panels/CanvasEditorPanel',
+  component: CanvasEditorPanel,
   parameters: {
     layout: 'fullscreen',
     docs: {
@@ -33,7 +33,7 @@ const meta = {
       </ThemeProvider>
     ),
   ],
-} satisfies Meta<typeof PrincipalViewGraphPanel>;
+} satisfies Meta<typeof CanvasEditorPanel>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -93,7 +93,7 @@ export const SimpleConfiguration: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -150,7 +150,7 @@ export const ComplexConfiguration: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -207,7 +207,7 @@ export const ControlTowerConfiguration: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -240,7 +240,7 @@ export const Loading: Story = {
           isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
         }}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -274,7 +274,7 @@ export const EmptyState: Story = {
           isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
         }}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -341,7 +341,7 @@ export const InvalidJSON: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -363,7 +363,7 @@ export const NoFileTreeSlice: Story = {
           hasSlice: (name) => name !== 'fileTree',
         }}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -432,7 +432,7 @@ export const CustomRepository: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -489,7 +489,7 @@ export const NodeColorsDemo: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -547,7 +547,7 @@ export const ColorPriorityTest: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -604,7 +604,7 @@ export const MultipleConfigurations: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -667,7 +667,7 @@ export const WorkspaceScope: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -787,7 +787,7 @@ export const NodeSizingTest: Story = {
           },
         } as never}
       >
-        {(props) => <PrincipalViewGraphPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -866,7 +866,7 @@ const ResizablePanelLayoutInner: React.FC = () => {
         >
           {(props) => (
             <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-              <PrincipalViewGraphPanel {...props} />
+              <CanvasEditorPanel {...props} />
             </div>
           )}
         </MockPanelProvider>
@@ -1184,7 +1184,7 @@ const EdgeDisappearingDebugInner: React.FC = () => {
             },
           } as never}
         >
-          {(props) => <PrincipalViewGraphPanel {...props} />}
+          {(props) => <CanvasEditorPanel {...props} />}
         </MockPanelProvider>
       </div>
     </div>
@@ -1530,7 +1530,7 @@ const RecenterCoordinatesTestInner: React.FC = () => {
             },
           } as never}
         >
-          {(props) => <PrincipalViewGraphPanel {...props} />}
+          {(props) => <CanvasEditorPanel {...props} />}
         </MockPanelProvider>
       </div>
     </div>
