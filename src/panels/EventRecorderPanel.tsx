@@ -21,7 +21,7 @@ import {
   RefreshCw,
   Disc,
 } from 'lucide-react';
-import type { GraphEvent } from '@principal-ai/principal-view-core';
+import type { GraphEvent } from '@principal-ai/principal-view-core/browser';
 
 /**
  * Session summary for display

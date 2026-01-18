@@ -1,4 +1,9 @@
 import type { StorybookConfig } from '@storybook/react-vite';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const stubPath = path.resolve(__dirname, 'node-stub.js');
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
@@ -17,20 +22,43 @@ const config: StorybookConfig = {
 
   typescript: {
     check: false,
-    reactDocgen: 'react-docgen-typescript',
-    reactDocgenTypescriptOptions: {
-      shouldExtractLiteralValuesFromEnum: true,
-      propFilter: (prop) =>
-        prop.parent ? !/node_modules/.test(prop.parent.fileName) : true,
-    },
+    reactDocgen: false, // Disable to avoid glob dependency in browser
   },
 
   async viteFinal(config) {
     return {
       ...config,
+      resolve: {
+        ...config.resolve,
+        conditions: ['browser', 'import', 'module', 'default'],
+        alias: {
+          ...config.resolve?.alias,
+          // Redirect Node.js packages to stub module
+          'glob': stubPath,
+          'minipass': stubPath,
+          'path-scurry': stubPath,
+          'minimatch': stubPath,
+          'brace-expansion': stubPath,
+          'balanced-match': stubPath,
+          'concat-map': stubPath,
+        },
+      },
       optimizeDeps: {
         ...config.optimizeDeps,
-        exclude: [...(config.optimizeDeps?.exclude || []), '@opentelemetry/api'],
+        exclude: [
+          ...(config.optimizeDeps?.exclude || []),
+          '@opentelemetry/api',
+          '@principal-ai/codebase-composition',
+          'glob',
+          'minipass',
+          'path-scurry',
+          'minimatch',
+          'brace-expansion',
+        ],
+        esbuildOptions: {
+          ...config.optimizeDeps?.esbuildOptions,
+          conditions: ['browser', 'import', 'module', 'default'],
+        },
       },
     };
   },

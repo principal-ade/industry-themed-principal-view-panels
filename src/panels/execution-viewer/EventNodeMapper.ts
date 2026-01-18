@@ -6,7 +6,7 @@
  * should be highlighted when an event is played back.
  */
 
-import type { ExtendedCanvas } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas } from '@principal-ai/principal-view-core/browser';
 
 /**
  * Event from execution artifact
@@ -40,9 +40,10 @@ export function mapEventToNodeId(
   // Strategy 1: Match by event name in pv.events
   for (const node of canvas.nodes) {
     const pvEvents = (node.pv as any)?.events;
-    if (pvEvents && typeof pvEvents === 'object') {
-      // Check if this node has a schema for this event name
-      if (event.name in pvEvents) {
+    if (Array.isArray(pvEvents)) {
+      // Events are defined as: [{ name: "event.name", attributes: [...] }]
+      const hasEvent = pvEvents.some((e: any) => e.name === event.name);
+      if (hasEvent) {
         return node.id;
       }
     }
@@ -96,11 +97,11 @@ export function buildEventToNodeMap(
 
   for (const node of canvas.nodes) {
     const pvEvents = (node.pv as any)?.events;
-    if (pvEvents && typeof pvEvents === 'object') {
-      // Add all event names from this node's schema
-      for (const eventName of Object.keys(pvEvents)) {
-        // First match wins (don't overwrite existing mappings)
-        if (!map.has(eventName)) {
+    if (Array.isArray(pvEvents)) {
+      // Events are defined as: [{ name: "event.name", attributes: [...] }]
+      for (const eventDef of pvEvents) {
+        const eventName = eventDef.name;
+        if (eventName && !map.has(eventName)) {
           map.set(eventName, node.id);
         }
       }
@@ -127,12 +128,11 @@ export function debugEventMapping(canvas: ExtendedCanvas | null): string {
 
   for (const node of canvas.nodes) {
     const pvEvents = (node.pv as any)?.events;
-    if (pvEvents && typeof pvEvents === 'object') {
-      const eventNames = Object.keys(pvEvents);
-      if (eventNames.length > 0) {
-        lines.push(`Node: ${node.id}`);
-        for (const eventName of eventNames) {
-          lines.push(`  - ${eventName}`);
+    if (Array.isArray(pvEvents) && pvEvents.length > 0) {
+      lines.push(`Node: ${node.id}`);
+      for (const eventDef of pvEvents) {
+        if (eventDef.name) {
+          lines.push(`  - ${eventDef.name}`);
         }
       }
     }

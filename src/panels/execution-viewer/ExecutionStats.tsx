@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ExecutionMetadata } from '@principal-ai/principal-view-core';
+import type { ExecutionMetadata } from './ExecutionLoader';
 
 interface ExecutionStatsProps {
   metadata: ExecutionMetadata;

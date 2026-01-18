@@ -139,8 +139,8 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
     if (!currentSpan) return [];
 
     const items: TimelineItem[] = [
-      // Span events
-      ...currentSpan.events.slice(0, currentEventIndex + 1).map((event) => ({
+      // Span events - show ALL events, not just up to currentEventIndex
+      ...currentSpan.events.map((event) => ({
         type: 'event' as const,
         time: event.time,
         name: event.name,
@@ -161,7 +161,7 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
     ].sort((a, b) => a.time - b.time);
 
     return items;
-  }, [currentSpan, currentEventIndex, logs]);
+  }, [currentSpan, logs]);
 
   return (
     <div
@@ -258,21 +258,6 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
         {narrativeTemplate && onViewModeChange && (
           <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
             <button
-              onClick={() => onViewModeChange('raw')}
-              style={{
-                padding: '6px 12px',
-                background: viewMode === 'raw' ? theme.colors.primary : theme.colors.surface,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: '4px',
-                color: viewMode === 'raw' ? '#ffffff' : theme.colors.text,
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: viewMode === 'raw' ? 'bold' : 'normal',
-              }}
-            >
-              Raw Events
-            </button>
-            <button
               onClick={() => onViewModeChange('narrative')}
               style={{
                 padding: '6px 12px',
@@ -286,6 +271,21 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
               }}
             >
               Narrative
+            </button>
+            <button
+              onClick={() => onViewModeChange('raw')}
+              style={{
+                padding: '6px 12px',
+                background: viewMode === 'raw' ? theme.colors.primary : theme.colors.surface,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: '4px',
+                color: viewMode === 'raw' ? '#ffffff' : theme.colors.text,
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: viewMode === 'raw' ? 'bold' : 'normal',
+              }}
+            >
+              Raw Events
             </button>
           </div>
         )}

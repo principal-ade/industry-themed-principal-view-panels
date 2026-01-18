@@ -94,7 +94,7 @@ const Step2Components: React.FC = () => {
               <rect x="310" y="85" width="240" height="55" fill="#1e1b4b" stroke="#6366f1" strokeWidth="1" rx="3" />
               <text x="315" y="98" fill="#c4b5fd" fontSize="9" fontWeight="600">Scenario: success (priority: 1)</text>
               <text x="320" y="110" fill="#94a3b8" fontSize="8" fontFamily="monospace">condition: event = "order.completed"</text>
-              <text x="320" y="122" fill="#94a3b8" fontSize="8" fontFamily="monospace">template: "Order #&#123;&#123;order.id&#125;&#125; completed"</text>
+              <text x="320" y="122" fill="#94a3b8" fontSize="8" fontFamily="monospace">template: "Order #&#123;order.id&#125; completed"</text>
               <text x="320" y="134" fill="#94a3b8" fontSize="8" fontFamily="monospace">steps: [4 narrative steps...]</text>
             </g>
 
@@ -223,9 +223,9 @@ const Step4Templates: React.FC = () => {
           <text x="60" y="65" fill="#94a3b8" fontSize="11" fontWeight="600">TEMPLATE WITH VARIABLES:</text>
 
           <rect x="60" y="75" width="500" height="50" fill="#0f172a" stroke="#334155" strokeWidth="1" rx="3" />
-          <text x="70" y="93" fill="#c4b5fd" fontSize="10" fontFamily="monospace">summary: "Order #&#123;&#123;order.id&#125;&#125; for &#123;&#123;customer.name&#125;&#125;"</text>
+          <text x="70" y="93" fill="#c4b5fd" fontSize="10" fontFamily="monospace">summary: "Order #&#123;order.id&#125; for &#123;customer.name&#125;"</text>
           <text x="70" y="108" fill="#c4b5fd" fontSize="10" fontFamily="monospace">steps:</text>
-          <text x="80" y="120" fill="#c4b5fd" fontSize="10" fontFamily="monospace">- "Payment: $&#123;&#123;order.total&#125;&#125; via &#123;&#123;payment.method&#125;&#125;"</text>
+          <text x="80" y="120" fill="#c4b5fd" fontSize="10" fontFamily="monospace">- "Payment: $&#123;order.total&#125; via &#123;payment.method&#125;"</text>
         </g>
 
         {/* Plus OTEL Data */}
@@ -262,7 +262,7 @@ const Step4Templates: React.FC = () => {
         {/* Variable syntax reference */}
         <rect x="40" y="260" width="520" height="15" fill="#1e3a8a" stroke="#3b82f6" strokeWidth="1" rx="3" />
         <text x="50" y="270" fill="#bfdbfe" fontSize="9">
-          <tspan fontWeight="600">Syntax:</tspan> &#123;&#123;variable.name&#125;&#125; gets replaced with actual values from OTEL attributes, events, or span data
+          <tspan fontWeight="600">Syntax:</tspan> &#123;variable.name&#125; gets replaced with actual values from OTEL attributes, events, or span data
         </text>
       </svg>
 
@@ -274,7 +274,7 @@ const Step4Templates: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #475569'
       }}>
-        Variables in <code style={{ color: '#a78bfa' }}>&#123;&#123;double.braces&#125;&#125;</code> are replaced with actual values from your execution data.
+        Variables in <code style={{ color: '#a78bfa' }}>&#123;single.braces&#125;</code> are replaced with actual values from your execution data.
       </div>
     </div>
   );
@@ -709,7 +709,7 @@ export const NarrativeExplainerPanel: React.FC<NarrativeExplainerPanelProps> = (
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <span style={{ color: '#34d399' }}>4.</span>
-            <span style={{ color: theme.colors.textSecondary }}>View the results in ExecutionViewerPanel</span>
+            <span style={{ color: theme.colors.textSecondary }}>View the results in CanvasDetailPanel</span>
           </div>
         </div>
       </div>

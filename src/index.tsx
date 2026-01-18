@@ -1,7 +1,8 @@
 import { PrincipalViewGraphPanel } from './panels/PrincipalViewGraphPanel';
 import { TraceViewerPanel } from './panels/TraceViewerPanel';
-import { ExecutionViewerPanel } from './panels/ExecutionViewerPanel';
+import { CanvasDetailPanel } from './panels/CanvasDetailPanel';
 import { EventControllerPanel } from './panels/EventControllerPanel';
+import { CanvasListPanel } from './panels/CanvasListPanel';
 import type { PanelDefinition, PanelContextValue } from './types';
 import { principalViewPanelTools, principalViewPanelToolsMetadata } from './tools';
 
@@ -10,7 +11,9 @@ export { EventControllerPanel } from './panels/EventControllerPanel';
 export type { EventControllerPanelProps, PlaybackState, PlaybackStatus } from './panels/EventControllerPanel';
 
 export { TraceViewerPanel } from './panels/TraceViewerPanel';
-export { ExecutionViewerPanel } from './panels/ExecutionViewerPanel';
+export { CanvasDetailPanel } from './panels/CanvasDetailPanel';
+export type { CanvasDetailPanelProps } from './panels/CanvasDetailPanel';
+export { CanvasListPanel } from './panels/CanvasListPanel';
 
 // Re-export adapter for external use
 export { PanelFileSystemAdapter } from './adapters/PanelFileSystemAdapter';
@@ -87,20 +90,20 @@ export const panels: PanelDefinition[] = [
   },
   {
     metadata: {
-      id: 'principal-ai.execution-viewer',
-      name: 'Execution Viewer',
+      id: 'principal-ai.canvas-detail',
+      name: 'Canvas Detail',
       icon: '⚡',
       version: '0.1.0',
       author: 'Principal AI',
-      description: 'Visualizes execution artifacts (test runs) overlaid on canvas diagrams with playback controls',
+      description: 'Visualizes canvas details with execution artifacts, narrative templates, and playback controls',
       slices: ['fileTree'],
     },
-    component: ExecutionViewerPanel,
+    component: CanvasDetailPanel,
 
     onMount: async (context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log(
-        'Execution Viewer Panel mounted',
+        'Canvas Detail Panel mounted',
         context.currentScope.repository?.path
       );
 
@@ -112,7 +115,37 @@ export const panels: PanelDefinition[] = [
 
     onUnmount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
-      console.log('Execution Viewer Panel unmounting');
+      console.log('Canvas Detail Panel unmounting');
+    },
+  },
+  {
+    metadata: {
+      id: 'principal-ai.canvas-list',
+      name: 'Canvas List',
+      icon: '📋',
+      version: '0.1.0',
+      author: 'Principal AI',
+      description: 'Lists and manages .otel.canvas files in the project with search and selection',
+      slices: ['fileTree'],
+    },
+    component: CanvasListPanel,
+
+    onMount: async (context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log(
+        'Canvas List Panel mounted',
+        context.currentScope.repository?.path
+      );
+
+      // Refresh file tree if available
+      if (context.hasSlice('fileTree') && !context.isSliceLoading('fileTree')) {
+        await context.refresh('repository', 'fileTree');
+      }
+    },
+
+    onUnmount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Canvas List Panel unmounting');
     },
   },
 ];

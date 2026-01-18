@@ -1,4 +1,4 @@
-import type { ExtendedCanvas } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas } from '@principal-ai/principal-view-core/browser';
 
 export interface TraceFile {
   /** Unique identifier for this trace (derived from filename) */

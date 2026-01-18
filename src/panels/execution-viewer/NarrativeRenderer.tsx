@@ -37,8 +37,9 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
     try {
       const rendered = renderNarrative(template, events);
 
-      // Simple check: if there are double spaces or "# " patterns, likely missing template vars
-      const hasMissingVars = rendered.text.includes('  ') || /[#$]\s/.test(rendered.text);
+      // Check for unresolved template variables (still in {variable} format)
+      // or evaluation errors ({ERROR: ...})
+      const hasMissingVars = /\{[^}]*\}/.test(rendered.text) || rendered.text.includes('{ERROR:');
 
       return {
         ...rendered,
@@ -58,62 +59,265 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
     }
   }, [template, events]);
 
-  // Parse narrative text to add syntax highlighting
+  // Parse narrative text to add syntax highlighting with enhanced structure
   const renderHighlightedText = (text: string) => {
     const lines = text.split('\n');
+    const elements: React.ReactNode[] = [];
+    let stepCounter = 0;
 
-    return lines.map((line, idx) => {
-      // Determine line style based on content
-      let lineStyle: React.CSSProperties = {};
-      let content = line;
+    for (let idx = 0; idx < lines.length; idx++) {
+      const line = lines[idx];
 
-      // Status indicators (✅ ❌ ⚠️ 📋)
+      // Skip empty lines but add spacing
+      if (!line.trim()) {
+        elements.push(<div key={idx} style={{ height: '12px' }} />);
+        continue;
+      }
+
+      // Status indicators (✅ ❌ ⚠️ 📋) - Introduction/Title
       if (/^[✅❌⚠️📋]/.test(line)) {
-        lineStyle = {
-          fontWeight: 'bold',
-          fontSize: '16px',
-          marginTop: idx > 0 ? '8px' : '0',
-          marginBottom: '4px',
-        };
+        elements.push(
+          <div
+            key={idx}
+            style={{
+              fontSize: '18px',
+              fontWeight: 700,
+              marginTop: idx > 0 ? '24px' : '0',
+              marginBottom: '16px',
+              paddingBottom: '12px',
+              borderBottom: `2px solid ${theme.colors.border}`,
+              lineHeight: '1.4',
+            }}
+          >
+            {highlightVariables(line)}
+          </div>
+        );
+        stepCounter = 0; // Reset step counter after title
       }
       // Separators (━━━━)
       else if (/^━+/.test(line)) {
-        lineStyle = {
-          color: theme.colors.border,
-          opacity: 0.6,
-        };
+        elements.push(
+          <div
+            key={idx}
+            style={{
+              height: '1px',
+              backgroundColor: theme.colors.border,
+              margin: '20px 0',
+              opacity: 0.3,
+            }}
+          />
+        );
       }
-      // Arrow items (→)
+      // Arrow items (→) - Flow steps with card layout
       else if (/^(\s*)→/.test(line)) {
         const indent = line.match(/^(\s*)/)?.[1] || '';
-        lineStyle = {
-          color: theme.colors.text,
-          fontWeight: indent.length === 0 ? 'bold' : 'normal',
-          marginTop: indent.length === 0 ? '12px' : '4px',
-        };
+        const isMainStep = indent.length === 0;
+
+        if (isMainStep) {
+          stepCounter++;
+        }
+
+        const content = line.replace(/^(\s*)→\s*/, '');
+
+        elements.push(
+          <div
+            key={idx}
+            style={{
+              display: 'flex',
+              gap: '12px',
+              marginTop: isMainStep ? '16px' : '8px',
+              marginLeft: isMainStep ? '0' : '40px',
+              alignItems: 'flex-start',
+            }}
+          >
+            {/* Step indicator */}
+            {isMainStep && (
+              <div
+                style={{
+                  minWidth: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  backgroundColor: theme.colors.primary,
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                {stepCounter}
+              </div>
+            )}
+            {!isMainStep && (
+              <div
+                style={{
+                  minWidth: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: theme.colors.textSecondary,
+                  marginTop: '8px',
+                  flexShrink: 0,
+                }}
+              />
+            )}
+
+            {/* Step content card */}
+            <div
+              style={{
+                flex: 1,
+                padding: isMainStep ? '12px 16px' : '8px 12px',
+                backgroundColor: isMainStep ? theme.colors.backgroundSecondary : 'transparent',
+                border: isMainStep ? `1px solid ${theme.colors.border}` : 'none',
+                borderRadius: '6px',
+                fontSize: isMainStep ? '15px' : '14px',
+                lineHeight: '1.6',
+                fontWeight: isMainStep ? 500 : 400,
+              }}
+            >
+              {highlightVariables(content)}
+            </div>
+          </div>
+        );
       }
       // Bullet items (•)
       else if (/^\s+•/.test(line)) {
-        lineStyle = {
-          color: theme.colors.textMuted,
-          paddingLeft: '8px',
-        };
+        const content = line.replace(/^\s+•\s*/, '');
+        elements.push(
+          <div
+            key={idx}
+            style={{
+              display: 'flex',
+              gap: '8px',
+              marginLeft: '40px',
+              marginTop: '6px',
+              alignItems: 'flex-start',
+            }}
+          >
+            <span style={{ color: theme.colors.textSecondary, marginTop: '2px' }}>•</span>
+            <span style={{ color: theme.colors.textSecondary, fontSize: '14px', lineHeight: '1.6' }}>
+              {highlightVariables(content)}
+            </span>
+          </div>
+        );
       }
       // Section headers (UPPERCASE at start)
       else if (/^[A-Z\s]+:/.test(line)) {
-        lineStyle = {
-          fontWeight: 'bold',
-          marginTop: '8px',
-          color: theme.colors.text,
-        };
+        elements.push(
+          <div
+            key={idx}
+            style={{
+              fontSize: '14px',
+              fontWeight: 700,
+              marginTop: '24px',
+              marginBottom: '12px',
+              color: theme.colors.text,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              opacity: 0.8,
+            }}
+          >
+            {highlightVariables(line)}
+          </div>
+        );
+      }
+      // Regular text
+      else {
+        elements.push(
+          <div
+            key={idx}
+            style={{
+              fontSize: '14px',
+              lineHeight: '1.7',
+              color: theme.colors.textSecondary,
+              marginTop: '8px',
+            }}
+          >
+            {highlightVariables(line)}
+          </div>
+        );
+      }
+    }
+
+    return elements;
+  };
+
+  // Highlight dynamic variable values in the text
+  const highlightVariables = (text: string) => {
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    // Patterns for common variable types
+    const patterns = [
+      // Currency ($123.45)
+      { regex: /\$\d+(?:\.\d{2})?/g, color: '#10b981' },
+      // IDs and codes (ORD-12345, ABC123, etc.)
+      { regex: /\b[A-Z]{2,}[-_]?\d+\b/g, color: '#f59e0b' },
+      // Plain numbers (not part of IDs)
+      { regex: /\b\d+(?:\.\d+)?\b/g, color: '#60a5fa' },
+      // Email-like or capitalized names (John Doe, john@example.com)
+      { regex: /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g, color: '#a78bfa' },
+      { regex: /\b[\w.-]+@[\w.-]+\.\w+\b/g, color: '#ec4899' },
+    ];
+
+    // Create a combined regex and sort matches by position
+    const allMatches: Array<{ start: number; end: number; text: string; color: string }> = [];
+
+    patterns.forEach(({ regex, color }) => {
+      let match;
+      const re = new RegExp(regex.source, regex.flags);
+      while ((match = re.exec(text)) !== null) {
+        allMatches.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          text: match[0],
+          color,
+        });
+      }
+    });
+
+    // Sort by start position and remove overlaps
+    allMatches.sort((a, b) => a.start - b.start);
+    const nonOverlapping = [];
+    let lastEnd = 0;
+    for (const match of allMatches) {
+      if (match.start >= lastEnd) {
+        nonOverlapping.push(match);
+        lastEnd = match.end;
+      }
+    }
+
+    // Build the highlighted content
+    nonOverlapping.forEach((match, i) => {
+      // Add text before the match
+      if (match.start > lastIndex) {
+        parts.push(text.substring(lastIndex, match.start));
       }
 
-      return (
-        <div key={idx} style={lineStyle}>
-          {content}
-        </div>
+      // Add highlighted match
+      parts.push(
+        <span
+          key={i}
+          style={{
+            color: match.color,
+            fontWeight: 600,
+            fontFamily: theme.fonts.monospace,
+          }}
+        >
+          {match.text}
+        </span>
       );
+
+      lastIndex = match.end;
     });
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? <>{parts}</> : text;
   };
 
   return (
@@ -158,14 +362,12 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
         style={{
           flex: 1,
           overflow: 'auto',
-          padding: '20px',
-          fontFamily: theme.fonts.monospace,
+          padding: '32px 28px',
+          fontFamily: theme.fonts.body,
           fontSize: '14px',
-          lineHeight: '1.6',
+          lineHeight: '1.7',
           color: theme.colors.text,
           backgroundColor: theme.colors.background,
-          whiteSpace: 'pre-wrap',
-          wordWrap: 'break-word',
         }}
       >
         {renderHighlightedText(result.text)}

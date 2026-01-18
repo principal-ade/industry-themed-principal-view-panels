@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import type { NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
 import type { ExecutionFile } from './ExecutionLoader';
-import { FileText, CheckCircle2, AlertCircle, Database, ChevronRight } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Database, ChevronRight, ChevronDown } from 'lucide-react';
 
 interface NarrativeTemplatePanelProps {
   narrativeTemplate: NarrativeTemplate;
@@ -21,6 +21,38 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
   onExecutionSelect,
 }) => {
   const { theme } = useTheme();
+  const [expandedScenarios, setExpandedScenarios] = useState<Set<string>>(new Set());
+
+  const toggleScenario = (scenarioId: string) => {
+    setExpandedScenarios(prev => {
+      const next = new Set(prev);
+      if (next.has(scenarioId)) {
+        next.delete(scenarioId);
+      } else {
+        next.add(scenarioId);
+      }
+      return next;
+    });
+  };
+
+  // Helper to render text with highlighted template variables
+  const renderTemplateText = (text: string) => {
+    const parts = text.split(/(\{[^}]+\})/g);
+    return (
+      <>
+        {parts.map((part, i) => {
+          if (part.match(/^\{[^}]+\}$/)) {
+            return (
+              <span key={i} style={{ color: theme.colors.accent, fontWeight: 600 }}>
+                {part}
+              </span>
+            );
+          }
+          return part;
+        })}
+      </>
+    );
+  };
 
   const renderCondition = (condition: any, depth: number = 0): React.ReactNode => {
     const indent = depth * 16;
@@ -97,8 +129,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
           flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FileText size={20} style={{ color: theme.colors.accent }} />
+        <div style={{ display: 'flex', alignItems: 'center' }}>
           <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
             {(narrativeTemplate as any).name || 'Narrative Template'}
           </h2>
@@ -130,208 +161,248 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
           Scenarios ({narrativeTemplate.scenarios?.length || 0})
         </h3>
 
-        {narrativeTemplate.scenarios?.map((scenario, index) => (
-          <div
-            key={scenario.id || index}
-            style={{
-              marginBottom: '16px',
-              padding: '12px',
-              background: theme.colors.background,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: '6px',
-            }}
-          >
-            {/* Scenario Header */}
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {scenario.priority === 1 ? (
-                  <CheckCircle2 size={16} style={{ color: '#22c55e' }} />
+        {narrativeTemplate.scenarios?.map((scenario, index) => {
+          const isExpanded = expandedScenarios.has(scenario.id || String(index));
+
+          return (
+            <div
+              key={scenario.id || index}
+              style={{
+                marginBottom: '16px',
+                background: theme.colors.background,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: '6px',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Scenario Header - Clickable */}
+              <div
+                onClick={() => toggleScenario(scenario.id || String(index))}
+                style={{
+                  padding: '12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'background 0.2s',
+                  background: isExpanded ? theme.colors.backgroundSecondary : 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = theme.colors.backgroundSecondary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = isExpanded ? theme.colors.backgroundSecondary : 'transparent';
+                }}
+              >
+                {isExpanded ? (
+                  <ChevronDown size={16} style={{ color: theme.colors.textSecondary, flexShrink: 0 }} />
                 ) : (
-                  <AlertCircle size={16} style={{ color: '#f59e0b' }} />
+                  <ChevronRight size={16} style={{ color: theme.colors.textSecondary, flexShrink: 0 }} />
                 )}
-                <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>
-                  {scenario.description}
-                </h3>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    padding: '2px 6px',
-                    background: theme.colors.background,
-                    borderRadius: '3px',
-                    color: theme.colors.textSecondary,
-                  }}
-                >
-                  Priority: {scenario.priority}
-                </span>
-              </div>
-            </div>
-
-            {/* Condition */}
-            <div style={{ marginBottom: '12px' }}>
-              <div
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: theme.colors.textSecondary,
-                  marginBottom: '6px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}
-              >
-                Condition
-              </div>
-              {renderCondition(scenario.condition)}
-            </div>
-
-            {/* Template */}
-            <div>
-              <div
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: theme.colors.textSecondary,
-                  marginBottom: '6px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}
-              >
-                Template
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>
+                    {(scenario as any).name || scenario.description || scenario.id}
+                  </h3>
+                  {(scenario as any).description && (scenario as any).name && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: theme.colors.textSecondary }}>
+                      {scenario.description}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {/* Summary */}
-              {scenario.template.summary && (
-                <div style={{ marginBottom: '8px' }}>
-                  <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '2px' }}>Summary:</div>
-                  <div
-                    style={{
-                      fontSize: '12px',
-                      color: theme.colors.text,
-                      fontFamily: theme.fonts.monospace,
-                      padding: '6px 8px',
-                      background: theme.colors.background,
-                      borderRadius: '3px',
-                      border: `1px solid ${theme.colors.border}`,
-                    }}
-                  >
-                    {scenario.template.summary}
+              {/* Details - Only show when expanded */}
+              {isExpanded && (
+                <div style={{ padding: '12px', borderTop: `1px solid ${theme.colors.border}` }}>
+                  {/* Condition */}
+                  <div style={{ marginBottom: '12px' }}>
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: theme.colors.textSecondary,
+                        marginBottom: '6px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                      }}
+                    >
+                      Condition
+                    </div>
+                    {renderCondition(scenario.condition)}
                   </div>
-                </div>
-              )}
 
-              {/* Steps */}
-              {(scenario.template as any).steps && (scenario.template as any).steps.length > 0 && (
-                <div style={{ marginBottom: '8px' }}>
-                  <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '4px' }}>
-                    Steps ({(scenario.template as any).steps.length}):
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    {(scenario.template as any).steps.map((step: string, i: number) => (
-                      <div
-                        key={i}
-                        style={{
-                          fontSize: '12px',
-                          color: theme.colors.textSecondary,
-                          fontFamily: theme.fonts.monospace,
-                          padding: '4px 8px',
-                          background: theme.colors.background,
-                          borderRadius: '3px',
-                          border: `1px solid ${theme.colors.border}`,
-                          display: 'flex',
-                          gap: '8px',
-                        }}
-                      >
-                        <span style={{ color: theme.colors.textSecondary, minWidth: '20px' }}>{i + 1}.</span>
-                        <span style={{ flex: 1 }}>{step}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Details */}
-              {(scenario.template as any).details && Object.keys((scenario.template as any).details).length > 0 && (
-                <div style={{ marginBottom: '8px' }}>
-                  <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '4px' }}>Details:</div>
-                  <div
-                    style={{
-                      fontSize: '12px',
-                      fontFamily: theme.fonts.monospace,
-                      padding: '6px 8px',
-                      background: theme.colors.background,
-                      borderRadius: '3px',
-                      border: `1px solid ${theme.colors.border}`,
-                    }}
-                  >
-                    {Object.entries((scenario.template as any).details).map(([key, value]) => (
-                      <div key={key} style={{ marginBottom: '2px' }}>
-                        <span style={{ color: theme.colors.textSecondary }}>{key}:</span>{' '}
-                        <span style={{ color: theme.colors.text }}>{String(value)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Execution Files - Only show executions that match this scenario */}
-              {(() => {
-                const matchingExecutions = availableExecutions.filter(
-                  exec => executionScenarioMap[exec.id] === scenario.id
-                );
-                return matchingExecutions.length > 0 ? (
+                  {/* Template */}
                   <div>
                     <div
                       style={{
                         fontSize: '11px',
+                        fontWeight: 600,
                         color: theme.colors.textSecondary,
-                        marginBottom: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
+                        marginBottom: '6px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
                       }}
                     >
-                      <Database size={12} />
-                      <span>Execution Files ({matchingExecutions.length})</span>
+                      Template
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      {matchingExecutions.map((exec) => (
-                        <button
-                          key={exec.id}
-                          onClick={() => onExecutionSelect?.(exec.id)}
+
+                    {/* Introduction */}
+                    {(scenario.template as any).introduction && (
+                      <div style={{ marginBottom: '8px' }}>
+                        <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '2px' }}>Introduction:</div>
+                        <div
                           style={{
                             fontSize: '12px',
+                            color: theme.colors.text,
+                            fontFamily: theme.fonts.monospace,
                             padding: '6px 8px',
                             background: theme.colors.background,
-                            border: `1px solid ${theme.colors.border}`,
                             borderRadius: '3px',
-                            color: theme.colors.textSecondary,
-                            fontFamily: theme.fonts.monospace,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            transition: 'all 0.2s',
-                            textAlign: 'left',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = theme.colors.muted;
-                            e.currentTarget.style.borderColor = theme.colors.accent;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = theme.colors.background;
-                            e.currentTarget.style.borderColor = theme.colors.border;
+                            border: `1px solid ${theme.colors.border}`,
                           }}
                         >
-                          <span>{exec.name}</span>
-                          <ChevronRight size={14} style={{ color: theme.colors.accent, flexShrink: 0 }} />
-                        </button>
-                      ))}
-                    </div>
+                          {renderTemplateText((scenario.template as any).introduction)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Summary */}
+                    {scenario.template.summary && (
+                      <div style={{ marginBottom: '8px' }}>
+                        <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '2px' }}>Summary (closing):</div>
+                        <div
+                          style={{
+                            fontSize: '12px',
+                            color: theme.colors.text,
+                            fontFamily: theme.fonts.monospace,
+                            padding: '6px 8px',
+                            background: theme.colors.background,
+                            borderRadius: '3px',
+                            border: `1px solid ${theme.colors.border}`,
+                          }}
+                        >
+                          {renderTemplateText(scenario.template.summary)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Flow */}
+                    {(scenario.template as any).flow && (scenario.template as any).flow.length > 0 && (
+                      <div style={{ marginBottom: '8px' }}>
+                        <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '4px' }}>
+                          Flow ({(scenario.template as any).flow.length}):
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {(scenario.template as any).flow.map((step: string, i: number) => (
+                            <div
+                              key={i}
+                              style={{
+                                fontSize: '12px',
+                                color: theme.colors.textSecondary,
+                                fontFamily: theme.fonts.monospace,
+                                padding: '4px 8px',
+                                background: theme.colors.background,
+                                borderRadius: '3px',
+                                border: `1px solid ${theme.colors.border}`,
+                                display: 'flex',
+                                gap: '8px',
+                              }}
+                            >
+                              <span style={{ color: theme.colors.textSecondary, minWidth: '20px' }}>{i + 1}.</span>
+                              <span style={{ flex: 1 }}>{renderTemplateText(step)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Details */}
+                    {(scenario.template as any).details && Object.keys((scenario.template as any).details).length > 0 && (
+                      <div style={{ marginBottom: '8px' }}>
+                        <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '4px' }}>Details:</div>
+                        <div
+                          style={{
+                            fontSize: '12px',
+                            fontFamily: theme.fonts.monospace,
+                            padding: '6px 8px',
+                            background: theme.colors.background,
+                            borderRadius: '3px',
+                            border: `1px solid ${theme.colors.border}`,
+                          }}
+                        >
+                          {Object.entries((scenario.template as any).details).map(([key, value]) => (
+                            <div key={key} style={{ marginBottom: '2px' }}>
+                              <span style={{ color: theme.colors.textSecondary }}>{key}:</span>{' '}
+                              <span style={{ color: theme.colors.text }}>{String(value)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Execution Files - Only show executions that match this scenario */}
+                    {(() => {
+                      const matchingExecutions = availableExecutions.filter(
+                        exec => executionScenarioMap[exec.id] === scenario.id
+                      );
+                      return matchingExecutions.length > 0 ? (
+                        <div>
+                          <div
+                            style={{
+                              fontSize: '11px',
+                              color: theme.colors.textSecondary,
+                              marginBottom: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                            }}
+                          >
+                            <Database size={12} />
+                            <span>Execution Files ({matchingExecutions.length})</span>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {matchingExecutions.map((exec) => (
+                              <button
+                                key={exec.id}
+                                onClick={() => onExecutionSelect?.(exec.id)}
+                                style={{
+                                  fontSize: '12px',
+                                  padding: '6px 8px',
+                                  background: theme.colors.background,
+                                  border: `1px solid ${theme.colors.border}`,
+                                  borderRadius: '3px',
+                                  color: theme.colors.textSecondary,
+                                  fontFamily: theme.fonts.monospace,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  transition: 'all 0.2s',
+                                  textAlign: 'left',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = theme.colors.muted;
+                                  e.currentTarget.style.borderColor = theme.colors.accent;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = theme.colors.background;
+                                  e.currentTarget.style.borderColor = theme.colors.border;
+                                }}
+                              >
+                                <span>{exec.name}</span>
+                                <ChevronRight size={14} style={{ color: theme.colors.accent, flexShrink: 0 }} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
-                ) : null;
-              })()}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

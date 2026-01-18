@@ -14,7 +14,7 @@ import {
   type ExecutionArtifact,
   type ExecutionSpan,
 } from './execution-viewer/ExecutionLoader';
-import { Loader, ChevronDown, Activity, Play, Pause, RotateCcw, Grid3x3, HelpCircle, X, FileText, Database, ArrowLeft } from 'lucide-react';
+import { Loader, ChevronDown, Activity, Play, Pause, RotateCcw, Grid3x3, HelpCircle, X, ArrowLeft } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { NarrativeLoader, type NarrativeFile } from './execution-viewer/NarrativeLoader';
@@ -24,17 +24,39 @@ import { NarrativeTemplatePanel } from './execution-viewer/NarrativeTemplatePane
 // View mode type (should be exported from react package in future versions)
 export type ViewMode = 'raw' | 'narrative';
 
-interface ExecutionPanelState {
+/**
+ * Props for CanvasDetailPanel
+ */
+export interface CanvasDetailPanelProps extends PanelComponentProps {
+  /**
+   * Optional canvas ID to display.
+   * If provided, this takes precedence over events.
+   * This allows the host to control panel state via props instead of events.
+   */
+  selectedCanvasId?: string | null;
+
+  /**
+   * Optional canvas path to load.
+   * If provided along with selectedCanvasId, the panel will load this canvas immediately.
+   */
+  canvasPath?: string | null;
+
+  /**
+   * Optional canvas name for display.
+   */
+  canvasName?: string | null;
+}
+
+interface CanvasDetailPanelState {
   canvas: ExtendedCanvas | null;
   execution: ExecutionArtifact | null;
   metadata: ExecutionMetadata | null;
   loading: boolean;
   error: string | null;
-  availableCanvases: CanvasFile[];
   selectedCanvasId: string | null;
+  canvasName: string | null;
   availableExecutions: ExecutionFile[];
   selectedExecutionId: string | null;
-  showCanvasSelector: boolean;
   showNarrativeSelector: boolean;
   showExecutionSelector: boolean;
   showHelpModal: boolean;
@@ -51,29 +73,31 @@ interface ExecutionPanelState {
 }
 
 /**
- * Execution Viewer Panel
+ * Canvas Detail Panel
  *
- * Displays execution artifacts (test runs, traces) overlaid on their corresponding canvas diagrams.
- * Reads execution files from __executions__/ directories and automatically links them to canvas files.
+ * Displays canvas details with execution artifacts, narrative templates, and playback controls.
+ * Can be controlled via props (selectedCanvasId) or events.
  */
-export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
+export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   context,
   actions,
   events,
+  selectedCanvasId: selectedCanvasIdProp,
+  canvasPath: canvasPathProp,
+  canvasName: canvasNameProp,
 }) => {
   const { theme } = useTheme();
 
-  const [state, setState] = useState<ExecutionPanelState>({
+  const [state, setState] = useState<CanvasDetailPanelState>({
     canvas: null,
     execution: null,
     metadata: null,
-    loading: true,
+    loading: false,
     error: null,
-    availableCanvases: [],
     selectedCanvasId: null,
+    canvasName: null,
     availableExecutions: [],
     selectedExecutionId: null,
-    showCanvasSelector: false,
     showNarrativeSelector: false,
     showExecutionSelector: false,
     showHelpModal: false,
@@ -97,18 +121,14 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
   actionsRef.current = actions;
   eventsRef.current = events;
 
-  // Track selected canvas ID in ref
-  const selectedCanvasIdRef = useRef<string | null>(null);
-  selectedCanvasIdRef.current = state.selectedCanvasId;
-
   // Playback timer ref
   const playbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Event-to-node mapping cache
   const eventNodeMapRef = useRef<Map<string, string>>(new Map());
 
-  const loadCanvas = useCallback(async (canvasId?: string) => {
-    setState(prev => ({ ...prev, loading: prev.canvas === null, error: null }));
+  const loadCanvas = useCallback(async (canvasId: string, canvasPath: string) => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
       const ctx = contextRef.current;
@@ -136,51 +156,17 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
           metadata: null,
           loading: false,
           error: null,
-          availableCanvases: [],
           selectedCanvasId: null,
+          canvasName: null,
           availableExecutions: [],
           selectedExecutionId: null,
         }));
         return;
       }
 
-      // Find all available canvas, execution, and narrative files
-      const availableCanvases = await ExecutionLoader.findCanvasFiles(fileTreeData.allFiles);
+      // Find execution and narrative files
       const executionFiles = await ExecutionLoader.findExecutionFiles(fileTreeData.allFiles);
       const availableNarratives = NarrativeLoader.findNarrativeFiles(fileTreeData.allFiles);
-
-      if (availableCanvases.length === 0) {
-        setState(prev => ({
-          ...prev,
-          canvas: null,
-          execution: null,
-          metadata: null,
-          loading: false,
-          error: null,
-          availableCanvases: [],
-          selectedCanvasId: null,
-          availableExecutions: [],
-          selectedExecutionId: null,
-          narrativeTemplate: null,
-          availableNarratives: [],
-        }));
-        return;
-      }
-
-      // Select canvas
-      let selectedCanvas: CanvasFile;
-      if (canvasId) {
-        const found = availableCanvases.find((c: CanvasFile) => c.id === canvasId);
-        if (!found) {
-          throw new Error(`Canvas with ID '${canvasId}' not found`);
-        }
-        selectedCanvas = found;
-      } else if (selectedCanvasIdRef.current) {
-        const found = availableCanvases.find((c: CanvasFile) => c.id === selectedCanvasIdRef.current);
-        selectedCanvas = found || availableCanvases[0];
-      } else {
-        selectedCanvas = availableCanvases[0];
-      }
 
       const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
       if (!readFile) {
@@ -193,7 +179,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
       }
 
       // Load canvas file
-      const fullCanvasPath = `${repositoryPath}/${selectedCanvas.path}`;
+      const fullCanvasPath = `${repositoryPath}/${canvasPath}`;
       const canvasContent = await readFile(fullCanvasPath);
 
       if (!canvasContent || typeof canvasContent !== 'string') {
@@ -211,8 +197,8 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
 
       // First, try to find a narrative that matches the canvas
       const matchingNarrative = availableNarratives.find(
-        n => n.canvasPath === selectedCanvas.path ||
-             n.path.replace(/\.narrative\.json$/, '.otel.canvas') === selectedCanvas.path
+        n => n.canvasPath === canvasPath ||
+             n.path.replace(/\.narrative\.json$/, '.otel.canvas') === canvasPath
       );
 
       // If no match, just select the first available narrative
@@ -254,6 +240,12 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
         }
       }
 
+      // Extract canvas name from ID (convert kebab-case to Title Case)
+      const canvasName = canvasId
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
       setState(prev => ({
         ...prev,
         canvas,
@@ -261,8 +253,8 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
         metadata: null,
         loading: false,
         error: null,
-        availableCanvases,
-        selectedCanvasId: selectedCanvas.id,
+        selectedCanvasId: canvasId,
+        canvasName,
         availableExecutions: executionFiles,
         selectedExecutionId: null,
         currentSpanIndex: 0,
@@ -284,20 +276,34 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
     }
   }, []);
 
-  // Initial load and fileTree changes
+  // Prop-controlled mode: Load canvas when props change
   useEffect(() => {
-    loadCanvas();
-  }, [loadCanvas]);
+    if (selectedCanvasIdProp && canvasPathProp) {
+      // eslint-disable-next-line no-console
+      console.log('[CanvasDetailPanel] Loading canvas from props:', selectedCanvasIdProp, canvasPathProp);
+      loadCanvas(selectedCanvasIdProp, canvasPathProp);
 
-  // Listen for custom events to switch canvases
+      // Update canvas name if provided
+      if (canvasNameProp) {
+        setState(prev => ({ ...prev, canvasName: canvasNameProp }));
+      }
+    }
+  }, [selectedCanvasIdProp, canvasPathProp, canvasNameProp, loadCanvas]);
+
+  // Listen for custom events to switch canvases (event-driven mode)
   useEffect(() => {
+    // If controlled by props, don't listen to events
+    if (selectedCanvasIdProp && canvasPathProp) {
+      return;
+    }
+
     if (!events) return;
 
     const handleEvent = (event: any) => {
-      if (event.type === 'custom' && event.action === 'selectCanvas') {
-        const canvasId = event.payload?.canvasId;
-        if (canvasId) {
-          loadCanvas(canvasId);
+      if (event.type === 'custom') {
+        const payload = event.payload;
+        if (payload?.action === 'selectCanvas' && payload?.canvasId && payload?.canvas) {
+          loadCanvas(payload.canvasId, payload.canvas.path);
         }
       }
     };
@@ -306,7 +312,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
     return () => {
       events.off('custom', handleEvent);
     };
-  }, [events, loadCanvas]);
+  }, [events, loadCanvas, selectedCanvasIdProp, canvasPathProp]);
 
   // Playback control
   const handlePlayPause = useCallback(() => {
@@ -449,8 +455,8 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
     };
   }, [state.isPlaying, state.execution]);
 
-  // Render empty state only if no canvas files found
-  if (!state.loading && state.availableCanvases.length === 0) {
+  // Render empty state when no canvas is loaded
+  if (!state.loading && !state.canvas) {
     return (
       <div
         style={{
@@ -465,28 +471,11 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
         <div style={{ textAlign: 'center', maxWidth: '600px', padding: '20px' }}>
           <Activity size={48} style={{ margin: '0 auto 20px', opacity: 0.3 }} />
           <h2 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: 600 }}>
-            No Canvas Files Found
+            No Canvas Selected
           </h2>
           <p style={{ margin: '0 0 20px 0', color: theme.colors.textSecondary, lineHeight: 1.5 }}>
-            Execution artifacts should be saved to <code>__executions__/*.spans.json</code> or{' '}
-            <code>packages/*/__executions__/*.spans.json</code>
+            Select a canvas from the Canvas List panel to view execution artifacts and narratives.
           </p>
-          <div
-            style={{
-              background: '#1e1e1e',
-              padding: '12px',
-              borderRadius: '4px',
-              fontFamily: 'monospace',
-              fontSize: '12px',
-              textAlign: 'left',
-              color: '#d4d4d4',
-            }}
-          >
-            <div># Export execution data from tests</div>
-            <div>exportExecutionArtifact(canvas, spans, {'{'}</div>
-            <div>&nbsp;&nbsp;outputPath: '__executions__/my-test.spans.json'</div>
-            <div>{'}'});</div>
-          </div>
         </div>
       </div>
     );
@@ -531,10 +520,6 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
     );
   }
 
-  const selectedCanvas = state.availableCanvases.find(
-    c => c.id === state.selectedCanvasId
-  );
-
   return (
     <div
       style={{
@@ -556,85 +541,12 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
           gap: '12px',
         }}
       >
-        {/* Execution Selector - Only show if executions are available */}
-        {state.availableCanvases.length > 0 && (
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setState(prev => ({ ...prev, showCanvasSelector: !prev.showCanvasSelector }))}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 12px',
-                background: '#2a2a2a',
-                border: '1px solid #3a3a3a',
-                borderRadius: '4px',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: '13px',
-              }}
-            >
-              <Activity size={16} />
-              <span>{selectedCanvas?.name || 'Select Canvas'}</span>
-              <ChevronDown size={16} />
-            </button>
-
-            {/* Execution Selector Dropdown */}
-            {state.showCanvasSelector && (
-              <>
-                <div
-                  style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 999,
-                  }}
-                  onClick={() => setState(prev => ({ ...prev, showCanvasSelector: false }))}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    marginTop: '4px',
-                    minWidth: '300px',
-                    maxHeight: '400px',
-                    overflowY: 'auto',
-                    background: '#2a2a2a',
-                    border: '1px solid #3a3a3a',
-                    borderRadius: '4px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    zIndex: 1000,
-                  }}
-                >
-                  {state.availableCanvases.map((canvas) => (
-                    <button
-                      key={canvas.id}
-                      onClick={() => {
-                        loadCanvas(canvas.id);
-                        setState(prev => ({ ...prev, showCanvasSelector: false }));
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px 16px',
-                        background: canvas.id === state.selectedCanvasId ? '#3b82f6' : 'transparent',
-                        border: 'none',
-                        borderBottom: '1px solid #3a3a3a',
-                        color: '#fff',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <Activity size={14} />
-                      <span style={{ flex: 1 }}>{canvas.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+        {/* Canvas Title - Show the currently loaded canvas */}
+        {state.canvasName && (
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
+              {state.canvasName}
+            </span>
           </div>
         )}
 
@@ -656,7 +568,6 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
                 fontSize: '13px',
               }}
             >
-              <FileText size={16} />
               <span>
                 {state.selectedNarrativeId
                   ? state.availableNarratives.find(n => n.id === state.selectedNarrativeId)?.name || 'Select Narrative'
@@ -732,13 +643,9 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
                         textAlign: 'left',
                         cursor: 'pointer',
                         fontSize: '13px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
                       }}
                     >
-                      <FileText size={14} />
-                      <span style={{ flex: 1 }}>{narrative.name}</span>
+                      {narrative.name}
                     </button>
                   ))}
                 </div>
@@ -765,7 +672,6 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
                 fontSize: '13px',
               }}
             >
-              <Database size={16} />
               <span>
                 {state.selectedExecutionId
                   ? state.availableExecutions.find(e => e.id === state.selectedExecutionId)?.name || 'Select Execution'
@@ -876,13 +782,9 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
                         textAlign: 'left',
                         cursor: 'pointer',
                         fontSize: '13px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
                       }}
                     >
-                      <Database size={14} />
-                      <span style={{ flex: 1 }}>{execution.name}</span>
+                      {execution.name}
                     </button>
                   ))}
                 </div>
@@ -948,46 +850,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
           <Grid3x3 size={14} />
         </button>
 
-        {/* Playback Controls - Only show if execution is available */}
-        {state.execution && (
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={handleReset}
-              style={{
-                padding: '6px 10px',
-                background: '#2a2a2a',
-                border: '1px solid #3a3a3a',
-                borderRadius: '4px',
-                color: '#fff',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-              title="Reset"
-            >
-              <RotateCcw size={14} />
-            </button>
-            <button
-              onClick={handlePlayPause}
-              style={{
-                padding: '6px 10px',
-                background: state.isPlaying ? '#ef4444' : '#10b981',
-                border: 'none',
-                borderRadius: '4px',
-                color: '#fff',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontWeight: 600,
-              }}
-            >
-              {state.isPlaying ? <Pause size={14} /> : <Play size={14} />}
-              {state.isPlaying ? 'Pause' : 'Play'}
-            </button>
-          </div>
-        )}
+        {/* Playback controls removed - all events now display by default */}
 
         {/* Help Button - Show when canvas-only (no execution/narratives) */}
         {state.canvas && !state.execution && state.availableNarratives.length === 0 && (
@@ -1072,8 +935,9 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
                     }}
                   >
                     <div># Save execution artifacts to:</div>
-                    <div style={{ marginTop: '4px' }}>__executions__/*.spans.json</div>
-                    <div>packages/*/__executions__/*.spans.json</div>
+                    <div style={{ marginTop: '4px' }}>__executions__/*.otel.json</div>
+                    <div>packages/*/__executions__/*.otel.json</div>
+                    <div style={{ color: '#888', fontSize: '10px', marginTop: '4px' }}># Also supports: *.spans.json, *.execution.json, *.events.json</div>
                   </div>
                   <p style={{ margin: 0, color: '#666', fontSize: '11px', fontStyle: 'italic' }}>
                     Tip: Use exportExecutionArtifact() in your tests
@@ -1116,7 +980,7 @@ export const ExecutionViewerPanel: React.FC<PanelComponentProps> = ({
             <div style={{ textAlign: 'center' }}>
               <p>Canvas not loaded</p>
               <p style={{ fontSize: '12px', marginTop: '8px' }}>
-                {selectedCanvas?.path || 'No canvas selected'}
+                {state.canvasName || 'No canvas selected'}
               </p>
             </div>
           </div>
