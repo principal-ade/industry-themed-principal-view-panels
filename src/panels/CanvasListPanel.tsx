@@ -4,7 +4,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { AlertCircle, Search, X, RefreshCw, Activity } from 'lucide-react';
 import { useCanvasData } from './canvas-list/hooks/useCanvasData';
 import { CanvasCard } from './canvas-list/components/CanvasCard';
-import type { CanvasFile } from './execution-viewer/ExecutionLoader';
+import type { DiscoveredCanvas } from '@principal-ai/principal-view-core/browser';
 
 /**
  * CanvasListPanel - A panel for displaying .otel.canvas files
@@ -24,29 +24,55 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
   const [selectedCanvasId, setSelectedCanvasId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<string>('all');
 
   // Load canvas data
   const { canvases, isLoading, error, refreshCanvases } = useCanvasData({ context });
 
-  // Filter canvases by search query
+  // Get unique packages for filter
+  const availablePackages = useMemo(() => {
+    const packages = new Set<string>();
+    canvases.forEach((canvas) => {
+      if (canvas.packageName) {
+        packages.add(canvas.packageName);
+      }
+    });
+    return Array.from(packages).sort();
+  }, [canvases]);
+
+  // Filter canvases by package and search query
   const filteredCanvases = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return canvases;
+    let filtered = canvases;
+
+    // Filter by package
+    if (selectedPackage !== 'all') {
+      if (selectedPackage === 'root') {
+        filtered = filtered.filter((canvas) => canvas.scope === 'root');
+      } else {
+        filtered = filtered.filter((canvas) => canvas.packageName === selectedPackage);
+      }
     }
 
-    const query = searchQuery.toLowerCase().trim();
-    return canvases.filter((canvas) => {
-      // Search in name
-      if (canvas.name.toLowerCase().includes(query)) return true;
-      // Search in path
-      if (canvas.path.toLowerCase().includes(query)) return true;
-      // Search in basename
-      if (canvas.basename.toLowerCase().includes(query)) return true;
-      return false;
-    });
-  }, [canvases, searchQuery]);
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter((canvas) => {
+        // Search in name
+        if (canvas.name.toLowerCase().includes(query)) return true;
+        // Search in path
+        if (canvas.path.toLowerCase().includes(query)) return true;
+        // Search in basename
+        if (canvas.basename.toLowerCase().includes(query)) return true;
+        // Search in package name
+        if (canvas.packageName && canvas.packageName.toLowerCase().includes(query)) return true;
+        return false;
+      });
+    }
 
-  const handleCanvasClick = (canvas: CanvasFile) => {
+    return filtered;
+  }, [canvases, selectedPackage, searchQuery]);
+
+  const handleCanvasClick = (canvas: DiscoveredCanvas) => {
     setSelectedCanvasId(canvas.id);
     // Emit canvas:selected event for other panels
     if (events) {
@@ -119,18 +145,32 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
             Canvas Files
           </h2>
 
-          {!isLoading && (
-            <span
+          {!isLoading && (availablePackages.length > 0 || canvases.some(c => c.scope === 'root')) && (
+            <select
+              value={selectedPackage}
+              onChange={(e) => setSelectedPackage(e.target.value)}
               style={{
                 fontSize: theme.fontSizes[1],
-                color: theme.colors.textSecondary,
+                color: theme.colors.text,
                 background: theme.colors.backgroundSecondary,
-                padding: '4px 10px',
+                border: `1px solid ${theme.colors.border}`,
                 borderRadius: theme.radii[1],
+                padding: '4px 10px',
+                cursor: 'pointer',
+                fontFamily: theme.fonts.body,
+                outline: 'none',
               }}
             >
-              {filteredCanvases.length} {filteredCanvases.length === 1 ? 'canvas' : 'canvases'}
-            </span>
+              <option value="all">All Packages ({canvases.length})</option>
+              {canvases.some(c => c.scope === 'root') && (
+                <option value="root">Root ({canvases.filter(c => c.scope === 'root').length})</option>
+              )}
+              {availablePackages.map((pkg) => (
+                <option key={pkg} value={pkg}>
+                  {pkg} ({canvases.filter(c => c.packageName === pkg).length})
+                </option>
+              ))}
+            </select>
           )}
         </div>
 

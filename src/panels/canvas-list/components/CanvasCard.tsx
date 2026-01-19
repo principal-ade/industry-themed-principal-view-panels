@@ -1,11 +1,11 @@
 import React from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { Folder } from 'lucide-react';
-import type { CanvasFile } from '../../execution-viewer/ExecutionLoader';
+import { Package } from 'lucide-react';
+import type { DiscoveredCanvas } from '@principal-ai/principal-view-core/browser';
 
 interface CanvasCardProps {
-  canvas: CanvasFile;
-  onClick: (canvas: CanvasFile) => void;
+  canvas: DiscoveredCanvas;
+  onClick: (canvas: DiscoveredCanvas) => void;
   isSelected?: boolean;
 }
 
@@ -62,18 +62,39 @@ export const CanvasCard: React.FC<CanvasCardProps> = ({
         </h3>
       </div>
 
-      {/* Source badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <Folder size={14} color={theme.colors.textSecondary} />
-        <span
-          style={{
-            fontSize: theme.fontSizes[0],
-            color: theme.colors.textSecondary,
-            fontFamily: 'monospace',
-          }}
-        >
-          {canvas.source === 'folder' ? '.principal-views' : 'standalone'}
-        </span>
+      {/* Scope and package badge */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+        {canvas.scope === 'package' && canvas.packageName ? (
+          <>
+            <Package size={14} color={theme.colors.primary} />
+            <span
+              style={{
+                fontSize: theme.fontSizes[0],
+                color: theme.colors.primary,
+                fontFamily: 'monospace',
+                fontWeight: 600,
+              }}
+            >
+              {canvas.packageName}
+            </span>
+          </>
+        ) : null}
+        {canvas.type === 'otel' && (
+          <>
+            {canvas.scope === 'package' && canvas.packageName && (
+              <span style={{ color: theme.colors.textSecondary }}>•</span>
+            )}
+            <span
+              style={{
+                fontSize: theme.fontSizes[0],
+                color: theme.colors.success || '#22c55e',
+                fontWeight: 600,
+              }}
+            >
+              OTEL
+            </span>
+          </>
+        )}
       </div>
 
       {/* File path */}

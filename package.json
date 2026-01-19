@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/principal-view-panels",
-  "version": "0.1.56",
+  "version": "0.2.0",
   "description": "Principal View Graph Panels for visualizing graph configurations from .principal-views/ folder as interactive diagrams",
   "type": "module",
   "main": "dist/panels.bundle.js",
@@ -59,7 +59,7 @@
     "@principal-ade/panel-framework-core": "^0.1.10",
     "@principal-ade/utcp-panel-event": "^0.1.0",
     "@principal-ai/codebase-composition": "^0.2.40",
-    "@principal-ai/principal-view-core": "^0.7.8",
+    "@principal-ai/principal-view-core": "^0.7.9",
     "@principal-ai/principal-view-react": "^0.7.16",
     "@principal-ai/repository-abstraction": "0.2.5",
     "@xyflow/react": "^12.0.0",
@@ -91,6 +91,7 @@
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-storybook": "10.1.2",
+    "msw": "^2.12.7",
     "prettier": "^3.6.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -112,5 +113,10 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
