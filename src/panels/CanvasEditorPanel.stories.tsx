@@ -6,6 +6,7 @@ import { MockPanelProvider } from '../mocks/panelContext';
 import { createMockFileTree } from '../mocks/vvfConfigs';
 import type { DataSlice } from '../types';
 import { EditableConfigurablePanelLayout, type PanelLayout } from '@principal-ade/panel-layouts';
+import { ConfigLoader } from './principal-view/ConfigLoader';
 
 /**
  * CanvasEditorPanel visualizes .canvas files as interactive graphs.
@@ -56,6 +57,10 @@ export const SimpleConfiguration: Story = {
       refresh: async () => {},
     });
 
+    // Get the first available canvas ID using ConfigLoader
+    const configs = ConfigLoader.findConfigs(fileTreeData.allFiles);
+    const firstCanvasId = configs.length > 0 ? configs[0].id : null;
+
     return (
       <MockPanelProvider
         contextOverrides={{
@@ -93,7 +98,7 @@ export const SimpleConfiguration: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <CanvasEditorPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={firstCanvasId} />}
       </MockPanelProvider>
     );
   },
@@ -117,6 +122,9 @@ export const ComplexConfiguration: Story = {
       refresh: async () => {},
     });
 
+    const configs = ConfigLoader.findConfigs(fileTreeData.allFiles);
+    const firstCanvasId = configs.length > 0 ? configs[0].id : null;
+
     return (
       <MockPanelProvider
         contextOverrides={{
@@ -150,7 +158,7 @@ export const ComplexConfiguration: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <CanvasEditorPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={firstCanvasId} />}
       </MockPanelProvider>
     );
   },
@@ -174,6 +182,9 @@ export const ControlTowerConfiguration: Story = {
       refresh: async () => {},
     });
 
+    const configs = ConfigLoader.findConfigs(fileTreeData.allFiles);
+    const firstCanvasId = configs.length > 0 ? configs[0].id : null;
+
     return (
       <MockPanelProvider
         contextOverrides={{
@@ -207,7 +218,7 @@ export const ControlTowerConfiguration: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <CanvasEditorPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={firstCanvasId} />}
       </MockPanelProvider>
     );
   },
@@ -240,7 +251,7 @@ export const Loading: Story = {
           isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
         }}
       >
-        {(props) => <CanvasEditorPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={null} />}
       </MockPanelProvider>
     );
   },
@@ -274,7 +285,7 @@ export const EmptyState: Story = {
           isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
         }}
       >
-        {(props) => <CanvasEditorPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={null} />}
       </MockPanelProvider>
     );
   },
@@ -307,6 +318,9 @@ export const InvalidJSON: Story = {
       error: null,
       refresh: async () => {},
     });
+
+    const configs = ConfigLoader.findConfigs(fileTreeData.allFiles);
+    const firstCanvasId = configs.length > 0 ? configs[0].id : null;
 
     return (
       <MockPanelProvider
@@ -341,7 +355,7 @@ export const InvalidJSON: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <CanvasEditorPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={firstCanvasId} />}
       </MockPanelProvider>
     );
   },
@@ -363,7 +377,7 @@ export const NoFileTreeSlice: Story = {
           hasSlice: (name) => name !== 'fileTree',
         }}
       >
-        {(props) => <CanvasEditorPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={null} />}
       </MockPanelProvider>
     );
   },
@@ -385,6 +399,9 @@ export const CustomRepository: Story = {
       error: null,
       refresh: async () => {},
     });
+
+    const configs = ConfigLoader.findConfigs(fileTreeData.allFiles);
+    const firstCanvasId = configs.length > 0 ? configs[0].id : null;
 
     return (
       <MockPanelProvider
@@ -432,7 +449,7 @@ export const CustomRepository: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <CanvasEditorPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={firstCanvasId} />}
       </MockPanelProvider>
     );
   },
@@ -455,6 +472,9 @@ export const NodeColorsDemo: Story = {
       error: null,
       refresh: async () => {},
     });
+
+    const configs = ConfigLoader.findConfigs(fileTreeData.allFiles);
+    const firstCanvasId = configs.length > 0 ? configs[0].id : null;
 
     return (
       <MockPanelProvider
@@ -489,7 +509,7 @@ export const NodeColorsDemo: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <CanvasEditorPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={firstCanvasId} />}
       </MockPanelProvider>
     );
   },
@@ -514,6 +534,9 @@ export const ColorPriorityTest: Story = {
       refresh: async () => {},
     });
 
+    const configs = ConfigLoader.findConfigs(fileTreeData.allFiles);
+    const firstCanvasId = configs.length > 0 ? configs[0].id : null;
+
     return (
       <MockPanelProvider
         contextOverrides={{
@@ -547,19 +570,22 @@ export const ColorPriorityTest: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <CanvasEditorPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={firstCanvasId} />}
       </MockPanelProvider>
     );
   },
 };
 
 /**
- * Multiple Configurations - demonstrates the canvas selector overlay
- * Click the panel icon next to the title to open the canvas selector
+ * Multiple Configurations - demonstrates external canvas selection
+ * Use the dropdown selector to switch between different canvas files
  */
 export const MultipleConfigurations: Story = {
   args: {} as never,
   render: () => {
+    const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
+    const { theme } = useTheme();
+
     const mockSlices = new Map<string, DataSlice>();
     const fileTreeData = createMockFileTree('multiple');
     mockSlices.set('fileTree', {
@@ -571,41 +597,87 @@ export const MultipleConfigurations: Story = {
       refresh: async () => {},
     });
 
+    // Get all canvas configs
+    const configs = ConfigLoader.findConfigs(fileTreeData.allFiles);
+
+    // Set initial selection
+    useEffect(() => {
+      if (!selectedConfigId && configs.length > 0) {
+        setSelectedConfigId(configs[0].id);
+      }
+    }, [selectedConfigId, configs]);
+
     return (
-      <MockPanelProvider
-        contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): DataSlice<T> | undefined => {
-            return mockSlices.get(name) as DataSlice<T> | undefined;
-          },
-          hasSlice: (name: string) => mockSlices.has(name),
-          isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
-          repositoryPath: '/mock/repository',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any}
-        actionsOverrides={{
-          readFile: async (path: string) => {
-            const fileName = path.split('/').pop() || '';
-            const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
-            if (!file || !file.content) {
-              throw new Error(`File not found: ${path}`);
-            }
-            return file.content;
-          },
-          writeFile: async (path: string, content: string) => {
-            const fileName = path.split('/').pop() || '';
-            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
-            if (file) {
-              file.content = content;
-              console.log('[Storybook Mock] Saved file:', path);
-              console.log('[Storybook Mock] Content:', JSON.parse(content));
-            }
-          },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any}
-      >
-        {(props) => <CanvasEditorPanel {...props} />}
-      </MockPanelProvider>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Canvas Selector */}
+        <div style={{
+          padding: '12px 16px',
+          background: theme.colors.surface,
+          borderBottom: `1px solid ${theme.colors.border}`,
+          display: 'flex',
+          gap: 12,
+          alignItems: 'center',
+        }}>
+          <label style={{ color: theme.colors.text, fontWeight: 500 }}>Select Canvas:</label>
+          <select
+            value={selectedConfigId || ''}
+            onChange={(e) => setSelectedConfigId(e.target.value)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 4,
+              border: `1px solid ${theme.colors.border}`,
+              background: theme.colors.background,
+              color: theme.colors.text,
+              flex: 1,
+              maxWidth: 400,
+            }}
+          >
+            {configs.map((config) => (
+              <option key={config.id} value={config.id}>
+                {config.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Canvas Editor Panel */}
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <MockPanelProvider
+            contextOverrides={{
+              slices: mockSlices,
+              getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+                return mockSlices.get(name) as DataSlice<T> | undefined;
+              },
+              hasSlice: (name: string) => mockSlices.has(name),
+              isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+              repositoryPath: '/mock/repository',
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any}
+            actionsOverrides={{
+              readFile: async (path: string) => {
+                const fileName = path.split('/').pop() || '';
+                const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
+                if (!file || !file.content) {
+                  throw new Error(`File not found: ${path}`);
+                }
+                return file.content;
+              },
+              writeFile: async (path: string, content: string) => {
+                const fileName = path.split('/').pop() || '';
+                const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+                if (file) {
+                  file.content = content;
+                  console.log('[Storybook Mock] Saved file:', path);
+                  console.log('[Storybook Mock] Content:', JSON.parse(content));
+                }
+              },
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any}
+          >
+            {(props) => <CanvasEditorPanel {...props} selectedConfigId={selectedConfigId} />}
+          </MockPanelProvider>
+        </div>
+      </div>
     );
   },
 };
@@ -626,6 +698,9 @@ export const WorkspaceScope: Story = {
       error: null,
       refresh: async () => {},
     });
+
+    // No canvas files in this scenario
+    const firstCanvasId = null;
 
     return (
       <MockPanelProvider
@@ -667,7 +742,7 @@ export const WorkspaceScope: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <CanvasEditorPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={firstCanvasId} />}
       </MockPanelProvider>
     );
   },
@@ -768,6 +843,9 @@ export const NodeSizingTest: Story = {
       refresh: async () => {},
     });
 
+    const configs = ConfigLoader.findConfigs(fileTreeData.allFiles);
+    const firstCanvasId = configs.length > 0 ? configs[0].id : null;
+
     return (
       <MockPanelProvider
         contextOverrides={{
@@ -787,7 +865,7 @@ export const NodeSizingTest: Story = {
           },
         } as never}
       >
-        {(props) => <CanvasEditorPanel {...props} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={firstCanvasId} />}
       </MockPanelProvider>
     );
   },
@@ -817,6 +895,8 @@ const ResizablePanelLayoutInner: React.FC = () => {
     error: null,
     refresh: async () => {},
   });
+
+  const firstCanvasId = fileTreeData.allFiles.find((f) => f.path?.endsWith('.canvas'))?.path || null;
 
   const panels = [
     {
@@ -866,7 +946,7 @@ const ResizablePanelLayoutInner: React.FC = () => {
         >
           {(props) => (
             <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-              <CanvasEditorPanel {...props} />
+              <CanvasEditorPanel {...props} selectedConfigId={firstCanvasId} />
             </div>
           )}
         </MockPanelProvider>
@@ -1184,7 +1264,7 @@ const EdgeDisappearingDebugInner: React.FC = () => {
             },
           } as never}
         >
-          {(props) => <CanvasEditorPanel {...props} />}
+          {(props) => <CanvasEditorPanel {...props} selectedConfigId="debug" />}
         </MockPanelProvider>
       </div>
     </div>
@@ -1530,7 +1610,7 @@ const RecenterCoordinatesTestInner: React.FC = () => {
             },
           } as never}
         >
-          {(props) => <CanvasEditorPanel {...props} />}
+          {(props) => <CanvasEditorPanel {...props} selectedConfigId="off-center-1" />}
         </MockPanelProvider>
       </div>
     </div>

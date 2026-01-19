@@ -4,7 +4,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core/browser';
-import { Loader, Save, X, Pencil, PanelLeft, FileJson, HelpCircle, Copy, Check, Info, MessageSquareOff, Grid3X3, RefreshCw, Crosshair } from 'lucide-react';
+import { Loader, Save, X, Pencil, HelpCircle, Copy, Check, Info, MessageSquareOff, Grid3X3, RefreshCw, Crosshair } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
@@ -21,9 +21,6 @@ interface GraphPanelState {
   error: string | null;
   availableConfigs: ConfigFile[];
   configDescriptions: Record<string, ConfigDescription>;
-  selectedConfigId: string | null;
-  // Canvas selector overlay
-  showCanvasSelector: boolean;
   // Help overlay
   showHelp: boolean;
   // Legend overlay
@@ -44,10 +41,11 @@ interface GraphPanelState {
  * Visualizes .canvas configuration files as interactive graph diagrams
  * with full editing support for nodes, edges, and positions.
  */
-export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
+export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigId?: string | null }> = ({
   context,
   actions,
-  events
+  events,
+  selectedConfigId = null
 }) => {
   const { theme } = useTheme();
 
@@ -61,8 +59,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
     error: null,
     availableConfigs: [],
     configDescriptions: {},
-    selectedConfigId: null,
-    showCanvasSelector: false,
     showHelp: false,
     showLegend: false,
     showTooltips: true,
@@ -82,7 +78,7 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
 
   // Track selected config ID in ref
   const selectedConfigIdRef = useRef<string | null>(null);
-  selectedConfigIdRef.current = state.selectedConfigId;
+  selectedConfigIdRef.current = selectedConfigId;
 
   // Track if we should skip the next file change (after save)
   const skipNextFileChangeRef = useRef(false);
@@ -117,8 +113,7 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
           library: null,
           loading: false,
           error: null,
-          availableConfigs: [],
-          selectedConfigId: null
+          availableConfigs: []
         }));
         return;
       }
@@ -132,24 +127,29 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
           library: null,
           loading: false,
           error: null,
-          availableConfigs: [],
-          selectedConfigId: null
+          availableConfigs: []
         }));
         return;
       }
 
-      let selectedConfig: ConfigFile;
-      if (configId) {
-        const found = availableConfigs.find(c => c.id === configId);
-        if (!found) {
-          throw new Error(`Config with ID '${configId}' not found`);
-        }
-        selectedConfig = found;
-      } else if (selectedConfigIdRef.current) {
-        const found = availableConfigs.find(c => c.id === selectedConfigIdRef.current);
-        selectedConfig = found || availableConfigs[0];
-      } else {
-        selectedConfig = availableConfigs[0];
+      // Determine which config to load - must be explicitly specified
+      const targetConfigId = configId || selectedConfigIdRef.current;
+      if (!targetConfigId) {
+        // No config selected, clear the canvas
+        setState(prev => ({
+          ...prev,
+          canvas: null,
+          library: null,
+          loading: false,
+          error: null,
+          availableConfigs
+        }));
+        return;
+      }
+
+      const selectedConfig = availableConfigs.find(c => c.id === targetConfigId);
+      if (!selectedConfig) {
+        throw new Error(`Config with ID '${targetConfigId}' not found`);
       }
 
       const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
@@ -234,7 +234,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
         error: null,
         availableConfigs,
         configDescriptions,
-        selectedConfigId: selectedConfig.id,
         hasUnsavedChanges: false
       }));
     } catch (error) {
@@ -266,11 +265,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
         source,
       },
     });
-  }, []);
-
-  // Toggle canvas selector overlay
-  const toggleCanvasSelector = useCallback(() => {
-    setState(prev => ({ ...prev, showCanvasSelector: !prev.showCanvasSelector }));
   }, []);
 
   // Toggle help overlay
@@ -334,19 +328,14 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
 
   // Copy current config path to clipboard
   const copyConfigPath = useCallback(() => {
-    const currentConfig = state.availableConfigs.find(c => c.id === state.selectedConfigId);
+    const currentConfig = state.availableConfigs.find(c => c.id === selectedConfigId);
     if (currentConfig?.path) {
       navigator.clipboard.writeText(currentConfig.path).then(() => {
         setPathCopied(true);
         setTimeout(() => setPathCopied(false), 2000);
       });
     }
-  }, [state.availableConfigs, state.selectedConfigId]);
-
-  // Handle canvas selection from overlay
-  const handleCanvasSelect = useCallback((configId: string) => {
-    loadConfiguration(configId);
-  }, [loadConfiguration]);
+  }, [state.availableConfigs, selectedConfigId]);
 
   // Toggle edit mode
   const toggleEditMode = useCallback(() => {
@@ -442,22 +431,26 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
   const fileTreeData = fileTreeSlice?.data as { allFiles?: Array<{ path?: string; relativePath?: string; name?: string }> } | null;
   const fileTreeDataRef = useRef(fileTreeData);
 
+  // Load configuration when selectedConfigId prop changes
   useEffect(() => {
-    // Initial load
-    loadConfiguration();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (selectedConfigId) {
+      loadConfiguration(selectedConfigId);
+    } else {
+      // If no config selected, just populate available configs
+      loadConfiguration();
+    }
+  }, [selectedConfigId, loadConfiguration]);
 
   // Re-load when fileTree transitions from loading to loaded
   useEffect(() => {
     const wasLoading = fileTreeLoadingRef.current;
     fileTreeLoadingRef.current = fileTreeLoading;
 
-    if (wasLoading && !fileTreeLoading) {
-      // fileTree just finished loading, reload config
-      loadConfiguration();
+    if (wasLoading && !fileTreeLoading && selectedConfigId) {
+      // fileTree just finished loading, reload currently selected config
+      loadConfiguration(selectedConfigId);
     }
-  }, [fileTreeLoading, loadConfiguration]);
+  }, [fileTreeLoading, loadConfiguration, selectedConfigId]);
 
   // Reload when fileTree data changes (e.g., files added/modified/deleted on disk)
   // Only reload if the change affects the currently selected config or library
@@ -481,12 +474,8 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
       // Find the currently selected config path
       const selectedConfig = state.availableConfigs.find(c => c.id === selectedConfigIdRef.current);
       if (!selectedConfig) {
-        // No config selected, check if new configs appeared
-        const newConfigs = ConfigLoader.findConfigs(fileTreeData.allFiles || []);
-        if (newConfigs.length > 0) {
-          console.log('[PrincipalViewGraph] New configs available, reloading...');
-          loadConfiguration();
-        }
+        // No config selected, just update available configs list
+        loadConfiguration();
         return;
       }
 
@@ -513,7 +502,7 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
           libraryChanged,
           configPath: selectedConfig.path
         });
-        loadConfiguration();
+        loadConfiguration(selectedConfigIdRef.current || undefined);
       }
     }
   }, [fileTreeData, fileTreeLoading, loadConfiguration, state.availableConfigs]);
@@ -521,18 +510,11 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
   // Subscribe to data refresh events
   useEffect(() => {
     const unsubscribe = eventsRef.current.on('data:refresh', () => {
-      loadConfiguration();
-    });
-    return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Subscribe to config selection events from browser panel
-  useEffect(() => {
-    const unsubscribe = eventsRef.current.on('custom', (event) => {
-      const payload = event.payload as { action?: string; configId?: string } | undefined;
-      if (payload?.action === 'selectConfig' && payload?.configId) {
-        loadConfiguration(payload.configId);
+      if (selectedConfigIdRef.current) {
+        loadConfiguration(selectedConfigIdRef.current);
+      } else {
+        // Just refresh available configs list
+        loadConfiguration();
       }
     });
     return unsubscribe;
@@ -556,7 +538,7 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
   }
 
   if (state.error) {
-    return <ErrorStateContent theme={theme} error={state.error} onRetry={() => loadConfiguration()} />;
+    return <ErrorStateContent theme={theme} error={state.error} onRetry={() => loadConfiguration(selectedConfigId || undefined)} />;
   }
 
   if (!state.canvas) {
@@ -581,33 +563,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
         alignItems: 'center',
         boxSizing: 'content-box'
       }}>
-        {/* Canvas Selector Toggle - flush left, full height */}
-        {state.availableConfigs.length > 1 && (
-          <button
-            onClick={toggleCanvasSelector}
-            disabled={state.hasUnsavedChanges}
-            title={state.hasUnsavedChanges ? 'Save or discard changes before switching' : 'Switch canvas'}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: 39,
-              padding: 0,
-              backgroundColor: state.showCanvasSelector ? theme.colors.primary : 'transparent',
-              color: state.showCanvasSelector ? 'white' : theme.colors.textMuted,
-              border: 'none',
-              borderRight: `1px solid ${theme.colors.border}`,
-              cursor: state.hasUnsavedChanges ? 'not-allowed' : 'pointer',
-              opacity: state.hasUnsavedChanges ? 0.5 : 1,
-              transition: 'all 0.15s',
-              flexShrink: 0,
-            }}
-          >
-            <PanelLeft size={18} />
-          </button>
-        )}
-
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', gap: theme.space[3], minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2], minWidth: 0, flex: 1 }}>
             <h2 style={{
@@ -716,7 +671,7 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
 
         {/* Refresh Button - flush right, full height */}
         <button
-          onClick={() => loadConfiguration()}
+          onClick={() => loadConfiguration(selectedConfigId || undefined)}
           disabled={state.hasUnsavedChanges}
           title={state.hasUnsavedChanges ? 'Save or discard changes before refreshing' : 'Refresh'}
           style={{
@@ -883,138 +838,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps> = ({
 
       {/* Main content area with overlays and graph */}
       <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}>
-        {/* Canvas Selector Overlay */}
-        {state.showCanvasSelector && (
-          <div style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            width: 280,
-            height: '100%',
-            backgroundColor: theme.colors.background,
-            borderRight: `1px solid ${theme.colors.border}`,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            zIndex: 1000,
-          }}>
-            {/* Overlay Header */}
-            <div style={{
-              height: 39,
-              padding: '0 16px',
-              borderBottom: `1px solid ${theme.colors.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexShrink: 0,
-              boxSizing: 'content-box'
-            }}>
-              <span style={{
-                fontSize: theme.fontSizes[2],
-                fontWeight: theme.fontWeights.medium,
-                color: theme.colors.text
-              }}>
-                Canvas Files
-              </span>
-              <button
-                onClick={toggleCanvasSelector}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 24,
-                  height: 24,
-                  padding: 0,
-                  backgroundColor: 'transparent',
-                  color: theme.colors.textMuted,
-                  border: 'none',
-                  borderRadius: theme.radii[1],
-                  cursor: 'pointer',
-                  transition: 'color 0.15s'
-                }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Canvas List */}
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              padding: theme.space[2],
-            }}>
-              {state.availableConfigs.map(config => {
-                const isSelected = config.id === state.selectedConfigId;
-                const description = state.configDescriptions[config.id];
-                const displayName = description?.name || config.name;
-                const displayDescription = description?.description;
-
-                return (
-                  <button
-                    key={config.id}
-                    onClick={() => handleCanvasSelect(config.id)}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-start',
-                      gap: theme.space[1],
-                      width: '100%',
-                      padding: `${theme.space[2]}px ${theme.space[3]}px`,
-                      marginBottom: theme.space[1],
-                      backgroundColor: isSelected ? `${theme.colors.primary}15` : 'transparent',
-                      color: theme.colors.text,
-                      border: isSelected ? `1px solid ${theme.colors.primary}40` : `1px solid transparent`,
-                      borderRadius: theme.radii[2],
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.space[2],
-                      width: '100%',
-                    }}>
-                      <FileJson
-                        size={16}
-                        style={{
-                          color: isSelected ? theme.colors.primary : theme.colors.textMuted,
-                          flexShrink: 0
-                        }}
-                      />
-                      <span style={{
-                        fontSize: theme.fontSizes[1],
-                        fontWeight: isSelected ? theme.fontWeights.medium : theme.fontWeights.body,
-                        color: isSelected ? theme.colors.primary : theme.colors.text,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {displayName}
-                      </span>
-                    </div>
-                    {displayDescription && (
-                      <span style={{
-                        fontSize: theme.fontSizes[0],
-                        color: theme.colors.textMuted,
-                        paddingLeft: theme.space[4] + theme.space[2],
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        width: '100%',
-                        boxSizing: 'border-box',
-                      }}>
-                        {displayDescription}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Graph */}
         <div style={{ flex: 1, position: 'relative' }}>
           <GraphRenderer
