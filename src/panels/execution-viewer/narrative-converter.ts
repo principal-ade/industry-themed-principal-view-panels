@@ -5,12 +5,13 @@
 
 import type { OtelEvent } from '@principal-ai/principal-view-core/browser';
 import type { OtelLog, OtelSeverity } from './TestEventPanel';
+import type { OtelAttributes } from './ExecutionLoader';
 
 // TestEventPanel types (matching TestEventPanel.tsx)
 export interface SpanEvent {
   time: number;
   name: string;
-  attributes: Record<string, string | number | boolean>;
+  attributes: OtelAttributes;
 }
 
 export interface TestSpan {
@@ -19,7 +20,7 @@ export interface TestSpan {
   startTime: number;
   endTime?: number;
   duration?: number;
-  attributes: Record<string, string | number | boolean>;
+  attributes: OtelAttributes;
   events: SpanEvent[];
   status: 'OK' | 'ERROR';
   errorMessage?: string;

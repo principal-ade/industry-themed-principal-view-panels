@@ -5,8 +5,6 @@ import type { ExecutionFile } from './ExecutionLoader';
 import { Database, ChevronRight, ChevronDown } from 'lucide-react';
 
 // Type definitions for narrative template structure
-type ConditionType = 'and' | 'or' | 'event' | 'attribute' | 'span';
-
 interface AndOrCondition {
   type: 'and' | 'or';
   conditions: Condition[];

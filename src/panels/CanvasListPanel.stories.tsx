@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import React from 'react';
+import React, { useState } from 'react';
 import { CanvasListPanel } from './CanvasListPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
+import type { PanelEvent } from '../types';
 
 const meta = {
   title: 'Panels/CanvasListPanel',
@@ -462,6 +463,194 @@ export const MonorepoWithPackages: Story = {
           </>
         )}
       </MockPanelProvider>
+    );
+  },
+};
+
+/**
+ * Change Detection Test - Interactive story for testing SHA-based change detection
+ * Demonstrates how the panel responds to file tree changes and manual refresh
+ */
+export const ChangeDetectionTest: Story = {
+  args: {} as never,
+  render: () => {
+    const [sha, setSha] = useState('mock-sha-1');
+    const [canvasCount, setCanvasCount] = useState(5);
+    const [eventLog, setEventLog] = useState<string[]>([]);
+
+    // Generate dynamic file list based on count
+    const mockFiles = Array.from({ length: canvasCount }, (_, i) => ({
+      name: `canvas-${i + 1}.otel.canvas`,
+      relativePath: `.principal-views/canvas-${i + 1}.otel.canvas`,
+      path: `.principal-views/canvas-${i + 1}.otel.canvas`,
+    }));
+
+    const mockSlices = new Map([
+      [
+        'fileTree',
+        {
+          scope: 'repository' as const,
+          name: 'fileTree',
+          data: { sha, allFiles: mockFiles },
+          loading: false,
+          error: null,
+          refresh: async () => {},
+        },
+      ],
+    ]);
+
+    // Custom events that log activity
+    const mockEvents = {
+      emit: (event: PanelEvent<unknown>) => {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = `[${timestamp}] ${event.type} from ${event.source}`;
+        setEventLog((prev) => [logEntry, ...prev].slice(0, 20)); // Keep last 20 events
+        console.log(logEntry, event);
+      },
+      on: () => () => {},
+      off: () => {},
+    };
+
+    return (
+      <div style={{ display: 'flex', height: '100vh', background: '#0a0a0a' }}>
+        {/* Panel */}
+        <div style={{ flex: 1 }}>
+          <MockPanelProvider
+            contextOverrides={{
+              slices: mockSlices,
+              getSlice: <T,>(name: string) => {
+                return mockSlices.get(name) as T | undefined;
+              },
+            }}
+            eventsOverride={mockEvents}
+          >
+            {(props) => <CanvasListPanel {...props} />}
+          </MockPanelProvider>
+        </div>
+
+        {/* Control Panel */}
+        <div
+          style={{
+            width: 350,
+            background: '#1a1a1a',
+            padding: 20,
+            color: '#fff',
+            overflow: 'auto',
+            borderLeft: '1px solid #333',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}
+        >
+          <div>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: 16 }}>
+              Change Detection Controls
+            </h3>
+            <p style={{ margin: 0, fontSize: 12, color: '#aaa', lineHeight: 1.5 }}>
+              Test how the panel responds to file tree SHA changes and manual refresh actions.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <button
+              onClick={() => setSha(`mock-sha-${Date.now()}`)}
+              style={{
+                background: '#2563eb',
+                color: 'white',
+                border: 'none',
+                padding: '10px 14px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              Change SHA (Simulate File Change)
+            </button>
+
+            <button
+              onClick={() => setCanvasCount((c) => c + 1)}
+              style={{
+                background: '#16a34a',
+                color: 'white',
+                border: 'none',
+                padding: '10px 14px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              Add Canvas (+1)
+            </button>
+
+            <button
+              onClick={() => setCanvasCount((c) => Math.max(0, c - 1))}
+              style={{
+                background: '#dc2626',
+                color: 'white',
+                border: 'none',
+                padding: '10px 14px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              Remove Canvas (-1)
+            </button>
+          </div>
+
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h4 style={{ margin: 0, fontSize: 14 }}>Event Log</h4>
+              <button
+                onClick={() => setEventLog([])}
+                style={{
+                  background: '#333',
+                  color: '#aaa',
+                  border: '1px solid #444',
+                  padding: '4px 8px',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                }}
+              >
+                Clear
+              </button>
+            </div>
+            <div
+              style={{
+                flex: 1,
+                fontSize: 11,
+                fontFamily: 'monospace',
+                background: '#0a0a0a',
+                border: '1px solid #333',
+                borderRadius: 6,
+                padding: 12,
+                overflowY: 'auto',
+                minHeight: 0,
+              }}
+            >
+              {eventLog.length === 0 ? (
+                <div style={{ color: '#666' }}>No events yet. Try interacting with the panel.</div>
+              ) : (
+                eventLog.map((log, i) => (
+                  <div key={i} style={{ marginBottom: 4, color: '#22c55e' }}>
+                    {log}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5 }}>
+            <strong style={{ color: '#aaa' }}>Current State:</strong>
+            <div>SHA: {sha.slice(0, 20)}...</div>
+            <div>Canvas Count: {canvasCount}</div>
+          </div>
+        </div>
+      </div>
     );
   },
 };

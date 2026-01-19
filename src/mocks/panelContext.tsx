@@ -254,10 +254,11 @@ export const MockPanelProvider: React.FC<{
     readFile?: (path: string) => Promise<string>;
     writeFile?: (path: string, content: string) => Promise<void>;
   };
-}> = ({ children, contextOverrides, actionsOverrides }) => {
+  eventsOverride?: PanelEventEmitter;
+}> = ({ children, contextOverrides, actionsOverrides, eventsOverride }) => {
   const context = createMockContext(contextOverrides);
   const actions = createMockActions(actionsOverrides);
-  const events = createMockEvents();
+  const events = eventsOverride || createMockEvents();
 
   return <>{children({ context, actions, events })}</>;
 };

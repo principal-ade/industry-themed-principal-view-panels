@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
+import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { AlertCircle, Search, X, RefreshCw, Activity, HelpCircle, Copy, Check } from 'lucide-react';
 import { useCanvasData } from './canvas-list/hooks/useCanvasData';
 import { CanvasCard } from './canvas-list/components/CanvasCard';
@@ -22,6 +23,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
 }) => {
   const { theme } = useTheme();
   const panelRef = useRef<HTMLDivElement>(null);
+  usePanelFocusListener('canvas-list', events, () => panelRef.current?.focus());
   const [selectedCanvasId, setSelectedCanvasId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -104,12 +106,19 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
 
     // Emit refresh event so parent can handle filesystem rescans, etc.
     if (events) {
+      interface CustomEvent {
+        type: string;
+        source?: string;
+        timestamp?: number;
+        payload?: Record<string, unknown>;
+      }
+
       events.emit({
-        type: 'custom',
+        type: 'canvas:refresh',
         source: 'canvas-list-panel',
         timestamp: Date.now(),
-        payload: { action: 'refreshCanvases' },
-      });
+        payload: {},
+      } as CustomEvent);
     }
 
     try {

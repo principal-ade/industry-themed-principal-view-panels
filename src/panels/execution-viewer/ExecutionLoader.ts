@@ -1,3 +1,14 @@
+/**
+ * OpenTelemetry attribute value type per OTEL spec
+ * https://opentelemetry.io/docs/specs/otel/common/attribute-naming/
+ */
+export type OtelAttributeValue = string | number | boolean | string[] | number[] | boolean[];
+
+/**
+ * OpenTelemetry attributes (key-value pairs)
+ */
+export type OtelAttributes = Record<string, OtelAttributeValue>;
+
 export interface ExecutionFile {
   /** Unique identifier for this execution (derived from filename) */
   id: string;
@@ -52,11 +63,11 @@ export interface ExecutionSpan {
   endTime?: number;
   duration?: number;
   status?: string;
-  attributes?: Record<string, unknown>;
+  attributes?: OtelAttributes;
   events: Array<{
     time: number;
     name: string;
-    attributes?: Record<string, unknown>;
+    attributes?: OtelAttributes;
   }>;
 }
 

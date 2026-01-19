@@ -5,6 +5,7 @@ import yaml from 'js-yaml';
 import type { NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
 import { NarrativeRenderer } from './NarrativeRenderer';
 import { convertToOtelEvents } from './narrative-converter';
+import type { OtelAttributes } from './ExecutionLoader';
 
 interface SpanEvent {
   time: number;
@@ -32,7 +33,7 @@ export interface OtelLog {
   severity: OtelSeverity;
   body: string | Record<string, unknown>;
   resource: Record<string, string | number>;
-  attributes?: Record<string, unknown>;
+  attributes?: OtelAttributes;
   traceId?: string;
   spanId?: string;
 }
@@ -43,7 +44,7 @@ interface TimelineItem {
   time: number;
   // For events
   name?: string;
-  attributes?: Record<string, unknown>;
+  attributes?: OtelAttributes;
   // For logs
   severity?: OtelSeverity;
   body?: string | Record<string, unknown>;

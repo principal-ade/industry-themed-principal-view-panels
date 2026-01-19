@@ -7,6 +7,7 @@
  */
 
 import type { ExtendedCanvas } from '@principal-ai/principal-view-core/browser';
+import type { OtelAttributes } from './ExecutionLoader';
 
 /**
  * Event from execution artifact
@@ -14,7 +15,7 @@ import type { ExtendedCanvas } from '@principal-ai/principal-view-core/browser';
 export interface ExecutionEvent {
   name: string;
   time: number;
-  attributes?: Record<string, string | number | boolean>;
+  attributes?: OtelAttributes;
 }
 
 /**
