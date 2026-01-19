@@ -21,8 +21,6 @@ interface GraphPanelState {
   error: string | null;
   availableConfigs: ConfigFile[];
   configDescriptions: Record<string, ConfigDescription>;
-  // Help overlay
-  showHelp: boolean;
   // Legend overlay
   showLegend: boolean;
   // Tooltips on hover
@@ -53,8 +51,8 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
   const graphRef = useRef<GraphRendererHandle>(null);
 
   // Ref to container for measuring dimensions
-  const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // Ref to track unsaved changes without triggering re-renders during drag
   const hasUnsavedChangesRef = useRef(false);
@@ -94,16 +92,21 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
   // Track "copied" feedback for copy path button
   const [pathCopied, setPathCopied] = useState(false);
 
-  // Measure container dimensions for GraphRenderer
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+  // Callback ref for measuring container dimensions
+  const containerRef = useCallback((container: HTMLDivElement | null) => {
+    // Clean up previous observer
+    if (resizeObserverRef.current) {
+      resizeObserverRef.current.disconnect();
+      resizeObserverRef.current = null;
+    }
+
+    if (!container) {
+      return;
+    }
 
     const updateDimensions = () => {
       const { width, height } = container.getBoundingClientRect();
-      // Only update if dimensions actually changed (avoid unnecessary re-renders)
       setDimensions(prev => {
-        // Round to avoid sub-pixel differences
         const newWidth = Math.round(width);
         const newHeight = Math.round(height);
         if (prev.width === newWidth && prev.height === newHeight) {
@@ -116,16 +119,12 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
     // Initial measurement
     updateDimensions();
 
-    // Observe container size changes with debouncing
+    // Set up ResizeObserver
     const resizeObserver = new ResizeObserver(() => {
-      // Use requestAnimationFrame to debounce rapid resize events
       requestAnimationFrame(updateDimensions);
     });
     resizeObserver.observe(container);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
+    resizeObserverRef.current = resizeObserver;
   }, []);
 
 
@@ -264,10 +263,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
         }
       };
       loadOtherDescriptions();
-
-      // Reset the GraphRenderer's edit state BEFORE updating state
-      // This prevents stale state from affecting the new render
-      graphRef.current?.resetEditState();
 
       setState(prev => ({
         ...prev,
@@ -840,29 +835,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
           <Info size={18} />
         </button>
 
-        {/* Help Button - flush right, full height */}
-        <button
-          onClick={toggleHelp}
-          title="Help & Getting Started"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 40,
-            height: 39,
-            padding: 0,
-            backgroundColor: state.showHelp ? theme.colors.primary : 'transparent',
-            color: state.showHelp ? 'white' : theme.colors.textMuted,
-            border: 'none',
-            borderLeft: `1px solid ${theme.colors.border}`,
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-            flexShrink: 0,
-          }}
-        >
-          <HelpCircle size={18} />
-        </button>
-
         {/* Edit Mode Toggle - flush right, full height */}
         <button
           onClick={toggleEditMode}
@@ -897,70 +869,12 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
             canvas={state.canvas}
             width={dimensions.width}
             height={dimensions.height}
-            showMinimap={false}
-            showControls={true}
-            showBackground={true}
-            backgroundVariant={state.showGridLines ? 'lines' : 'dots'}
-            backgroundGap={state.showGridLines ? 75 : undefined}
-            showTooltips={state.showTooltips}
             editable={state.isEditMode}
             onPendingChangesChange={(hasChanges) => {
               setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
             }}
           />
         </div>
-
-        {/* Help Overlay */}
-        {state.showHelp && (
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 100,
-          }}>
-            <div style={{
-              position: 'relative',
-              width: '90%',
-              maxWidth: 500,
-              maxHeight: '80%',
-              backgroundColor: theme.colors.background,
-              borderRadius: theme.radii[3],
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-            }}>
-              {/* Close button */}
-              <button
-                onClick={toggleHelp}
-                style={{
-                  position: 'absolute',
-                  top: theme.space[2],
-                  right: theme.space[2],
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 32,
-                  height: 32,
-                  padding: 0,
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  color: theme.colors.textMuted,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.radii[2],
-                  cursor: 'pointer',
-                  zIndex: 1,
-                  transition: 'all 0.15s',
-                }}
-              >
-                <X size={16} />
-              </button>
-              <EmptyStateContent theme={theme} />
-            </div>
-          </div>
-        )}
 
         {/* Legend Bar */}
         {state.showLegend && (
