@@ -4,7 +4,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core/browser';
-import { Loader, Save, X, Pencil, HelpCircle, Copy, Check, Info, MessageSquareOff, Grid3X3, RefreshCw, Crosshair } from 'lucide-react';
+import { Loader, Save, X, Pencil, Copy, Check, Info, MessageSquareOff, Grid3X3, RefreshCw, Crosshair } from 'lucide-react';
 import { ConfigLoader, type ConfigFile } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
@@ -54,10 +54,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
-  // Ref to track unsaved changes without triggering re-renders during drag
-  const hasUnsavedChangesRef = useRef(false);
-  const pendingChangesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   const [state, setState] = useState<GraphPanelState>({
     canvas: null,
     library: null,
@@ -65,7 +61,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
     error: null,
     availableConfigs: [],
     configDescriptions: {},
-    showHelp: false,
     showLegend: false,
     showTooltips: true,
     showGridLines: false,
@@ -284,39 +279,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
         error: (error as Error).message
       }));
     }
-  }, []);
-
-  // Handle pending changes notification from GraphRenderer
-  // Use ref to avoid re-renders during drag operations
-  const handlePendingChangesChange = useCallback((hasChanges: boolean) => {
-    hasUnsavedChangesRef.current = hasChanges;
-
-    // Debounce state update to avoid re-renders during drag
-    // Only update UI state after drag is complete (300ms delay)
-    const timeoutId = setTimeout(() => {
-      setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  // Handle source click - emit custom event for other panels to consume
-  const handleSourceClick = useCallback((nodeId: string, source: string) => {
-    eventsRef.current.emit({
-      type: 'custom',
-      source: 'principal-view-graph',
-      timestamp: Date.now(),
-      payload: {
-        action: 'sourceClick',
-        nodeId,
-        source,
-      },
-    });
-  }, []);
-
-  // Toggle help overlay
-  const toggleHelp = useCallback(() => {
-    setState(prev => ({ ...prev, showHelp: !prev.showHelp }));
   }, []);
 
   // Toggle legend overlay

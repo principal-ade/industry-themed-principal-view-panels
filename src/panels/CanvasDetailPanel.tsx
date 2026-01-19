@@ -2,19 +2,17 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
-import type { ExtendedCanvas, GraphEvent, NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
+import type { ExtendedCanvas, NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
 import { renderNarrative } from '@principal-ai/principal-view-core/browser';
 import { TestEventPanel } from './execution-viewer/TestEventPanel';
 import { convertToOtelEvents } from './execution-viewer/narrative-converter';
 import {
   ExecutionLoader,
   type ExecutionFile,
-  type CanvasFile,
   type ExecutionMetadata,
   type ExecutionArtifact,
-  type ExecutionSpan,
 } from './execution-viewer/ExecutionLoader';
-import { Loader, ChevronDown, Activity, Play, Pause, RotateCcw, Grid3x3, HelpCircle, X, ArrowLeft } from 'lucide-react';
+import { Loader, ChevronDown, Activity, Grid3x3, HelpCircle, X, ArrowLeft } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { NarrativeLoader, type NarrativeFile } from './execution-viewer/NarrativeLoader';
@@ -315,20 +313,6 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   }, [events, loadCanvas, selectedCanvasIdProp, canvasPathProp]);
 
   // Playback control
-  const handlePlayPause = useCallback(() => {
-    setState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
-  }, []);
-
-  const handleReset = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      isPlaying: false,
-      currentSpanIndex: 0,
-      currentEventIndex: 0,
-      highlightedNodeId: null,
-    }));
-  }, []);
-
   const handleToggleGrid = useCallback(() => {
     setState(prev => ({ ...prev, showGrid: !prev.showGrid }));
   }, []);
@@ -402,9 +386,6 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
       }
       return;
     }
-
-    const spans = ExecutionLoader.getSpans(state.execution);
-    const totalEvents = spans.reduce((sum, span) => sum + (span.events?.length || 0), 0);
 
     playbackTimerRef.current = setInterval(() => {
       setState(prev => {

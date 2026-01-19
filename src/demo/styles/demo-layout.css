@@ -1,0 +1,175 @@
+/**
+ * Demo App Layout Styles
+ * Three-panel library layout with header
+ */
+
+.demo-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* Header */
+.demo-header {
+  height: var(--header-height);
+  padding: 0 var(--spacing-lg);
+  border-bottom: 2px solid var(--gold-foil);
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.demo-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.demo-title {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  color: var(--gold-foil);
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.demo-header-actions {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+/* Main Layout Container */
+.demo-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0; /* Important for flexbox scrolling */
+  position: relative;
+}
+
+/* Left Sidebar - Card Catalog */
+.demo-sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-right: 2px solid var(--leather-dark);
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+}
+
+/* Center - Reading Room */
+.demo-main-content {
+  flex: 1;
+  min-width: 0; /* Important for flexbox */
+  display: flex;
+  flex-direction: column;
+  background-color: var(--paper-cream);
+  position: relative;
+}
+
+.demo-main-content.full-width {
+  width: 100%;
+}
+
+/* Bottom Panel - Book Details */
+.demo-bottom-panel {
+  height: var(--bottom-panel-height);
+  flex-shrink: 0;
+  border-top: 2px solid var(--leather-medium);
+  background-color: var(--paper-white);
+  box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1366px) {
+  :root {
+    --sidebar-width: 240px;
+    --bottom-panel-height: 250px;
+  }
+
+  .demo-title {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .demo-sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 200;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .demo-sidebar::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: var(--sidebar-width);
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+  }
+}
+
+/* Loading States */
+.demo-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
+  color: var(--leather-medium);
+}
+
+.demo-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--leather-light);
+  border-top-color: var(--gold-foil);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Empty State */
+.demo-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
+  color: var(--leather-medium);
+  text-align: center;
+}
+
+.demo-empty-state-icon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.demo-empty-state-title {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  color: var(--leather-dark);
+}
+
+.demo-empty-state-description {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--leather-medium);
+  max-width: 400px;
+}

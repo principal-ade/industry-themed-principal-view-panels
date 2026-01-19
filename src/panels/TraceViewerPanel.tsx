@@ -3,7 +3,7 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas } from '@principal-ai/principal-view-core/browser';
-import { Loader, ChevronDown, Activity, Server, Clock } from 'lucide-react';
+import { Loader, ChevronDown, Activity } from 'lucide-react';
 import { TraceLoader, type TraceFile, type TraceMetadata } from './trace-viewer/TraceLoader';
 import { TraceStats } from './trace-viewer/TraceStats';
 

@@ -1,0 +1,109 @@
+{
+  "pv": {
+    "name": "Checkout Flow",
+    "version": "1.0.0",
+    "description": "End-to-end checkout with payment processing"
+  },
+  "nodes": [
+    {
+      "id": "user-validation",
+      "nodeType": "rest-api",
+      "label": "User Validation",
+      "position": { "x": 100, "y": 100 },
+      "pv": {
+        "events": [
+          { "name": "user.authenticated" },
+          { "name": "user.validated" }
+        ],
+        "otel": {
+          "resourceMatch": {
+            "service.name": "checkout-service"
+          },
+          "spanMatch": {
+            "name": "validateUser"
+          }
+        }
+      }
+    },
+    {
+      "id": "inventory-check",
+      "nodeType": "business-logic",
+      "label": "Inventory Check",
+      "position": { "x": 300, "y": 100 },
+      "pv": {
+        "events": [
+          { "name": "inventory.checked" },
+          { "name": "inventory.reserved" }
+        ],
+        "otel": {
+          "resourceMatch": {
+            "service.name": "checkout-service"
+          },
+          "spanMatch": {
+            "name": "inventoryCheck"
+          }
+        }
+      }
+    },
+    {
+      "id": "payment-processing",
+      "nodeType": "external-api",
+      "label": "Payment Processing",
+      "position": { "x": 500, "y": 100 },
+      "pv": {
+        "events": [
+          { "name": "payment.initiated" },
+          { "name": "payment.completed" }
+        ],
+        "otel": {
+          "resourceMatch": {
+            "service.name": "checkout-service"
+          },
+          "spanMatch": {
+            "name": "processPayment"
+          }
+        }
+      }
+    },
+    {
+      "id": "order-confirmation",
+      "nodeType": "business-logic",
+      "label": "Order Confirmation",
+      "position": { "x": 700, "y": 100 },
+      "pv": {
+        "events": [
+          { "name": "order.created" },
+          { "name": "confirmation.sent" }
+        ],
+        "otel": {
+          "resourceMatch": {
+            "service.name": "checkout-service"
+          },
+          "spanMatch": {
+            "name": "sendConfirmation"
+          }
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "user-validation",
+      "to": "inventory-check",
+      "label": "on success"
+    },
+    {
+      "id": "e2",
+      "from": "inventory-check",
+      "to": "payment-processing",
+      "label": "items available"
+    },
+    {
+      "id": "e3",
+      "from": "payment-processing",
+      "to": "order-confirmation",
+      "label": "payment success"
+    }
+  ]
+}

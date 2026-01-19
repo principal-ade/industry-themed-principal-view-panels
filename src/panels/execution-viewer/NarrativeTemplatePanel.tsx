@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import type { NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
 import type { ExecutionFile } from './ExecutionLoader';
-import { CheckCircle2, AlertCircle, Database, ChevronRight, ChevronDown } from 'lucide-react';
+import { Database, ChevronRight, ChevronDown } from 'lucide-react';
 
 interface NarrativeTemplatePanelProps {
   narrativeTemplate: NarrativeTemplate;

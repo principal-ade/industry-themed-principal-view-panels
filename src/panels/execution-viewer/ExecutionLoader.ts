@@ -1,5 +1,3 @@
-import type { ExtendedCanvas } from '@principal-ai/principal-view-core/browser';
-
 export interface ExecutionFile {
   /** Unique identifier for this execution (derived from filename) */
   id: string;

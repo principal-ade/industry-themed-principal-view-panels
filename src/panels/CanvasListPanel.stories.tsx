@@ -92,7 +92,7 @@ export const Default: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <T,>(name: string) => {
+          getSlice: <_T,>(name: string) => {
             return mockSlices.get(name) as any;
           },
         }}
@@ -127,7 +127,7 @@ export const Loading: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <T,>(name: string) => {
+          getSlice: <_T,>(name: string) => {
             return mockSlices.get(name) as any;
           },
         }}
@@ -162,7 +162,7 @@ export const Empty: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <T,>(name: string) => {
+          getSlice: <_T,>(name: string) => {
             return mockSlices.get(name) as any;
           },
         }}
@@ -197,7 +197,7 @@ export const WithEventHandling: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <T,>(name: string) => {
+          getSlice: <_T,>(name: string) => {
             return mockSlices.get(name) as any;
           },
         }}
@@ -262,7 +262,7 @@ export const SingleCanvas: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <T,>(name: string) => {
+          getSlice: <_T,>(name: string) => {
             return mockSlices.get(name) as any;
           },
         }}
@@ -306,7 +306,7 @@ export const ManyCanvases: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <T,>(name: string) => {
+          getSlice: <_T,>(name: string) => {
             return mockSlices.get(name) as any;
           },
         }}
@@ -428,7 +428,7 @@ export const MonorepoWithPackages: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <T,>(name: string) => {
+          getSlice: <_T,>(name: string) => {
             return mockSlices.get(name) as any;
           },
         }}

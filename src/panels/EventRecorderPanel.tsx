@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import type {
   EventSession,
   SessionStatus,
-  PathBasedEvent,
 } from '@principal-ai/principal-view-core';
 import {
   Circle,
   Square,
   Play,
-  Pause,
   CheckCircle,
   XCircle,
   AlertCircle,
@@ -18,7 +16,6 @@ import {
   Upload,
   ChevronRight,
   ChevronDown,
-  RefreshCw,
   Disc,
 } from 'lucide-react';
 import type { GraphEvent } from '@principal-ai/principal-view-core/browser';
@@ -123,7 +120,7 @@ const formatTimestamp = (ts: number): string => {
  */
 export const EventRecorderPanel: React.FC<EventRecorderPanelProps> = ({
   sessions,
-  activeSessionId,
+  activeSessionId: _activeSessionId,
   isRecording = false,
   onSessionSelect,
   onPlaySession,
@@ -155,12 +152,6 @@ export const EventRecorderPanel: React.FC<EventRecorderPanelProps> = ({
       testName: session.metadata.testName,
     }));
   }, [sessions]);
-
-  // Get the selected session's full data
-  const selectedSession = useMemo(() => {
-    if (!selectedSessionId) return null;
-    return sessions.find((s) => s.id === selectedSessionId) || null;
-  }, [sessions, selectedSessionId]);
 
   // Toggle session expansion
   const handleToggleExpand = useCallback((sessionId: string) => {

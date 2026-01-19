@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
-import { AlertCircle, Search, X, RefreshCw, Activity } from 'lucide-react';
+import { AlertCircle, Search, X, RefreshCw, Activity, HelpCircle, Copy, Check } from 'lucide-react';
 import { useCanvasData } from './canvas-list/hooks/useCanvasData';
 import { CanvasCard } from './canvas-list/components/CanvasCard';
 import type { DiscoveredCanvas } from '@principal-ai/principal-view-core/browser';
+import { EmptyStateContent } from './principal-view/EmptyStateContent';
 
 /**
  * CanvasListPanel - A panel for displaying .otel.canvas files
@@ -25,9 +26,11 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<string>('all');
+  const [showHelp, setShowHelp] = useState(false);
+  const [cliCommandCopied, setCliCommandCopied] = useState(false);
 
   // Load canvas data
-  const { canvases, isLoading, error, refreshCanvases } = useCanvasData({ context });
+  const { canvases, isLoading, error } = useCanvasData({ context });
 
   // Get unique packages for filter
   const availablePackages = useMemo(() => {
@@ -115,6 +118,20 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
       setIsRefreshing(false);
     }
   };
+
+  const toggleHelp = () => {
+    setShowHelp(!showHelp);
+  };
+
+  const handleCopyCliCommand = useCallback(() => {
+    const cliCommand = canvases.length > 0
+      ? 'npx @principal-ai/principal-view-cli --help'
+      : 'npx @principal-ai/principal-view-cli init';
+    navigator.clipboard.writeText(cliCommand).then(() => {
+      setCliCommandCopied(true);
+      setTimeout(() => setCliCommandCopied(false), 2000);
+    });
+  }, [canvases.length]);
 
   return (
     <div
@@ -272,6 +289,28 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
               }}
             />
           </button>
+
+          {/* Help button */}
+          <button
+            onClick={toggleHelp}
+            style={{
+              background: showHelp ? theme.colors.primary : theme.colors.backgroundSecondary,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: theme.radii[1],
+              padding: '8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease',
+            }}
+            title="Help & Getting Started"
+          >
+            <HelpCircle
+              size={16}
+              color={showHelp ? 'white' : theme.colors.textSecondary}
+            />
+          </button>
         </div>
       </div>
 
@@ -362,6 +401,164 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
           </div>
         )}
       </div>
+
+      {/* Help Overlay */}
+      {showHelp && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            position: 'relative',
+            width: '90%',
+            maxWidth: 500,
+            maxHeight: '80%',
+            backgroundColor: theme.colors.background,
+            borderRadius: theme.radii[3],
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            {/* Close button */}
+            <button
+              onClick={toggleHelp}
+              style={{
+                position: 'absolute',
+                top: theme.space[2],
+                right: theme.space[2],
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                padding: 0,
+                backgroundColor: theme.colors.backgroundSecondary,
+                color: theme.colors.textMuted,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radii[2],
+                cursor: 'pointer',
+                zIndex: 1,
+                transition: 'all 0.15s',
+              }}
+            >
+              <X size={16} />
+            </button>
+            {canvases.length === 0 ? (
+              <EmptyStateContent theme={theme} />
+            ) : (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                padding: theme.space[4],
+                gap: theme.space[3],
+                overflowY: 'auto',
+              }}>
+                <h3 style={{
+                  margin: 0,
+                  fontSize: theme.fontSizes[3],
+                  fontWeight: theme.fontWeights.medium,
+                  color: theme.colors.text,
+                }}>
+                  Canvas List Panel
+                </h3>
+                <p style={{
+                  margin: 0,
+                  fontSize: theme.fontSizes[2],
+                  color: theme.colors.textMuted,
+                  lineHeight: 1.5,
+                }}>
+                  This panel displays all .otel.canvas files found in your project's .principal-views/ directory.
+                </p>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: theme.space[2],
+                }}>
+                  <h4 style={{
+                    margin: 0,
+                    fontSize: theme.fontSizes[2],
+                    fontWeight: theme.fontWeights.medium,
+                    color: theme.colors.text,
+                  }}>
+                    Features:
+                  </h4>
+                  <ul style={{
+                    margin: 0,
+                    paddingLeft: theme.space[4],
+                    fontSize: theme.fontSizes[1],
+                    color: theme.colors.textMuted,
+                    lineHeight: 1.6,
+                  }}>
+                    <li>Browse and search through available canvas files</li>
+                    <li>Filter by package if you have a monorepo structure</li>
+                    <li>Click a canvas to view it in the editor panel</li>
+                    <li>Use the refresh button to rescan for new files</li>
+                  </ul>
+                </div>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: theme.space[2],
+                  marginTop: theme.space[2],
+                  paddingTop: theme.space[3],
+                  borderTop: `1px solid ${theme.colors.border}`,
+                }}>
+                  <h4 style={{
+                    margin: 0,
+                    fontSize: theme.fontSizes[2],
+                    fontWeight: theme.fontWeights.medium,
+                    color: theme.colors.text,
+                  }}>
+                    CLI Tool:
+                  </h4>
+                  <p style={{
+                    margin: 0,
+                    fontSize: theme.fontSizes[1],
+                    color: theme.colors.textMuted,
+                    lineHeight: 1.5,
+                  }}>
+                    View available commands for managing canvas files:
+                  </p>
+                  <button
+                    onClick={handleCopyCliCommand}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: theme.space[2],
+                      padding: `${theme.space[2]}px ${theme.space[3]}px`,
+                      backgroundColor: theme.colors.backgroundSecondary,
+                      color: theme.colors.text,
+                      border: `1px solid ${theme.colors.border}`,
+                      borderRadius: theme.radii[2],
+                      cursor: 'pointer',
+                      fontFamily: theme.fonts.monospace,
+                      fontSize: theme.fontSizes[1],
+                      textAlign: 'left',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <code style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      npx @principal-ai/principal-view-cli --help
+                    </code>
+                    {cliCommandCopied ? (
+                      <Check size={16} style={{ color: theme.colors.success || '#22c55e', flexShrink: 0 }} />
+                    ) : (
+                      <Copy size={16} style={{ color: theme.colors.textMuted, flexShrink: 0 }} />
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Animation styles */}
       <style>

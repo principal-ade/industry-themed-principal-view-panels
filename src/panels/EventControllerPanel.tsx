@@ -56,9 +56,6 @@ export const EventControllerPanel: React.FC<EventControllerPanelProps> = ({
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [speed, setSpeed] = useState(defaultSpeed);
 
-  // Emitted events (what's been sent to the graph)
-  const [emittedEvents, setEmittedEvents] = useState<GraphEvent[]>([]);
-
   // Refs for interval management
   const playbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -110,9 +107,7 @@ export const EventControllerPanel: React.FC<EventControllerPanelProps> = ({
   const emitEventAtIndex = useCallback((index: number) => {
     if (index < 0 || index >= events.length) return;
 
-    const event = events[index];
     const newEmittedEvents = events.slice(0, index + 1);
-    setEmittedEvents(newEmittedEvents);
     onEventsEmit(newEmittedEvents);
     setCurrentIndex(index);
   }, [events, onEventsEmit]);
@@ -127,7 +122,6 @@ export const EventControllerPanel: React.FC<EventControllerPanelProps> = ({
     if (nextIndex >= events.length) {
       if (loop) {
         // Reset and start over
-        setEmittedEvents([]);
         onEventsEmit([]);
         setCurrentIndex(-1);
         playbackTimeoutRef.current = setTimeout(() => {
@@ -155,7 +149,6 @@ export const EventControllerPanel: React.FC<EventControllerPanelProps> = ({
 
     // If at end, restart
     if (currentIndex >= events.length - 1) {
-      setEmittedEvents([]);
       onEventsEmit([]);
       setCurrentIndex(-1);
       playbackTimeoutRef.current = setTimeout(() => {
@@ -189,7 +182,6 @@ export const EventControllerPanel: React.FC<EventControllerPanelProps> = ({
       playbackTimeoutRef.current = null;
     }
     setCurrentIndex(-1);
-    setEmittedEvents([]);
     onEventsEmit([]);
   }, [onEventsEmit]);
 
@@ -202,7 +194,6 @@ export const EventControllerPanel: React.FC<EventControllerPanelProps> = ({
     if (nextIndex < events.length) {
       emitEventAtIndex(nextIndex);
     } else if (loop) {
-      setEmittedEvents([]);
       onEventsEmit([]);
       setCurrentIndex(-1);
       setTimeout(() => emitEventAtIndex(0), 100);
@@ -217,11 +208,9 @@ export const EventControllerPanel: React.FC<EventControllerPanelProps> = ({
     if (currentIndex > 0) {
       const newIndex = currentIndex - 1;
       const newEmittedEvents = events.slice(0, newIndex + 1);
-      setEmittedEvents(newEmittedEvents);
       onEventsEmit(newEmittedEvents);
       setCurrentIndex(newIndex);
     } else if (currentIndex === 0) {
-      setEmittedEvents([]);
       onEventsEmit([]);
       setCurrentIndex(-1);
     }
@@ -235,12 +224,10 @@ export const EventControllerPanel: React.FC<EventControllerPanelProps> = ({
     }
 
     if (index < 0) {
-      setEmittedEvents([]);
       onEventsEmit([]);
       setCurrentIndex(-1);
     } else {
       const eventsToEmit = events.slice(0, index + 1);
-      setEmittedEvents(eventsToEmit);
       onEventsEmit(eventsToEmit);
       setCurrentIndex(index);
     }

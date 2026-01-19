@@ -1,0 +1,73 @@
+version: "1.0"
+
+nodeComponents:
+  rest-api:
+    label: "REST API"
+    description: "HTTP REST endpoints"
+    sources:
+      - "src/api/**/*.ts"
+      - "src/routes/**/*.ts"
+    visual:
+      shape: "rectangle"
+      color: "#1976D2"
+      icon: "🌐"
+
+  business-logic:
+    label: "Business Logic"
+    description: "Core domain logic"
+    sources:
+      - "src/business/**/*.ts"
+      - "src/domain/**/*.ts"
+    visual:
+      shape: "rounded-rectangle"
+      color: "#388E3C"
+      icon: "⚙️"
+
+  database:
+    label: "Database"
+    description: "Data persistence layer"
+    sources:
+      - "src/db/**/*.ts"
+      - "src/repositories/**/*.ts"
+    visual:
+      shape: "cylinder"
+      color: "#7B1FA2"
+      icon: "🗄️"
+
+  external-api:
+    label: "External API"
+    description: "Third-party API calls"
+    sources:
+      - "src/integrations/**/*.ts"
+      - "src/external/**/*.ts"
+    visual:
+      shape: "rounded-rectangle"
+      color: "#E65100"
+      icon: "🔌"
+
+  message-queue:
+    label: "Message Queue"
+    description: "Async messaging"
+    sources:
+      - "src/queue/**/*.ts"
+      - "src/events/**/*.ts"
+    visual:
+      shape: "parallelogram"
+      color: "#C62828"
+      icon: "📨"
+
+edgeComponents:
+  http-call:
+    label: "HTTP Call"
+    style: "solid"
+    color: "#424242"
+
+  event-emit:
+    label: "Event"
+    style: "dashed"
+    color: "#FF6F00"
+
+  database-query:
+    label: "Query"
+    style: "solid"
+    color: "#7B1FA2"

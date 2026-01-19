@@ -1,10 +1,9 @@
 import { CanvasEditorPanel } from './panels/CanvasEditorPanel';
 import { TraceViewerPanel } from './panels/TraceViewerPanel';
 import { CanvasDetailPanel } from './panels/CanvasDetailPanel';
-import { EventControllerPanel } from './panels/EventControllerPanel';
 import { CanvasListPanel } from './panels/CanvasListPanel';
 import type { PanelDefinition, PanelContextValue } from './types';
-import { principalViewPanelTools, principalViewPanelToolsMetadata } from './tools';
+import { principalViewPanelTools } from './tools';
 
 // Re-export components for direct usage
 export { EventControllerPanel } from './panels/EventControllerPanel';

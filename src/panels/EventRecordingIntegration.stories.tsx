@@ -4,15 +4,12 @@ import { EventRecorderPanel } from './EventRecorderPanel';
 import { EventControllerPanel } from './EventControllerPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import {
-  SessionManager,
   EventRecorderService,
-  PathBasedEventProcessor,
 } from '@principal-ai/principal-view-core';
 import type {
   EventSession,
   GraphEvent,
   PathBasedGraphConfiguration,
-  PathBasedEvent,
 } from '@principal-ai/principal-view-core';
 
 /**
@@ -396,7 +393,7 @@ export const FullRecordingFlow: StoryObj = {
  */
 export const RecorderAndControllerPanels: StoryObj = {
   render: () => {
-    const [sessions, setSessions] = useState<EventSession[]>([
+    const [sessions] = useState<EventSession[]>([
       {
         id: 'session-demo-1',
         name: 'Lock Manager Test',

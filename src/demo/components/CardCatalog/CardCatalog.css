@@ -1,0 +1,203 @@
+/**
+ * Card Catalog Styles
+ * Wooden card catalog drawer aesthetic
+ */
+
+.card-catalog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--spacing-md);
+  gap: var(--spacing-lg);
+}
+
+.catalog-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--spacing-md);
+  color: var(--paper-cream);
+  font-family: var(--font-label);
+}
+
+/* Catalog Sections (Drawer-like) */
+.catalog-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.catalog-drawer-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: linear-gradient(135deg, var(--leather-medium) 0%, var(--leather-dark) 100%);
+  border: 1px solid var(--gold-foil);
+  border-radius: var(--radius-md);
+  color: var(--paper-cream);
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+  text-align: left;
+}
+
+.catalog-drawer-header:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--leather-dark) 0%, var(--leather-medium) 100%);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.catalog-drawer-header:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.drawer-icon {
+  font-size: 18px;
+}
+
+.drawer-label {
+  flex: 1;
+  color: var(--gold-foil);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.drawer-toggle {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* Drawer Content */
+.catalog-drawer-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding-left: var(--spacing-md);
+}
+
+.catalog-empty {
+  padding: var(--spacing-md);
+  text-align: center;
+  color: var(--paper-cream);
+  font-family: var(--font-label);
+  font-size: 12px;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+/* Catalog Items */
+.catalog-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(93, 64, 55, 0.5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--paper-cream);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  width: 100%;
+  text-align: left;
+}
+
+.catalog-item:hover {
+  background: rgba(93, 64, 55, 0.8);
+  border-color: var(--gold-foil);
+  transform: translateX(4px);
+}
+
+.catalog-item.selected {
+  background: var(--leather-medium);
+  border-color: var(--gold-foil);
+  box-shadow: var(--shadow-md);
+}
+
+/* Canvas Item */
+.book-card-mini .catalog-item-icon {
+  font-size: 20px;
+}
+
+.catalog-item-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.catalog-item-name {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold-foil);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.catalog-item-type {
+  font-family: var(--font-label);
+  font-size: 11px;
+  color: var(--paper-cream);
+  opacity: 0.7;
+}
+
+/* Trace Item */
+.trace-card-mini .catalog-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.catalog-item-meta {
+  display: flex;
+  gap: var(--spacing-sm);
+  font-family: var(--font-label);
+  font-size: 11px;
+  color: var(--paper-cream);
+}
+
+.trace-duration {
+  font-family: var(--font-code);
+}
+
+.trace-status {
+  text-transform: capitalize;
+}
+
+.trace-status::before {
+  content: '•';
+  margin-right: 4px;
+}
+
+/* Bookmark Ribbon for Selected Items */
+.catalog-item.bookmark-ribbon::before {
+  right: var(--spacing-sm);
+  width: 20px;
+  height: 30px;
+}
+
+/* Responsive */
+@media (max-width: 1366px) {
+  .catalog-drawer-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 13px;
+  }
+
+  .catalog-item {
+    padding: 6px var(--spacing-sm);
+  }
+
+  .catalog-item-name {
+    font-size: 12px;
+  }
+}

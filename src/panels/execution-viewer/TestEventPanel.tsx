@@ -101,7 +101,7 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
   spans,
   logs = [],
   currentSpanIndex,
-  currentEventIndex,
+  currentEventIndex: _currentEventIndex,
   highlightedPhase,
   onSpanIndexChange,
   viewMode = 'raw',

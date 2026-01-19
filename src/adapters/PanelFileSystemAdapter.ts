@@ -194,7 +194,7 @@ export class PanelFileSystemAdapter implements FileSystemAdapter {
     return path.startsWith('/');
   }
 
-  normalizeRepositoryPath(inputPath: string): string {
+  normalizeRepositoryPath(_inputPath: string): string {
     // In panel context, we use the basePath as the repository root
     return this.basePath;
   }

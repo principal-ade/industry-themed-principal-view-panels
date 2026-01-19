@@ -1,0 +1,176 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          { "key": "service.name", "value": { "stringValue": "checkout-service" } },
+          { "key": "service.version", "value": { "stringValue": "1.2.3" } }
+        ]
+      },
+      "scopeSpans": [
+        {
+          "scope": {
+            "name": "checkout-instrumentation",
+            "version": "1.0.0"
+          },
+          "spans": [
+            {
+              "traceId": "7c9dfff798038103d269b633813fc72e",
+              "spanId": "fff29c8fd4d2c285",
+              "name": "handleCheckout",
+              "kind": "SPAN_KIND_INTERNAL",
+              "startTimeUnixNano": "1610000100000000000",
+              "endTimeUnixNano": "1610000101200000000",
+              "attributes": [
+                { "key": "http.method", "value": { "stringValue": "POST" } },
+                { "key": "http.route", "value": { "stringValue": "/checkout" } }
+              ],
+              "status": {
+                "code": "STATUS_CODE_OK"
+              }
+            },
+            {
+              "traceId": "7c9dfff798038103d269b633813fc72e",
+              "spanId": "fff29c8fd4d2c286",
+              "parentSpanId": "fff29c8fd4d2c285",
+              "name": "validateUser",
+              "kind": "SPAN_KIND_INTERNAL",
+              "startTimeUnixNano": "1610000100050000000",
+              "endTimeUnixNano": "1610000100150000000",
+              "attributes": [
+                { "key": "code.filepath", "value": { "stringValue": "src/api/auth.ts" } },
+                { "key": "code.lineno", "value": { "intValue": "45" } },
+                { "key": "code.function", "value": { "stringValue": "validateUser" } },
+                { "key": "user.id", "value": { "stringValue": "user-789" } }
+              ],
+              "events": [
+                {
+                  "timeUnixNano": "1610000100075000000",
+                  "name": "user.authenticated",
+                  "attributes": [
+                    { "key": "user.id", "value": { "stringValue": "user-789" } }
+                  ]
+                },
+                {
+                  "timeUnixNano": "1610000100140000000",
+                  "name": "user.validated",
+                  "attributes": [
+                    { "key": "status", "value": { "stringValue": "success" } }
+                  ]
+                }
+              ],
+              "status": {
+                "code": "STATUS_CODE_OK"
+              }
+            },
+            {
+              "traceId": "7c9dfff798038103d269b633813fc72e",
+              "spanId": "fff29c8fd4d2c287",
+              "parentSpanId": "fff29c8fd4d2c285",
+              "name": "inventoryCheck",
+              "kind": "SPAN_KIND_INTERNAL",
+              "startTimeUnixNano": "1610000100150000000",
+              "endTimeUnixNano": "1610000100270000000",
+              "attributes": [
+                { "key": "code.filepath", "value": { "stringValue": "src/business/inventory.ts" } },
+                { "key": "code.lineno", "value": { "intValue": "67" } },
+                { "key": "code.function", "value": { "stringValue": "checkAvailability" } },
+                { "key": "product.id", "value": { "stringValue": "prod-456" } },
+                { "key": "inventory.quantity", "value": { "intValue": "42" } }
+              ],
+              "events": [
+                {
+                  "timeUnixNano": "1610000100200000000",
+                  "name": "inventory.checked",
+                  "attributes": [
+                    { "key": "result", "value": { "stringValue": "available" } }
+                  ]
+                },
+                {
+                  "timeUnixNano": "1610000100260000000",
+                  "name": "inventory.reserved",
+                  "attributes": [
+                    { "key": "quantity", "value": { "intValue": "1" } }
+                  ]
+                }
+              ],
+              "status": {
+                "code": "STATUS_CODE_OK"
+              }
+            },
+            {
+              "traceId": "7c9dfff798038103d269b633813fc72e",
+              "spanId": "fff29c8fd4d2c288",
+              "parentSpanId": "fff29c8fd4d2c285",
+              "name": "processPayment",
+              "kind": "SPAN_KIND_CLIENT",
+              "startTimeUnixNano": "1610000100270000000",
+              "endTimeUnixNano": "1610000100870000000",
+              "attributes": [
+                { "key": "code.filepath", "value": { "stringValue": "src/business/payment.ts" } },
+                { "key": "code.lineno", "value": { "intValue": "23" } },
+                { "key": "code.function", "value": { "stringValue": "processPayment" } },
+                { "key": "payment.amount", "value": { "doubleValue": 129.99 } },
+                { "key": "payment.currency", "value": { "stringValue": "USD" } }
+              ],
+              "events": [
+                {
+                  "timeUnixNano": "1610000100300000000",
+                  "name": "payment.initiated",
+                  "attributes": [
+                    { "key": "amount", "value": { "doubleValue": 129.99 } }
+                  ]
+                },
+                {
+                  "timeUnixNano": "1610000100860000000",
+                  "name": "payment.completed",
+                  "attributes": [
+                    { "key": "status", "value": { "stringValue": "success" } },
+                    { "key": "transaction_id", "value": { "stringValue": "txn-abc123" } }
+                  ]
+                }
+              ],
+              "status": {
+                "code": "STATUS_CODE_OK"
+              }
+            },
+            {
+              "traceId": "7c9dfff798038103d269b633813fc72e",
+              "spanId": "fff29c8fd4d2c289",
+              "parentSpanId": "fff29c8fd4d2c285",
+              "name": "sendConfirmation",
+              "kind": "SPAN_KIND_INTERNAL",
+              "startTimeUnixNano": "1610000100870000000",
+              "endTimeUnixNano": "1610000101200000000",
+              "attributes": [
+                { "key": "code.filepath", "value": { "stringValue": "src/business/notifications.ts" } },
+                { "key": "code.lineno", "value": { "intValue": "89" } },
+                { "key": "code.function", "value": { "stringValue": "sendOrderConfirmation" } },
+                { "key": "notification.type", "value": { "stringValue": "email" } }
+              ],
+              "events": [
+                {
+                  "timeUnixNano": "1610000100900000000",
+                  "name": "order.created",
+                  "attributes": [
+                    { "key": "order_id", "value": { "stringValue": "order-xyz789" } }
+                  ]
+                },
+                {
+                  "timeUnixNano": "1610000101190000000",
+                  "name": "confirmation.sent",
+                  "attributes": [
+                    { "key": "recipient", "value": { "stringValue": "user@example.com" } }
+                  ]
+                }
+              ],
+              "status": {
+                "code": "STATUS_CODE_OK"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

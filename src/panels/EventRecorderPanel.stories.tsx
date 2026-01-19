@@ -261,7 +261,7 @@ export const Interactive: Story = {
         session.id = `imported-${Date.now()}`;
         session.name = `[Imported] ${session.name}`;
         setSessions((prev) => [session, ...prev]);
-      } catch (error) {
+      } catch {
         alert('Invalid JSON format');
       }
     }, []);
