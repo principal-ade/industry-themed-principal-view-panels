@@ -52,11 +52,11 @@ export interface ExecutionSpan {
   endTime?: number;
   duration?: number;
   status?: string;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
   events: Array<{
     time: number;
     name: string;
-    attributes?: Record<string, any>;
+    attributes?: Record<string, unknown>;
   }>;
 }
 

@@ -188,7 +188,7 @@ export const Default: Story = {
     });
 
     const configs = ConfigLoader.findConfigs(fileTreeData.allFiles);
-    const firstCanvasId = configs.length > 0 ? configs[0].id : null;
+    const firstCanvas = configs.length > 0 ? configs[0] : null;
 
     return (
       <MockPanelProvider
@@ -223,7 +223,7 @@ export const Default: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <CanvasEditorPanel {...props} selectedConfigId={firstCanvasId} />}
+        {(props) => <CanvasEditorPanel {...props} selectedConfigId={firstCanvas?.id} canvasPath={firstCanvas?.path} canvasName={firstCanvas?.name} />}
       </MockPanelProvider>
     );
   },

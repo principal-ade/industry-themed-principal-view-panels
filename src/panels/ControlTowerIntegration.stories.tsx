@@ -214,13 +214,12 @@ export const LiveIntegration: StoryObj = {
         recordingMode: 'manual',
       });
 
-      service.onEvent((event) => {
-        const evt = event as any;
+      service.onEvent((event: { componentId?: string; message?: string; type?: string }) => {
         setLiveEvents((prev) => [
           ...prev.slice(-9), // Keep last 10
           {
-            componentId: evt.componentId || 'unknown',
-            message: evt.message || evt.type,
+            componentId: event.componentId || 'unknown',
+            message: event.message || event.type || 'unknown',
             timestamp: Date.now(),
           },
         ]);

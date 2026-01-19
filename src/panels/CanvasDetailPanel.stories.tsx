@@ -270,9 +270,14 @@ const createMockProvider = (files: Array<{ path: string; relativePath: string; n
   };
 };
 
+// Simple event emitter interface
+interface EventEmitter {
+  emit: (event: { type: string; timestamp: number; payload?: unknown }) => void;
+}
+
 // Helper component to emit canvas selection event on mount
 const CanvasSelector: React.FC<{
-  events: any;
+  events: EventEmitter;
   canvasId: string;
   canvasPath: string;
   canvasName: string;

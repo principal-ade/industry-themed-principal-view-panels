@@ -5,7 +5,7 @@ import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
 import { renderNarrative } from '@principal-ai/principal-view-core/browser';
 import { TestEventPanel } from './execution-viewer/TestEventPanel';
-import { convertToOtelEvents } from './execution-viewer/narrative-converter';
+import { convertToOtelEvents, type TestSpan } from './execution-viewer/narrative-converter';
 import {
   ExecutionLoader,
   type ExecutionFile,
@@ -227,7 +227,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
               const spans = ExecutionLoader.getSpans(execution);
               if (spans.length > 0) {
                 // For single-span executions, use the first span
-                const events = convertToOtelEvents(spans[0] as any, []);
+                const events = convertToOtelEvents(spans[0] as TestSpan, []);
                 const result = renderNarrative(narrativeTemplate, events);
                 executionScenarioMap[execFile.id] = result.scenarioId;
               }
@@ -297,7 +297,18 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
 
     if (!events) return;
 
-    const handleEvent = (event: any) => {
+    interface CustomEvent {
+      type: string;
+      payload?: {
+        action?: string;
+        canvasId?: string;
+        canvas?: {
+          path: string;
+        };
+      };
+    }
+
+    const handleEvent = (event: CustomEvent) => {
       if (event.type === 'custom') {
         const payload = event.payload;
         if (payload?.action === 'selectCanvas' && payload?.canvasId && payload?.canvas) {
@@ -867,7 +878,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           <div style={{ flex: '0 0 40%', borderRight: '1px solid #333', overflow: 'hidden' }}>
             {state.execution ? (
               <TestEventPanel
-                spans={ExecutionLoader.getSpans(state.execution) as any}
+                spans={ExecutionLoader.getSpans(state.execution) as TestSpan[]}
                 currentSpanIndex={state.currentSpanIndex}
                 currentEventIndex={state.currentEventIndex}
                 onSpanIndexChange={handleSpanIndexChange}

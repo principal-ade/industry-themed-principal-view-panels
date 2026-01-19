@@ -12,6 +12,14 @@ import type {
   PathBasedGraphConfiguration,
 } from '@principal-ai/principal-view-core';
 
+// Type for message responses from EventRecorderService
+interface MessageResponse {
+  type?: string;
+  payload?: {
+    sessionId?: string;
+  };
+}
+
 /**
  * Sample graph configuration for testing
  */
@@ -357,7 +365,7 @@ export const FullRecordingFlow: StoryObj = {
                         fontFamily: 'monospace',
                       }}
                     >
-                      {event.type}: {(event as any).componentId || (event as any).message}
+                      {event.type}: {('componentId' in event && event.componentId) || ('message' in event && event.message) || ''}
                     </div>
                   ))}
                 </div>
@@ -515,7 +523,7 @@ export const WebSocketMessageFlow: StoryObj = {
         setMessages((prev) => [
           ...prev,
           `→ session_start`,
-          `← ${(startResponse as any)?.type}: sessionId=${(startResponse as any)?.payload?.sessionId}`,
+          `← ${(startResponse as MessageResponse)?.type}: sessionId=${(startResponse as MessageResponse)?.payload?.sessionId}`,
         ]);
 
         await new Promise((r) => setTimeout(r, 500));
@@ -563,7 +571,7 @@ export const WebSocketMessageFlow: StoryObj = {
           setMessages((prev) => [
             ...prev,
             `→ session_end`,
-            `← ${(endResponse as any)?.type}: sessionId=${sessionId}`,
+            `← ${(endResponse as MessageResponse)?.type}: sessionId=${sessionId}`,
           ]);
         }
 

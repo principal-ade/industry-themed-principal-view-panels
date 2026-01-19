@@ -57,7 +57,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
         hasMissingVars: false,
       };
     }
-  }, [template, events]);
+  }, [template, events]) as ReturnType<typeof renderNarrative> & { hasMissingVars: boolean };
 
   // Parse narrative text to add syntax highlighting with enhanced structure
   const renderHighlightedText = (text: string) => {
@@ -332,7 +332,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
       }}
     >
       {/* Warning Banner for Missing Variables */}
-      {(result as any).hasMissingVars && (
+      {result.hasMissingVars && (
         <div
           style={{
             padding: '12px 20px',

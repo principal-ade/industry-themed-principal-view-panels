@@ -18,6 +18,24 @@ export interface ExecutionEvent {
 }
 
 /**
+ * Event definition in node's pv metadata
+ */
+interface PvEvent {
+  name: string;
+  attributes?: unknown[];
+}
+
+/**
+ * Node's pv metadata with OTEL information
+ */
+interface NodePv {
+  events?: PvEvent[];
+  otel?: {
+    resourceMatch?: Record<string, string | number | boolean>;
+  };
+}
+
+/**
  * Maps an execution event to a canvas node ID.
  *
  * Strategy:
@@ -39,10 +57,10 @@ export function mapEventToNodeId(
 
   // Strategy 1: Match by event name in pv.events
   for (const node of canvas.nodes) {
-    const pvEvents = (node.pv as any)?.events;
+    const pvEvents = (node.pv as NodePv | undefined)?.events;
     if (Array.isArray(pvEvents)) {
       // Events are defined as: [{ name: "event.name", attributes: [...] }]
-      const hasEvent = pvEvents.some((e: any) => e.name === event.name);
+      const hasEvent = pvEvents.some((e: PvEvent) => e.name === event.name);
       if (hasEvent) {
         return node.id;
       }
@@ -52,7 +70,7 @@ export function mapEventToNodeId(
   // Strategy 2: Match by resourceMatch attributes
   if (event.attributes) {
     for (const node of canvas.nodes) {
-      const resourceMatch = (node.pv as any)?.otel?.resourceMatch;
+      const resourceMatch = (node.pv as NodePv | undefined)?.otel?.resourceMatch;
       if (resourceMatch && typeof resourceMatch === 'object') {
         // Check if all resourceMatch conditions are satisfied by event attributes
         const matches = Object.entries(resourceMatch).every(([key, pattern]) => {
@@ -96,7 +114,7 @@ export function buildEventToNodeMap(
   }
 
   for (const node of canvas.nodes) {
-    const pvEvents = (node.pv as any)?.events;
+    const pvEvents = (node.pv as NodePv | undefined)?.events;
     if (Array.isArray(pvEvents)) {
       // Events are defined as: [{ name: "event.name", attributes: [...] }]
       for (const eventDef of pvEvents) {
@@ -127,7 +145,7 @@ export function debugEventMapping(canvas: ExtendedCanvas | null): string {
   lines.push('');
 
   for (const node of canvas.nodes) {
-    const pvEvents = (node.pv as any)?.events;
+    const pvEvents = (node.pv as NodePv | undefined)?.events;
     if (Array.isArray(pvEvents) && pvEvents.length > 0) {
       lines.push(`Node: ${node.id}`);
       for (const eventDef of pvEvents) {

@@ -5,22 +5,15 @@ import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core/browser';
 import { Loader, Save, X, Pencil, Copy, Check, Info, MessageSquareOff, Grid3X3, RefreshCw, Crosshair } from 'lucide-react';
-import { ConfigLoader, type ConfigFile } from './principal-view/ConfigLoader';
+import { ConfigLoader } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
-
-interface ConfigDescription {
-  name: string;
-  description: string | null;
-}
 
 interface GraphPanelState {
   canvas: ExtendedCanvas | null;
   library: ComponentLibrary | null;
   loading: boolean;
   error: string | null;
-  availableConfigs: ConfigFile[];
-  configDescriptions: Record<string, ConfigDescription>;
   // Legend overlay
   showLegend: boolean;
   // Tooltips on hover
@@ -34,16 +27,38 @@ interface GraphPanelState {
 }
 
 /**
+ * Props for CanvasEditorPanel
+ */
+export interface CanvasEditorPanelProps extends PanelComponentProps {
+  /**
+   * Canvas ID for tracking and display.
+   */
+  selectedConfigId?: string;
+
+  /**
+   * Canvas path to load (relative to repository root).
+   */
+  canvasPath?: string;
+
+  /**
+   * Canvas display name.
+   */
+  canvasName?: string;
+}
+
+/**
  * Principal View Graph Panel
  *
  * Visualizes .canvas configuration files as interactive graph diagrams
  * with full editing support for nodes, edges, and positions.
  */
-export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigId?: string | null }> = ({
+export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   context,
   actions,
   events,
-  selectedConfigId = null
+  selectedConfigId,
+  canvasPath,
+  canvasName,
 }) => {
   const { theme } = useTheme();
 
@@ -59,8 +74,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
     library: null,
     loading: true,
     error: null,
-    availableConfigs: [],
-    configDescriptions: {},
     showLegend: false,
     showTooltips: true,
     showGridLines: false,
@@ -76,10 +89,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
   contextRef.current = context;
   actionsRef.current = actions;
   eventsRef.current = events;
-
-  // Track selected config ID in ref
-  const selectedConfigIdRef = useRef<string | null>(null);
-  selectedConfigIdRef.current = selectedConfigId;
 
   // Track if we should skip the next file change (after save)
   const skipNextFileChangeRef = useRef(false);
@@ -123,71 +132,18 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
   }, []);
 
 
-  const loadConfiguration = useCallback(async (configId?: string) => {
-    // Only show loading spinner on initial load, not when switching configs
-    setState(prev => ({ ...prev, loading: prev.canvas === null, error: null }));
+  const loadConfiguration = useCallback(async () => {
+    // Early return if required props are missing
+    if (!canvasPath) {
+      setState(prev => ({ ...prev, canvas: null, library: null, loading: false, error: null }));
+      return;
+    }
+
+    setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
       const ctx = contextRef.current;
       const acts = actionsRef.current;
-
-      // Check if fileTree slice is available
-      if (!ctx.hasSlice('fileTree')) {
-        throw new Error('File tree data not available');
-      }
-
-      if (ctx.isSliceLoading('fileTree')) {
-        return;
-      }
-
-      const fileTreeSlice = ctx.getSlice('fileTree');
-      const fileTreeData = fileTreeSlice?.data as { allFiles?: Array<{ path?: string; relativePath?: string; name?: string }> } | null;
-
-      if (!fileTreeData?.allFiles) {
-        setState(prev => ({
-          ...prev,
-          canvas: null,
-          library: null,
-          loading: false,
-          error: null,
-          availableConfigs: []
-        }));
-        return;
-      }
-
-      const availableConfigs = ConfigLoader.findConfigs(fileTreeData.allFiles);
-
-      if (availableConfigs.length === 0) {
-        setState(prev => ({
-          ...prev,
-          canvas: null,
-          library: null,
-          loading: false,
-          error: null,
-          availableConfigs: []
-        }));
-        return;
-      }
-
-      // Determine which config to load - must be explicitly specified
-      const targetConfigId = configId || selectedConfigIdRef.current;
-      if (!targetConfigId) {
-        // No config selected, clear the canvas
-        setState(prev => ({
-          ...prev,
-          canvas: null,
-          library: null,
-          loading: false,
-          error: null,
-          availableConfigs
-        }));
-        return;
-      }
-
-      const selectedConfig = availableConfigs.find(c => c.id === targetConfigId);
-      if (!selectedConfig) {
-        throw new Error(`Config with ID '${targetConfigId}' not found`);
-      }
 
       const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
       if (!readFile) {
@@ -199,65 +155,40 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
         throw new Error('Repository path not available');
       }
 
-      const fullPath = `${repositoryPath}/${selectedConfig.path}`;
+      // Read canvas file directly using canvasPath prop
+      const fullPath = `${repositoryPath}/${canvasPath}`;
       const configContent = await readFile(fullPath);
 
       if (!configContent || typeof configContent !== 'string') {
-        throw new Error('Failed to read config file');
+        throw new Error('Failed to read canvas file');
       }
 
       const canvas = ConfigLoader.parseCanvas(configContent);
 
       // Load library.yaml if it exists
       let library: ComponentLibrary | null = null;
-      const libraryPath = ConfigLoader.findLibraryPath(fileTreeData.allFiles);
-      if (libraryPath) {
-        try {
-          const libraryFullPath = `${repositoryPath}/${libraryPath}`;
-          const libraryContent = await readFile(libraryFullPath);
-          if (libraryContent && typeof libraryContent === 'string') {
-            library = ConfigLoader.parseLibrary(libraryContent);
+
+      // Check if fileTree slice is available for library loading
+      if (ctx.hasSlice('fileTree') && !ctx.isSliceLoading('fileTree')) {
+        const fileTreeSlice = ctx.getSlice('fileTree');
+        const fileTreeData = fileTreeSlice?.data as { allFiles?: Array<{ path?: string; relativePath?: string; name?: string }> } | null;
+
+        if (fileTreeData?.allFiles) {
+          const libraryPath = ConfigLoader.findLibraryPath(fileTreeData.allFiles);
+          if (libraryPath) {
+            try {
+              const libraryFullPath = `${repositoryPath}/${libraryPath}`;
+              const libraryContent = await readFile(libraryFullPath);
+              if (libraryContent && typeof libraryContent === 'string') {
+                library = ConfigLoader.parseLibrary(libraryContent);
+              }
+            } catch (libraryError) {
+              // Library loading is optional, don't fail the whole operation
+              console.warn('[PrincipalView] Failed to load library.yaml:', libraryError);
+            }
           }
-        } catch (libraryError) {
-          // Library loading is optional, don't fail the whole operation
-          console.warn('[PrincipalView] Failed to load library.yaml:', libraryError);
         }
       }
-
-      // Load descriptions for all configs (in background, don't block)
-      const configDescriptions: Record<string, ConfigDescription> = {};
-      // Add the current canvas description
-      configDescriptions[selectedConfig.id] = {
-        name: canvas.pv?.name || selectedConfig.name,
-        description: canvas.pv?.description || null,
-      };
-
-      // Load other configs in parallel (don't await, let it happen in background)
-      const loadOtherDescriptions = async () => {
-        for (const config of availableConfigs) {
-          if (config.id === selectedConfig.id) continue;
-          try {
-            const configFullPath = `${repositoryPath}/${config.path}`;
-            const configContentStr = await readFile(configFullPath);
-            if (configContentStr && typeof configContentStr === 'string') {
-              const configCanvas = ConfigLoader.parseCanvas(configContentStr);
-              setState(prev => ({
-                ...prev,
-                configDescriptions: {
-                  ...prev.configDescriptions,
-                  [config.id]: {
-                    name: configCanvas.pv?.name || config.name,
-                    description: configCanvas.pv?.description || null,
-                  },
-                },
-              }));
-            }
-          } catch {
-            // Ignore errors for individual configs
-          }
-        }
-      };
-      loadOtherDescriptions();
 
       setState(prev => ({
         ...prev,
@@ -265,8 +196,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
         library,
         loading: false,
         error: null,
-        availableConfigs,
-        configDescriptions,
         hasUnsavedChanges: false
       }));
     } catch (error) {
@@ -337,21 +266,19 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
 
   // Copy current config path to clipboard
   const copyConfigPath = useCallback(() => {
-    const currentConfig = state.availableConfigs.find(c => c.id === selectedConfigId);
-    if (currentConfig?.path) {
-      navigator.clipboard.writeText(currentConfig.path).then(() => {
-        setPathCopied(true);
-        setTimeout(() => setPathCopied(false), 2000);
-      });
-    }
-  }, [state.availableConfigs, selectedConfigId]);
+    if (!canvasPath) return;
+    navigator.clipboard.writeText(canvasPath).then(() => {
+      setPathCopied(true);
+      setTimeout(() => setPathCopied(false), 2000);
+    });
+  }, [canvasPath]);
 
   // Toggle edit mode
   const toggleEditMode = useCallback(() => {
     setState(prev => {
       if (prev.isEditMode && prev.hasUnsavedChanges) {
         // Exiting edit mode with unsaved changes - reload to discard
-        loadConfiguration(selectedConfigIdRef.current || undefined);
+        loadConfiguration();
         return { ...prev, isEditMode: false, hasUnsavedChanges: false };
       }
       return { ...prev, isEditMode: !prev.isEditMode };
@@ -360,13 +287,13 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
 
   // Discard changes and reload
   const discardChanges = useCallback(() => {
-    loadConfiguration(selectedConfigIdRef.current || undefined);
+    loadConfiguration();
     setState(prev => ({ ...prev, hasUnsavedChanges: false }));
   }, [loadConfiguration]);
 
   // Save all pending changes
   const saveAllChanges = useCallback(async () => {
-    if (!state.canvas) return;
+    if (!state.canvas || !canvasPath) return;
 
     // Get pending changes from GraphRenderer if available
     const pendingChanges = graphRef.current?.getPendingChanges();
@@ -393,11 +320,6 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
         throw new Error('Repository path not available');
       }
 
-      const selectedConfig = state.availableConfigs.find(c => c.id === selectedConfigIdRef.current);
-      if (!selectedConfig) {
-        throw new Error('Selected config not found');
-      }
-
       // Apply changes to canvas if there are pending changes from GraphRenderer,
       // otherwise use state.canvas directly (already contains auto-layout changes)
       const updatedCanvas = hasGraphChanges && pendingChanges
@@ -407,8 +329,8 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
       // Serialize to JSON
       const jsonContent = JSON.stringify(updatedCanvas, null, 2);
 
-      // Write to file
-      const fullPath = `${repositoryPath}/${selectedConfig.path}`;
+      // Write to file using canvasPath prop
+      const fullPath = `${repositoryPath}/${canvasPath}`;
       await writeFile(fullPath, jsonContent);
 
       // Skip the next file change event since we caused it
@@ -429,46 +351,26 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
         error: `Failed to save: ${(error as Error).message}`
       }));
     }
-  }, [state.canvas, state.availableConfigs]);
+  }, [state.canvas, state.hasUnsavedChanges, canvasPath]);
 
-  // Load configuration on mount and when fileTree slice finishes loading
-  const fileTreeLoading = context.hasSlice('fileTree') && context.isSliceLoading('fileTree');
-  const fileTreeLoadingRef = useRef(fileTreeLoading);
+  // Load configuration when canvasPath prop changes
+  useEffect(() => {
+    loadConfiguration();
+  }, [canvasPath, loadConfiguration]);
 
   // Track fileTree data for change detection
   const fileTreeSlice = context.hasSlice('fileTree') ? context.getSlice('fileTree') : null;
   const fileTreeData = fileTreeSlice?.data as { allFiles?: Array<{ path?: string; relativePath?: string; name?: string }> } | null;
   const fileTreeDataRef = useRef(fileTreeData);
 
-  // Load configuration when selectedConfigId prop changes
-  useEffect(() => {
-    if (selectedConfigId) {
-      loadConfiguration(selectedConfigId);
-    } else {
-      // If no config selected, just populate available configs
-      loadConfiguration();
-    }
-  }, [selectedConfigId, loadConfiguration]);
-
-  // Re-load when fileTree transitions from loading to loaded
-  useEffect(() => {
-    const wasLoading = fileTreeLoadingRef.current;
-    fileTreeLoadingRef.current = fileTreeLoading;
-
-    if (wasLoading && !fileTreeLoading && selectedConfigId) {
-      // fileTree just finished loading, reload currently selected config
-      loadConfiguration(selectedConfigId);
-    }
-  }, [fileTreeLoading, loadConfiguration, selectedConfigId]);
-
   // Reload when fileTree data changes (e.g., files added/modified/deleted on disk)
-  // Only reload if the change affects the currently selected config or library
+  // Only reload if the change affects the currently selected canvas or library
   useEffect(() => {
     const prevData = fileTreeDataRef.current;
     fileTreeDataRef.current = fileTreeData;
 
-    // Skip if this is the initial render or if we're still loading
-    if (prevData === null || fileTreeLoading) {
+    // Skip if this is the initial render
+    if (prevData === null) {
       return;
     }
 
@@ -480,51 +382,38 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
 
     // Check if the data reference actually changed
     if (prevData !== fileTreeData && fileTreeData !== null) {
-      // Find the currently selected config path
-      const selectedConfig = state.availableConfigs.find(c => c.id === selectedConfigIdRef.current);
-      if (!selectedConfig) {
-        // No config selected, just update available configs list
-        loadConfiguration();
-        return;
-      }
-
-      // Check if the selected config file changed
+      // Check if the canvas file or library changed
       const prevFiles = prevData.allFiles || [];
       const newFiles = fileTreeData.allFiles || [];
 
-      // Find the selected config in both old and new file lists
-      const prevConfigFile = prevFiles.find(f => (f.path || f.relativePath) === selectedConfig.path);
-      const newConfigFile = newFiles.find(f => (f.path || f.relativePath) === selectedConfig.path);
+      // Find the canvas file in both old and new file lists
+      const prevConfigFile = prevFiles.find(f => (f.path || f.relativePath) === canvasPath);
+      const newConfigFile = newFiles.find(f => (f.path || f.relativePath) === canvasPath);
 
       // Check if library.yaml changed
       const libraryPath = ConfigLoader.findLibraryPath(newFiles);
       const prevLibraryFile = libraryPath ? prevFiles.find(f => (f.path || f.relativePath) === libraryPath) : null;
       const newLibraryFile = libraryPath ? newFiles.find(f => (f.path || f.relativePath) === libraryPath) : null;
 
-      // Only reload if current config or library file changed/appeared/disappeared
+      // Only reload if current canvas or library file changed/appeared/disappeared
       const configChanged = prevConfigFile !== newConfigFile;
       const libraryChanged = prevLibraryFile !== newLibraryFile;
 
       if (configChanged || libraryChanged) {
-        console.log('[PrincipalViewGraph] Current config or library changed, reloading...', {
+        console.log('[PrincipalViewGraph] Current canvas or library changed, reloading...', {
           configChanged,
           libraryChanged,
-          configPath: selectedConfig.path
+          canvasPath
         });
-        loadConfiguration(selectedConfigIdRef.current || undefined);
+        loadConfiguration();
       }
     }
-  }, [fileTreeData, fileTreeLoading, loadConfiguration, state.availableConfigs]);
+  }, [fileTreeData, loadConfiguration, canvasPath]);
 
   // Subscribe to data refresh events
   useEffect(() => {
     const unsubscribe = eventsRef.current.on('data:refresh', () => {
-      if (selectedConfigIdRef.current) {
-        loadConfiguration(selectedConfigIdRef.current);
-      } else {
-        // Just refresh available configs list
-        loadConfiguration();
-      }
+      loadConfiguration();
     });
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -547,7 +436,7 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
   }
 
   if (state.error) {
-    return <ErrorStateContent theme={theme} error={state.error} onRetry={() => loadConfiguration(selectedConfigId || undefined)} />;
+    return <ErrorStateContent theme={theme} error={state.error} onRetry={() => loadConfiguration()} />;
   }
 
   if (!state.canvas) {
@@ -584,7 +473,7 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
             whiteSpace: 'nowrap',
             minWidth: 0,
           }}>
-            {state.canvas.pv?.name || 'Untitled'}
+            {canvasName || 'Untitled'}
           </h2>
 
           {/* Copy path button */}
@@ -680,7 +569,7 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
 
         {/* Refresh Button - flush right, full height */}
         <button
-          onClick={() => loadConfiguration(selectedConfigId || undefined)}
+          onClick={() => loadConfiguration()}
           disabled={state.hasUnsavedChanges}
           title={state.hasUnsavedChanges ? 'Save or discard changes before refreshing' : 'Refresh'}
           style={{

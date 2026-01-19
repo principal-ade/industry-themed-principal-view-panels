@@ -4,6 +4,53 @@ import type { NarrativeTemplate } from '@principal-ai/principal-view-core/browse
 import type { ExecutionFile } from './ExecutionLoader';
 import { Database, ChevronRight, ChevronDown } from 'lucide-react';
 
+// Type definitions for narrative template structure
+type ConditionType = 'and' | 'or' | 'event' | 'attribute' | 'span';
+
+interface AndOrCondition {
+  type: 'and' | 'or';
+  conditions: Condition[];
+}
+
+interface EventCondition {
+  type: 'event';
+  event: string;
+}
+
+interface AttributeCondition {
+  type: 'attribute';
+  key: string;
+  value: unknown;
+}
+
+interface SpanCondition {
+  type: 'span';
+  name: string;
+}
+
+type Condition = AndOrCondition | EventCondition | AttributeCondition | SpanCondition;
+
+interface ScenarioTemplate {
+  introduction?: string;
+  summary?: string;
+  flow?: string[];
+  details?: Record<string, unknown>;
+}
+
+interface Scenario {
+  id?: string;
+  name?: string;
+  description?: string;
+  condition: Condition;
+  template: ScenarioTemplate;
+}
+
+interface ExtendedNarrativeTemplate {
+  name?: string;
+  description?: string;
+  scenarios?: Scenario[];
+}
+
 interface NarrativeTemplatePanelProps {
   narrativeTemplate: NarrativeTemplate;
   availableExecutions?: ExecutionFile[];
@@ -54,7 +101,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
     );
   };
 
-  const renderCondition = (condition: any, depth: number = 0): React.ReactNode => {
+  const renderCondition = (condition: Condition, depth: number = 0): React.ReactNode => {
     const indent = depth * 16;
 
     if (condition.type === 'and' || condition.type === 'or') {
@@ -71,7 +118,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
           >
             {condition.type}
           </div>
-          {condition.conditions?.map((c: any, i: number) => (
+          {condition.conditions?.map((c: Condition, i: number) => (
             <div key={i}>{renderCondition(c, depth + 1)}</div>
           ))}
         </div>
@@ -131,10 +178,10 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
-            {(narrativeTemplate as any).name || 'Narrative Template'}
+            {(narrativeTemplate as ExtendedNarrativeTemplate).name || 'Narrative Template'}
           </h2>
         </div>
-        {(narrativeTemplate as any).description && (
+        {(narrativeTemplate as ExtendedNarrativeTemplate).description && (
           <p
             style={{
               margin: '8px 0 0 0',
@@ -143,7 +190,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
               lineHeight: 1.5,
             }}
           >
-            {(narrativeTemplate as any).description}
+            {(narrativeTemplate as ExtendedNarrativeTemplate).description}
           </p>
         )}
       </div>
@@ -201,9 +248,9 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                 )}
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>
-                    {(scenario as any).name || scenario.description || scenario.id}
+                    {scenario.name || scenario.description || scenario.id}
                   </h3>
-                  {(scenario as any).description && (scenario as any).name && (
+                  {scenario.description && scenario.name && (
                     <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: theme.colors.textSecondary }}>
                       {scenario.description}
                     </p>
@@ -247,7 +294,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                     </div>
 
                     {/* Introduction */}
-                    {(scenario.template as any).introduction && (
+                    {scenario.template.introduction && (
                       <div style={{ marginBottom: '8px' }}>
                         <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '2px' }}>Introduction:</div>
                         <div
@@ -261,7 +308,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                             border: `1px solid ${theme.colors.border}`,
                           }}
                         >
-                          {renderTemplateText((scenario.template as any).introduction)}
+                          {renderTemplateText(scenario.template.introduction)}
                         </div>
                       </div>
                     )}
@@ -287,13 +334,13 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                     )}
 
                     {/* Flow */}
-                    {(scenario.template as any).flow && (scenario.template as any).flow.length > 0 && (
+                    {scenario.template.flow && scenario.template.flow.length > 0 && (
                       <div style={{ marginBottom: '8px' }}>
                         <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '4px' }}>
-                          Flow ({(scenario.template as any).flow.length}):
+                          Flow ({scenario.template.flow.length}):
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          {(scenario.template as any).flow.map((step: string, i: number) => (
+                          {scenario.template.flow.map((step: string, i: number) => (
                             <div
                               key={i}
                               style={{
@@ -317,7 +364,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                     )}
 
                     {/* Details */}
-                    {(scenario.template as any).details && Object.keys((scenario.template as any).details).length > 0 && (
+                    {scenario.template.details && Object.keys(scenario.template.details).length > 0 && (
                       <div style={{ marginBottom: '8px' }}>
                         <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '4px' }}>Details:</div>
                         <div
@@ -330,7 +377,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                             border: `1px solid ${theme.colors.border}`,
                           }}
                         >
-                          {Object.entries((scenario.template as any).details).map(([key, value]) => (
+                          {Object.entries(scenario.template.details).map(([key, value]) => (
                             <div key={key} style={{ marginBottom: '2px' }}>
                               <span style={{ color: theme.colors.textSecondary }}>{key}:</span>{' '}
                               <span style={{ color: theme.colors.text }}>{String(value)}</span>

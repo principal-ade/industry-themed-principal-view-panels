@@ -11,6 +11,7 @@ export type { EventControllerPanelProps, PlaybackState, PlaybackStatus } from '.
 
 export { TraceViewerPanel } from './panels/TraceViewerPanel';
 export { CanvasEditorPanel } from './panels/CanvasEditorPanel';
+export type { CanvasEditorPanelProps } from './panels/CanvasEditorPanel';
 export { CanvasDetailPanel } from './panels/CanvasDetailPanel';
 export type { CanvasDetailPanelProps } from './panels/CanvasDetailPanel';
 export { CanvasListPanel } from './panels/CanvasListPanel';

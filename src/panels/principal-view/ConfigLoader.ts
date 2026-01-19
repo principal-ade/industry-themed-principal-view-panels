@@ -84,16 +84,19 @@ export class ConfigLoader {
       const filePath = file.relativePath || file.path || '';
       const fileName = file.name || '';
 
-      // Check for .canvas files in any .principal-views/ folder (root or nested in packages)
-      // Match patterns: .principal-views/*.canvas or packages/*/.principal-views/*.canvas
-      if (filePath.includes(`/${VGC_FOLDER}/`) && isCanvasFile(fileName)) {
+      // Check for .canvas files in any .principal-views/ folder (root or nested in packages/apps)
+      // Match patterns: .principal-views/*.canvas, packages/*/.principal-views/*.canvas, apps/*/.principal-views/*.canvas
+      const isInPrincipalViews = filePath.startsWith(`${VGC_FOLDER}/`) || filePath.includes(`/${VGC_FOLDER}/`);
+
+      if (isInPrincipalViews && isCanvasFile(fileName)) {
         const configName = getConfigNameFromFilename(fileName);
 
-        // Extract package name if this is in a package (e.g., packages/shiprail-cli/.principal-views/architecture.canvas)
+        // Extract package name if this is in a package or app directory
+        // Matches: packages/foo/.principal-views/bar.canvas OR apps/foo/.principal-views/bar.canvas
         let packageName: string | undefined;
-        const packagesMatch = filePath.match(/^packages\/([^/]+)\//);
-        if (packagesMatch) {
-          packageName = packagesMatch[1];
+        const packageMatch = filePath.match(/^(?:packages|apps)\/([^/]+)\//);
+        if (packageMatch) {
+          packageName = packageMatch[1];
         }
 
         // Generate ID in same format as CanvasDiscovery:

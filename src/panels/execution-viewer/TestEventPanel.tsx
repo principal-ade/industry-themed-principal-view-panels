@@ -32,7 +32,7 @@ export interface OtelLog {
   severity: OtelSeverity;
   body: string | Record<string, unknown>;
   resource: Record<string, string | number>;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
   traceId?: string;
   spanId?: string;
 }
@@ -43,7 +43,7 @@ interface TimelineItem {
   time: number;
   // For events
   name?: string;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
   // For logs
   severity?: OtelSeverity;
   body?: string | Record<string, unknown>;

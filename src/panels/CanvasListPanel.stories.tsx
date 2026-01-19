@@ -92,8 +92,8 @@ export const Default: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <_T,>(name: string) => {
-            return mockSlices.get(name) as any;
+          getSlice: <T,>(name: string): T | undefined => {
+            return mockSlices.get(name) as T | undefined;
           },
         }}
       >
@@ -127,8 +127,8 @@ export const Loading: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <_T,>(name: string) => {
-            return mockSlices.get(name) as any;
+          getSlice: <T,>(name: string): T | undefined => {
+            return mockSlices.get(name) as T | undefined;
           },
         }}
       >
@@ -162,8 +162,8 @@ export const Empty: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <_T,>(name: string) => {
-            return mockSlices.get(name) as any;
+          getSlice: <T,>(name: string): T | undefined => {
+            return mockSlices.get(name) as T | undefined;
           },
         }}
       >
@@ -197,8 +197,8 @@ export const WithEventHandling: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <_T,>(name: string) => {
-            return mockSlices.get(name) as any;
+          getSlice: <T,>(name: string): T | undefined => {
+            return mockSlices.get(name) as T | undefined;
           },
         }}
       >
@@ -262,8 +262,8 @@ export const SingleCanvas: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <_T,>(name: string) => {
-            return mockSlices.get(name) as any;
+          getSlice: <T,>(name: string): T | undefined => {
+            return mockSlices.get(name) as T | undefined;
           },
         }}
       >
@@ -306,8 +306,8 @@ export const ManyCanvases: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <_T,>(name: string) => {
-            return mockSlices.get(name) as any;
+          getSlice: <T,>(name: string): T | undefined => {
+            return mockSlices.get(name) as T | undefined;
           },
         }}
       >
@@ -428,8 +428,8 @@ export const MonorepoWithPackages: Story = {
       <MockPanelProvider
         contextOverrides={{
           slices: mockSlices,
-          getSlice: <_T,>(name: string) => {
-            return mockSlices.get(name) as any;
+          getSlice: <T,>(name: string): T | undefined => {
+            return mockSlices.get(name) as T | undefined;
           },
         }}
       >

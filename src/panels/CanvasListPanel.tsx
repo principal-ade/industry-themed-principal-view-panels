@@ -91,7 +91,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
     // Emit canvas:selected event for other panels
     if (events) {
       events.emit({
-        type: 'custom' as any,
+        type: 'custom',
         source: 'canvas-list-panel',
         timestamp: Date.now(),
         payload: { action: 'selectCanvas', canvasId: canvas.id, canvas },
@@ -105,7 +105,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
     // Emit refresh event so parent can handle filesystem rescans, etc.
     if (events) {
       events.emit({
-        type: 'custom' as any,
+        type: 'custom',
         source: 'canvas-list-panel',
         timestamp: Date.now(),
         payload: { action: 'refreshCanvases' },

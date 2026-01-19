@@ -7,13 +7,13 @@ import type { OtelEvent } from '@principal-ai/principal-view-core/browser';
 import type { OtelLog, OtelSeverity } from './TestEventPanel';
 
 // TestEventPanel types (matching TestEventPanel.tsx)
-interface SpanEvent {
+export interface SpanEvent {
   time: number;
   name: string;
   attributes: Record<string, string | number | boolean>;
 }
 
-interface TestSpan {
+export interface TestSpan {
   id: string;
   name: string;
   startTime: number;
