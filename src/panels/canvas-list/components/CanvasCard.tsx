@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { Package } from 'lucide-react';
+import { Package, Home } from 'lucide-react';
 import type { DiscoveredCanvas } from '@principal-ai/principal-view-core/browser';
 
 interface CanvasCardProps {
@@ -78,12 +78,26 @@ export const CanvasCard: React.FC<CanvasCardProps> = ({
               {canvas.packageName}
             </span>
           </>
+        ) : canvas.scope === 'root' ? (
+          <>
+            <Home size={14} color={theme.colors.textSecondary} />
+            <span
+              style={{
+                fontSize: theme.fontSizes[0],
+                color: theme.colors.textSecondary,
+                fontFamily: 'monospace',
+                fontWeight: 600,
+              }}
+            >
+              root
+            </span>
+          </>
         ) : null}
         {canvas.type === 'otel' && (
           <>
-            {canvas.scope === 'package' && canvas.packageName && (
+            {(canvas.scope === 'package' && canvas.packageName) || canvas.scope === 'root' ? (
               <span style={{ color: theme.colors.textSecondary }}>•</span>
-            )}
+            ) : null}
             <span
               style={{
                 fontSize: theme.fontSizes[0],
