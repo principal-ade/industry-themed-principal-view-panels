@@ -48,6 +48,8 @@ export default defineConfig(({ mode: _mode }) => ({
         'glob',
         'minipass',
         'path-scurry',
+        // Externalize codebase-composition which contains quality lenses with Node executors
+        '@principal-ai/codebase-composition',
       ],
       output: {
         globals: {
