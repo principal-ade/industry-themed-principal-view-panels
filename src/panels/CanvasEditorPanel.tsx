@@ -841,7 +841,7 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
         {/* Graph */}
         <div style={{ flex: 1, position: 'relative' }}>
           <GraphRenderer
-            key={`graph-${state.selectedConfigId}`}
+            key={`graph-${selectedConfigId}`}
             ref={graphRef}
             canvas={state.canvas}
             library={state.library ?? undefined}
