@@ -89,6 +89,18 @@ export class ConfigLoader {
       if (filePath.includes(`/${VGC_FOLDER}/`) && isCanvasFile(fileName)) {
         const configName = getConfigNameFromFilename(fileName);
 
+        // Extract package name if this is in a package (e.g., packages/shiprail-cli/.principal-views/architecture.canvas)
+        let packageName: string | undefined;
+        const packagesMatch = filePath.match(/^packages\/([^/]+)\//);
+        if (packagesMatch) {
+          packageName = packagesMatch[1];
+        }
+
+        // Generate ID in same format as CanvasDiscovery:
+        // - Package canvases: "packageName/basename" (e.g., "shiprail-cli/architecture")
+        // - Root canvases: "basename" (e.g., "architecture")
+        const id = packageName ? `${packageName}/${configName}` : configName;
+
         // Convert kebab-case to Title Case for display
         const displayName = configName
           .split('-')
@@ -96,8 +108,7 @@ export class ConfigLoader {
           .join(' ');
 
         configs.push({
-          // Use full file path as ID to ensure uniqueness across packages
-          id: filePath,
+          id,
           name: displayName,
           path: filePath,
           source: 'folder'
