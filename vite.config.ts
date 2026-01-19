@@ -45,7 +45,6 @@ export default defineConfig(({ mode: _mode }) => ({
         /^events($|\/)/,
         /^string_decoder($|\/)/,
         // Externalize packages with Node.js code that we don't use in browser
-        '@principal-ai/codebase-quality-lenses',
         'glob',
         'minipass',
         'path-scurry',
