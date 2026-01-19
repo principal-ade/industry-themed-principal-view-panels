@@ -40,6 +40,17 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
     return Array.from(packages).sort();
   }, [canvases]);
 
+  // Check if we have root-level canvases
+  const hasRootCanvases = useMemo(() => {
+    return canvases.some(c => c.scope === 'root');
+  }, [canvases]);
+
+  // Only show filter if there are multiple groups (packages + root)
+  const shouldShowPackageFilter = useMemo(() => {
+    const totalGroups = availablePackages.length + (hasRootCanvases ? 1 : 0);
+    return totalGroups > 1;
+  }, [availablePackages.length, hasRootCanvases]);
+
   // Filter canvases by package and search query
   const filteredCanvases = useMemo(() => {
     let filtered = canvases;
@@ -145,7 +156,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
             Canvas Files
           </h2>
 
-          {!isLoading && (availablePackages.length > 0 || canvases.some(c => c.scope === 'root')) && (
+          {!isLoading && shouldShowPackageFilter && (
             <select
               value={selectedPackage}
               onChange={(e) => setSelectedPackage(e.target.value)}
@@ -162,7 +173,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
               }}
             >
               <option value="all">All Packages ({canvases.length})</option>
-              {canvases.some(c => c.scope === 'root') && (
+              {hasRootCanvases && (
                 <option value="root">Root ({canvases.filter(c => c.scope === 'root').length})</option>
               )}
               {availablePackages.map((pkg) => (
