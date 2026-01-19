@@ -73,7 +73,7 @@ export class ConfigLoader {
   }
 
   /**
-   * Find all .canvas files in the .principal-views/ folder
+   * Find all .canvas files in any .principal-views/ folder (root or packages)
    * Returns array of config files with metadata
    */
   static findConfigs(files: Array<{ path?: string; relativePath?: string; name?: string }>): ConfigFile[] {
@@ -84,8 +84,9 @@ export class ConfigLoader {
       const filePath = file.relativePath || file.path || '';
       const fileName = file.name || '';
 
-      // Check for .canvas files in .principal-views/ folder
-      if (filePath.startsWith(`${VGC_FOLDER}/`) && isCanvasFile(fileName)) {
+      // Check for .canvas files in any .principal-views/ folder (root or nested in packages)
+      // Match patterns: .principal-views/*.canvas or packages/*/.principal-views/*.canvas
+      if (filePath.includes(`/${VGC_FOLDER}/`) && isCanvasFile(fileName)) {
         const configName = getConfigNameFromFilename(fileName);
 
         // Convert kebab-case to Title Case for display
@@ -95,7 +96,8 @@ export class ConfigLoader {
           .join(' ');
 
         configs.push({
-          id: configName,
+          // Use full file path as ID to ensure uniqueness across packages
+          id: filePath,
           name: displayName,
           path: filePath,
           source: 'folder'

@@ -30,7 +30,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
   const [cliCommandCopied, setCliCommandCopied] = useState(false);
 
   // Load canvas data
-  const { canvases, isLoading, error } = useCanvasData({ context });
+  const { canvases, isLoading, error, refreshCanvases } = useCanvasData({ context });
 
   // Get unique packages for filter
   const availablePackages = useMemo(() => {

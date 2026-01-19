@@ -90,7 +90,6 @@ export const DemoApp: React.FC = () => {
       <div className="demo-bottom-panel">
         <BookDetails
           canvas={selectedCanvas}
-          canvasId={selectedCanvasId}
           trace={selectedTrace}
           traceId={selectedTraceId}
           selectedNodeId={selectedNodeId}
