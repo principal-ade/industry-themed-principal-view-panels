@@ -52,6 +52,14 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
   // Ref to GraphRenderer for getting pending changes
   const graphRef = useRef<GraphRendererHandle>(null);
 
+  // Ref to container for measuring dimensions
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+
+  // Ref to track unsaved changes without triggering re-renders during drag
+  const hasUnsavedChangesRef = useRef(false);
+  const pendingChangesTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [state, setState] = useState<GraphPanelState>({
     canvas: null,
     library: null,
@@ -85,6 +93,41 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
 
   // Track "copied" feedback for copy path button
   const [pathCopied, setPathCopied] = useState(false);
+
+  // Measure container dimensions for GraphRenderer
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const updateDimensions = () => {
+      const { width, height } = container.getBoundingClientRect();
+      // Only update if dimensions actually changed (avoid unnecessary re-renders)
+      setDimensions(prev => {
+        // Round to avoid sub-pixel differences
+        const newWidth = Math.round(width);
+        const newHeight = Math.round(height);
+        if (prev.width === newWidth && prev.height === newHeight) {
+          return prev;
+        }
+        return { width: newWidth, height: newHeight };
+      });
+    };
+
+    // Initial measurement
+    updateDimensions();
+
+    // Observe container size changes with debouncing
+    const resizeObserver = new ResizeObserver(() => {
+      // Use requestAnimationFrame to debounce rapid resize events
+      requestAnimationFrame(updateDimensions);
+    });
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
 
   const loadConfiguration = useCallback(async (configId?: string) => {
     // Only show loading spinner on initial load, not when switching configs
@@ -249,8 +292,17 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
   }, []);
 
   // Handle pending changes notification from GraphRenderer
+  // Use ref to avoid re-renders during drag operations
   const handlePendingChangesChange = useCallback((hasChanges: boolean) => {
-    setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
+    hasUnsavedChangesRef.current = hasChanges;
+
+    // Debounce state update to avoid re-renders during drag
+    // Only update UI state after drag is complete (300ms delay)
+    const timeoutId = setTimeout(() => {
+      setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   // Handle source click - emit custom event for other panels to consume
@@ -839,22 +891,22 @@ export const CanvasEditorPanel: React.FC<PanelComponentProps & { selectedConfigI
       {/* Main content area with overlays and graph */}
       <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}>
         {/* Graph */}
-        <div style={{ flex: 1, position: 'relative' }}>
+        <div ref={containerRef} style={{ flex: 1, position: 'relative' }}>
           <GraphRenderer
-            key={`graph-${selectedConfigId}`}
             ref={graphRef}
             canvas={state.canvas}
-            library={state.library ?? undefined}
+            width={dimensions.width}
+            height={dimensions.height}
             showMinimap={false}
             showControls={true}
             showBackground={true}
             backgroundVariant={state.showGridLines ? 'lines' : 'dots'}
             backgroundGap={state.showGridLines ? 75 : undefined}
             showTooltips={state.showTooltips}
-            fitViewDuration={0}
             editable={state.isEditMode}
-            onPendingChangesChange={handlePendingChangesChange}
-            onSourceClick={handleSourceClick}
+            onPendingChangesChange={(hasChanges) => {
+              setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
+            }}
           />
         </div>
 
