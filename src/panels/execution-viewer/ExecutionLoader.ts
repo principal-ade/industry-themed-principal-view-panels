@@ -1,13 +1,4 @@
-/**
- * OpenTelemetry attribute value type per OTEL spec
- * https://opentelemetry.io/docs/specs/otel/common/attribute-naming/
- */
-export type OtelAttributeValue = string | number | boolean | string[] | number[] | boolean[];
-
-/**
- * OpenTelemetry attributes (key-value pairs)
- */
-export type OtelAttributes = Record<string, OtelAttributeValue>;
+import type { OtelAttributes } from '@principal-ai/principal-view-core/browser';
 
 export interface ExecutionFile {
   /** Unique identifier for this execution (derived from filename) */

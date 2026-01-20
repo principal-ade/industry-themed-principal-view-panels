@@ -270,9 +270,9 @@ const createMockProvider = (files: Array<{ path: string; relativePath: string; n
   };
 };
 
-// Simple event emitter interface
+// Simple event emitter interface matching PanelEventEmitter
 interface EventEmitter {
-  emit: (event: { type: string; timestamp: number; payload?: unknown }) => void;
+  emit: (event: { type: string; source: string; timestamp: number; payload: unknown }) => void;
 }
 
 // Helper component to emit canvas selection event on mount

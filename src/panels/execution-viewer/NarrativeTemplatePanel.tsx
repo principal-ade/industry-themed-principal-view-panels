@@ -1,53 +1,14 @@
 import React, { useState } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import type { NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
+import type {
+  NarrativeTemplate,
+  NarrativeScenario,
+  ScenarioCondition,
+  ScenarioTemplate,
+  FlowDirective
+} from '@principal-ai/principal-view-core/browser';
 import type { ExecutionFile } from './ExecutionLoader';
 import { Database, ChevronRight, ChevronDown } from 'lucide-react';
-
-// Type definitions for narrative template structure
-interface AndOrCondition {
-  type: 'and' | 'or';
-  conditions: Condition[];
-}
-
-interface EventCondition {
-  type: 'event';
-  event: string;
-}
-
-interface AttributeCondition {
-  type: 'attribute';
-  key: string;
-  value: unknown;
-}
-
-interface SpanCondition {
-  type: 'span';
-  name: string;
-}
-
-type Condition = AndOrCondition | EventCondition | AttributeCondition | SpanCondition;
-
-interface ScenarioTemplate {
-  introduction?: string;
-  summary?: string;
-  flow?: string[];
-  details?: Record<string, unknown>;
-}
-
-interface Scenario {
-  id?: string;
-  name?: string;
-  description?: string;
-  condition: Condition;
-  template: ScenarioTemplate;
-}
-
-interface ExtendedNarrativeTemplate {
-  name?: string;
-  description?: string;
-  scenarios?: Scenario[];
-}
 
 interface NarrativeTemplatePanelProps {
   narrativeTemplate: NarrativeTemplate;
@@ -99,46 +60,52 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
     );
   };
 
-  const renderCondition = (condition: Condition, depth: number = 0): React.ReactNode => {
-    const indent = depth * 16;
-
-    if (condition.type === 'and' || condition.type === 'or') {
+  const renderCondition = (condition: ScenarioCondition): React.ReactNode => {
+    if (condition.default) {
       return (
-        <div key={`${condition.type}-${depth}`} style={{ marginLeft: `${indent}px`, marginTop: '8px' }}>
-          <div
-            style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: theme.colors.accent,
-              marginBottom: '4px',
-              textTransform: 'uppercase',
-            }}
-          >
-            {condition.type}
-          </div>
-          {condition.conditions?.map((c: Condition, i: number) => (
-            <div key={i}>{renderCondition(c, depth + 1)}</div>
-          ))}
+        <div
+          style={{
+            marginTop: '4px',
+            fontSize: '12px',
+            color: theme.colors.textSecondary,
+            fontFamily: theme.fonts.monospace,
+            padding: '4px 8px',
+            background: theme.colors.background,
+            borderRadius: '3px',
+            border: `1px solid ${theme.colors.border}`,
+          }}
+        >
+          Always matches (default scenario)
         </div>
       );
     }
 
-    let conditionText = '';
-    if (condition.type === 'event') {
-      conditionText = `Event: "${condition.event}"`;
-    } else if (condition.type === 'attribute') {
-      conditionText = `Attribute: ${condition.key} = ${JSON.stringify(condition.value)}`;
-    } else if (condition.type === 'span') {
-      conditionText = `Span: "${condition.name}"`;
-    } else {
-      conditionText = JSON.stringify(condition);
+    const parts: string[] = [];
+
+    if (condition.requires && condition.requires.length > 0) {
+      parts.push(`Requires: ${condition.requires.join(', ')}`);
+    }
+
+    if (condition.excludes && condition.excludes.length > 0) {
+      parts.push(`Excludes: ${condition.excludes.join(', ')}`);
+    }
+
+    if (condition.assertions) {
+      const assertionStrs = Object.entries(condition.assertions).map(([key, assertion]) => {
+        return `${key}: ${JSON.stringify(assertion)}`;
+      });
+      if (assertionStrs.length > 0) {
+        parts.push(`Assertions: ${assertionStrs.join(', ')}`);
+      }
+    }
+
+    if (condition.any) {
+      parts.push('(Match ANY instead of ALL)');
     }
 
     return (
       <div
-        key={`${condition.type}-${depth}`}
         style={{
-          marginLeft: `${indent}px`,
           marginTop: '4px',
           fontSize: '12px',
           color: theme.colors.textSecondary,
@@ -149,7 +116,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
           border: `1px solid ${theme.colors.border}`,
         }}
       >
-        {conditionText}
+        {parts.length > 0 ? parts.join(' | ') : 'No conditions'}
       </div>
     );
   };
@@ -176,10 +143,10 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
-            {(narrativeTemplate as ExtendedNarrativeTemplate).name || 'Narrative Template'}
+            {narrativeTemplate.name || 'Narrative Template'}
           </h2>
         </div>
-        {(narrativeTemplate as ExtendedNarrativeTemplate).description && (
+        {narrativeTemplate.description && (
           <p
             style={{
               margin: '8px 0 0 0',
@@ -188,7 +155,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
               lineHeight: 1.5,
             }}
           >
-            {(narrativeTemplate as ExtendedNarrativeTemplate).description}
+            {narrativeTemplate.description}
           </p>
         )}
       </div>
@@ -246,9 +213,9 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                 )}
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>
-                    {scenario.name || scenario.description || scenario.id}
+                    {scenario.id} (Priority: {scenario.priority})
                   </h3>
-                  {scenario.description && scenario.name && (
+                  {scenario.description && (
                     <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: theme.colors.textSecondary }}>
                       {scenario.description}
                     </p>
@@ -338,7 +305,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                           Flow ({scenario.template.flow.length}):
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          {scenario.template.flow.map((step: string, i: number) => (
+                          {scenario.template.flow.map((step: string | FlowDirective, i: number) => (
                             <div
                               key={i}
                               style={{
@@ -354,17 +321,19 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                               }}
                             >
                               <span style={{ color: theme.colors.textSecondary, minWidth: '20px' }}>{i + 1}.</span>
-                              <span style={{ flex: 1 }}>{renderTemplateText(step)}</span>
+                              <span style={{ flex: 1 }}>
+                                {typeof step === 'string' ? renderTemplateText(step) : JSON.stringify(step, null, 2)}
+                              </span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
 
-                    {/* Details */}
-                    {scenario.template.details && Object.keys(scenario.template.details).length > 0 && (
+                    {/* Events */}
+                    {scenario.template.events && Object.keys(scenario.template.events).length > 0 && (
                       <div style={{ marginBottom: '8px' }}>
-                        <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '4px' }}>Details:</div>
+                        <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '4px' }}>Event Templates:</div>
                         <div
                           style={{
                             fontSize: '12px',
@@ -375,7 +344,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                             border: `1px solid ${theme.colors.border}`,
                           }}
                         >
-                          {Object.entries(scenario.template.details).map(([key, value]) => (
+                          {Object.entries(scenario.template.events).map(([key, value]) => (
                             <div key={key} style={{ marginBottom: '2px' }}>
                               <span style={{ color: theme.colors.textSecondary }}>{key}:</span>{' '}
                               <span style={{ color: theme.colors.text }}>{String(value)}</span>

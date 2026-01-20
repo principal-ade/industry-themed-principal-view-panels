@@ -7,7 +7,7 @@
  */
 
 import type { ExtendedCanvas } from '@principal-ai/principal-view-core/browser';
-import type { OtelAttributes } from './ExecutionLoader';
+import type { OtelAttributes } from '@principal-ai/principal-view-core/browser';
 
 /**
  * Event from execution artifact

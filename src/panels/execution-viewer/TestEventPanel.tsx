@@ -2,15 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import { HelpCircle } from 'lucide-react';
 import yaml from 'js-yaml';
-import type { NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
+import type { NarrativeTemplate, OtelAttributes } from '@principal-ai/principal-view-core/browser';
 import { NarrativeRenderer } from './NarrativeRenderer';
 import { convertToOtelEvents } from './narrative-converter';
-import type { OtelAttributes } from './ExecutionLoader';
 
 interface SpanEvent {
   time: number;
   name: string;
-  attributes: Record<string, string | number | boolean>;
+  attributes: OtelAttributes;
 }
 
 interface TestSpan {
@@ -19,7 +18,7 @@ interface TestSpan {
   startTime: number;
   endTime?: number;
   duration?: number;
-  attributes: Record<string, string | number | boolean>;
+  attributes: OtelAttributes;
   events: SpanEvent[];
   status: 'OK' | 'ERROR';
   errorMessage?: string;

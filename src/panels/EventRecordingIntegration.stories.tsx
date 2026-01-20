@@ -36,6 +36,7 @@ const sampleGraphConfig: PathBasedGraphConfiguration = {
       color: '#3b82f6',
       dataSchema: {},
       sources: ['lib/lock-manager.ts', 'lib/branch-aware-lock-manager.ts'],
+      // @ts-ignore - actions is deprecated but kept for story demonstration
       actions: [
         {
           pattern: 'Lock acquired for (?<lockId>\\S+)',
@@ -365,7 +366,7 @@ export const FullRecordingFlow: StoryObj = {
                         fontFamily: 'monospace',
                       }}
                     >
-                      {event.type}: {('componentId' in event && event.componentId) || ('message' in event && event.message) || ''}
+                      {event.type}: {String(('componentId' in event && event.componentId) || ('message' in event && event.message) || '')}
                     </div>
                   ))}
                 </div>

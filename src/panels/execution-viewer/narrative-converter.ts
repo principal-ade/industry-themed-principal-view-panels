@@ -3,9 +3,8 @@
  * for use with the narrative renderer
  */
 
-import type { OtelEvent } from '@principal-ai/principal-view-core/browser';
+import type { OtelEvent, OtelAttributes } from '@principal-ai/principal-view-core/browser';
 import type { OtelLog, OtelSeverity } from './TestEventPanel';
-import type { OtelAttributes } from './ExecutionLoader';
 
 // TestEventPanel types (matching TestEventPanel.tsx)
 export interface SpanEvent {
