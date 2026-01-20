@@ -106,19 +106,12 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
 
     // Emit refresh event so parent can handle filesystem rescans, etc.
     if (events) {
-      interface CustomEvent {
-        type: string;
-        source?: string;
-        timestamp?: number;
-        payload?: Record<string, unknown>;
-      }
-
       events.emit({
-        type: 'canvas:refresh',
+        type: 'canvas:refresh' as any,
         source: 'canvas-list-panel',
         timestamp: Date.now(),
         payload: {},
-      } as CustomEvent);
+      });
     }
 
     try {

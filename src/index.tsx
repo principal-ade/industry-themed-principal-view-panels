@@ -1,5 +1,4 @@
 import { CanvasEditorPanel } from './panels/CanvasEditorPanel';
-import { TraceViewerPanel } from './panels/TraceViewerPanel';
 import { CanvasDetailPanel } from './panels/CanvasDetailPanel';
 import { CanvasListPanel } from './panels/CanvasListPanel';
 import type { PanelDefinition, PanelContextValue } from './types';
@@ -9,7 +8,6 @@ import { principalViewPanelTools } from './tools';
 export { EventControllerPanel } from './panels/EventControllerPanel';
 export type { EventControllerPanelProps, PlaybackState, PlaybackStatus } from './panels/EventControllerPanel';
 
-export { TraceViewerPanel } from './panels/TraceViewerPanel';
 export { CanvasEditorPanel } from './panels/CanvasEditorPanel';
 export type { CanvasEditorPanelProps } from './panels/CanvasEditorPanel';
 export { CanvasDetailPanel } from './panels/CanvasDetailPanel';
@@ -83,36 +81,6 @@ export const panels: PanelDefinition[] = [
     onUnmount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log('Canvas Editor Panel unmounting');
-    },
-  },
-  {
-    metadata: {
-      id: 'principal-ai.trace-viewer',
-      name: 'Trace Viewer',
-      icon: '📊',
-      version: '0.1.0',
-      author: 'Principal AI',
-      description: 'Visualizes OpenTelemetry traces captured from test runs as canvas diagrams',
-      slices: ['fileTree'],
-    },
-    component: TraceViewerPanel,
-
-    onMount: async (context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log(
-        'Trace Viewer Panel mounted',
-        context.currentScope.repository?.path
-      );
-
-      // Refresh file tree if available
-      if (context.hasSlice('fileTree') && !context.isSliceLoading('fileTree')) {
-        await context.refresh('repository', 'fileTree');
-      }
-    },
-
-    onUnmount: async (_context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log('Trace Viewer Panel unmounting');
     },
   },
   {
