@@ -333,17 +333,8 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   }, []);
 
   const handleOpenInEditor = useCallback(() => {
-    if (!state.canvas || !state.selectedCanvasId) {
-      return;
-    }
-
-    // Get the canvas path - either from props or construct from state
-    const canvasPath = canvasPathProp || state.canvas.pv?.name
-      ? `.principal-views/${state.canvas.pv.name}.otel.canvas`
-      : null;
-
-    if (!canvasPath) {
-      console.warn('[CanvasDetailPanel] Cannot open in editor: canvas path not available');
+    if (!state.canvas || !state.selectedCanvasId || !canvasPathProp) {
+      console.warn('[CanvasDetailPanel] Cannot open in editor: missing canvas path prop');
       return;
     }
 
@@ -358,7 +349,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           canvasId: state.selectedCanvasId,
           canvas: {
             id: state.selectedCanvasId,
-            path: canvasPath,
+            path: canvasPathProp,
             name: state.canvasName || state.selectedCanvasId,
           },
         },
@@ -879,19 +870,21 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         {/* Open in Editor Button */}
         <button
           onClick={handleOpenInEditor}
+          disabled={!canvasPathProp}
           style={{
             padding: '6px 12px',
             background: '#2a2a2a',
             border: '1px solid #3a3a3a',
             borderRadius: '4px',
             color: '#fff',
-            cursor: 'pointer',
+            cursor: canvasPathProp ? 'pointer' : 'not-allowed',
+            opacity: canvasPathProp ? 1 : 0.5,
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
             fontSize: '13px',
           }}
-          title="Open in Canvas Editor"
+          title={canvasPathProp ? 'Open in Canvas Editor' : 'Canvas path not available'}
         >
           <Pencil size={14} />
           <span>Edit</span>
