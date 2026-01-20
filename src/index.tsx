@@ -39,6 +39,12 @@ export { TelemetryCoverageExplainerPanel } from './panels/TelemetryCoverageExpla
 export type { TelemetryCoverageExplainerPanelProps } from './panels/TelemetryCoverageExplainerPanel';
 export { ChangeImpactAnalysisExplainerPanel } from './panels/ChangeImpactAnalysisExplainerPanel';
 export type { ChangeImpactAnalysisExplainerPanelProps } from './panels/ChangeImpactAnalysisExplainerPanel';
+export { AgentMonitoringGapExplainerPanel } from './panels/AgentMonitoringGapExplainerPanel';
+export type { AgentMonitoringGapExplainerPanelProps } from './panels/AgentMonitoringGapExplainerPanel';
+export { SystemStoriesSolutionExplainerPanel } from './panels/SystemStoriesSolutionExplainerPanel';
+export type { SystemStoriesSolutionExplainerPanelProps } from './panels/SystemStoriesSolutionExplainerPanel';
+export { WhyNowAgentRevolutionExplainerPanel } from './panels/WhyNowAgentRevolutionExplainerPanel';
+export type { WhyNowAgentRevolutionExplainerPanelProps } from './panels/WhyNowAgentRevolutionExplainerPanel';
 
 // Re-export adapter for external use
 export { PanelFileSystemAdapter } from './adapters/PanelFileSystemAdapter';
