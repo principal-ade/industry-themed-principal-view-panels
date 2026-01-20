@@ -12,7 +12,7 @@ import {
   type ExecutionMetadata,
   type ExecutionArtifact,
 } from './execution-viewer/ExecutionLoader';
-import { Loader, ChevronDown, Activity, Grid3x3, HelpCircle, X, ArrowLeft } from 'lucide-react';
+import { Loader, ChevronDown, Activity, Grid3x3, HelpCircle, X, ArrowLeft, Pencil } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { NarrativeLoader, type NarrativeFile } from './execution-viewer/NarrativeLoader';
@@ -331,6 +331,40 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setState(prev => ({ ...prev, viewMode: mode }));
   }, []);
+
+  const handleOpenInEditor = useCallback(() => {
+    if (!state.canvas || !state.selectedCanvasId) {
+      return;
+    }
+
+    // Get the canvas path - either from props or construct from state
+    const canvasPath = canvasPathProp || state.canvas.pv?.name
+      ? `.principal-views/${state.canvas.pv.name}.otel.canvas`
+      : null;
+
+    if (!canvasPath) {
+      console.warn('[CanvasDetailPanel] Cannot open in editor: canvas path not available');
+      return;
+    }
+
+    // Emit the same event that CanvasListPanel uses to open in editor
+    if (eventsRef.current) {
+      eventsRef.current.emit({
+        type: 'custom',
+        source: 'canvas-detail-panel',
+        timestamp: Date.now(),
+        payload: {
+          action: 'selectCanvas',
+          canvasId: state.selectedCanvasId,
+          canvas: {
+            id: state.selectedCanvasId,
+            path: canvasPath,
+            name: state.canvasName || state.selectedCanvasId,
+          },
+        },
+      });
+    }
+  }, [state.canvas, state.selectedCanvasId, state.canvasName, canvasPathProp]);
 
   const handleExecutionSelect = useCallback(async (executionId: string) => {
     try {
@@ -840,6 +874,27 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           title={state.showGrid ? 'Hide Grid' : 'Show Grid'}
         >
           <Grid3x3 size={14} />
+        </button>
+
+        {/* Open in Editor Button */}
+        <button
+          onClick={handleOpenInEditor}
+          style={{
+            padding: '6px 12px',
+            background: '#2a2a2a',
+            border: '1px solid #3a3a3a',
+            borderRadius: '4px',
+            color: '#fff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '13px',
+          }}
+          title="Open in Canvas Editor"
+        >
+          <Pencil size={14} />
+          <span>Edit</span>
         </button>
 
         {/* Playback controls removed - all events now display by default */}
