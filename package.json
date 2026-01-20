@@ -29,7 +29,7 @@
   "author": "Principal AI",
   "license": "MIT",
   "scripts": {
-    "build": "bun run clean && bun run build:panel && bun run build:tools && bun run build:types",
+    "build": "bun run clean && bun run build:panel && bun run build:tools",
     "build:panel": "NODE_ENV=production vite build",
     "build:tools": "bun build ./src/tools/index.ts --outfile ./dist/tools.bundle.js --format esm --target browser",
     "build:types": "tsc --project tsconfig.build.json --emitDeclarationOnly --declaration --declarationMap",

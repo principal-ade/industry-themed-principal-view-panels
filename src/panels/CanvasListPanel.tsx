@@ -140,6 +140,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
       ref={panelRef}
       tabIndex={-1}
       style={{
+        position: 'relative',
         padding: 'clamp(12px, 3vw, 20px)',
         fontFamily: theme.fonts.body,
         height: '100%',
@@ -407,7 +408,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
       {/* Help Overlay */}
       {showHelp && (
         <div style={{
-          position: 'fixed',
+          position: 'absolute',
           inset: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           display: 'flex',
