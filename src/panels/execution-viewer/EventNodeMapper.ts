@@ -19,18 +19,18 @@ export interface ExecutionEvent {
 }
 
 /**
- * Event definition in node's pv metadata
+ * Event schema in node's pv metadata
  */
-interface PvEvent {
-  name: string;
-  attributes?: unknown[];
+interface PVEventSchema {
+  description?: string;
+  attributes?: Record<string, unknown>;
 }
 
 /**
  * Node's pv metadata with OTEL information
  */
 interface NodePv {
-  events?: PvEvent[];
+  events?: Record<string, PVEventSchema>;
   otel?: {
     resourceMatch?: Record<string, string | number | boolean>;
   };
@@ -56,15 +56,11 @@ export function mapEventToNodeId(
     return null;
   }
 
-  // Strategy 1: Match by event name in pv.events
+  // Strategy 1: Match by event name in pv.events (Record<string, PVEventSchema>)
   for (const node of canvas.nodes) {
     const pvEvents = (node.pv as NodePv | undefined)?.events;
-    if (Array.isArray(pvEvents)) {
-      // Events are defined as: [{ name: "event.name", attributes: [...] }]
-      const hasEvent = pvEvents.some((e: PvEvent) => e.name === event.name);
-      if (hasEvent) {
-        return node.id;
-      }
+    if (pvEvents && typeof pvEvents === 'object' && event.name in pvEvents) {
+      return node.id;
     }
   }
 
@@ -116,11 +112,9 @@ export function buildEventToNodeMap(
 
   for (const node of canvas.nodes) {
     const pvEvents = (node.pv as NodePv | undefined)?.events;
-    if (Array.isArray(pvEvents)) {
-      // Events are defined as: [{ name: "event.name", attributes: [...] }]
-      for (const eventDef of pvEvents) {
-        const eventName = eventDef.name;
-        if (eventName && !map.has(eventName)) {
+    if (pvEvents && typeof pvEvents === 'object') {
+      for (const eventName of Object.keys(pvEvents)) {
+        if (!map.has(eventName)) {
           map.set(eventName, node.id);
         }
       }
@@ -147,11 +141,12 @@ export function debugEventMapping(canvas: ExtendedCanvas | null): string {
 
   for (const node of canvas.nodes) {
     const pvEvents = (node.pv as NodePv | undefined)?.events;
-    if (Array.isArray(pvEvents) && pvEvents.length > 0) {
-      lines.push(`Node: ${node.id}`);
-      for (const eventDef of pvEvents) {
-        if (eventDef.name) {
-          lines.push(`  - ${eventDef.name}`);
+    if (pvEvents && typeof pvEvents === 'object') {
+      const eventNames = Object.keys(pvEvents);
+      if (eventNames.length > 0) {
+        lines.push(`Node: ${node.id}`);
+        for (const eventName of eventNames) {
+          lines.push(`  - ${eventName}`);
         }
       }
     }

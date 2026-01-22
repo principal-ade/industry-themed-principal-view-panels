@@ -15,6 +15,7 @@ interface NarrativeTemplatePanelProps {
   availableExecutions?: ExecutionFile[];
   executionScenarioMap?: Record<string, string>; // Maps execution ID to scenario ID
   onExecutionSelect?: (executionId: string) => void;
+  onScenarioHover?: (eventNames: string[] | null) => void;
 }
 
 /**
@@ -25,20 +26,52 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
   availableExecutions = [],
   executionScenarioMap = {},
   onExecutionSelect,
+  onScenarioHover,
 }) => {
   const { theme } = useTheme();
   const [expandedScenarios, setExpandedScenarios] = useState<Set<string>>(new Set());
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
 
-  const toggleScenario = (scenarioId: string) => {
+  const toggleScenario = (scenarioId: string, scenario: NarrativeScenario) => {
     setExpandedScenarios(prev => {
       const next = new Set(prev);
+      const isExpanding = !next.has(scenarioId);
+
       if (next.has(scenarioId)) {
         next.delete(scenarioId);
+        // Collapsing - clear selection and highlighting
+        setSelectedScenarioId(null);
+        if (onScenarioHover) {
+          onScenarioHover(null);
+        }
       } else {
         next.add(scenarioId);
+        // Expanding - set selection and highlight nodes
+        setSelectedScenarioId(scenarioId);
+        if (onScenarioHover) {
+          const eventNames = getScenarioEventNames(scenario);
+          onScenarioHover(eventNames);
+        }
       }
       return next;
     });
+  };
+
+  // Extract event names from a scenario template
+  const getScenarioEventNames = (scenario: NarrativeScenario): string[] => {
+    const eventNames: string[] = [];
+
+    // Get event names from template.events
+    if (scenario.template.events) {
+      eventNames.push(...Object.keys(scenario.template.events));
+    }
+
+    // Get event names from condition.requires
+    if (scenario.condition.requires) {
+      eventNames.push(...scenario.condition.requires);
+    }
+
+    return eventNames;
   };
 
   // Helper to render text with highlighted template variables
@@ -189,7 +222,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
             >
               {/* Scenario Header - Clickable */}
               <div
-                onClick={() => toggleScenario(scenario.id || String(index))}
+                onClick={() => toggleScenario(scenario.id || String(index), scenario)}
                 style={{
                   padding: '12px',
                   cursor: 'pointer',
@@ -201,9 +234,18 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = theme.colors.backgroundSecondary;
+                  // Only trigger hover preview if no scenario is currently selected (expanded)
+                  if (onScenarioHover && !selectedScenarioId) {
+                    const eventNames = getScenarioEventNames(scenario);
+                    onScenarioHover(eventNames);
+                  }
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = isExpanded ? theme.colors.backgroundSecondary : 'transparent';
+                  // Only clear hover state if no scenario is selected (otherwise keep the selected one highlighted)
+                  if (onScenarioHover && !selectedScenarioId) {
+                    onScenarioHover(null);
+                  }
                 }}
               >
                 {isExpanded ? (

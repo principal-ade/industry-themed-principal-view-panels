@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
@@ -21,6 +21,194 @@ import { NarrativeTemplatePanel } from './execution-viewer/NarrativeTemplatePane
 
 // View mode type (should be exported from react package in future versions)
 export type ViewMode = 'raw' | 'narrative';
+
+/**
+ * Loading skeleton component
+ */
+const LoadingSkeleton: React.FC<{ theme: any }> = ({ theme }) => {
+  const pulseAnimation = {
+    animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+  };
+
+  return (
+    <>
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+        `}
+      </style>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          background: theme.colors.background,
+          color: theme.colors.text,
+        }}
+      >
+        {/* Header Skeleton */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '12px 16px',
+            borderBottom: `1px solid ${theme.colors.border}`,
+            background: '#1a1a1a',
+            gap: '12px',
+          }}
+        >
+          {/* Canvas title placeholder */}
+          <div
+            style={{
+              width: '150px',
+              height: '20px',
+              background: '#2a2a2a',
+              borderRadius: '4px',
+              ...pulseAnimation,
+            }}
+          />
+          {/* Selector placeholders */}
+          <div
+            style={{
+              width: '180px',
+              height: '32px',
+              background: '#2a2a2a',
+              borderRadius: '4px',
+              ...pulseAnimation,
+            }}
+          />
+          <div
+            style={{
+              width: '180px',
+              height: '32px',
+              background: '#2a2a2a',
+              borderRadius: '4px',
+              ...pulseAnimation,
+            }}
+          />
+          {/* Spacer */}
+          <div style={{ flex: 1 }} />
+          {/* Button placeholders */}
+          <div
+            style={{
+              width: '40px',
+              height: '32px',
+              background: '#2a2a2a',
+              borderRadius: '4px',
+              ...pulseAnimation,
+            }}
+          />
+          <div
+            style={{
+              width: '80px',
+              height: '32px',
+              background: '#2a2a2a',
+              borderRadius: '4px',
+              ...pulseAnimation,
+            }}
+          />
+        </div>
+
+        {/* Main Content Skeleton */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* Left sidebar skeleton (40%) */}
+          <div
+            style={{
+              flex: '0 0 40%',
+              borderRight: '1px solid #333',
+              background: '#0a0a0a',
+              padding: '16px',
+            }}
+          >
+            {/* Timeline header placeholder */}
+            <div
+              style={{
+                width: '120px',
+                height: '24px',
+                background: '#2a2a2a',
+                borderRadius: '4px',
+                marginBottom: '16px',
+                ...pulseAnimation,
+              }}
+            />
+            {/* Event item placeholders */}
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                style={{
+                  marginBottom: '12px',
+                  padding: '12px',
+                  background: '#1a1a1a',
+                  borderRadius: '4px',
+                  border: '1px solid #2a2a2a',
+                }}
+              >
+                <div
+                  style={{
+                    width: '80%',
+                    height: '16px',
+                    background: '#2a2a2a',
+                    borderRadius: '4px',
+                    marginBottom: '8px',
+                    ...pulseAnimation,
+                  }}
+                />
+                <div
+                  style={{
+                    width: '60%',
+                    height: '14px',
+                    background: '#2a2a2a',
+                    borderRadius: '4px',
+                    ...pulseAnimation,
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Canvas area skeleton (60%) */}
+          <div
+            style={{
+              flex: '0 0 60%',
+              background: '#0a0a0a',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+            }}
+          >
+            {/* Graph placeholder */}
+            <div
+              style={{
+                width: '80%',
+                height: '80%',
+                background: '#1a1a1a',
+                borderRadius: '8px',
+                border: '1px solid #2a2a2a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                ...pulseAnimation,
+              }}
+            >
+              <div
+                style={{
+                  width: '60%',
+                  height: '60%',
+                  border: '2px solid #2a2a2a',
+                  borderRadius: '50%',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
 
 /**
  * Props for CanvasDetailPanel
@@ -68,6 +256,9 @@ interface CanvasDetailPanelState {
   availableNarratives: NarrativeFile[];
   viewMode: ViewMode;
   executionScenarioMap: Record<string, string>; // Maps execution ID to scenario ID
+  hoveredExecutionId: string | null;
+  hoveredExecution: ExecutionArtifact | null;
+  hoveredScenarioEventNames: string[] | null;
 }
 
 /**
@@ -104,11 +295,14 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     currentSpanIndex: 0,
     currentEventIndex: 0,
     highlightedNodeId: null,
-    showGrid: true,
+    showGrid: false,
     narrativeTemplate: null,
     availableNarratives: [],
     viewMode: 'raw',
     executionScenarioMap: {},
+    hoveredExecutionId: null,
+    hoveredExecution: null,
+    hoveredScenarioEventNames: null,
   });
 
   // Store context and actions in refs
@@ -147,18 +341,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
       } | null;
 
       if (!fileTreeData?.allFiles) {
-        setState(prev => ({
-          ...prev,
-          canvas: null,
-          execution: null,
-          metadata: null,
-          loading: false,
-          error: null,
-          selectedCanvasId: null,
-          canvasName: null,
-          availableExecutions: [],
-          selectedExecutionId: null,
-        }));
+        // Keep loading state true while waiting for file tree data
         return;
       }
 
@@ -413,6 +596,192 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     });
   }, []);
 
+  // Handle narrative event click - highlight corresponding canvas node
+  const handleNarrativeEventClick = useCallback((event: import('@principal-ai/principal-view-core/browser').OtelEvent, eventIndex: number) => {
+    setState(prev => {
+      const nodeId = mapEventToNodeId({ name: event.name, time: Number(event.timestamp), attributes: event.attributes as any }, prev.canvas);
+      return {
+        ...prev,
+        highlightedNodeId: nodeId,
+        currentEventIndex: eventIndex,
+      };
+    });
+  }, []);
+
+  // Handle node click on canvas - find corresponding event and highlight narrative
+  const handleNodeClick = useCallback((nodeId: string, event: React.MouseEvent) => {
+    // Handle shift+click to open source files
+    if (event.shiftKey) {
+      setState(prev => {
+        if (!prev.canvas) return prev;
+
+        // Find the node in the canvas
+        const node = prev.canvas.nodes?.find(n => n.id === nodeId);
+        if (!node) return prev;
+
+        // Extract sources from node.pv or node.data.pv
+        const nodePv = (node as any).pv || ((node as any).data as any)?.pv;
+        const sources = nodePv?.sources as string[] | undefined;
+
+        if (sources && sources.length > 0) {
+          // Take first source and clean up any glob patterns
+          const sourcePath = sources[0];
+          // Remove glob patterns (* characters) to get the base path
+          const cleanPath = sourcePath.replace(/\*/g, '');
+
+          console.log('[CanvasDetailPanel] Shift+click - opening source:', cleanPath);
+
+          // Emit file:open event (same as git changes panel)
+          // Pass relative path, not absolute - the context will resolve it
+          if (eventsRef.current) {
+            eventsRef.current.emit({
+              type: 'file:open',
+              source: 'canvas-detail-panel',
+              timestamp: Date.now(),
+              payload: { path: cleanPath },
+            });
+          }
+        }
+
+        return prev;
+      });
+      return;
+    }
+
+    // Regular click - highlight corresponding narrative
+    setState(prev => {
+      if (!prev.execution || !prev.canvas) return prev;
+
+      const spans = ExecutionLoader.getSpans(prev.execution);
+      const allEvents: Array<{ name: string; time: number; attributes?: any }> = [];
+
+      // Collect all events from all spans
+      for (const span of spans) {
+        if (span.events) {
+          for (const event of span.events) {
+            allEvents.push({
+              name: event.name,
+              time: event.time,
+              attributes: event.attributes,
+            });
+          }
+        }
+      }
+
+      // Find the first event that maps to this node
+      const eventIndex = allEvents.findIndex(event => {
+        const mappedNodeId = mapEventToNodeId(event, prev.canvas);
+        return mappedNodeId === nodeId;
+      });
+
+      if (eventIndex >= 0) {
+        return {
+          ...prev,
+          highlightedNodeId: nodeId,
+          currentEventIndex: eventIndex,
+        };
+      }
+
+      return prev;
+    });
+  }, []);
+
+  // Handle scenario hover - highlight nodes that have events matching the scenario
+  const handleScenarioHover = useCallback((eventNames: string[] | null) => {
+    setState(prev => ({
+      ...prev,
+      hoveredScenarioEventNames: eventNames,
+    }));
+  }, []);
+
+  // Calculate active node IDs from current execution events (or hovered execution/scenario for preview)
+  const activeNodeIds = useMemo(() => {
+    if (!state.canvas) return null;
+
+    // Priority 1: Hovered execution preview
+    if (state.hoveredExecution) {
+      const spans = ExecutionLoader.getSpans(state.hoveredExecution);
+      const allEvents: Array<{ name: string; time: number; attributes?: any }> = [];
+
+      for (const span of spans) {
+        if (span.events) {
+          for (const event of span.events) {
+            allEvents.push({
+              name: event.name,
+              time: event.time,
+              attributes: event.attributes,
+            });
+          }
+        }
+      }
+
+      const activeIds = new Set<string>();
+      for (const event of allEvents) {
+        const nodeId = mapEventToNodeId(event, state.canvas);
+        if (nodeId) {
+          activeIds.add(nodeId);
+        }
+      }
+
+      return activeIds.size > 0 ? Array.from(activeIds) : null;
+    }
+
+    // Priority 2: Hovered scenario preview (find nodes with matching events)
+    if (state.hoveredScenarioEventNames && state.hoveredScenarioEventNames.length > 0) {
+      const activeIds = new Set<string>();
+
+      // Check each node to see if it has any of the scenario's events
+      for (const node of state.canvas.nodes || []) {
+        // Try both node.data.pv and node.pv (canvas format can vary)
+        const nodePv = (node as any).pv || ((node as any).data as any)?.pv;
+        const nodeEvents = nodePv?.events;
+
+        if (nodeEvents) {
+          const nodeEventNames = Object.keys(nodeEvents);
+          // If this node has any of the scenario's events, mark it as active
+          const hasMatchingEvent = state.hoveredScenarioEventNames.some(eventName =>
+            nodeEventNames.includes(eventName)
+          );
+          if (hasMatchingEvent) {
+            activeIds.add(node.id);
+          }
+        }
+      }
+
+      return activeIds.size > 0 ? Array.from(activeIds) : null;
+    }
+
+    // Priority 3: Currently selected execution
+    if (state.execution) {
+      const spans = ExecutionLoader.getSpans(state.execution);
+      const allEvents: Array<{ name: string; time: number; attributes?: any }> = [];
+
+      for (const span of spans) {
+        if (span.events) {
+          for (const event of span.events) {
+            allEvents.push({
+              name: event.name,
+              time: event.time,
+              attributes: event.attributes,
+            });
+          }
+        }
+      }
+
+      const activeIds = new Set<string>();
+      for (const event of allEvents) {
+        const nodeId = mapEventToNodeId(event, state.canvas);
+        if (nodeId) {
+          activeIds.add(nodeId);
+        }
+      }
+
+      return activeIds.size > 0 ? Array.from(activeIds) : null;
+    }
+
+    return null;
+  }, [state.execution, state.canvas, state.hoveredExecution, state.hoveredScenarioEventNames]);
+
   // Playback effect
   useEffect(() => {
     if (!state.isPlaying || !state.execution) {
@@ -472,30 +841,9 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     };
   }, [state.isPlaying, state.execution]);
 
-  // Render empty state when no canvas is loaded
-  if (!state.loading && !state.canvas) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          background: theme.colors.background,
-          color: theme.colors.text,
-        }}
-      >
-        <div style={{ textAlign: 'center', maxWidth: '600px', padding: '20px' }}>
-          <Activity size={48} style={{ margin: '0 auto 20px', opacity: 0.3 }} />
-          <h2 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: 600 }}>
-            No Canvas Selected
-          </h2>
-          <p style={{ margin: '0 0 20px 0', color: theme.colors.textSecondary, lineHeight: 1.5 }}>
-            Select a canvas from the Canvas List panel to view execution artifacts and narratives.
-          </p>
-        </div>
-      </div>
-    );
+  // Render loading state first - highest priority
+  if (state.loading) {
+    return <LoadingSkeleton theme={theme} />;
   }
 
   // Render error state
@@ -519,8 +867,8 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     );
   }
 
-  // Render loading state
-  if (state.loading) {
+  // Render empty state when no canvas is loaded
+  if (!state.canvas) {
     return (
       <div
         style={{
@@ -532,7 +880,15 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           color: theme.colors.text,
         }}
       >
-        <Loader className="animate-spin" size={32} />
+        <div style={{ textAlign: 'center', maxWidth: '600px', padding: '20px' }}>
+          <Activity size={48} style={{ margin: '0 auto 20px', opacity: 0.3 }} />
+          <h2 style={{ margin: '0 0 10px 0', fontSize: '18px', fontWeight: 600 }}>
+            No Canvas Selected
+          </h2>
+          <p style={{ margin: '0 0 20px 0', color: theme.colors.textSecondary, lineHeight: 1.5 }}>
+            Select a canvas from the Canvas List panel to view execution artifacts and narratives.
+          </p>
+        </div>
       </div>
     );
   }
@@ -757,6 +1113,37 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                   {state.availableExecutions.map((execution) => (
                     <button
                       key={execution.id}
+                      onMouseEnter={async () => {
+                        // Load the execution for preview (hover)
+                        try {
+                          const ctx = contextRef.current;
+                          const acts = actionsRef.current;
+                          const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
+                          const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
+
+                          if (readFile && repositoryPath) {
+                            const fullExecutionPath = `${repositoryPath}/${execution.path}`;
+                            const executionContent = await readFile(fullExecutionPath);
+                            if (executionContent && typeof executionContent === 'string') {
+                              const executionArtifact = ExecutionLoader.parseExecutionArtifact(executionContent);
+                              setState(prev => ({
+                                ...prev,
+                                hoveredExecutionId: execution.id,
+                                hoveredExecution: executionArtifact,
+                              }));
+                            }
+                          }
+                        } catch (error) {
+                          console.error('[ExecutionViewer] Failed to load execution for preview:', error);
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        setState(prev => ({
+                          ...prev,
+                          hoveredExecutionId: null,
+                          hoveredExecution: null,
+                        }));
+                      }}
                       onClick={async () => {
                         // Load the selected execution
                         try {
@@ -781,6 +1168,8 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                                 currentSpanIndex: 0,
                                 currentEventIndex: 0,
                                 highlightedNodeId: null,
+                                hoveredExecutionId: null,
+                                hoveredExecution: null,
                               }));
                             }
                           }
@@ -933,6 +1322,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                 narrativeTemplate={state.narrativeTemplate ?? undefined}
                 viewMode={state.viewMode}
                 onViewModeChange={handleViewModeChange}
+                onNarrativeEventClick={handleNarrativeEventClick}
                 showNavigation={ExecutionLoader.getSpans(state.execution).length > 1}
                 showTestName={false}
               />
@@ -942,6 +1332,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                 availableExecutions={state.availableExecutions}
                 executionScenarioMap={state.executionScenarioMap}
                 onExecutionSelect={handleExecutionSelect}
+                onScenarioHover={handleScenarioHover}
               />
             ) : (
               <div
@@ -1004,6 +1395,8 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
               backgroundVariant="lines"
               showTooltips={true}
               highlightedNodeId={state.highlightedNodeId}
+              activeNodeIds={activeNodeIds}
+              onNodeClick={handleNodeClick}
             />
           </div>
         ) : (

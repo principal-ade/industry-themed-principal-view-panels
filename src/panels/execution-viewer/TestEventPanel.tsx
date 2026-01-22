@@ -66,6 +66,7 @@ export interface TestEventPanelProps {
   narrativeTemplate?: NarrativeTemplate;
   onViewModeChange?: (mode: ViewMode) => void;
   showNarrativeMetadata?: boolean;
+  onNarrativeEventClick?: (event: import('@principal-ai/principal-view-core/browser').OtelEvent, eventIndex: number) => void;
 
   // UI control props
   showNavigation?: boolean; // Show Prev/Next buttons (default: true)
@@ -101,13 +102,14 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
   spans,
   logs = [],
   currentSpanIndex,
-  currentEventIndex: _currentEventIndex,
+  currentEventIndex,
   highlightedPhase,
   onSpanIndexChange,
   viewMode = 'raw',
   narrativeTemplate,
   onViewModeChange,
   showNarrativeMetadata = false,
+  onNarrativeEventClick,
   showNavigation = true,
   showTestName = true,
 }) => {
@@ -380,6 +382,8 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
             template={narrativeTemplate}
             events={otelEvents}
             showMetadata={showNarrativeMetadata}
+            onEventClick={onNarrativeEventClick}
+            activeEventIndex={currentEventIndex}
           />
         ) : viewMode === 'narrative' && !narrativeTemplate ? (
           <div

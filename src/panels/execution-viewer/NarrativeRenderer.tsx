@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { renderNarrative } from '@principal-ai/principal-view-core/browser';
+import { renderNarrative, parseTemplate, selectScenario, computeAggregates } from '@principal-ai/principal-view-core/browser';
 import type { NarrativeTemplate, OtelEvent } from '@principal-ai/principal-view-core/browser';
 import { useTheme } from '@principal-ade/industry-theme';
 
@@ -18,6 +18,12 @@ export interface NarrativeRendererProps {
 
   /** Show metadata panel */
   showMetadata?: boolean;
+
+  /** Callback when a narrative step is clicked - receives the event that triggered it */
+  onEventClick?: (event: OtelEvent, eventIndex: number) => void;
+
+  /** Current active event index (to highlight the corresponding narrative step) */
+  activeEventIndex?: number;
 }
 
 /**
@@ -29,16 +35,26 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
   className,
   style,
   showMetadata = false,
+  onEventClick,
+  activeEventIndex,
 }) => {
   const { theme } = useTheme();
+  const activeEventRef = React.useRef<HTMLDivElement>(null);
 
-  // Render the narrative
+  // Scroll to active event when it changes
+  React.useEffect(() => {
+    if (activeEventRef.current && activeEventIndex !== undefined) {
+      activeEventRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [activeEventIndex]);
+
+  // Get the scenario and metadata
   const result = useMemo(() => {
     try {
       const rendered = renderNarrative(template, events);
-
-      // Check for unresolved template variables (still in {variable} format)
-      // or evaluation errors ({ERROR: ...})
       const hasMissingVars = /\{[^}]*\}/.test(rendered.text) || rendered.text.includes('{ERROR:');
 
       return {
@@ -59,11 +75,124 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
     }
   }, [template, events]) as ReturnType<typeof renderNarrative> & { hasMissingVars: boolean };
 
-  // Parse narrative text to add syntax highlighting with enhanced structure
-  const renderHighlightedText = (text: string) => {
-    const lines = text.split('\n');
+  // Get the matched scenario for rendering individual events
+  const scenario = useMemo(() => {
+    const aggregates = computeAggregates(events);
+    const matchResult = selectScenario(template, events, aggregates);
+    return matchResult.scenario;
+  }, [template, events]);
+
+  // Render narrative by rendering each event template individually
+  const renderNarrativeContent = () => {
     const elements: React.ReactNode[] = [];
     let stepCounter = 0;
+
+    // Render introduction
+    if (scenario.template.introduction) {
+      const introduction = parseTemplate(scenario.template.introduction, {});
+      elements.push(
+        <div key="introduction">
+          {renderFormattedText(introduction)}
+        </div>
+      );
+    }
+
+    // Render each event as a clickable block
+    const sortedEvents = [...events].sort((a, b) => {
+      const aTime = typeof a.timestamp === 'number' ? a.timestamp : Date.parse(a.timestamp);
+      const bTime = typeof b.timestamp === 'number' ? b.timestamp : Date.parse(b.timestamp);
+      return aTime - bTime;
+    });
+
+    sortedEvents.forEach((event, eventIndex) => {
+      const eventTemplate = scenario.template.events?.[event.name];
+      if (!eventTemplate) return;
+
+      stepCounter++;
+
+      // Parse template with event attributes
+      const eventContext = { ...event.attributes };
+      const renderedText = parseTemplate(eventTemplate, eventContext);
+
+      // Make the entire event block clickable
+      elements.push(
+        <div
+          key={`event-${eventIndex}`}
+          ref={activeEventIndex === eventIndex ? activeEventRef : null}
+          onClick={() => {
+            if (onEventClick) {
+              onEventClick(event, eventIndex);
+            }
+          }}
+          style={{
+            display: 'flex',
+            gap: '12px',
+            marginTop: '16px',
+            alignItems: 'center',
+            cursor: onEventClick ? 'pointer' : 'default',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          {/* Step number badge */}
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: activeEventIndex === eventIndex ? '#fff' : theme.colors.primary,
+              color: activeEventIndex === eventIndex ? theme.colors.primary : '#fff',
+              border: activeEventIndex === eventIndex ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '13px',
+              fontWeight: 700,
+              flexShrink: 0,
+              boxShadow: activeEventIndex === eventIndex ? `0 0 0 3px ${theme.colors.primary}33` : 'none',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {stepCounter}
+          </div>
+
+          {/* Event content card */}
+          <div
+            style={{
+              flex: 1,
+              padding: '12px 16px',
+              backgroundColor: activeEventIndex === eventIndex ? theme.colors.surface : theme.colors.backgroundSecondary,
+              border: activeEventIndex === eventIndex ? `2px solid ${theme.colors.primary}` : `2px solid ${theme.colors.border}`,
+              borderRadius: '6px',
+              fontSize: '15px',
+              lineHeight: '1.6',
+              fontWeight: 500,
+              transition: 'background-color 0.2s ease, border-color 0.2s ease',
+              boxShadow: activeEventIndex === eventIndex ? `0 0 0 3px ${theme.colors.primary}33` : 'none',
+            }}
+          >
+            {renderFormattedText(renderedText)}
+          </div>
+        </div>
+      );
+    });
+
+    // Render summary
+    if (scenario.template.summary) {
+      const summary = parseTemplate(scenario.template.summary, {});
+      elements.push(
+        <div key="summary" style={{ marginTop: '24px' }}>
+          {renderFormattedText(summary)}
+        </div>
+      );
+    }
+
+    return elements;
+  };
+
+  // Render formatted text (handles emojis, separators, bullets)
+  const renderFormattedText = (text: string) => {
+    const lines = text.split('\n');
+    const elements: React.ReactNode[] = [];
 
     for (let idx = 0; idx < lines.length; idx++) {
       const line = lines[idx];
@@ -74,7 +203,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
         continue;
       }
 
-      // Status indicators (✅ ❌ ⚠️ 📋) - Introduction/Title
+      // Status indicators (✅ ❌ ⚠️ 📋) - Headers/Titles
       if (/^[✅❌⚠️📋]/.test(line)) {
         elements.push(
           <div
@@ -92,7 +221,6 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
             {highlightVariables(line)}
           </div>
         );
-        stepCounter = 0; // Reset step counter after title
       }
       // Separators (━━━━)
       else if (/^━+/.test(line)) {
@@ -108,89 +236,16 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
           />
         );
       }
-      // Arrow items (→) - Flow steps with card layout
-      else if (/^(\s*)→/.test(line)) {
-        const indent = line.match(/^(\s*)/)?.[1] || '';
-        const isMainStep = indent.length === 0;
-
-        if (isMainStep) {
-          stepCounter++;
-        }
-
-        const content = line.replace(/^(\s*)→\s*/, '');
-
-        elements.push(
-          <div
-            key={idx}
-            style={{
-              display: 'flex',
-              gap: '12px',
-              marginTop: isMainStep ? '16px' : '8px',
-              marginLeft: isMainStep ? '0' : '40px',
-              alignItems: 'flex-start',
-            }}
-          >
-            {/* Step indicator */}
-            {isMainStep && (
-              <div
-                style={{
-                  minWidth: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  backgroundColor: theme.colors.primary,
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  flexShrink: 0,
-                }}
-              >
-                {stepCounter}
-              </div>
-            )}
-            {!isMainStep && (
-              <div
-                style={{
-                  minWidth: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: theme.colors.textSecondary,
-                  marginTop: '8px',
-                  flexShrink: 0,
-                }}
-              />
-            )}
-
-            {/* Step content card */}
-            <div
-              style={{
-                flex: 1,
-                padding: isMainStep ? '12px 16px' : '8px 12px',
-                backgroundColor: isMainStep ? theme.colors.backgroundSecondary : 'transparent',
-                border: isMainStep ? `1px solid ${theme.colors.border}` : 'none',
-                borderRadius: '6px',
-                fontSize: isMainStep ? '15px' : '14px',
-                lineHeight: '1.6',
-                fontWeight: isMainStep ? 500 : 400,
-              }}
-            >
-              {highlightVariables(content)}
-            </div>
-          </div>
-        );
-      }
       // Bullet items (•)
-      else if (/^\s+•/.test(line)) {
-        const content = line.replace(/^\s+•\s*/, '');
+      else if (/^\s*•/.test(line)) {
+        const content = line.replace(/^\s*•\s*/, '');
         elements.push(
           <div
             key={idx}
             style={{
               display: 'flex',
               gap: '8px',
-              marginLeft: '40px',
+              marginLeft: '8px',
               marginTop: '6px',
               alignItems: 'flex-start',
             }}
@@ -202,26 +257,6 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
           </div>
         );
       }
-      // Section headers (UPPERCASE at start)
-      else if (/^[A-Z\s]+:/.test(line)) {
-        elements.push(
-          <div
-            key={idx}
-            style={{
-              fontSize: '14px',
-              fontWeight: 700,
-              marginTop: '24px',
-              marginBottom: '12px',
-              color: theme.colors.text,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              opacity: 0.8,
-            }}
-          >
-            {highlightVariables(line)}
-          </div>
-        );
-      }
       // Regular text
       else {
         elements.push(
@@ -230,8 +265,8 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
             style={{
               fontSize: '14px',
               lineHeight: '1.7',
-              color: theme.colors.textSecondary,
-              marginTop: '8px',
+              color: theme.colors.text,
+              marginTop: '4px',
             }}
           >
             {highlightVariables(line)}
@@ -240,7 +275,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
       }
     }
 
-    return elements;
+    return <>{elements}</>;
   };
 
   // Highlight dynamic variable values in the text
@@ -370,7 +405,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
           backgroundColor: theme.colors.background,
         }}
       >
-        {renderHighlightedText(result.text)}
+        {renderNarrativeContent()}
       </div>
 
       {/* Metadata Panel (optional) */}
