@@ -948,9 +948,9 @@ export const Step3_SuccessfulCheckout: Story = {
         content: JSON.stringify(checkoutNarrative),
       },
       {
-        path: '.principal-views/__executions__/checkout-success.spans.json',
-        relativePath: '.principal-views/__executions__/checkout-success.spans.json',
-        name: 'checkout-success.spans.json',
+        path: '.principal-views/__executions__/checkout-success.otel.json',
+        relativePath: '.principal-views/__executions__/checkout-success.otel.json',
+        name: 'checkout-success.otel.json',
         content: JSON.stringify(successfulCheckout),
       },
     ]);
@@ -1001,9 +1001,9 @@ export const Scenario_PaymentDeclined: Story = {
         content: JSON.stringify(checkoutNarrative),
       },
       {
-        path: '.principal-views/__executions__/checkout-payment-declined.spans.json',
-        relativePath: '.principal-views/__executions__/checkout-payment-declined.spans.json',
-        name: 'checkout-payment-declined.spans.json',
+        path: '.principal-views/__executions__/checkout-payment-declined.otel.json',
+        relativePath: '.principal-views/__executions__/checkout-payment-declined.otel.json',
+        name: 'checkout-payment-declined.otel.json',
         content: JSON.stringify(paymentDeclinedCheckout),
       },
     ]);
@@ -1053,9 +1053,9 @@ export const Scenario_InsufficientInventory: Story = {
         content: JSON.stringify(checkoutNarrative),
       },
       {
-        path: '.principal-views/__executions__/checkout-insufficient-inventory.spans.json',
-        relativePath: '.principal-views/__executions__/checkout-insufficient-inventory.spans.json',
-        name: 'checkout-insufficient-inventory.spans.json',
+        path: '.principal-views/__executions__/checkout-insufficient-inventory.otel.json',
+        relativePath: '.principal-views/__executions__/checkout-insufficient-inventory.otel.json',
+        name: 'checkout-insufficient-inventory.otel.json',
         content: JSON.stringify(insufficientInventoryCheckout),
       },
     ]);
@@ -1105,9 +1105,9 @@ export const Scenario_Timeout: Story = {
         content: JSON.stringify(checkoutNarrative),
       },
       {
-        path: '.principal-views/__executions__/checkout-timeout.spans.json',
-        relativePath: '.principal-views/__executions__/checkout-timeout.spans.json',
-        name: 'checkout-timeout.spans.json',
+        path: '.principal-views/__executions__/checkout-timeout.otel.json',
+        relativePath: '.principal-views/__executions__/checkout-timeout.otel.json',
+        name: 'checkout-timeout.otel.json',
         content: JSON.stringify(timeoutCheckout),
       },
     ]);

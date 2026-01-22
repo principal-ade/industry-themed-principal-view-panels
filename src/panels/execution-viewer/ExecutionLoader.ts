@@ -75,14 +75,15 @@ export interface ExecutionArtifact {
 
 /**
  * Patterns for finding execution artifact files
+ * Only .otel.json files are supported
  */
 const EXECUTION_FILE_PATTERNS = [
-  // Packages monorepo pattern: packages/core/__executions__/api-tests.spans.json
-  /^packages\/([^/]+)\/__executions__\/(.+)\.(?:spans|execution|events|otel)\.json$/,
-  // Inside .principal-views: .principal-views/__executions__/graph-converter.spans.json
-  /^\.principal-views\/__executions__\/(.+)\.(?:spans|execution|events|otel)\.json$/,
-  // Direct __executions__ folder: __executions__/test-run.spans.json
-  /^__executions__\/(.+)\.(?:spans|execution|events|otel)\.json$/,
+  // Packages monorepo pattern: packages/core/__executions__/api-tests.otel.json
+  /^packages\/([^/]+)\/__executions__\/(.+)\.otel\.json$/,
+  // Inside .principal-views: .principal-views/__executions__/graph-converter.otel.json
+  /^\.principal-views\/__executions__\/(.+)\.otel\.json$/,
+  // Direct __executions__ folder: __executions__/test-run.otel.json
+  /^__executions__\/(.+)\.otel\.json$/,
 ];
 
 /**
@@ -91,7 +92,7 @@ const EXECUTION_FILE_PATTERNS = [
 function getExecutionNameFromFilename(filename: string): string {
   // Convert kebab-case to Title Case for display
   return filename
-    .replace(/\.(?:spans|execution|events|otel)\.json$/, '')
+    .replace(/\.otel\.json$/, '')
     .split('-')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
@@ -101,7 +102,7 @@ function getExecutionNameFromFilename(filename: string): string {
  * Extract canvas basename from execution filename
  */
 function getCanvasBasename(filename: string): string {
-  return filename.replace(/\.(?:spans|execution|events|otel)\.json$/, '');
+  return filename.replace(/\.otel\.json$/, '');
 }
 
 /**
@@ -187,16 +188,16 @@ export class ExecutionLoader {
           let baseName: string;
 
           if (pattern === EXECUTION_FILE_PATTERNS[0]) {
-            // Packages pattern: packages/core/__executions__/test-run.spans.json
+            // Packages pattern: packages/core/__executions__/test-run.otel.json
             packageName = match[1];
             baseName = match[2];
             id = `${packageName}-${baseName}`;
           } else if (pattern === EXECUTION_FILE_PATTERNS[1]) {
-            // .principal-views pattern: .principal-views/__executions__/test-run.spans.json
+            // .principal-views pattern: .principal-views/__executions__/test-run.otel.json
             baseName = match[1];
             id = `pv-${baseName}`;
           } else {
-            // Direct pattern: __executions__/test-run.spans.json
+            // Direct pattern: __executions__/test-run.otel.json
             baseName = match[1];
             id = baseName;
           }

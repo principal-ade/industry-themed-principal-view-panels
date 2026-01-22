@@ -1368,7 +1368,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                     <div># Save execution artifacts to:</div>
                     <div style={{ marginTop: '4px' }}>__executions__/*.otel.json</div>
                     <div>packages/*/__executions__/*.otel.json</div>
-                    <div style={{ color: '#888', fontSize: '10px', marginTop: '4px' }}># Also supports: *.spans.json, *.execution.json, *.events.json</div>
+                    <div style={{ color: '#888', fontSize: '10px', marginTop: '4px' }}># Only .otel.json files are supported</div>
                   </div>
                   <p style={{ margin: 0, color: '#666', fontSize: '11px', fontStyle: 'italic' }}>
                     Tip: Use exportExecutionArtifact() in your tests
