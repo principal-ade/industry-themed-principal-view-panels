@@ -1,4 +1,5 @@
 import type { OtelAttributes } from '@principal-ai/principal-view-core/browser';
+import { ExecutionValidator } from '@principal-ai/principal-view-core/browser';
 
 export interface ExecutionFile {
   /** Unique identifier for this execution (derived from filename) */
@@ -110,12 +111,15 @@ function getCanvasBasename(filename: string): string {
  */
 export class ExecutionLoader {
   /**
-   * Parse JSON execution artifact content
+   * Parse and validate JSON execution artifact content
+   * Automatically handles OTLP format conversion
    */
   static parseExecutionArtifact(content: string): ExecutionArtifact {
     try {
       const parsed = JSON.parse(content);
-      return parsed as ExecutionArtifact;
+      const validator = new ExecutionValidator();
+      const executionData = validator.validateOrThrow(parsed);
+      return executionData as ExecutionArtifact;
     } catch (error) {
       throw new Error(`Failed to parse execution artifact JSON: ${(error as Error).message}`);
     }
