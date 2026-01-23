@@ -75,11 +75,11 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
     }
   }, [template, events]) as ReturnType<typeof renderNarrative> & { hasMissingVars: boolean };
 
-  // Get the matched scenario for rendering individual events
-  const scenario = useMemo(() => {
-    const aggregates = computeAggregates(events);
-    const matchResult = selectScenario(template, events, aggregates);
-    return matchResult.scenario;
+  // Get the matched scenario and aggregates for rendering individual events
+  const { scenario, aggregates } = useMemo(() => {
+    const agg = computeAggregates(events);
+    const matchResult = selectScenario(template, events, agg);
+    return { scenario: matchResult.scenario, aggregates: agg };
   }, [template, events]);
 
   // Render narrative by rendering each event template individually
@@ -87,9 +87,16 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
     const elements: React.ReactNode[] = [];
     let stepCounter = 0;
 
+    // Build full context with aggregates
+    const fullContext = {
+      ...aggregates,
+      events,
+      totalEvents: events.length,
+    };
+
     // Render introduction
     if (scenario.template.introduction) {
-      const introduction = parseTemplate(scenario.template.introduction, {});
+      const introduction = parseTemplate(scenario.template.introduction, fullContext);
       elements.push(
         <div key="introduction">
           {renderFormattedText(introduction)}
@@ -110,8 +117,8 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
 
       stepCounter++;
 
-      // Parse template with event attributes
-      const eventContext = { ...event.attributes };
+      // Parse template with full context (aggregates + event attributes)
+      const eventContext = { ...fullContext, ...event.attributes };
       const renderedText = parseTemplate(eventTemplate, eventContext);
 
       // Make the entire event block clickable
@@ -178,7 +185,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
 
     // Render summary
     if (scenario.template.summary) {
-      const summary = parseTemplate(scenario.template.summary, {});
+      const summary = parseTemplate(scenario.template.summary, fullContext);
       elements.push(
         <div key="summary" style={{ marginTop: '24px' }}>
           {renderFormattedText(summary)}
