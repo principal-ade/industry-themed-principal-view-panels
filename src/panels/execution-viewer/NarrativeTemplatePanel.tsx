@@ -99,7 +99,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
         <div
           style={{
             marginTop: '4px',
-            fontSize: '12px',
+            fontSize: theme.fontSizes[1],
             color: theme.colors.textSecondary,
             fontFamily: theme.fonts.monospace,
             padding: '4px 8px',
@@ -140,7 +140,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
       <div
         style={{
           marginTop: '4px',
-          fontSize: '12px',
+          fontSize: theme.fontSizes[1],
           color: theme.colors.textSecondary,
           fontFamily: theme.fonts.monospace,
           padding: '4px 8px',
@@ -170,7 +170,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
         style={{
           padding: '16px',
           borderBottom: `1px solid ${theme.colors.border}`,
-          background: theme.colors.background,
+          background: theme.colors.backgroundSecondary,
           flexShrink: 0,
         }}
       >
@@ -183,9 +183,9 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
           <p
             style={{
               margin: '8px 0 0 0',
-              fontSize: '13px',
+              fontSize: theme.fontSizes[1],
               color: theme.colors.textSecondary,
-              lineHeight: 1.5,
+              lineHeight: theme.lineHeights.body,
             }}
           >
             {narrativeTemplate.description}
@@ -194,18 +194,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
       </div>
 
       {/* Scenarios - Scrollable */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
-        <h3
-          style={{
-            margin: '0 0 12px 0',
-            fontSize: '14px',
-            fontWeight: 600,
-            color: theme.colors.text,
-          }}
-        >
-          Scenarios ({narrativeTemplate.scenarios?.length || 0})
-        </h3>
-
+      <div style={{ flex: 1, overflow: 'auto' }}>
         {narrativeTemplate.scenarios?.map((scenario, index) => {
           const isExpanded = expandedScenarios.has(scenario.id || String(index));
 
@@ -213,10 +202,8 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
             <div
               key={scenario.id || index}
               style={{
-                marginBottom: '16px',
                 background: theme.colors.background,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: '6px',
+                borderBottom: `1px solid ${theme.colors.border}`,
                 overflow: 'hidden',
               }}
             >
@@ -228,7 +215,6 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
                   transition: 'background 0.2s',
                   background: isExpanded ? theme.colors.backgroundSecondary : 'transparent',
                 }}
@@ -248,20 +234,10 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                   }
                 }}
               >
-                {isExpanded ? (
-                  <ChevronDown size={16} style={{ color: theme.colors.textSecondary, flexShrink: 0 }} />
-                ) : (
-                  <ChevronRight size={16} style={{ color: theme.colors.textSecondary, flexShrink: 0 }} />
-                )}
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>
-                    {scenario.id} (Priority: {scenario.priority})
+                  <h3 style={{ margin: 0, fontSize: theme.fontSizes[1], fontWeight: 600 }}>
+                    {scenario.id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                   </h3>
-                  {scenario.description && (
-                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: theme.colors.textSecondary }}>
-                      {scenario.description}
-                    </p>
-                  )}
                 </div>
               </div>
 
@@ -272,7 +248,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                   <div style={{ marginBottom: '12px' }}>
                     <div
                       style={{
-                        fontSize: '11px',
+                        fontSize: theme.fontSizes[0],
                         fontWeight: 600,
                         color: theme.colors.textSecondary,
                         marginBottom: '6px',
@@ -289,7 +265,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                   <div>
                     <div
                       style={{
-                        fontSize: '11px',
+                        fontSize: theme.fontSizes[0],
                         fontWeight: 600,
                         color: theme.colors.textSecondary,
                         marginBottom: '6px',
@@ -303,10 +279,10 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                     {/* Introduction */}
                     {scenario.template.introduction && (
                       <div style={{ marginBottom: '8px' }}>
-                        <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '2px' }}>Introduction:</div>
+                        <div style={{ fontSize: theme.fontSizes[0], color: theme.colors.textSecondary, marginBottom: '2px' }}>Introduction:</div>
                         <div
                           style={{
-                            fontSize: '12px',
+                            fontSize: theme.fontSizes[1],
                             color: theme.colors.text,
                             fontFamily: theme.fonts.monospace,
                             padding: '6px 8px',
@@ -323,10 +299,10 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                     {/* Summary */}
                     {scenario.template.summary && (
                       <div style={{ marginBottom: '8px' }}>
-                        <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '2px' }}>Summary (closing):</div>
+                        <div style={{ fontSize: theme.fontSizes[0], color: theme.colors.textSecondary, marginBottom: '2px' }}>Summary (closing):</div>
                         <div
                           style={{
-                            fontSize: '12px',
+                            fontSize: theme.fontSizes[1],
                             color: theme.colors.text,
                             fontFamily: theme.fonts.monospace,
                             padding: '6px 8px',
@@ -343,7 +319,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                     {/* Flow */}
                     {scenario.template.flow && scenario.template.flow.length > 0 && (
                       <div style={{ marginBottom: '8px' }}>
-                        <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '4px' }}>
+                        <div style={{ fontSize: theme.fontSizes[0], color: theme.colors.textSecondary, marginBottom: '4px' }}>
                           Flow ({scenario.template.flow.length}):
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -351,7 +327,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                             <div
                               key={i}
                               style={{
-                                fontSize: '12px',
+                                fontSize: theme.fontSizes[1],
                                 color: theme.colors.textSecondary,
                                 fontFamily: theme.fonts.monospace,
                                 padding: '4px 8px',
@@ -375,10 +351,10 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                     {/* Events */}
                     {scenario.template.events && Object.keys(scenario.template.events).length > 0 && (
                       <div style={{ marginBottom: '8px' }}>
-                        <div style={{ fontSize: '11px', color: theme.colors.textSecondary, marginBottom: '4px' }}>Event Templates:</div>
+                        <div style={{ fontSize: theme.fontSizes[0], color: theme.colors.textSecondary, marginBottom: '4px' }}>Event Templates:</div>
                         <div
                           style={{
-                            fontSize: '12px',
+                            fontSize: theme.fontSizes[1],
                             fontFamily: theme.fonts.monospace,
                             padding: '6px 8px',
                             background: theme.colors.background,
@@ -405,7 +381,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                         <div>
                           <div
                             style={{
-                              fontSize: '11px',
+                              fontSize: theme.fontSizes[0],
                               color: theme.colors.textSecondary,
                               marginBottom: '4px',
                               display: 'flex',
@@ -422,7 +398,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
                                 key={exec.id}
                                 onClick={() => onExecutionSelect?.(exec.id)}
                                 style={{
-                                  fontSize: '12px',
+                                  fontSize: theme.fontSizes[1],
                                   padding: '6px 8px',
                                   background: theme.colors.background,
                                   border: `1px solid ${theme.colors.border}`,

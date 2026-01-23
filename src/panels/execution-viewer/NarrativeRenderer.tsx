@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { renderNarrative, parseTemplate, selectScenario, computeAggregates } from '@principal-ai/principal-view-core/browser';
-import type { NarrativeTemplate, OtelEvent } from '@principal-ai/principal-view-core/browser';
+import type { NarrativeTemplate, OtelEvent, NarrativeScenario } from '@principal-ai/principal-view-core/browser';
 import { useTheme } from '@principal-ade/industry-theme';
+import yaml from 'js-yaml';
 
 export interface NarrativeRendererProps {
   /** Narrative template to use for rendering */
@@ -24,6 +25,9 @@ export interface NarrativeRendererProps {
 
   /** Current active event index (to highlight the corresponding narrative step) */
   activeEventIndex?: number;
+
+  /** Show only summary (introduction, summary, conditions) without event details */
+  showOnlySummary?: boolean;
 }
 
 /**
@@ -37,9 +41,16 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
   showMetadata = false,
   onEventClick,
   activeEventIndex,
+  showOnlySummary = false,
 }) => {
   const { theme } = useTheme();
   const activeEventRef = React.useRef<HTMLDivElement>(null);
+  const [contextMenu, setContextMenu] = React.useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    event: OtelEvent | null;
+  }>({ visible: false, x: 0, y: 0, event: null });
 
   // Scroll to active event when it changes
   React.useEffect(() => {
@@ -79,13 +90,12 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
   const { scenario, aggregates } = useMemo(() => {
     const agg = computeAggregates(events);
     const matchResult = selectScenario(template, events, agg);
-    return { scenario: matchResult.scenario, aggregates: agg };
+    return { scenario: matchResult.scenario as NarrativeScenario, aggregates: agg };
   }, [template, events]);
 
   // Render narrative by rendering each event template individually
   const renderNarrativeContent = () => {
     const elements: React.ReactNode[] = [];
-    let stepCounter = 0;
 
     // Build full context with aggregates
     const fullContext = {
@@ -94,100 +104,118 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
       totalEvents: events.length,
     };
 
-    // Render introduction
-    if (scenario.template.introduction) {
+    // Render introduction (only in summary mode)
+    if (showOnlySummary && scenario.template.introduction) {
       const introduction = parseTemplate(scenario.template.introduction, fullContext);
       elements.push(
-        <div key="introduction">
+        <div key="introduction" style={{ padding: '12px 16px', borderBottom: `1px solid ${theme.colors.border}` }}>
           {renderFormattedText(introduction)}
         </div>
       );
     }
 
-    // Render each event as a clickable block
-    const sortedEvents = [...events].sort((a, b) => {
-      const aTime = typeof a.timestamp === 'number' ? a.timestamp : Date.parse(a.timestamp);
-      const bTime = typeof b.timestamp === 'number' ? b.timestamp : Date.parse(b.timestamp);
-      return aTime - bTime;
-    });
+    // Render conditions if showOnlySummary is true
+    if (showOnlySummary) {
+      const conditionText = [];
 
-    sortedEvents.forEach((event, eventIndex) => {
-      const eventTemplate = scenario.template.events?.[event.name];
-      if (!eventTemplate) return;
+      if (scenario.condition.default) {
+        conditionText.push('Always matches (default scenario)');
+      } else {
+        if (scenario.condition.requires && scenario.condition.requires.length > 0) {
+          conditionText.push(`Requires: ${scenario.condition.requires.join(', ')}`);
+        }
+        if (scenario.condition.excludes && scenario.condition.excludes.length > 0) {
+          conditionText.push(`Excludes: ${scenario.condition.excludes.join(', ')}`);
+        }
+        if (scenario.condition.assertions) {
+          const assertionStrs = Object.entries(scenario.condition.assertions).map(([key, assertion]) => {
+            return `${key}: ${JSON.stringify(assertion)}`;
+          });
+          if (assertionStrs.length > 0) {
+            conditionText.push(`Assertions: ${assertionStrs.join(', ')}`);
+          }
+        }
+      }
 
-      stepCounter++;
+      if (conditionText.length > 0) {
+        elements.push(
+          <div key="conditions" style={{ padding: '12px 16px', borderBottom: `1px solid ${theme.colors.border}`, backgroundColor: theme.colors.backgroundSecondary }}>
+            <div style={{ fontSize: theme.fontSizes[0], fontWeight: 600, color: theme.colors.textSecondary, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Conditions
+            </div>
+            <div style={{ fontSize: theme.fontSizes[1], color: theme.colors.text, fontFamily: theme.fonts.monospace }}>
+              {conditionText.join(' | ')}
+            </div>
+          </div>
+        );
+      }
+    }
 
-      // Parse template with full context (aggregates + event attributes)
-      const eventContext = { ...fullContext, ...event.attributes };
-      const renderedText = parseTemplate(eventTemplate, eventContext);
+    // Render each event as a clickable block (skip if showOnlySummary)
+    if (!showOnlySummary) {
+      const sortedEvents = [...events].sort((a, b) => {
+        const aTime = typeof a.timestamp === 'number' ? a.timestamp : Date.parse(a.timestamp);
+        const bTime = typeof b.timestamp === 'number' ? b.timestamp : Date.parse(b.timestamp);
+        return aTime - bTime;
+      });
 
-      // Make the entire event block clickable
-      elements.push(
-        <div
-          key={`event-${eventIndex}`}
-          ref={activeEventIndex === eventIndex ? activeEventRef : null}
-          onClick={() => {
-            if (onEventClick) {
-              onEventClick(event, eventIndex);
-            }
-          }}
-          style={{
-            display: 'flex',
-            gap: '12px',
-            marginTop: '16px',
-            alignItems: 'center',
-            cursor: onEventClick ? 'pointer' : 'default',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          {/* Step number badge */}
+      sortedEvents.forEach((event, eventIndex) => {
+        const eventTemplate = scenario.template.events?.[event.name];
+        if (!eventTemplate) return;
+
+        // Parse template with full context (aggregates + event attributes)
+        const eventContext = { ...fullContext, ...event.attributes };
+        const renderedText = parseTemplate(eventTemplate, eventContext);
+
+        // Make the entire event block clickable
+        elements.push(
           <div
+            key={`event-${eventIndex}`}
+            ref={activeEventIndex === eventIndex ? activeEventRef : null}
+            onClick={() => {
+              if (onEventClick) {
+                onEventClick(event, eventIndex);
+              }
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setContextMenu({
+                visible: true,
+                x: e.clientX,
+                y: e.clientY,
+                event,
+              });
+            }}
             style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              backgroundColor: activeEventIndex === eventIndex ? '#fff' : theme.colors.primary,
-              color: activeEventIndex === eventIndex ? theme.colors.primary : '#fff',
-              border: activeEventIndex === eventIndex ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '13px',
-              fontWeight: 700,
-              flexShrink: 0,
-              boxShadow: activeEventIndex === eventIndex ? `0 0 0 3px ${theme.colors.primary}33` : 'none',
+              cursor: onEventClick ? 'pointer' : 'default',
               transition: 'all 0.2s ease',
             }}
           >
-            {stepCounter}
+            {/* Event content card */}
+            <div
+              style={{
+                padding: '12px 16px',
+                backgroundColor: activeEventIndex === eventIndex ? theme.colors.muted : theme.colors.backgroundSecondary,
+                borderBottom: `1px solid ${theme.colors.border}`,
+                borderLeft: activeEventIndex === eventIndex ? `4px solid ${theme.colors.primary}` : '4px solid transparent',
+                fontSize: '15px',
+                lineHeight: '1.6',
+                fontWeight: 500,
+                transition: 'background-color 0.2s ease, border-color 0.2s ease',
+              }}
+            >
+              {renderFormattedText(renderedText)}
+            </div>
           </div>
+        );
+      });
+    }
 
-          {/* Event content card */}
-          <div
-            style={{
-              flex: 1,
-              padding: '12px 16px',
-              backgroundColor: activeEventIndex === eventIndex ? theme.colors.surface : theme.colors.backgroundSecondary,
-              border: activeEventIndex === eventIndex ? `2px solid ${theme.colors.primary}` : `2px solid ${theme.colors.border}`,
-              borderRadius: '6px',
-              fontSize: '15px',
-              lineHeight: '1.6',
-              fontWeight: 500,
-              transition: 'background-color 0.2s ease, border-color 0.2s ease',
-              boxShadow: activeEventIndex === eventIndex ? `0 0 0 3px ${theme.colors.primary}33` : 'none',
-            }}
-          >
-            {renderFormattedText(renderedText)}
-          </div>
-        </div>
-      );
-    });
-
-    // Render summary
-    if (scenario.template.summary) {
+    // Render summary (only in summary mode)
+    if (showOnlySummary && scenario.template.summary) {
       const summary = parseTemplate(scenario.template.summary, fullContext);
       elements.push(
-        <div key="summary" style={{ marginTop: '24px' }}>
+        <div key="summary" style={{ padding: '12px 16px', borderBottom: `1px solid ${theme.colors.border}` }}>
           {renderFormattedText(summary)}
         </div>
       );
@@ -210,27 +238,8 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
         continue;
       }
 
-      // Status indicators (✅ ❌ ⚠️ 📋) - Headers/Titles
-      if (/^[✅❌⚠️📋]/.test(line)) {
-        elements.push(
-          <div
-            key={idx}
-            style={{
-              fontSize: '18px',
-              fontWeight: 700,
-              marginTop: idx > 0 ? '24px' : '0',
-              marginBottom: '16px',
-              paddingBottom: '12px',
-              borderBottom: `2px solid ${theme.colors.border}`,
-              lineHeight: '1.4',
-            }}
-          >
-            {highlightVariables(line)}
-          </div>
-        );
-      }
       // Separators (━━━━)
-      else if (/^━+/.test(line)) {
+      if (/^━+/.test(line)) {
         elements.push(
           <div
             key={idx}
@@ -362,6 +371,15 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
     return parts.length > 0 ? <>{parts}</> : text;
   };
 
+  // Close context menu when clicking outside
+  React.useEffect(() => {
+    const handleClick = () => setContextMenu({ visible: false, x: 0, y: 0, event: null });
+    if (contextMenu.visible) {
+      document.addEventListener('click', handleClick);
+      return () => document.removeEventListener('click', handleClick);
+    }
+  }, [contextMenu.visible]);
+
   return (
     <div
       className={className}
@@ -404,7 +422,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
         style={{
           flex: 1,
           overflow: 'auto',
-          padding: '32px 28px',
+          padding: 0,
           fontFamily: theme.fonts.body,
           fontSize: '14px',
           lineHeight: '1.7',
@@ -443,6 +461,49 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
               {Number(result.metadata.timeRange.end) - Number(result.metadata.timeRange.start)}ms
             </div>
           )}
+        </div>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu.visible && contextMenu.event && (
+        <div
+          style={{
+            position: 'fixed',
+            top: contextMenu.y,
+            left: contextMenu.x,
+            backgroundColor: theme.colors.surface,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: '4px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            zIndex: 10000,
+            maxWidth: '600px',
+            maxHeight: '400px',
+            overflow: 'auto',
+            padding: '12px',
+            fontFamily: theme.fonts.monospace,
+            fontSize: '12px',
+            color: theme.colors.text,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div style={{ fontWeight: 600, marginBottom: '8px', color: theme.colors.primary }}>
+            Event Data: {contextMenu.event.name}
+          </div>
+          <pre
+            style={{
+              margin: 0,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              fontSize: '11px',
+              lineHeight: '1.5',
+            }}
+          >
+            {yaml.dump({
+              name: contextMenu.event.name,
+              timestamp: contextMenu.event.timestamp,
+              attributes: contextMenu.event.attributes || {},
+            }, { indent: 2, lineWidth: -1 })}
+          </pre>
         </div>
       )}
     </div>

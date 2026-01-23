@@ -20,7 +20,7 @@ import { NarrativeExplainerPanel } from './NarrativeExplainerPanel';
 import { NarrativeTemplatePanel } from './execution-viewer/NarrativeTemplatePanel';
 
 // View mode type (should be exported from react package in future versions)
-export type ViewMode = 'raw' | 'narrative';
+export type ViewMode = 'raw' | 'narrative' | 'summary';
 
 /**
  * Loading skeleton component
@@ -444,7 +444,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         narrativeTemplate,
         availableNarratives,
         selectedNarrativeId,
-        viewMode: narrativeTemplate ? 'narrative' : 'raw',
+        viewMode: narrativeTemplate ? 'summary' : 'raw',
         executionScenarioMap,
       }));
     } catch (error) {
@@ -572,7 +572,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           currentSpanIndex: 0,
           currentEventIndex: 0,
           highlightedNodeId: null,
-          viewMode: 'narrative',
+          viewMode: 'summary',
         }));
       }
     } catch (error) {
@@ -991,7 +991,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                                 selectedNarrativeId: narrative.id,
                                 narrativeTemplate,
                                 showNarrativeSelector: false,
-                                viewMode: 'narrative',
+                                viewMode: 'summary',
                               }));
                             }
                           }

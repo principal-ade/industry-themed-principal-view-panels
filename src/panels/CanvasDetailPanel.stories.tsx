@@ -404,15 +404,15 @@ const checkoutNarrative = {
         },
       },
       template: {
-        introduction: '❌ Checkout Failed - Payment Declined\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        introduction: 'Checkout Failed - Payment Declined',
         events: {
           'checkout.initiated': 'Checkout started for {{cart.itemCount}} items (${{cart.total}})',
           'payment.initiated': 'Processing {{payment.method}} payment for ${{payment.amount}}',
           'payment.failed':
-            '❌ Payment declined: {{error.message}}\n    • Error Code: {{error.code}}\n    • Customer needs to try different payment method',
+            'Payment declined: {{error.message}}\n    • Error Code: {{error.code}}\n    • Customer needs to try different payment method',
         },
         summary:
-          '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n❌ Payment was declined.\nCart items remain reserved for 15 minutes.',
+          'Payment was declined.\nCart items remain reserved for 15 minutes.',
       },
     },
     {
@@ -423,15 +423,15 @@ const checkoutNarrative = {
         requires: ['inventory.insufficient'],
       },
       template: {
-        introduction: '⚠️  Checkout Failed - Insufficient Inventory\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        introduction: 'Checkout Failed - Insufficient Inventory',
         events: {
           'checkout.initiated': 'Checkout started for {{cart.itemCount}} items (${{cart.total}})',
           'inventory.checking': 'Checking stock for {{inventory.skuCount}} SKUs',
           'inventory.insufficient':
-            '⚠️  Insufficient stock\n    • Need {{inventory.shortfall}} more items\n    • Currently {{inventory.availableCount}} available',
+            'Insufficient stock\n    • Need {{inventory.shortfall}} more items\n    • Currently {{inventory.availableCount}} available',
         },
         summary:
-          '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n⚠️  Some items are out of stock.\nCustomer should reduce quantity or remove items.',
+          'Some items are out of stock.\nCustomer should reduce quantity or remove items.',
       },
     },
     {
@@ -442,17 +442,17 @@ const checkoutNarrative = {
         requires: ['order.timeout'],
       },
       template: {
-        introduction: '⏱️  Checkout Timeout\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        introduction: 'Checkout Timeout',
         events: {
           'checkout.initiated': 'Checkout started for {{cart.itemCount}} items (${{cart.total}})',
           'payment.initiated': 'Processing payment for ${{payment.amount}}',
           'inventory.checking': 'Checking inventory',
           'shipping.calculating': 'Calculating shipping to {{shipping.destination}}',
           'order.timeout':
-            '⏱️  Process timed out after {{timeout.duration}}ms\n    • Phase: {{#if timeout.phase}}{{timeout.phase}}{{else}}unknown{{/if}}',
+            'Process timed out after {{timeout.duration}}ms\n    • Phase: {{#if timeout.phase}}{{timeout.phase}}{{else}}unknown{{/if}}',
         },
         summary:
-          '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n⏱️  Checkout timed out.\nCustomer should retry. Session remains active.',
+          'Checkout timed out.\nCustomer should retry. Session remains active.',
       },
     },
     {
@@ -463,23 +463,23 @@ const checkoutNarrative = {
         requires: ['order.created'],
       },
       template: {
-        introduction: '✅ Checkout Complete\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        introduction: 'Checkout Complete',
         events: {
           'checkout.initiated': 'Checkout started for {{cart.itemCount}} items (${{cart.total}})',
           'payment.initiated': 'Processing {{payment.method}} payment',
           'payment.completed':
-            '✅ Payment successful\n    • Transaction: {{payment.transactionId}}\n    • Processing time: {{payment.processingTime}}ms',
+            'Payment successful\n    • Transaction: {{payment.transactionId}}\n    • Processing time: {{payment.processingTime}}ms',
           'inventory.checking': 'Checking stock for {{inventory.skuCount}} SKUs',
           'inventory.reserved':
-            '✅ Reserved {{inventory.itemsReserved}} items\n    • Reservation: {{inventory.reservationId}}',
+            'Reserved {{inventory.itemsReserved}} items\n    • Reservation: {{inventory.reservationId}}',
           'shipping.calculating': 'Calculating shipping to {{shipping.destination}}',
           'shipping.calculated':
-            '✅ Shipping: {{shipping.method}}\n    • Cost: ${{shipping.cost}}\n    • Est. delivery: {{shipping.estimatedDays}} days',
+            'Shipping: {{shipping.method}}\n    • Cost: ${{shipping.cost}}\n    • Est. delivery: {{shipping.estimatedDays}} days',
           'order.created':
-            '✅ Order created: {{order.id}}\n    • Total: ${{order.total}}\n    • Confirmation sent to {{customer.email}}',
+            'Order created: {{order.id}}\n    • Total: ${{order.total}}\n    • Confirmation sent to {{customer.email}}',
         },
         summary:
-          '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n✅ Order {{order.id}} successfully created!\nConfirmation email sent to {{customer.email}}.',
+          'Order {{order.id}} successfully created!\nConfirmation email sent to {{customer.email}}.',
       },
     },
     {
@@ -490,7 +490,7 @@ const checkoutNarrative = {
         default: true,
       },
       template: {
-        introduction: '📋 Checkout Process\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        introduction: 'Checkout Process',
         events: {
           'checkout.initiated': 'Checkout initiated',
           'payment.initiated': 'Payment processing started',
@@ -504,7 +504,7 @@ const checkoutNarrative = {
           'order.created': 'Order created',
           'order.timeout': 'Process timed out',
         },
-        summary: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nCheckout process recorded.',
+        summary: 'Checkout process recorded.',
       },
     },
   ],

@@ -51,7 +51,7 @@ interface TimelineItem {
 }
 
 // View mode type
-export type ViewMode = 'raw' | 'narrative';
+export type ViewMode = 'raw' | 'narrative' | 'summary';
 
 export interface TestEventPanelProps {
   spans: TestSpan[];
@@ -120,7 +120,7 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
 
   // Convert current span to OtelEvents for narrative rendering
   const otelEvents = useMemo(() => {
-    if (!currentSpan || viewMode !== 'narrative') return [];
+    if (!currentSpan || (viewMode !== 'narrative' && viewMode !== 'summary')) return [];
     return convertToOtelEvents(currentSpan, logs);
   }, [currentSpan, logs, viewMode]);
 
@@ -258,36 +258,59 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
 
         {/* View Mode Toggle */}
         {narrativeTemplate && onViewModeChange && (
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', margin: '-20px -20px 0 -20px' }}>
+            <button
+              onClick={() => onViewModeChange('summary')}
+              style={{
+                flex: 1,
+                padding: '16px 12px',
+                background: viewMode === 'summary' ? theme.colors.primary : theme.colors.surface,
+                border: `1px solid ${theme.colors.border}`,
+                borderTop: 'none',
+                borderRight: 'none',
+                borderLeft: 'none',
+                color: viewMode === 'summary' ? '#ffffff' : theme.colors.text,
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: viewMode === 'summary' ? 'bold' : 'normal',
+              }}
+            >
+              Summary
+            </button>
             <button
               onClick={() => onViewModeChange('narrative')}
               style={{
-                padding: '6px 12px',
+                flex: 1,
+                padding: '16px 12px',
                 background: viewMode === 'narrative' ? theme.colors.primary : theme.colors.surface,
                 border: `1px solid ${theme.colors.border}`,
-                borderRadius: '4px',
+                borderTop: 'none',
+                borderRight: 'none',
+                borderLeft: 'none',
                 color: viewMode === 'narrative' ? '#ffffff' : theme.colors.text,
                 cursor: 'pointer',
                 fontSize: '13px',
                 fontWeight: viewMode === 'narrative' ? 'bold' : 'normal',
               }}
             >
-              Narrative
+              Story
             </button>
             <button
               onClick={() => onViewModeChange('raw')}
               style={{
-                padding: '6px 12px',
+                flex: 1,
+                padding: '16px 12px',
                 background: viewMode === 'raw' ? theme.colors.primary : theme.colors.surface,
                 border: `1px solid ${theme.colors.border}`,
-                borderRadius: '4px',
+                borderTop: 'none',
+                borderRight: 'none',
                 color: viewMode === 'raw' ? '#ffffff' : theme.colors.text,
                 cursor: 'pointer',
                 fontSize: '13px',
                 fontWeight: viewMode === 'raw' ? 'bold' : 'normal',
               }}
             >
-              Raw Events
+              Events
             </button>
           </div>
         )}
@@ -377,15 +400,16 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
         }}
       >
         {/* Narrative View */}
-        {viewMode === 'narrative' && narrativeTemplate && currentSpan ? (
+        {(viewMode === 'narrative' || viewMode === 'summary') && narrativeTemplate && currentSpan ? (
           <NarrativeRenderer
             template={narrativeTemplate}
             events={otelEvents}
             showMetadata={showNarrativeMetadata}
             onEventClick={onNarrativeEventClick}
             activeEventIndex={currentEventIndex}
+            showOnlySummary={viewMode === 'summary'}
           />
-        ) : viewMode === 'narrative' && !narrativeTemplate ? (
+        ) : (viewMode === 'narrative' || viewMode === 'summary') && !narrativeTemplate ? (
           <div
             style={{
               padding: '40px 20px',
