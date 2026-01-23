@@ -417,8 +417,8 @@ const checkoutNarrative = {
       template: {
         introduction: '❌ Checkout Failed - Payment Declined\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
         events: {
-          'checkout.initiated': 'Checkout started for {{cart.itemCount}} items (${cart.total})',
-          'payment.initiated': 'Processing {{payment.method}} payment for ${payment.amount}',
+          'checkout.initiated': 'Checkout started for {{cart.itemCount}} items (${{cart.total}})',
+          'payment.initiated': 'Processing {{payment.method}} payment for ${{payment.amount}}',
           'payment.failed':
             '❌ Payment declined: {{error.message}}\n    • Error Code: {{error.code}}\n    • Customer needs to try different payment method',
         },
@@ -436,7 +436,7 @@ const checkoutNarrative = {
       template: {
         introduction: '⚠️  Checkout Failed - Insufficient Inventory\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
         events: {
-          'checkout.initiated': 'Checkout started for {{cart.itemCount}} items (${cart.total})',
+          'checkout.initiated': 'Checkout started for {{cart.itemCount}} items (${{cart.total}})',
           'inventory.checking': 'Checking stock for {{inventory.skuCount}} SKUs',
           'inventory.insufficient':
             '⚠️  Insufficient stock\n    • Need {{inventory.shortfall}} more items\n    • Currently {{inventory.availableCount}} available',
@@ -455,8 +455,8 @@ const checkoutNarrative = {
       template: {
         introduction: '⏱️  Checkout Timeout\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
         events: {
-          'checkout.initiated': 'Checkout started for {{cart.itemCount}} items (${cart.total})',
-          'payment.initiated': 'Processing payment for ${payment.amount}',
+          'checkout.initiated': 'Checkout started for {{cart.itemCount}} items (${{cart.total}})',
+          'payment.initiated': 'Processing payment for ${{payment.amount}}',
           'inventory.checking': 'Checking inventory',
           'shipping.calculating': 'Calculating shipping to {{shipping.destination}}',
           'order.timeout':
@@ -476,7 +476,7 @@ const checkoutNarrative = {
       template: {
         introduction: '✅ Checkout Complete\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
         events: {
-          'checkout.initiated': 'Checkout started for {{cart.itemCount}} items (${cart.total})',
+          'checkout.initiated': 'Checkout started for {{cart.itemCount}} items (${{cart.total}})',
           'payment.initiated': 'Processing {{payment.method}} payment',
           'payment.completed':
             '✅ Payment successful\n    • Transaction: {{payment.transactionId}}\n    • Processing time: {{payment.processingTime}}ms',
