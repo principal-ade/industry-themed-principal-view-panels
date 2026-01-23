@@ -734,17 +734,11 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
       for (const node of state.canvas.nodes || []) {
         // Try both node.data.pv and node.pv (canvas format can vary)
         const nodePv = (node as any).pv || ((node as any).data as any)?.pv;
-        const nodeEvents = nodePv?.events;
+        const nodeEventName = nodePv?.event?.name;
 
-        if (nodeEvents) {
-          const nodeEventNames = Object.keys(nodeEvents);
-          // If this node has any of the scenario's events, mark it as active
-          const hasMatchingEvent = state.hoveredScenarioEventNames.some(eventName =>
-            nodeEventNames.includes(eventName)
-          );
-          if (hasMatchingEvent) {
-            activeIds.add(node.id);
-          }
+        // If this node's event matches any of the scenario's events, mark it as active
+        if (nodeEventName && state.hoveredScenarioEventNames.includes(nodeEventName)) {
+          activeIds.add(node.id);
         }
       }
 

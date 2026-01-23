@@ -81,14 +81,13 @@ const checkoutCanvas = {
           kind: 'event',
         },
         sources: ['src/checkout/*.ts', 'src/cart/checkout.ts'],
-        events: {
-          'checkout.initiated': {
-            description: 'Session begins',
-            attributes: {
-              'session.id': { type: 'string', required: true },
-              'cart.itemCount': { type: 'number', required: true },
-              'cart.total': { type: 'number', required: true },
-            },
+        event: {
+          name: 'checkout.initiated',
+          description: 'Session begins',
+          attributes: {
+            'session.id': { type: 'string', required: true },
+            'cart.itemCount': { type: 'number', required: true },
+            'cart.total': { type: 'number', required: true },
           },
         },
       },
@@ -111,13 +110,12 @@ const checkoutCanvas = {
           kind: 'event',
         },
         sources: ['src/payment/*.ts'],
-        events: {
-          'payment.initiated': {
-            description: 'Payment processing begins',
-            attributes: {
-              'payment.method': { type: 'string', required: true },
-              'payment.amount': { type: 'number', required: true },
-            },
+        event: {
+          name: 'payment.initiated',
+          description: 'Payment processing begins',
+          attributes: {
+            'payment.method': { type: 'string', required: true },
+            'payment.amount': { type: 'number', required: true },
           },
         },
       },
@@ -137,12 +135,11 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        events: {
-          'inventory.checking': {
-            description: 'Checking stock',
-            attributes: {
-              'inventory.skuCount': { type: 'number', required: true },
-            },
+        event: {
+          name: 'inventory.checking',
+          description: 'Checking stock',
+          attributes: {
+            'inventory.skuCount': { type: 'number', required: true },
           },
         },
       },
@@ -162,13 +159,12 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        events: {
-          'shipping.calculating': {
-            description: 'Calculating shipping',
-            attributes: {
-              'shipping.destination': { type: 'string', required: true },
-              'shipping.weight': { type: 'number', required: true },
-            },
+        event: {
+          name: 'shipping.calculating',
+          description: 'Calculating shipping',
+          attributes: {
+            'shipping.destination': { type: 'string', required: true },
+            'shipping.weight': { type: 'number', required: true },
           },
         },
       },
@@ -190,13 +186,12 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        events: {
-          'payment.completed': {
-            description: 'Payment successful',
-            attributes: {
-              'payment.transactionId': { type: 'string', required: true },
-              'payment.processingTime': { type: 'number', required: false },
-            },
+        event: {
+          name: 'payment.completed',
+          description: 'Payment successful',
+          attributes: {
+            'payment.transactionId': { type: 'string', required: true },
+            'payment.processingTime': { type: 'number', required: false },
           },
         },
       },
@@ -216,14 +211,13 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        events: {
-          'payment.failed': {
-            description: 'Payment failed',
-            attributes: {
-              'error.code': { type: 'string', required: true },
-              'error.message': { type: 'string', required: true },
-              'payment.declined': { type: 'boolean', required: false },
-            },
+        event: {
+          name: 'payment.failed',
+          description: 'Payment failed',
+          attributes: {
+            'error.code': { type: 'string', required: true },
+            'error.message': { type: 'string', required: true },
+            'payment.declined': { type: 'boolean', required: false },
           },
         },
       },
@@ -243,13 +237,12 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        events: {
-          'inventory.reserved': {
-            description: 'Stock reserved',
-            attributes: {
-              'inventory.reservationId': { type: 'string', required: true },
-              'inventory.itemsReserved': { type: 'number', required: true },
-            },
+        event: {
+          name: 'inventory.reserved',
+          description: 'Stock reserved',
+          attributes: {
+            'inventory.reservationId': { type: 'string', required: true },
+            'inventory.itemsReserved': { type: 'number', required: true },
           },
         },
       },
@@ -269,13 +262,12 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        events: {
-          'inventory.insufficient': {
-            description: 'Out of stock',
-            attributes: {
-              'inventory.shortfall': { type: 'number', required: true },
-              'inventory.availableCount': { type: 'number', required: true },
-            },
+        event: {
+          name: 'inventory.insufficient',
+          description: 'Out of stock',
+          attributes: {
+            'inventory.shortfall': { type: 'number', required: true },
+            'inventory.availableCount': { type: 'number', required: true },
           },
         },
       },
@@ -295,14 +287,13 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        events: {
-          'shipping.calculated': {
-            description: 'Shipping determined',
-            attributes: {
-              'shipping.method': { type: 'string', required: true },
-              'shipping.cost': { type: 'number', required: true },
-              'shipping.estimatedDays': { type: 'number', required: false },
-            },
+        event: {
+          name: 'shipping.calculated',
+          description: 'Shipping determined',
+          attributes: {
+            'shipping.method': { type: 'string', required: true },
+            'shipping.cost': { type: 'number', required: true },
+            'shipping.estimatedDays': { type: 'number', required: false },
           },
         },
       },
@@ -324,14 +315,13 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        events: {
-          'order.created': {
-            description: 'Order finalized',
-            attributes: {
-              'order.id': { type: 'string', required: true },
-              'order.total': { type: 'number', required: true },
-              'customer.email': { type: 'string', required: true },
-            },
+        event: {
+          name: 'order.created',
+          description: 'Order finalized',
+          attributes: {
+            'order.id': { type: 'string', required: true },
+            'order.total': { type: 'number', required: true },
+            'customer.email': { type: 'string', required: true },
           },
         },
       },
@@ -351,13 +341,12 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        events: {
-          'order.timeout': {
-            description: 'Processing timed out',
-            attributes: {
-              'timeout.duration': { type: 'number', required: true },
-              'timeout.phase': { type: 'string', required: false },
-            },
+        event: {
+          name: 'order.timeout',
+          description: 'Processing timed out',
+          attributes: {
+            'timeout.duration': { type: 'number', required: true },
+            'timeout.phase': { type: 'string', required: false },
           },
         },
       },

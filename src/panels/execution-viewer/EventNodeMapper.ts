@@ -6,7 +6,7 @@
  * should be highlighted when an event is played back.
  */
 
-import type { ExtendedCanvas } from '@principal-ai/principal-view-core/browser';
+import type { ExtendedCanvas, PVNodeExtension } from '@principal-ai/principal-view-core/browser';
 import type { OtelAttributes } from '@principal-ai/principal-view-core/browser';
 
 /**
@@ -19,28 +19,10 @@ export interface ExecutionEvent {
 }
 
 /**
- * Event schema in node's pv metadata
- */
-interface PVEventSchema {
-  description?: string;
-  attributes?: Record<string, unknown>;
-}
-
-/**
- * Node's pv metadata with OTEL information
- */
-interface NodePv {
-  events?: Record<string, PVEventSchema>;
-  otel?: {
-    resourceMatch?: Record<string, string | number | boolean>;
-  };
-}
-
-/**
  * Maps an execution event to a canvas node ID.
  *
  * Strategy:
- * 1. Primary: Match event name to node's pv.events keys
+ * 1. Primary: Match event name to node's pv.event.name
  * 2. Fallback: Match event attributes to node's pv.otel.resourceMatch
  * 3. Default: Return null (no highlight)
  *
@@ -56,10 +38,10 @@ export function mapEventToNodeId(
     return null;
   }
 
-  // Strategy 1: Match by event name in pv.events (Record<string, PVEventSchema>)
+  // Strategy 1: Match by event name in pv.event.name
   for (const node of canvas.nodes) {
-    const pvEvents = (node.pv as NodePv | undefined)?.events;
-    if (pvEvents && typeof pvEvents === 'object' && event.name in pvEvents) {
+    const pvEvent = (node.pv as PVNodeExtension | undefined)?.event;
+    if (pvEvent?.name === event.name) {
       return node.id;
     }
   }
@@ -67,7 +49,7 @@ export function mapEventToNodeId(
   // Strategy 2: Match by resourceMatch attributes
   if (event.attributes) {
     for (const node of canvas.nodes) {
-      const resourceMatch = (node.pv as NodePv | undefined)?.otel?.resourceMatch;
+      const resourceMatch = (node.pv as PVNodeExtension | undefined)?.resourceMatch;
       if (resourceMatch && typeof resourceMatch === 'object') {
         // Check if all resourceMatch conditions are satisfied by event attributes
         const matches = Object.entries(resourceMatch).every(([key, pattern]) => {
@@ -111,13 +93,9 @@ export function buildEventToNodeMap(
   }
 
   for (const node of canvas.nodes) {
-    const pvEvents = (node.pv as NodePv | undefined)?.events;
-    if (pvEvents && typeof pvEvents === 'object') {
-      for (const eventName of Object.keys(pvEvents)) {
-        if (!map.has(eventName)) {
-          map.set(eventName, node.id);
-        }
-      }
+    const pvEvent = (node.pv as PVNodeExtension | undefined)?.event;
+    if (pvEvent?.name && !map.has(pvEvent.name)) {
+      map.set(pvEvent.name, node.id);
     }
   }
 
@@ -139,20 +117,17 @@ export function debugEventMapping(canvas: ExtendedCanvas | null): string {
   lines.push('Event → Node Mapping:');
   lines.push('');
 
+  let eventCount = 0;
   for (const node of canvas.nodes) {
-    const pvEvents = (node.pv as NodePv | undefined)?.events;
-    if (pvEvents && typeof pvEvents === 'object') {
-      const eventNames = Object.keys(pvEvents);
-      if (eventNames.length > 0) {
-        lines.push(`Node: ${node.id}`);
-        for (const eventName of eventNames) {
-          lines.push(`  - ${eventName}`);
-        }
-      }
+    const pvEvent = (node.pv as PVNodeExtension | undefined)?.event;
+    if (pvEvent?.name) {
+      lines.push(`Node: ${node.id}`);
+      lines.push(`  - ${pvEvent.name}`);
+      eventCount++;
     }
   }
 
-  if (lines.length === 2) {
+  if (eventCount === 0) {
     lines.push('No event schemas found in canvas nodes');
   }
 
