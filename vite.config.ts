@@ -50,6 +50,9 @@ export default defineConfig(({ mode: _mode }) => ({
         'path-scurry',
         // Externalize codebase-composition which contains quality lenses with Node executors
         '@principal-ai/codebase-composition',
+        // Externalize principal-view-core - host app provides it
+        '@principal-ai/principal-view-core',
+        /^@principal-ai\/principal-view-core\//,
       ],
       output: {
         globals: {
