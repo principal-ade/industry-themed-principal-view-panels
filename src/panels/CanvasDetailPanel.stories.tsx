@@ -4,6 +4,7 @@ import { CanvasDetailPanel } from './CanvasDetailPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import type { DataSlice } from '../types';
+import type { NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
 
 /**
  * CanvasDetailPanel - OTEL Execution Visualizer
@@ -384,13 +385,13 @@ const checkoutCanvas = {
   },
 };
 
-const checkoutNarrative = {
+const checkoutNarrative: NarrativeTemplate = {
   version: '1.0.0',
   canvas: 'checkout-flow.otel.canvas',
   name: 'Checkout Flow',
   description: 'Checkout process execution scenarios',
-  mode: 'timeline',
-  scenarioSelection: 'first-match',
+  mode: 'timeline' as const,
+  scenarioSelection: 'first-match' as const,
   showLogsPerSpan: true,
   scenarios: [
     {
@@ -899,6 +900,8 @@ export const Step2_CanvasWithNarratives: Story = {
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
+            selectedNarrativeId="checkout-flow-narrative"
+            narrativeTemplate={checkoutNarrative}
           />
         )}
       </MockPanelProvider>
@@ -952,6 +955,8 @@ export const Step3_SuccessfulCheckout: Story = {
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
+            selectedNarrativeId="checkout-flow-narrative"
+            narrativeTemplate={checkoutNarrative}
           />
         )}
       </MockPanelProvider>
@@ -1005,6 +1010,8 @@ export const Scenario_PaymentDeclined: Story = {
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
+            selectedNarrativeId="checkout-flow-narrative"
+            narrativeTemplate={checkoutNarrative}
           />
         )}
       </MockPanelProvider>
@@ -1057,6 +1064,8 @@ export const Scenario_InsufficientInventory: Story = {
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
+            selectedNarrativeId="checkout-flow-narrative"
+            narrativeTemplate={checkoutNarrative}
           />
         )}
       </MockPanelProvider>
@@ -1109,6 +1118,8 @@ export const Scenario_Timeout: Story = {
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
+            selectedNarrativeId="checkout-flow-narrative"
+            narrativeTemplate={checkoutNarrative}
           />
         )}
       </MockPanelProvider>

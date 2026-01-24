@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
-import { GraphRenderer } from '@principal-ai/principal-view-react';
+import { GraphRenderer, swapGraphOrientation } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
-import { renderNarrative } from '@principal-ai/principal-view-core/browser';
+import { renderNarrative, CanvasConverter } from '@principal-ai/principal-view-core/browser';
 import { TestEventPanel } from './execution-viewer/TestEventPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/narrative-converter';
 import {
@@ -12,7 +12,7 @@ import {
   type ExecutionMetadata,
   type ExecutionArtifact,
 } from './execution-viewer/ExecutionLoader';
-import { Loader, ChevronDown, Activity, Grid3x3, HelpCircle, X, ArrowLeft, Pencil } from 'lucide-react';
+import { Loader, ChevronDown, Activity, Grid3x3, HelpCircle, X, ArrowLeft, Pencil, RotateCw } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { NarrativeLoader, type NarrativeFile } from './execution-viewer/NarrativeLoader';
@@ -231,6 +231,24 @@ export interface CanvasDetailPanelProps extends PanelComponentProps {
    * Optional canvas name for display.
    */
   canvasName?: string | null;
+
+  /**
+   * Optional narrative ID to display.
+   * If provided, the panel will display this narrative without showing the selector UI.
+   */
+  selectedNarrativeId?: string | null;
+
+  /**
+   * Optional narrative path.
+   * Provided when a specific narrative is selected from the canvas list.
+   */
+  narrativePath?: string | null;
+
+  /**
+   * Optional narrative template.
+   * If provided along with selectedNarrativeId, the panel will use this template directly.
+   */
+  narrativeTemplate?: NarrativeTemplate | null;
 }
 
 interface CanvasDetailPanelState {
@@ -243,7 +261,6 @@ interface CanvasDetailPanelState {
   canvasName: string | null;
   availableExecutions: ExecutionFile[];
   selectedExecutionId: string | null;
-  showNarrativeSelector: boolean;
   showExecutionSelector: boolean;
   showHelpModal: boolean;
   selectedNarrativeId: string | null;
@@ -259,6 +276,7 @@ interface CanvasDetailPanelState {
   hoveredExecutionId: string | null;
   hoveredExecution: ExecutionArtifact | null;
   hoveredScenarioEventNames: string[] | null;
+  canvasRotationKey: number; // Used to force GraphRenderer remount on rotation
 }
 
 /**
@@ -274,6 +292,9 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   selectedCanvasId: selectedCanvasIdProp,
   canvasPath: canvasPathProp,
   canvasName: canvasNameProp,
+  selectedNarrativeId: selectedNarrativeIdProp,
+  narrativePath: narrativePathProp,
+  narrativeTemplate: narrativeTemplateProp,
 }) => {
   const { theme } = useTheme();
 
@@ -287,7 +308,6 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     canvasName: null,
     availableExecutions: [],
     selectedExecutionId: null,
-    showNarrativeSelector: false,
     showExecutionSelector: false,
     showHelpModal: false,
     selectedNarrativeId: null,
@@ -303,6 +323,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     hoveredExecutionId: null,
     hoveredExecution: null,
     hoveredScenarioEventNames: null,
+    canvasRotationKey: 0,
   });
 
   // Store context and actions in refs
@@ -372,35 +393,11 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
       // Build event-to-node mapping for this canvas
       eventNodeMapRef.current = buildEventToNodeMap(canvas);
 
-      // Try to find matching narrative template for this canvas
-      let narrativeTemplate: NarrativeTemplate | null = null;
-      let selectedNarrativeId: string | null = null;
-
-      // First, try to find a narrative that matches the canvas
-      const matchingNarrative = availableNarratives.find(
-        n => n.canvasPath === canvasPath ||
-             n.path.replace(/\.narrative\.json$/, '.otel.canvas') === canvasPath
-      );
-
-      // If no match, just select the first available narrative
-      const narrativeToLoad = matchingNarrative || (availableNarratives.length > 0 ? availableNarratives[0] : null);
-
-      if (narrativeToLoad) {
-        try {
-          const fullNarrativePath = `${repositoryPath}/${narrativeToLoad.path}`;
-          const narrativeContent = await readFile(fullNarrativePath);
-          if (narrativeContent && typeof narrativeContent === 'string') {
-            narrativeTemplate = NarrativeLoader.parseNarrativeTemplate(narrativeContent);
-            selectedNarrativeId = narrativeToLoad.id;
-          }
-        } catch (error) {
-          console.warn('[ExecutionViewer] Failed to load narrative template:', error);
-        }
-      }
-
       // Evaluate executions against narrative template to build scenario mapping
+      // Use existing narrative template from state if available
       const executionScenarioMap: Record<string, string> = {};
-      if (narrativeTemplate && executionFiles.length > 0) {
+      const currentNarrativeTemplate = state.narrativeTemplate;
+      if (currentNarrativeTemplate && executionFiles.length > 0) {
         for (const execFile of executionFiles) {
           try {
             const fullExecPath = `${repositoryPath}/${execFile.path}`;
@@ -411,7 +408,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
               if (spans.length > 0) {
                 // For single-span executions, use the first span
                 const events = convertToOtelEvents(spans[0] as TestSpan, []);
-                const result = renderNarrative(narrativeTemplate, events);
+                const result = renderNarrative(currentNarrativeTemplate, events);
                 executionScenarioMap[execFile.id] = result.scenarioId;
               }
             }
@@ -441,10 +438,8 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         currentSpanIndex: 0,
         currentEventIndex: 0,
         highlightedNodeId: null,
-        narrativeTemplate,
         availableNarratives,
-        selectedNarrativeId,
-        viewMode: narrativeTemplate ? 'summary' : 'raw',
+        // Don't overwrite narrativeTemplate and selectedNarrativeId - preserve from state/props
         executionScenarioMap,
       }));
     } catch (error) {
@@ -471,6 +466,26 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     }
   }, [selectedCanvasIdProp, canvasPathProp, canvasNameProp, loadCanvas]);
 
+  // Sync narrative props to state
+  useEffect(() => {
+    if (narrativeTemplateProp && selectedNarrativeIdProp) {
+      console.log('[CanvasDetailPanel] Setting narrative from props:', selectedNarrativeIdProp);
+      setState(prev => ({
+        ...prev,
+        selectedNarrativeId: selectedNarrativeIdProp,
+        narrativeTemplate: narrativeTemplateProp,
+        viewMode: 'summary',
+      }));
+    } else if (selectedNarrativeIdProp === null && narrativeTemplateProp === null) {
+      // Clear narrative if explicitly set to null
+      setState(prev => ({
+        ...prev,
+        selectedNarrativeId: null,
+        narrativeTemplate: null,
+      }));
+    }
+  }, [selectedNarrativeIdProp, narrativeTemplateProp]);
+
   // Listen for custom events to switch canvases (event-driven mode)
   useEffect(() => {
     // If controlled by props, don't listen to events
@@ -488,6 +503,9 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         canvas?: {
           path: string;
         };
+        narrativeId?: string;
+        narrative?: any;
+        narrativeTemplate?: NarrativeTemplate;
       };
     }
 
@@ -496,6 +514,17 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         const payload = event.payload;
         if (payload?.action === 'selectCanvas' && payload?.canvasId && payload?.canvas) {
           loadCanvas(payload.canvasId, payload.canvas.path);
+
+          // Handle narrative if provided in event
+          if (payload.narrativeId && payload.narrativeTemplate) {
+            console.log('[CanvasDetailPanel] Setting narrative from event:', payload.narrativeId);
+            setState(prev => ({
+              ...prev,
+              selectedNarrativeId: payload.narrativeId || null,
+              narrativeTemplate: payload.narrativeTemplate || null,
+              viewMode: 'summary',
+            }));
+          }
         }
       }
     };
@@ -510,6 +539,45 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   const handleToggleGrid = useCallback(() => {
     setState(prev => ({ ...prev, showGrid: !prev.showGrid }));
   }, []);
+
+  const handleRotateCanvas = useCallback(() => {
+    if (!state.canvas) return;
+
+    // Convert canvas to internal format
+    const { nodes, edges } = CanvasConverter.canvasToGraph(state.canvas);
+
+    // Swap orientation
+    const { nodes: rotatedNodes, edges: rotatedEdges } = swapGraphOrientation(nodes, edges);
+
+    // Update canvas with new positions and sides
+    const updatedCanvas: ExtendedCanvas = {
+      ...state.canvas,
+      nodes: rotatedNodes.map((node, idx) => {
+        const originalNode = state.canvas!.nodes![idx];
+        return {
+          ...originalNode,
+          x: node.position?.x ?? 0,
+          y: node.position?.y ?? 0,
+        };
+      }),
+      edges: rotatedEdges.map((edge, idx) => {
+        const originalEdge = state.canvas!.edges![idx];
+        const data = edge.data as Record<string, unknown> | undefined;
+        return {
+          ...originalEdge,
+          fromSide: (data?.fromSide as 'top' | 'right' | 'bottom' | 'left') ?? originalEdge.fromSide,
+          toSide: (data?.toSide as 'top' | 'right' | 'bottom' | 'left') ?? originalEdge.toSide,
+        };
+      }),
+    };
+
+    // Increment rotation key to force GraphRenderer remount
+    setState(prev => ({
+      ...prev,
+      canvas: updatedCanvas,
+      canvasRotationKey: prev.canvasRotationKey + 1,
+    }));
+  }, [state.canvas]);
 
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setState(prev => ({ ...prev, viewMode: mode }));
@@ -917,110 +985,6 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           </div>
         )}
 
-        {/* Narrative Selector - Only show if narratives are available */}
-        {state.availableNarratives.length > 0 && (
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setState(prev => ({ ...prev, showNarrativeSelector: !prev.showNarrativeSelector }))}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 12px',
-                background: '#2a2a2a',
-                border: '1px solid #3a3a3a',
-                borderRadius: '4px',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: '13px',
-              }}
-            >
-              <span>
-                {state.selectedNarrativeId
-                  ? state.availableNarratives.find(n => n.id === state.selectedNarrativeId)?.name || 'Select Narrative'
-                  : 'Select Narrative'}
-              </span>
-              <ChevronDown size={16} />
-            </button>
-
-            {/* Narrative Selector Dropdown */}
-            {state.showNarrativeSelector && (
-              <>
-                <div
-                  style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 999,
-                  }}
-                  onClick={() => setState(prev => ({ ...prev, showNarrativeSelector: false }))}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    marginTop: '4px',
-                    minWidth: '300px',
-                    maxHeight: '400px',
-                    overflowY: 'auto',
-                    background: '#2a2a2a',
-                    border: '1px solid #3a3a3a',
-                    borderRadius: '4px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    zIndex: 1000,
-                  }}
-                >
-                  {state.availableNarratives.map((narrative) => (
-                    <button
-                      key={narrative.id}
-                      onClick={async () => {
-                        // Load the selected narrative template
-                        try {
-                          const ctx = contextRef.current;
-                          const acts = actionsRef.current;
-                          const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
-                          const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
-
-                          if (readFile && repositoryPath) {
-                            const fullNarrativePath = `${repositoryPath}/${narrative.path}`;
-                            const narrativeContent = await readFile(fullNarrativePath);
-                            if (narrativeContent && typeof narrativeContent === 'string') {
-                              const narrativeTemplate = NarrativeLoader.parseNarrativeTemplate(narrativeContent);
-                              setState(prev => ({
-                                ...prev,
-                                selectedNarrativeId: narrative.id,
-                                narrativeTemplate,
-                                showNarrativeSelector: false,
-                                viewMode: 'summary',
-                              }));
-                            }
-                          }
-                        } catch (error) {
-                          console.error('[ExecutionViewer] Failed to load narrative:', error);
-                          setState(prev => ({ ...prev, showNarrativeSelector: false }));
-                        }
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px 16px',
-                        background: narrative.id === state.selectedNarrativeId ? '#3b82f6' : 'transparent',
-                        border: 'none',
-                        borderBottom: '1px solid #3a3a3a',
-                        color: '#fff',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                      }}
-                    >
-                      {narrative.name}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
         {/* Execution Selector - Only show if executions are available */}
         {state.availableExecutions.length > 0 && (
           <div style={{ position: 'relative' }}>
@@ -1250,6 +1214,27 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           <Grid3x3 size={14} />
         </button>
 
+        {/* Rotate Canvas Button */}
+        <button
+          onClick={handleRotateCanvas}
+          disabled={!state.canvas}
+          style={{
+            padding: '6px 10px',
+            background: '#2a2a2a',
+            border: '1px solid #3a3a3a',
+            borderRadius: '4px',
+            color: '#fff',
+            cursor: state.canvas ? 'pointer' : 'not-allowed',
+            opacity: state.canvas ? 1 : 0.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+          title="Rotate Canvas 90°"
+        >
+          <RotateCw size={14} />
+        </button>
+
         {/* Open in Editor Button */}
         <button
           onClick={handleOpenInEditor}
@@ -1382,6 +1367,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
             }}
           >
             <GraphRenderer
+              key={state.canvasRotationKey}
               canvas={state.canvas}
               showMinimap={false}
               showControls={true}

@@ -69,25 +69,50 @@ const mockFileTreeEmpty = {
   allFiles: [],
 };
 
+// Helper to create mock slices with actions
+const createMockSlices = (fileTreeData: any) => {
+  return new Map([
+    [
+      'fileTree',
+      {
+        scope: 'repository' as const,
+        name: 'fileTree',
+        data: fileTreeData,
+        loading: false,
+        error: null,
+        refresh: async () => {},
+      },
+    ],
+    [
+      'actions',
+      {
+        scope: 'repository' as const,
+        name: 'actions',
+        data: {
+          readFile: async (path: string) => {
+            console.log('[Mock] readFile:', path);
+            return JSON.stringify({
+              name: 'Mock Narrative',
+              canvas: 'mock.canvas',
+              scenarios: [],
+            });
+          },
+        },
+        loading: false,
+        error: null,
+        refresh: async () => {},
+      },
+    ],
+  ]);
+};
+
 /**
  * Default story showing the canvas list panel with multiple canvas files
  */
 export const Default: Story = {
   args: {} as never,
   render: () => {
-    const mockSlices = new Map([
-      [
-        'fileTree',
-        {
-          scope: 'repository' as const,
-          name: 'fileTree',
-          data: mockFileTreeWithCanvases,
-          loading: false,
-          error: null,
-          refresh: async () => {},
-        },
-      ],
-    ]);
+    const mockSlices = createMockSlices(mockFileTreeWithCanvases);
 
     return (
       <MockPanelProvider
@@ -110,19 +135,8 @@ export const Default: Story = {
 export const Loading: Story = {
   args: {} as never,
   render: () => {
-    const mockSlices = new Map([
-      [
-        'fileTree',
-        {
-          scope: 'repository' as const,
-          name: 'fileTree',
-          data: null,
-          loading: true,
-          error: null,
-          refresh: async () => {},
-        },
-      ],
-    ]);
+    const mockSlices = createMockSlices(null);
+    mockSlices.get('fileTree')!.loading = true;
 
     return (
       <MockPanelProvider
@@ -145,19 +159,7 @@ export const Loading: Story = {
 export const Empty: Story = {
   args: {} as never,
   render: () => {
-    const mockSlices = new Map([
-      [
-        'fileTree',
-        {
-          scope: 'repository' as const,
-          name: 'fileTree',
-          data: mockFileTreeEmpty,
-          loading: false,
-          error: null,
-          refresh: async () => {},
-        },
-      ],
-    ]);
+    const mockSlices = createMockSlices(mockFileTreeEmpty);
 
     return (
       <MockPanelProvider
@@ -180,19 +182,7 @@ export const Empty: Story = {
 export const WithEventHandling: Story = {
   args: {} as never,
   render: () => {
-    const mockSlices = new Map([
-      [
-        'fileTree',
-        {
-          scope: 'repository' as const,
-          name: 'fileTree',
-          data: mockFileTreeWithCanvases,
-          loading: false,
-          error: null,
-          refresh: async () => {},
-        },
-      ],
-    ]);
+    const mockSlices = createMockSlices(mockFileTreeWithCanvases);
 
     return (
       <MockPanelProvider
@@ -236,28 +226,16 @@ export const WithEventHandling: Story = {
 export const SingleCanvas: Story = {
   args: {} as never,
   render: () => {
-    const mockSlices = new Map([
-      [
-        'fileTree',
+    const mockSlices = createMockSlices({
+      sha: 'mock-sha-single',
+      allFiles: [
         {
-          scope: 'repository' as const,
-          name: 'fileTree',
-          data: {
-            sha: 'mock-sha-single',
-            allFiles: [
-              {
-                name: 'authentication-flow.otel.canvas',
-                relativePath: '.principal-views/authentication-flow.otel.canvas',
-                path: '.principal-views/authentication-flow.otel.canvas',
-              },
-            ],
-          },
-          loading: false,
-          error: null,
-          refresh: async () => {},
+          name: 'authentication-flow.otel.canvas',
+          relativePath: '.principal-views/authentication-flow.otel.canvas',
+          path: '.principal-views/authentication-flow.otel.canvas',
         },
       ],
-    ]);
+    });
 
     return (
       <MockPanelProvider
@@ -286,22 +264,10 @@ export const ManyCanvases: Story = {
       path: `.principal-views/workflow-${i + 1}.otel.canvas`,
     }));
 
-    const mockSlices = new Map([
-      [
-        'fileTree',
-        {
-          scope: 'repository' as const,
-          name: 'fileTree',
-          data: {
-            sha: 'mock-sha-many',
-            allFiles: manyCanvases,
-          },
-          loading: false,
-          error: null,
-          refresh: async () => {},
-        },
-      ],
-    ]);
+    const mockSlices = createMockSlices({
+      sha: 'mock-sha-many',
+      allFiles: manyCanvases,
+    });
 
     return (
       <MockPanelProvider
@@ -411,19 +377,7 @@ export const MonorepoWithPackages: Story = {
       ],
     };
 
-    const mockSlices = new Map([
-      [
-        'fileTree',
-        {
-          scope: 'repository' as const,
-          name: 'fileTree',
-          data: mockFileTreeWithPackages,
-          loading: false,
-          error: null,
-          refresh: async () => {},
-        },
-      ],
-    ]);
+    const mockSlices = createMockSlices(mockFileTreeWithPackages);
 
     return (
       <MockPanelProvider
@@ -485,19 +439,7 @@ export const ChangeDetectionTest: Story = {
       path: `.principal-views/canvas-${i + 1}.otel.canvas`,
     }));
 
-    const mockSlices = new Map([
-      [
-        'fileTree',
-        {
-          scope: 'repository' as const,
-          name: 'fileTree',
-          data: { sha, allFiles: mockFiles },
-          loading: false,
-          error: null,
-          refresh: async () => {},
-        },
-      ],
-    ]);
+    const mockSlices = createMockSlices({ sha, allFiles: mockFiles });
 
     // Custom events that log activity
     const mockEvents = {

@@ -174,11 +174,6 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
           flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
-            {narrativeTemplate.name || 'Narrative Template'}
-          </h2>
-        </div>
         {narrativeTemplate.description && (
           <p
             style={{

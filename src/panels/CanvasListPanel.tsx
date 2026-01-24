@@ -3,10 +3,11 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { AlertCircle, Search, X, RefreshCw, Activity, HelpCircle, Copy, Check } from 'lucide-react';
-import { useCanvasData } from './canvas-list/hooks/useCanvasData';
+import { useCanvasNarrativeData } from './canvas-list/hooks/useCanvasNarrativeData';
 import { CanvasCard } from './canvas-list/components/CanvasCard';
 import type { DiscoveredCanvas } from '@principal-ai/principal-view-core/browser';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
+import { CanvasNarrativeTreeCore, type CanvasNarrativeNodeData } from '@principal-ade/dynamic-file-tree';
 
 /**
  * CanvasListPanel - A panel for displaying .otel.canvas files
@@ -19,6 +20,7 @@ import { EmptyStateContent } from './principal-view/EmptyStateContent';
  */
 export const CanvasListPanel: React.FC<PanelComponentProps> = ({
   context,
+  actions,
   events,
 }) => {
   const { theme } = useTheme();
@@ -31,8 +33,8 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
   const [showHelp, setShowHelp] = useState(false);
   const [cliCommandCopied, setCliCommandCopied] = useState(false);
 
-  // Load canvas data
-  const { canvases, isLoading, error, refreshCanvases } = useCanvasData({ context });
+  // Load canvas and narrative data
+  const { canvases, narratives, isLoading, error, refreshData } = useCanvasNarrativeData({ context, actions });
 
   // Get unique packages for filter
   const availablePackages = useMemo(() => {
@@ -101,6 +103,43 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
     }
   };
 
+  const handleTreeNodeClick = useCallback((node: CanvasNarrativeNodeData) => {
+    if (node.type === 'canvas' && node.canvas) {
+      // Canvas click - existing behavior
+      setSelectedCanvasId(node.canvas.id);
+      if (events) {
+        events.emit({
+          type: 'custom',
+          source: 'canvas-list-panel',
+          timestamp: Date.now(),
+          payload: {
+            action: 'selectCanvas',
+            canvasId: node.canvas.id,
+            canvas: node.canvas,
+          },
+        });
+      }
+    } else if (node.type === 'narrative' && node.narrative && node.canvas) {
+      // Narrative click - NEW behavior with enriched payload
+      setSelectedCanvasId(node.canvas.id);
+      if (events) {
+        events.emit({
+          type: 'custom',
+          source: 'canvas-list-panel',
+          timestamp: Date.now(),
+          payload: {
+            action: 'selectCanvas',
+            canvasId: node.canvas.id,
+            canvas: node.canvas,
+            narrativeId: node.narrative.id,
+            narrative: node.narrative,
+            narrativeTemplate: node.narrativeTemplate,
+          },
+        });
+      }
+    }
+  }, [events]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
 
@@ -115,7 +154,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
     }
 
     try {
-      await refreshCanvases();
+      await refreshData();
     } finally {
       setIsRefreshing(false);
     }
@@ -385,23 +424,14 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
             </div>
           </div>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-              gap: '16px',
-              padding: '4px',
-            }}
-          >
-            {filteredCanvases.map((canvas) => (
-              <CanvasCard
-                key={canvas.id}
-                canvas={canvas}
-                onClick={handleCanvasClick}
-                isSelected={selectedCanvasId === canvas.id}
-              />
-            ))}
-          </div>
+          <CanvasNarrativeTreeCore
+            canvases={filteredCanvases}
+            narratives={narratives}
+            theme={theme}
+            onClick={handleTreeNodeClick}
+            selectedNodeId={selectedCanvasId ? `canvas:${selectedCanvasId}` : undefined}
+            defaultOpen={false}
+          />
         )}
       </div>
 

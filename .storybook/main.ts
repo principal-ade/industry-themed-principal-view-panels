@@ -45,6 +45,11 @@ const config: StorybookConfig = {
       },
       optimizeDeps: {
         ...config.optimizeDeps,
+        include: [
+          ...(config.optimizeDeps?.include || []),
+          '@principal-ade/dynamic-file-tree',
+          '@principal-ai/principal-view-core',
+        ],
         exclude: [
           ...(config.optimizeDeps?.exclude || []),
           '@opentelemetry/api',
