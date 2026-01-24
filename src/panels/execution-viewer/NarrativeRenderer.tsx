@@ -163,8 +163,30 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
         const eventTemplate = scenario.template.events?.[event.name];
         if (!eventTemplate) return;
 
-        // Parse template with full context (aggregates + event attributes)
-        const eventContext = { ...fullContext, ...event.attributes };
+        // Build context with event attributes as nested objects for Handlebars
+        const eventContext: Record<string, unknown> = { ...fullContext };
+
+        // Convert flat dot-notation keys to nested objects
+        if (event.attributes) {
+          for (const [key, value] of Object.entries(event.attributes)) {
+            if (key.includes('.')) {
+              // Nested key: convert "skill.name" -> { skill: { name: value } }
+              const parts = key.split('.');
+              let current: any = eventContext;
+              for (let i = 0; i < parts.length - 1; i++) {
+                if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
+                  current[parts[i]] = {};
+                }
+                current = current[parts[i]];
+              }
+              current[parts[parts.length - 1]] = value;
+            } else {
+              // Simple key
+              eventContext[key] = value;
+            }
+          }
+        }
+
         const renderedText = parseTemplate(eventTemplate, eventContext);
 
         // Make the entire event block clickable
@@ -481,7 +503,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
             overflow: 'auto',
             padding: '12px',
             fontFamily: theme.fonts.monospace,
-            fontSize: '12px',
+            fontSize: theme.fontSizes[2],
             color: theme.colors.text,
           }}
           onClick={(e) => e.stopPropagation()}
@@ -494,7 +516,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
               margin: 0,
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
-              fontSize: '11px',
+              fontSize: theme.fontSizes[1],
               lineHeight: '1.5',
             }}
           >
