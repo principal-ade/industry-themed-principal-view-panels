@@ -4,6 +4,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer, swapGraphOrientation } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
 import { renderNarrative, CanvasConverter } from '@principal-ai/principal-view-core/browser';
+import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 import { TestEventPanel } from './execution-viewer/TestEventPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/narrative-converter';
 import {
@@ -233,6 +234,12 @@ export interface CanvasDetailPanelProps extends PanelComponentProps {
   canvasName?: string | null;
 
   /**
+   * Optional canvas file info with metadata (size, lastModified, etc.).
+   * Used for detecting file changes and auto-reloading.
+   */
+  canvasFileInfo?: FileInfo | null;
+
+  /**
    * Optional narrative ID to display.
    * If provided, the panel will display this narrative without showing the selector UI.
    */
@@ -249,6 +256,12 @@ export interface CanvasDetailPanelProps extends PanelComponentProps {
    * If provided along with selectedNarrativeId, the panel will use this template directly.
    */
   narrativeTemplate?: NarrativeTemplate | null;
+
+  /**
+   * Optional narrative file info with metadata (size, lastModified, etc.).
+   * Used for detecting narrative file changes and auto-reloading.
+   */
+  narrativeFileInfo?: FileInfo | null;
 }
 
 interface CanvasDetailPanelState {
@@ -292,9 +305,11 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   selectedCanvasId: selectedCanvasIdProp,
   canvasPath: canvasPathProp,
   canvasName: canvasNameProp,
+  canvasFileInfo: canvasFileInfoProp,
   selectedNarrativeId: selectedNarrativeIdProp,
   narrativePath: narrativePathProp,
   narrativeTemplate: narrativeTemplateProp,
+  narrativeFileInfo: narrativeFileInfoProp,
 }) => {
   const { theme } = useTheme();
 
@@ -340,6 +355,10 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   // Event-to-node mapping cache
   const eventNodeMapRef = useRef<Map<string, string>>(new Map());
 
+  // Track file timestamps for auto-reload on changes
+  const canvasFileTimestampRef = useRef<number | null>(null);
+  const narrativeFileTimestampRef = useRef<number | null>(null);
+
   const loadCanvas = useCallback(async (canvasId: string, canvasPath: string) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -357,9 +376,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
       }
 
       const fileTreeSlice = ctx.getSlice('fileTree');
-      const fileTreeData = fileTreeSlice?.data as {
-        allFiles?: Array<{ path?: string; relativePath?: string; name?: string }>;
-      } | null;
+      const fileTreeData = fileTreeSlice?.data as FileTree | null;
 
       if (!fileTreeData?.allFiles) {
         // Keep loading state true while waiting for file tree data
@@ -534,6 +551,84 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
       events.off('custom', handleEvent);
     };
   }, [events, loadCanvas, selectedCanvasIdProp, canvasPathProp]);
+
+  // Update timestamp refs when FileInfo props change
+  useEffect(() => {
+    if (canvasFileInfoProp?.lastModified) {
+      canvasFileTimestampRef.current = canvasFileInfoProp.lastModified.getTime();
+    }
+  }, [canvasFileInfoProp]);
+
+  useEffect(() => {
+    if (narrativeFileInfoProp?.lastModified) {
+      narrativeFileTimestampRef.current = narrativeFileInfoProp.lastModified.getTime();
+    }
+  }, [narrativeFileInfoProp]);
+
+  // Auto-reload on file changes via workspace:changed events
+  useEffect(() => {
+    if (!events || !canvasPathProp) return;
+
+    const handleWorkspaceChange = (event: any) => {
+      // Get current file tree to check timestamps
+      const ctx = contextRef.current;
+      if (!ctx.hasSlice('fileTree')) return;
+
+      const fileTreeSlice = ctx.getSlice('fileTree');
+      const fileTreeData = fileTreeSlice?.data as FileTree | null;
+      if (!fileTreeData?.allFiles) return;
+
+      // Check canvas file timestamp
+      if (canvasPathProp) {
+        const canvasFile = fileTreeData.allFiles.find(f =>
+          f.path === canvasPathProp || f.relativePath === canvasPathProp
+        );
+
+        if (canvasFile?.lastModified) {
+          const currentTimestamp = canvasFile.lastModified.getTime();
+          if (canvasFileTimestampRef.current && currentTimestamp !== canvasFileTimestampRef.current) {
+            console.log('[CanvasDetailPanel] Canvas file modified, reloading...', {
+              path: canvasPathProp,
+              lastLoaded: new Date(canvasFileTimestampRef.current),
+              current: new Date(currentTimestamp),
+            });
+
+            // Reload the canvas
+            if (selectedCanvasIdProp) {
+              loadCanvas(selectedCanvasIdProp, canvasPathProp);
+            }
+            canvasFileTimestampRef.current = currentTimestamp;
+          }
+        }
+      }
+
+      // Check narrative file timestamp
+      if (narrativePathProp) {
+        const narrativeFile = fileTreeData.allFiles.find(f =>
+          f.path === narrativePathProp || f.relativePath === narrativePathProp
+        );
+
+        if (narrativeFile?.lastModified) {
+          const currentTimestamp = narrativeFile.lastModified.getTime();
+          if (narrativeFileTimestampRef.current && currentTimestamp !== narrativeFileTimestampRef.current) {
+            console.log('[CanvasDetailPanel] Narrative file modified, reloading...', {
+              path: narrativePathProp,
+              lastLoaded: new Date(narrativeFileTimestampRef.current),
+              current: new Date(currentTimestamp),
+            });
+
+            // TODO: Reload narrative template
+            narrativeFileTimestampRef.current = currentTimestamp;
+          }
+        }
+      }
+    };
+
+    events.on('workspace:changed', handleWorkspaceChange);
+    return () => {
+      events.off('workspace:changed', handleWorkspaceChange);
+    };
+  }, [events, canvasPathProp, narrativePathProp, selectedCanvasIdProp, loadCanvas]);
 
   // Playback control
   const handleToggleGrid = useCallback(() => {
@@ -802,7 +897,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
       for (const node of state.canvas.nodes || []) {
         // Try both node.data.pv and node.pv (canvas format can vary)
         const nodePv = (node as any).pv || ((node as any).data as any)?.pv;
-        const nodeEventName = nodePv?.event?.name;
+        const nodeEventName = nodePv?.event; // event is a string, not an object with .name
 
         // If this node's event matches any of the scenario's events, mark it as active
         if (nodeEventName && state.hoveredScenarioEventNames.includes(nodeEventName)) {
