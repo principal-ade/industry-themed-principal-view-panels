@@ -129,10 +129,11 @@ export const useCanvasNarrativeData = ({
     await loadNarratives();
   }, [refreshCanvases, loadNarratives]);
 
-  // Load narratives when file tree changes
+  // Load narratives only when SHA actually changes, not when callback changes
   useEffect(() => {
     loadNarratives();
-  }, [loadNarratives]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fileTreeSha]);
 
   // Combine loading and error states
   const isLoading = canvasesLoading || narrativesLoading;

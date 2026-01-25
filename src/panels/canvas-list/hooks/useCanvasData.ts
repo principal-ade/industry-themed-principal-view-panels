@@ -94,9 +94,11 @@ export const useCanvasData = ({
     await loadCanvases();
   }, [loadCanvases]);
 
+  // Only run when SHA actually changes, not when loadCanvases callback changes
   useEffect(() => {
     loadCanvases();
-  }, [loadCanvases]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fileTreeSha]);
 
   return {
     canvases,

@@ -186,10 +186,11 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
     }
   }, [actions, events, getCanvasFileInfo]);
 
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
     setIsRefreshing(true);
 
     // Emit refresh event so parent can handle filesystem rescans, etc.
+    // The parent will update the file tree SHA, which will trigger automatic reload via useEffect
     if (events) {
       events.emit({
         type: 'canvas:refresh' as any,
@@ -199,11 +200,11 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
       });
     }
 
-    try {
-      await refreshData();
-    } finally {
+    // Stop the spinner after a short delay to give visual feedback
+    // The actual reload happens when parent updates the file tree SHA
+    setTimeout(() => {
       setIsRefreshing(false);
-    }
+    }, 500);
   };
 
   const toggleHelp = () => {
