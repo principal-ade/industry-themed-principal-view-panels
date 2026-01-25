@@ -1,12 +1,12 @@
 /**
- * Utilities for converting TestEventPanel data to OtelEvent format
+ * Utilities for converting ScenarioDetailsPanel data to OtelEvent format
  * for use with the narrative renderer
  */
 
-import type { OtelEvent, OtelAttributes } from '@principal-ai/principal-view-core/browser';
-import type { OtelLog, OtelSeverity } from './TestEventPanel';
+import type { OtelEvent, OtelAttributes } from '@principal-ai/principal-view-core';
+import type { OtelLog, OtelSeverity } from './ScenarioDetailsPanel';
 
-// TestEventPanel types (matching TestEventPanel.tsx)
+// ScenarioDetailsPanel types (matching ScenarioDetailsPanel.tsx)
 export interface SpanEvent {
   time: number;
   name: string;

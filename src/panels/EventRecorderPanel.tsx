@@ -18,7 +18,7 @@ import {
   ChevronDown,
   Disc,
 } from 'lucide-react';
-import type { GraphEvent } from '@principal-ai/principal-view-core/browser';
+import type { GraphEvent } from '@principal-ai/principal-view-core';
 
 /**
  * Session summary for display

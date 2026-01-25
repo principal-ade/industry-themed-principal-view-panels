@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import type { GraphEvent } from '@principal-ai/principal-view-core/browser';
+import type { GraphEvent } from '@principal-ai/principal-view-core';
 import { Play, Pause, Square, SkipBack, SkipForward, RotateCcw } from 'lucide-react';
 
 export type PlaybackStatus = 'stopped' | 'playing' | 'paused';

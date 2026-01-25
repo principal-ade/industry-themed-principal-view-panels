@@ -6,8 +6,8 @@
  * should be highlighted when an event is played back.
  */
 
-import type { ExtendedCanvas, PVNodeExtension } from '@principal-ai/principal-view-core/browser';
-import type { OtelAttributes } from '@principal-ai/principal-view-core/browser';
+import type { ExtendedCanvas, PVNodeExtension } from '@principal-ai/principal-view-core';
+import type { OtelAttributes } from '@principal-ai/principal-view-core';
 
 /**
  * Event from execution artifact

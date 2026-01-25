@@ -1,4 +1,4 @@
-import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core/browser';
+import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core';
 import yaml from 'js-yaml';
 
 export interface ConfigFile {

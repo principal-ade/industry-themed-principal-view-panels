@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PanelContextValue } from '@principal-ade/panel-framework-core';
-import { CanvasDiscovery, type DiscoveredCanvas } from '@principal-ai/principal-view-core/browser';
+import { CanvasDiscovery, type DiscoveredCanvas } from '@principal-ai/principal-view-core';
 import type { FileTree } from '@principal-ai/repository-abstraction';
 
 interface UseCanvasDataParams {

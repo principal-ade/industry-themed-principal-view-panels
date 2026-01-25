@@ -36,21 +36,9 @@ export default defineConfig(({ mode: _mode }) => ({
         'react-dom',
         'react/jsx-runtime',
         '@opentelemetry/api',
-        // Externalize Node.js built-ins to prevent bundling
-        /^node:/,
-        /^fs($|\/)/,
-        /^path($|\/)/,
-        /^child_process($|\/)/,
-        /^stream($|\/)/,
-        /^events($|\/)/,
-        /^string_decoder($|\/)/,
-        // Externalize packages with Node.js code that we don't use in browser
-        'glob',
-        'minipass',
-        'path-scurry',
         // Externalize codebase-composition which contains quality lenses with Node executors
         '@principal-ai/codebase-composition',
-        // Externalize principal-view-core - host app provides it
+        // Externalize principal-view-core - host app provides it (browser-safe as of v0.12.0)
         '@principal-ai/principal-view-core',
         /^@principal-ai\/principal-view-core\//,
       ],

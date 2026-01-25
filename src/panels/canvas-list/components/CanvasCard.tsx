@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import { Package, Home } from 'lucide-react';
-import type { DiscoveredCanvas } from '@principal-ai/principal-view-core/browser';
+import type { DiscoveredCanvas } from '@principal-ai/principal-view-core';
 
 interface CanvasCardProps {
   canvas: DiscoveredCanvas;

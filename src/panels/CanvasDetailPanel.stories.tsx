@@ -4,7 +4,7 @@ import { CanvasDetailPanel } from './CanvasDetailPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import type { DataSlice } from '../types';
-import type { NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
+import type { NarrativeTemplate } from '@principal-ai/principal-view-core';
 
 /**
  * CanvasDetailPanel - OTEL Execution Visualizer

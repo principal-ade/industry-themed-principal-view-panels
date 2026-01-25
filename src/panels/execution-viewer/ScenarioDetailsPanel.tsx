@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, ChevronDown, ArrowLeft } from 'lucide-react';
 import yaml from 'js-yaml';
-import type { NarrativeTemplate, OtelAttributes } from '@principal-ai/principal-view-core/browser';
+import type { NarrativeTemplate, OtelAttributes, NarrativeScenario } from '@principal-ai/principal-view-core';
 import { NarrativeRenderer } from './NarrativeRenderer';
 import { convertToOtelEvents } from './narrative-converter';
 
@@ -53,7 +53,7 @@ interface TimelineItem {
 // View mode type
 export type ViewMode = 'raw' | 'narrative' | 'summary';
 
-export interface TestEventPanelProps {
+export interface ScenarioDetailsPanelProps {
   spans: TestSpan[];
   logs?: OtelLog[]; // Optional for backward compatibility
   currentSpanIndex: number;
@@ -66,11 +66,28 @@ export interface TestEventPanelProps {
   narrativeTemplate?: NarrativeTemplate;
   onViewModeChange?: (mode: ViewMode) => void;
   showNarrativeMetadata?: boolean;
-  onNarrativeEventClick?: (event: import('@principal-ai/principal-view-core/browser').OtelEvent, eventIndex: number) => void;
+  onNarrativeEventClick?: (event: import('@principal-ai/principal-view-core').OtelEvent, eventIndex: number) => void;
 
   // UI control props
   showNavigation?: boolean; // Show Prev/Next buttons (default: true)
   showTestName?: boolean; // Show test name below header (default: true)
+
+  // Execution selector props
+  availableExecutions?: Array<{ id: string; name: string; path: string }>;
+  selectedExecutionId?: string | null;
+  onExecutionSelect?: (executionId: string) => void;
+  onDeselectExecution?: () => void;
+  onExecutionHover?: (executionId: string | null) => void;
+
+  // Back button props
+  showBackButton?: boolean;
+  onBackClick?: () => void;
+
+  // Scenario name display
+  scenarioName?: string;
+
+  // Selected scenario for preview mode (when no execution is selected)
+  selectedScenario?: NarrativeScenario;
 }
 
 // Helper functions for log severity
@@ -98,7 +115,7 @@ function getSeverityIcon(severity: OtelSeverity): string {
   return icons[severity] || '•';
 }
 
-export const TestEventPanel: React.FC<TestEventPanelProps> = ({
+export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
   spans,
   logs = [],
   currentSpanIndex,
@@ -112,9 +129,38 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
   onNarrativeEventClick,
   showNavigation = true,
   showTestName = true,
+  availableExecutions = [],
+  selectedExecutionId = null,
+  onExecutionSelect,
+  onDeselectExecution,
+  onExecutionHover,
+  showBackButton = false,
+  onBackClick,
+  scenarioName,
+  selectedScenario,
 }) => {
   const { theme } = useTheme();
   const [showHelp, setShowHelp] = useState(false);
+  const [showExecutionSelector, setShowExecutionSelector] = useState(false);
+
+  // Helper to highlight template variables in text
+  const highlightTemplateVariables = (text: string) => {
+    const parts = text.split(/(\{\{[^}]+\}\})/g);
+    return (
+      <>
+        {parts.map((part, i) => {
+          if (part.match(/^\{\{[^}]+\}\}$/)) {
+            return (
+              <span key={i} style={{ color: theme.colors.accent, fontWeight: 600 }}>
+                {part}
+              </span>
+            );
+          }
+          return part;
+        })}
+      </>
+    );
+  };
 
   const currentSpan = spans[currentSpanIndex];
 
@@ -188,6 +234,160 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
           flexShrink: 0,
         }}
       >
+        {/* Scenario Name */}
+        {scenarioName && (
+          <div style={{ marginBottom: '12px' }}>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: theme.colors.text }}>
+              {scenarioName}
+            </h2>
+          </div>
+        )}
+
+        {/* Execution Controls Row */}
+        {(availableExecutions.length > 0 || showBackButton) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            {/* Execution Selector */}
+            {availableExecutions.length > 0 && (
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowExecutionSelector(!showExecutionSelector)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '6px 12px',
+                    background: selectedExecutionId ? '#10b981' : '#2a2a2a',
+                    border: '1px solid #3a3a3a',
+                    borderRadius: '4px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                  }}
+                >
+                  <span>
+                    {selectedExecutionId
+                      ? availableExecutions.find(e => e.id === selectedExecutionId)?.name || 'Select Execution'
+                      : `Execution (${availableExecutions.length})`}
+                  </span>
+                  <ChevronDown size={16} />
+                </button>
+
+                {/* Execution Selector Dropdown */}
+                {showExecutionSelector && (
+                  <>
+                    <div
+                      style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 999,
+                      }}
+                      onClick={() => setShowExecutionSelector(false)}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        marginTop: '4px',
+                        minWidth: '300px',
+                        maxHeight: '400px',
+                        overflowY: 'auto',
+                        background: '#2a2a2a',
+                        border: '1px solid #3a3a3a',
+                        borderRadius: '4px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                        zIndex: 1000,
+                      }}
+                    >
+                      {/* Option to deselect */}
+                      {onDeselectExecution && (
+                        <button
+                          onClick={() => {
+                            onDeselectExecution();
+                            setShowExecutionSelector(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '10px 16px',
+                            background: !selectedExecutionId ? '#3b82f6' : 'transparent',
+                            border: 'none',
+                            borderBottom: '1px solid #3a3a3a',
+                            color: '#fff',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          None (show scenario mapping)
+                        </button>
+                      )}
+                      {availableExecutions.map((execution) => (
+                        <button
+                          key={execution.id}
+                          onMouseEnter={() => {
+                            if (onExecutionHover) {
+                              onExecutionHover(execution.id);
+                            }
+                          }}
+                          onMouseLeave={() => {
+                            if (onExecutionHover) {
+                              onExecutionHover(null);
+                            }
+                          }}
+                          onClick={() => {
+                            if (onExecutionSelect) {
+                              onExecutionSelect(execution.id);
+                            }
+                            setShowExecutionSelector(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '10px 16px',
+                            background: execution.id === selectedExecutionId ? '#3b82f6' : 'transparent',
+                            border: 'none',
+                            borderBottom: '1px solid #3a3a3a',
+                            color: '#fff',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                          }}
+                        >
+                          {execution.name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Back Button */}
+            {showBackButton && onBackClick && (
+              <button
+                onClick={onBackClick}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  background: '#3b82f6',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                }}
+                title="Back to scenario mapping"
+              >
+                <ArrowLeft size={14} />
+                Back
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Test Navigation */}
         {showNavigation && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
@@ -258,7 +458,7 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
 
         {/* View Mode Toggle */}
         {narrativeTemplate && onViewModeChange && (
-          <div style={{ display: 'flex', margin: '-20px -20px 0 -20px' }}>
+          <div style={{ display: 'flex', margin: '0 -20px 0 -20px' }}>
             <button
               onClick={() => onViewModeChange('summary')}
               style={{
@@ -409,6 +609,48 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
             activeEventIndex={currentEventIndex}
             showOnlySummary={viewMode === 'summary'}
           />
+        ) : viewMode === 'summary' && narrativeTemplate && selectedScenario && !currentSpan ? (
+          <NarrativeRenderer
+            template={narrativeTemplate}
+            events={[]} // Empty events for scenario preview
+            showMetadata={false}
+            showOnlySummary={true} // Show summary (introduction, conditions, summary)
+          />
+        ) : viewMode === 'narrative' && narrativeTemplate && selectedScenario && !currentSpan ? (
+          <div style={{ fontFamily: theme.fonts.body }}>
+            {selectedScenario.template.events && Object.keys(selectedScenario.template.events).length > 0 ? (
+              <div>
+                {Object.entries(selectedScenario.template.events).map(([eventName, template]) => (
+                  <div
+                    key={eventName}
+                    style={{
+                      padding: '12px 16px',
+                      backgroundColor: theme.colors.backgroundSecondary,
+                      borderBottom: `1px solid ${theme.colors.border}`,
+                      fontSize: '15px',
+                      lineHeight: '1.6',
+                      fontWeight: 500,
+                    }}
+                  >
+                    <div style={{ fontSize: '14px', color: theme.colors.text, lineHeight: '1.7' }}>
+                      {highlightTemplateVariables(String(template))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: '40px 20px',
+                  textAlign: 'center',
+                  color: theme.colors.textMuted,
+                  background: theme.colors.backgroundSecondary,
+                }}
+              >
+                <div style={{ fontSize: '14px' }}>No event templates defined for this scenario</div>
+              </div>
+            )}
+          </div>
         ) : (viewMode === 'narrative' || viewMode === 'summary') && !narrativeTemplate ? (
           <div
             style={{
@@ -442,6 +684,20 @@ export const TestEventPanel: React.FC<TestEventPanelProps> = ({
         ) : null}
 
         {/* Raw Events View (Timeline) */}
+        {viewMode === 'raw' && !currentSpan && selectedScenario && (
+          <div
+            style={{
+              padding: '40px 20px',
+              textAlign: 'center',
+              color: theme.colors.textMuted,
+            }}
+          >
+            <div style={{ fontSize: '16px', marginBottom: '12px' }}>ⓘ No execution selected</div>
+            <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+              Select an execution from the dropdown above to view raw events.
+            </div>
+          </div>
+        )}
         {viewMode === 'raw' && currentSpan && (
           <div>
             {timeline.map((item, idx) => {

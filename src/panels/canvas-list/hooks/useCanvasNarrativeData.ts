@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PanelContextValue, PanelActions } from '@principal-ade/panel-framework-core';
-import type { DiscoveredCanvas } from '@principal-ai/principal-view-core/browser';
-import type { NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
+import type { DiscoveredCanvas } from '@principal-ai/principal-view-core';
+import type { NarrativeTemplate } from '@principal-ai/principal-view-core';
 import type { FileTree } from '@principal-ai/repository-abstraction';
 import { NarrativeLoader, type NarrativeFile } from '../../execution-viewer/NarrativeLoader';
 import { useCanvasData } from './useCanvasData';

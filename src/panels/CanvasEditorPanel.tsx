@@ -3,7 +3,7 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
-import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core/browser';
+import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core';
 import { Loader, Save, X, Pencil, Copy, Check, Info, MessageSquareOff, Grid3X3, RefreshCw, Crosshair } from 'lucide-react';
 import { ConfigLoader } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';

@@ -1,5 +1,5 @@
-import type { OtelAttributes } from '@principal-ai/principal-view-core/browser';
-import { ExecutionValidator } from '@principal-ai/principal-view-core/browser';
+import type { OtelAttributes } from '@principal-ai/principal-view-core';
+import { ExecutionValidator } from '@principal-ai/principal-view-core';
 
 export interface ExecutionFile {
   /** Unique identifier for this execution (derived from filename) */

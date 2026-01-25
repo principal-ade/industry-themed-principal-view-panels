@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { renderNarrative, parseTemplate, selectScenario, computeAggregates } from '@principal-ai/principal-view-core/browser';
-import type { NarrativeTemplate, OtelEvent, NarrativeScenario } from '@principal-ai/principal-view-core/browser';
+import { renderNarrative, parseTemplate, selectScenario, computeAggregates } from '@principal-ai/principal-view-core';
+import type { NarrativeTemplate, OtelEvent, NarrativeScenario } from '@principal-ai/principal-view-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import yaml from 'js-yaml';
 

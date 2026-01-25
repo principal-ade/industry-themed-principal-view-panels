@@ -1,4 +1,4 @@
-import type { NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
+import type { NarrativeTemplate } from '@principal-ai/principal-view-core';
 
 export interface NarrativeFile {
   /** Unique identifier for this narrative (derived from filename) */

@@ -2,10 +2,10 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer, swapGraphOrientation } from '@principal-ai/principal-view-react';
-import type { ExtendedCanvas, NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
-import { renderNarrative, CanvasConverter } from '@principal-ai/principal-view-core/browser';
+import type { ExtendedCanvas, NarrativeTemplate, NarrativeScenario } from '@principal-ai/principal-view-core';
+import { renderNarrative, CanvasConverter } from '@principal-ai/principal-view-core';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
-import { TestEventPanel } from './execution-viewer/TestEventPanel';
+import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/narrative-converter';
 import {
   ExecutionLoader,
@@ -13,7 +13,7 @@ import {
   type ExecutionMetadata,
   type ExecutionArtifact,
 } from './execution-viewer/ExecutionLoader';
-import { Loader, ChevronDown, Activity, Grid3x3, HelpCircle, X, ArrowLeft, Pencil, RotateCw } from 'lucide-react';
+import { Loader, Activity, Grid3x3, HelpCircle, X, Pencil, RotateCw } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { NarrativeLoader, type NarrativeFile } from './execution-viewer/NarrativeLoader';
@@ -274,7 +274,6 @@ interface CanvasDetailPanelState {
   canvasName: string | null;
   availableExecutions: ExecutionFile[];
   selectedExecutionId: string | null;
-  showExecutionSelector: boolean;
   showHelpModal: boolean;
   selectedNarrativeId: string | null;
   isPlaying: boolean;
@@ -290,6 +289,8 @@ interface CanvasDetailPanelState {
   hoveredExecution: ExecutionArtifact | null;
   hoveredScenarioEventNames: string[] | null;
   canvasRotationKey: number; // Used to force GraphRenderer remount on rotation
+  selectedScenarioId: string | null;
+  selectedScenario: NarrativeScenario | null;
 }
 
 /**
@@ -323,7 +324,6 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     canvasName: null,
     availableExecutions: [],
     selectedExecutionId: null,
-    showExecutionSelector: false,
     showHelpModal: false,
     selectedNarrativeId: null,
     isPlaying: false,
@@ -339,6 +339,8 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     hoveredExecution: null,
     hoveredScenarioEventNames: null,
     canvasRotationKey: 0,
+    selectedScenarioId: null,
+    selectedScenario: null,
   });
 
   // Store context and actions in refs
@@ -760,7 +762,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   }, []);
 
   // Handle narrative event click - highlight corresponding canvas node
-  const handleNarrativeEventClick = useCallback((event: import('@principal-ai/principal-view-core/browser').OtelEvent, eventIndex: number) => {
+  const handleNarrativeEventClick = useCallback((event: import('@principal-ai/principal-view-core').OtelEvent, eventIndex: number) => {
     setState(prev => {
       const nodeId = mapEventToNodeId({ name: event.name, time: Number(event.timestamp), attributes: event.attributes as any }, prev.canvas);
       return {
@@ -854,6 +856,16 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     setState(prev => ({
       ...prev,
       hoveredScenarioEventNames: eventNames,
+    }));
+  }, []);
+
+  // Handle scenario click - show ScenarioDetailsPanel for the selected scenario
+  const handleScenarioClick = useCallback((scenarioId: string, scenario: NarrativeScenario) => {
+    setState(prev => ({
+      ...prev,
+      selectedScenarioId: scenarioId,
+      selectedScenario: scenario,
+      viewMode: 'summary', // Default to summary view when showing a scenario
     }));
   }, []);
 
@@ -1080,212 +1092,6 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           </div>
         )}
 
-        {/* Execution Selector - Only show if executions are available */}
-        {state.availableExecutions.length > 0 && (
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setState(prev => ({ ...prev, showExecutionSelector: !prev.showExecutionSelector }))}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 12px',
-                background: state.selectedExecutionId ? '#10b981' : '#2a2a2a',
-                border: '1px solid #3a3a3a',
-                borderRadius: '4px',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: '13px',
-              }}
-            >
-              <span>
-                {state.selectedExecutionId
-                  ? state.availableExecutions.find(e => e.id === state.selectedExecutionId)?.name || 'Select Execution'
-                  : `Execution (${state.availableExecutions.length})`}
-              </span>
-              <ChevronDown size={16} />
-            </button>
-
-            {/* Execution Selector Dropdown */}
-            {state.showExecutionSelector && (
-              <>
-                <div
-                  style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 999,
-                  }}
-                  onClick={() => setState(prev => ({ ...prev, showExecutionSelector: false }))}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    marginTop: '4px',
-                    minWidth: '300px',
-                    maxHeight: '400px',
-                    overflowY: 'auto',
-                    background: '#2a2a2a',
-                    border: '1px solid #3a3a3a',
-                    borderRadius: '4px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    zIndex: 1000,
-                  }}
-                >
-                  {/* Option to deselect */}
-                  <button
-                    onClick={() => {
-                      setState(prev => ({
-                        ...prev,
-                        selectedExecutionId: null,
-                        execution: null,
-                        metadata: null,
-                        showExecutionSelector: false,
-                        isPlaying: false,
-                        currentSpanIndex: 0,
-                        currentEventIndex: 0,
-                        highlightedNodeId: null,
-                      }));
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '10px 16px',
-                      background: !state.selectedExecutionId ? '#3b82f6' : 'transparent',
-                      border: 'none',
-                      borderBottom: '1px solid #3a3a3a',
-                      color: '#fff',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontStyle: 'italic',
-                    }}
-                  >
-                    None (show scenario mapping)
-                  </button>
-                  {state.availableExecutions.map((execution) => (
-                    <button
-                      key={execution.id}
-                      onMouseEnter={async () => {
-                        // Load the execution for preview (hover)
-                        try {
-                          const ctx = contextRef.current;
-                          const acts = actionsRef.current;
-                          const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
-                          const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
-
-                          if (readFile && repositoryPath) {
-                            const fullExecutionPath = `${repositoryPath}/${execution.path}`;
-                            const executionContent = await readFile(fullExecutionPath);
-                            if (executionContent && typeof executionContent === 'string') {
-                              const executionArtifact = ExecutionLoader.parseExecutionArtifact(executionContent);
-                              setState(prev => ({
-                                ...prev,
-                                hoveredExecutionId: execution.id,
-                                hoveredExecution: executionArtifact,
-                              }));
-                            }
-                          }
-                        } catch (error) {
-                          console.error('[ExecutionViewer] Failed to load execution for preview:', error);
-                        }
-                      }}
-                      onMouseLeave={() => {
-                        setState(prev => ({
-                          ...prev,
-                          hoveredExecutionId: null,
-                          hoveredExecution: null,
-                        }));
-                      }}
-                      onClick={async () => {
-                        // Load the selected execution
-                        try {
-                          const ctx = contextRef.current;
-                          const acts = actionsRef.current;
-                          const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
-                          const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
-
-                          if (readFile && repositoryPath) {
-                            const fullExecutionPath = `${repositoryPath}/${execution.path}`;
-                            const executionContent = await readFile(fullExecutionPath);
-                            if (executionContent && typeof executionContent === 'string') {
-                              const executionArtifact = ExecutionLoader.parseExecutionArtifact(executionContent);
-                              const metadata = ExecutionLoader.getExecutionMetadata(executionArtifact);
-                              setState(prev => ({
-                                ...prev,
-                                selectedExecutionId: execution.id,
-                                execution: executionArtifact,
-                                metadata,
-                                showExecutionSelector: false,
-                                isPlaying: false,
-                                currentSpanIndex: 0,
-                                currentEventIndex: 0,
-                                highlightedNodeId: null,
-                                hoveredExecutionId: null,
-                                hoveredExecution: null,
-                              }));
-                            }
-                          }
-                        } catch (error) {
-                          console.error('[ExecutionViewer] Failed to load execution:', error);
-                          setState(prev => ({ ...prev, showExecutionSelector: false }));
-                        }
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px 16px',
-                        background: execution.id === state.selectedExecutionId ? '#3b82f6' : 'transparent',
-                        border: 'none',
-                        borderBottom: '1px solid #3a3a3a',
-                        color: '#fff',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                      }}
-                    >
-                      {execution.name}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Back Button - Show when execution is selected and narratives are available */}
-        {state.execution && state.narrativeTemplate && state.availableExecutions.length > 0 && (
-          <button
-            onClick={() => {
-              setState(prev => ({
-                ...prev,
-                selectedExecutionId: null,
-                execution: null,
-                metadata: null,
-                isPlaying: false,
-                currentSpanIndex: 0,
-                currentEventIndex: 0,
-                highlightedNodeId: null,
-              }));
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              background: '#3b82f6',
-              border: 'none',
-              borderRadius: '4px',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: 600,
-            }}
-            title="Back to scenario mapping"
-          >
-            <ArrowLeft size={14} />
-            Back
-          </button>
-        )}
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
@@ -1388,7 +1194,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         {(state.execution || state.availableNarratives.length > 0) && (
           <div style={{ flex: '0 0 40%', borderRight: '1px solid #333', overflow: 'hidden' }}>
             {state.execution ? (
-              <TestEventPanel
+              <ScenarioDetailsPanel
                 spans={ExecutionLoader.getSpans(state.execution) as TestSpan[]}
                 currentSpanIndex={state.currentSpanIndex}
                 currentEventIndex={state.currentEventIndex}
@@ -1399,6 +1205,163 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                 onNarrativeEventClick={handleNarrativeEventClick}
                 showNavigation={ExecutionLoader.getSpans(state.execution).length > 1}
                 showTestName={false}
+                availableExecutions={state.availableExecutions}
+                selectedExecutionId={state.selectedExecutionId}
+                onExecutionSelect={handleExecutionSelect}
+                onDeselectExecution={() => {
+                  setState(prev => ({
+                    ...prev,
+                    selectedExecutionId: null,
+                    execution: null,
+                    metadata: null,
+                    isPlaying: false,
+                    currentSpanIndex: 0,
+                    currentEventIndex: 0,
+                    highlightedNodeId: null,
+                  }));
+                }}
+                onExecutionHover={(executionId) => {
+                  if (executionId) {
+                    // Load the execution for preview (hover)
+                    const execution = state.availableExecutions.find(e => e.id === executionId);
+                    if (execution) {
+                      (async () => {
+                        try {
+                          const ctx = contextRef.current;
+                          const acts = actionsRef.current;
+                          const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
+                          const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
+
+                          if (readFile && repositoryPath) {
+                            const fullExecutionPath = `${repositoryPath}/${execution.path}`;
+                            const executionContent = await readFile(fullExecutionPath);
+                            if (executionContent && typeof executionContent === 'string') {
+                              const executionArtifact = ExecutionLoader.parseExecutionArtifact(executionContent);
+                              setState(prev => ({
+                                ...prev,
+                                hoveredExecutionId: execution.id,
+                                hoveredExecution: executionArtifact,
+                              }));
+                            }
+                          }
+                        } catch (error) {
+                          console.error('[ExecutionViewer] Failed to load execution for preview:', error);
+                        }
+                      })();
+                    }
+                  } else {
+                    setState(prev => ({
+                      ...prev,
+                      hoveredExecutionId: null,
+                      hoveredExecution: null,
+                    }));
+                  }
+                }}
+                showBackButton={!!(state.narrativeTemplate && state.availableExecutions.length > 0)}
+                onBackClick={() => {
+                  setState(prev => ({
+                    ...prev,
+                    selectedExecutionId: null,
+                    execution: null,
+                    metadata: null,
+                    isPlaying: false,
+                    currentSpanIndex: 0,
+                    currentEventIndex: 0,
+                    highlightedNodeId: null,
+                  }));
+                }}
+                scenarioName={
+                  state.selectedExecutionId && state.executionScenarioMap[state.selectedExecutionId]
+                    ? state.executionScenarioMap[state.selectedExecutionId]
+                        .split('-')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ')
+                    : undefined
+                }
+              />
+            ) : state.selectedScenario ? (
+              <ScenarioDetailsPanel
+                spans={[]} // Empty spans when showing scenario without execution
+                currentSpanIndex={0}
+                currentEventIndex={0}
+                narrativeTemplate={state.narrativeTemplate ?? undefined}
+                viewMode={state.viewMode}
+                onViewModeChange={handleViewModeChange}
+                showNavigation={false}
+                showTestName={false}
+                availableExecutions={state.availableExecutions.filter(
+                  exec => state.executionScenarioMap[exec.id] === state.selectedScenarioId
+                )}
+                selectedExecutionId={state.selectedExecutionId}
+                onExecutionSelect={handleExecutionSelect}
+                onDeselectExecution={() => {
+                  setState(prev => ({
+                    ...prev,
+                    selectedExecutionId: null,
+                    execution: null,
+                    metadata: null,
+                    isPlaying: false,
+                    currentSpanIndex: 0,
+                    currentEventIndex: 0,
+                    highlightedNodeId: null,
+                  }));
+                }}
+                onExecutionHover={(executionId) => {
+                  if (executionId) {
+                    const execution = state.availableExecutions.find(e => e.id === executionId);
+                    if (execution) {
+                      (async () => {
+                        try {
+                          const ctx = contextRef.current;
+                          const acts = actionsRef.current;
+                          const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
+                          const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
+
+                          if (readFile && repositoryPath) {
+                            const fullExecutionPath = `${repositoryPath}/${execution.path}`;
+                            const executionContent = await readFile(fullExecutionPath);
+                            if (executionContent && typeof executionContent === 'string') {
+                              const executionArtifact = ExecutionLoader.parseExecutionArtifact(executionContent);
+                              setState(prev => ({
+                                ...prev,
+                                hoveredExecutionId: execution.id,
+                                hoveredExecution: executionArtifact,
+                              }));
+                            }
+                          }
+                        } catch (error) {
+                          console.error('[ExecutionViewer] Failed to load execution for preview:', error);
+                        }
+                      })();
+                    }
+                  } else {
+                    setState(prev => ({
+                      ...prev,
+                      hoveredExecutionId: null,
+                      hoveredExecution: null,
+                    }));
+                  }
+                }}
+                showBackButton={true}
+                onBackClick={() => {
+                  setState(prev => ({
+                    ...prev,
+                    selectedScenarioId: null,
+                    selectedScenario: null,
+                    selectedExecutionId: null,
+                    execution: null,
+                    metadata: null,
+                  }));
+                }}
+                scenarioName={
+                  state.selectedScenarioId
+                    ? state.selectedScenarioId
+                        .split('-')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ')
+                    : undefined
+                }
+                selectedScenario={state.selectedScenario ?? undefined}
               />
             ) : state.narrativeTemplate ? (
               <NarrativeTemplatePanel
@@ -1407,6 +1370,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                 executionScenarioMap={state.executionScenarioMap}
                 onExecutionSelect={handleExecutionSelect}
                 onScenarioHover={handleScenarioHover}
+                onScenarioClick={handleScenarioClick}
               />
             ) : (
               <div

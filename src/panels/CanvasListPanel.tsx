@@ -5,7 +5,7 @@ import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { AlertCircle, Search, X, RefreshCw, Activity, HelpCircle, Copy, Check } from 'lucide-react';
 import { useCanvasNarrativeData } from './canvas-list/hooks/useCanvasNarrativeData';
 import { CanvasCard } from './canvas-list/components/CanvasCard';
-import type { DiscoveredCanvas } from '@principal-ai/principal-view-core/browser';
+import type { DiscoveredCanvas } from '@principal-ai/principal-view-core';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
 import { CanvasNarrativeTreeCore, type CanvasNarrativeNodeData } from '@principal-ade/dynamic-file-tree';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';

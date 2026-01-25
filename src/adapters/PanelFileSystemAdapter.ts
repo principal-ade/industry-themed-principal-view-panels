@@ -8,7 +8,7 @@
  * ConfigurationLoader and LibraryLoader with the async panel context.
  */
 
-import type { FileSystemAdapter } from '@principal-ai/principal-view-core';
+import type { FileSystemAdapter } from '@principal-ai/repository-abstraction';
 
 /**
  * File entry from the fileTree slice
