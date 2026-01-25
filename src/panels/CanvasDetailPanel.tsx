@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer, swapGraphOrientation } from '@principal-ai/principal-view-react';
-import type { ExtendedCanvas, NarrativeTemplate, NarrativeScenario } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, NarrativeTemplate, NarrativeScenario } from '@principal-ai/principal-view-core';
 import { renderNarrative, CanvasConverter } from '@principal-ai/principal-view-core';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
@@ -333,7 +333,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     showGrid: false,
     narrativeTemplate: null,
     availableNarratives: [],
-    viewMode: 'raw',
+    viewMode: 'narrative',
     executionScenarioMap: {},
     hoveredExecutionId: null,
     hoveredExecution: null,
@@ -493,7 +493,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         ...prev,
         selectedNarrativeId: selectedNarrativeIdProp,
         narrativeTemplate: narrativeTemplateProp,
-        viewMode: 'summary',
+        viewMode: 'narrative',
       }));
     } else if (selectedNarrativeIdProp === null && narrativeTemplateProp === null) {
       // Clear narrative if explicitly set to null
@@ -541,7 +541,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
               ...prev,
               selectedNarrativeId: payload.narrativeId || null,
               narrativeTemplate: payload.narrativeTemplate || null,
-              viewMode: 'summary',
+              viewMode: 'narrative',
             }));
           }
         }
@@ -737,7 +737,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           currentSpanIndex: 0,
           currentEventIndex: 0,
           highlightedNodeId: null,
-          viewMode: 'summary',
+          viewMode: 'narrative',
         }));
       }
     } catch (error) {
@@ -865,9 +865,17 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
       ...prev,
       selectedScenarioId: scenarioId,
       selectedScenario: scenario,
-      viewMode: 'summary', // Default to summary view when showing a scenario
+      viewMode: 'narrative', // Default to narrative view when showing a scenario
     }));
   }, []);
+
+  // Helper to extract event name from node (handles both event.name and eventRef)
+  const getNodeEventName = (node: ExtendedCanvasNode): string | null => {
+    const nodePv: PVNodeExtension | undefined = node.pv;
+    // eventRef is the event name directly (string)
+    // event.name is the event name within an event schema object
+    return nodePv?.eventRef || nodePv?.event?.name || null;
+  };
 
   // Calculate active node IDs from current execution events (or hovered execution/scenario for preview)
   const activeNodeIds = useMemo(() => {
@@ -907,9 +915,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
 
       // Check each node to see if it has any of the scenario's events
       for (const node of state.canvas.nodes || []) {
-        // Try both node.data.pv and node.pv (canvas format can vary)
-        const nodePv = (node as any).pv || ((node as any).data as any)?.pv;
-        const nodeEventName = nodePv?.event; // event is a string, not an object with .name
+        const nodeEventName = getNodeEventName(node);
 
         // If this node's event matches any of the scenario's events, mark it as active
         if (nodeEventName && state.hoveredScenarioEventNames.includes(nodeEventName)) {
@@ -948,8 +954,37 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
       return activeIds.size > 0 ? Array.from(activeIds) : null;
     }
 
+    // Priority 4: Narrative template (default when loaded)
+    if (state.narrativeTemplate) {
+      const eventNames = new Set<string>();
+
+      // Collect all event names from all scenarios
+      for (const scenario of state.narrativeTemplate.scenarios || []) {
+        // Get events from template.events
+        if (scenario.template.events) {
+          Object.keys(scenario.template.events).forEach(e => eventNames.add(e));
+        }
+        // Get events from condition.requires
+        if (scenario.condition.requires) {
+          scenario.condition.requires.forEach(e => eventNames.add(e));
+        }
+      }
+
+      // Find nodes that match these events
+      const activeIds = new Set<string>();
+      for (const node of state.canvas.nodes || []) {
+        const nodeEventName = getNodeEventName(node);
+
+        if (nodeEventName && eventNames.has(nodeEventName)) {
+          activeIds.add(node.id);
+        }
+      }
+
+      return activeIds.size > 0 ? Array.from(activeIds) : null;
+    }
+
     return null;
-  }, [state.execution, state.canvas, state.hoveredExecution, state.hoveredScenarioEventNames]);
+  }, [state.execution, state.canvas, state.hoveredExecution, state.hoveredScenarioEventNames, state.narrativeTemplate]);
 
   // Playback effect
   useEffect(() => {
@@ -1077,16 +1112,18 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         style={{
           display: 'flex',
           alignItems: 'center',
-          padding: '12px 16px',
+          padding: '5.5px 16px',
           borderBottom: `1px solid ${theme.colors.border}`,
-          background: '#1a1a1a',
+          background: theme.colors.background,
           gap: '12px',
+          height: '40px',
+          boxSizing: 'border-box',
         }}
       >
         {/* Canvas Title - Show the currently loaded canvas */}
         {state.canvasName && (
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
+            <span style={{ fontSize: theme.fontSizes[2], fontWeight: theme.fontWeights.medium, color: theme.colors.text, fontFamily: theme.fonts.body }}>
               {state.canvasName}
             </span>
           </div>
@@ -1100,11 +1137,12 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         <button
           onClick={handleToggleGrid}
           style={{
-            padding: '6px 10px',
-            background: state.showGrid ? '#3b82f6' : '#2a2a2a',
-            border: '1px solid #3a3a3a',
+            padding: '0 10px',
+            height: '28px',
+            background: state.showGrid ? '#3b82f6' : theme.colors.background,
+            border: `1px solid ${theme.colors.border}`,
             borderRadius: '4px',
-            color: '#fff',
+            color: theme.colors.text,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -1120,11 +1158,12 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           onClick={handleRotateCanvas}
           disabled={!state.canvas}
           style={{
-            padding: '6px 10px',
-            background: '#2a2a2a',
-            border: '1px solid #3a3a3a',
+            padding: '0 10px',
+            height: '28px',
+            background: theme.colors.background,
+            border: `1px solid ${theme.colors.border}`,
             borderRadius: '4px',
-            color: '#fff',
+            color: theme.colors.text,
             cursor: state.canvas ? 'pointer' : 'not-allowed',
             opacity: state.canvas ? 1 : 0.5,
             display: 'flex',
@@ -1141,17 +1180,19 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           onClick={handleOpenInEditor}
           disabled={!canvasPathProp}
           style={{
-            padding: '6px 12px',
-            background: '#2a2a2a',
-            border: '1px solid #3a3a3a',
+            padding: '0 12px',
+            height: '28px',
+            background: theme.colors.background,
+            border: `1px solid ${theme.colors.border}`,
             borderRadius: '4px',
-            color: '#fff',
+            color: theme.colors.text,
             cursor: canvasPathProp ? 'pointer' : 'not-allowed',
             opacity: canvasPathProp ? 1 : 0.5,
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            fontSize: '13px',
+            fontSize: theme.fontSizes[2],
+            fontFamily: theme.fonts.body,
           }}
           title={canvasPathProp ? 'Open in Canvas Editor' : 'Canvas path not available'}
         >
@@ -1167,17 +1208,19 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
             <button
               onClick={() => setState(prev => ({ ...prev, showHelpModal: true }))}
               style={{
-                padding: '6px 12px',
+                padding: '0 12px',
+                height: '28px',
                 background: '#3b82f6',
                 border: 'none',
                 borderRadius: '4px',
-                color: '#fff',
+                color: theme.colors.text,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                fontWeight: 600,
-                fontSize: '13px',
+                fontWeight: theme.fontWeights.medium,
+                fontSize: theme.fontSizes[2],
+                fontFamily: theme.fonts.body,
               }}
               title="Learn about narratives and OTEL testing"
             >

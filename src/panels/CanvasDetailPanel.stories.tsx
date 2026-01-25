@@ -1134,3 +1134,120 @@ export const Scenario_Timeout: Story = {
     },
   },
 };
+
+/**
+ * Partial Narrative Coverage
+ *
+ * Demonstrates active node filtering: only nodes involved in the narrative are shown as active.
+ * This canvas has 11 event nodes, but the narrative only covers 3 events (payment flow).
+ * Default view should show only those 3 nodes as active, not all 11.
+ */
+export const PartialNarrativeCoverage: Story = {
+  args: {} as never,
+  render: () => {
+    // Create a minimal narrative that only covers payment events
+    const partialNarrative: NarrativeTemplate = {
+      version: '1.0.0',
+      canvas: 'checkout-flow.otel.canvas',
+      name: 'Partial Coverage Demo',
+      description: 'Narrative that only covers a subset of canvas events',
+      mode: 'timeline' as const,
+      scenarioSelection: 'first-match' as const,
+      scenarios: [
+        {
+          id: 'payment-scenario',
+          priority: 1,
+          description: 'Payment processing flow',
+          condition: {
+            requires: ['payment.failed'],
+          },
+          template: {
+            introduction: 'Payment Failed Scenario',
+            events: {
+              'checkout.initiated': 'Checkout started',
+              'payment.initiated': 'Payment processing',
+              'payment.failed': 'Payment declined',
+            },
+            summary: 'This scenario only covers payment-related events (3 of 11 canvas nodes).',
+          },
+        },
+        {
+          id: 'inventory-scenario',
+          priority: 2,
+          description: 'Inventory checking flow',
+          condition: {
+            requires: ['inventory.insufficient'],
+          },
+          template: {
+            introduction: 'Inventory Shortage Scenario',
+            events: {
+              'checkout.initiated': 'Checkout started',
+              'inventory.checking': 'Checking stock availability',
+              'inventory.insufficient': 'Not enough items in stock',
+            },
+            summary: 'This scenario only covers inventory-related events (3 of 11 canvas nodes).',
+          },
+        },
+        {
+          id: 'shipping-scenario',
+          priority: 3,
+          description: 'Shipping calculation flow',
+          condition: {
+            requires: ['shipping.calculated'],
+          },
+          template: {
+            introduction: 'Shipping Calculation Scenario',
+            events: {
+              'checkout.initiated': 'Checkout started',
+              'shipping.calculating': 'Calculating shipping options',
+              'shipping.calculated': 'Shipping cost determined',
+            },
+            summary: 'This scenario only covers shipping-related events (3 of 11 canvas nodes).',
+          },
+        },
+      ],
+    };
+
+    const mock = createMockProvider([
+      {
+        path: '.principal-views/checkout-flow.otel.canvas',
+        relativePath: '.principal-views/checkout-flow.otel.canvas',
+        name: 'checkout-flow.otel.canvas',
+        content: JSON.stringify(checkoutCanvas),
+      },
+      {
+        path: '.principal-views/payment-flow.narrative.json',
+        relativePath: '.principal-views/payment-flow.narrative.json',
+        name: 'payment-flow.narrative.json',
+        content: JSON.stringify(partialNarrative),
+      },
+    ]);
+
+    return (
+      <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
+        {(props) => (
+          <CanvasDetailPanel
+            {...props}
+            selectedCanvasId="checkout-flow"
+            canvasPath=".principal-views/checkout-flow.otel.canvas"
+            canvasName="Checkout Flow"
+            selectedNarrativeId="payment-flow-narrative"
+            narrativeTemplate={partialNarrative}
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '🎯 Partial narrative coverage test. Canvas has 11 event nodes, but narrative only covers 7 unique events across 3 scenarios:\n' +
+          '• Payment scenario: checkout.initiated, payment.initiated, payment.failed\n' +
+          '• Inventory scenario: checkout.initiated, inventory.checking, inventory.insufficient\n' +
+          '• Shipping scenario: checkout.initiated, shipping.calculating, shipping.calculated\n\n' +
+          'Default view should show ONLY those 7 nodes as active. Hover over each scenario to highlight just its 3 nodes. Click a scenario to see its template without needing execution data.',
+      },
+    },
+  },
+};

@@ -74,7 +74,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
         {narrativeTemplate.description && (
           <p
             style={{
-              margin: '8px 0 0 0',
+              margin: '0',
               fontSize: theme.fontSizes[1],
               color: theme.colors.textSecondary,
               lineHeight: theme.lineHeights.body,
@@ -101,7 +101,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
               <div
                 onClick={() => handleScenarioClick(scenario.id || String(index), scenario)}
                 style={{
-                  padding: '12px',
+                  padding: '12px 12px 12px 20px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',

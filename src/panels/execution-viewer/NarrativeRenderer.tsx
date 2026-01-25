@@ -108,7 +108,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
     if (showOnlySummary && scenario.template.introduction) {
       const introduction = parseTemplate(scenario.template.introduction, fullContext);
       elements.push(
-        <div key="introduction" style={{ padding: '12px 16px', borderBottom: `1px solid ${theme.colors.border}` }}>
+        <div key="introduction" style={{ padding: '6px 20px 12px 20px', borderBottom: `1px solid ${theme.colors.border}` }}>
           {renderFormattedText(introduction)}
         </div>
       );
@@ -139,7 +139,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
 
       if (conditionText.length > 0) {
         elements.push(
-          <div key="conditions" style={{ padding: '12px 16px', borderBottom: `1px solid ${theme.colors.border}`, backgroundColor: theme.colors.backgroundSecondary }}>
+          <div key="conditions" style={{ padding: '8px 20px 12px 20px', borderBottom: `1px solid ${theme.colors.border}`, backgroundColor: theme.colors.backgroundSecondary }}>
             <div style={{ fontSize: theme.fontSizes[0], fontWeight: 600, color: theme.colors.textSecondary, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Conditions
             </div>
@@ -216,7 +216,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
             {/* Event content card */}
             <div
               style={{
-                padding: '12px 16px',
+                padding: '8px 20px 12px 20px',
                 backgroundColor: activeEventIndex === eventIndex ? theme.colors.muted : theme.colors.backgroundSecondary,
                 borderBottom: `1px solid ${theme.colors.border}`,
                 borderLeft: activeEventIndex === eventIndex ? `4px solid ${theme.colors.primary}` : '4px solid transparent',
@@ -237,7 +237,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
     if (showOnlySummary && scenario.template.summary) {
       const summary = parseTemplate(scenario.template.summary, fullContext);
       elements.push(
-        <div key="summary" style={{ padding: '12px 16px', borderBottom: `1px solid ${theme.colors.border}` }}>
+        <div key="summary" style={{ padding: '8px 20px 12px 20px', borderBottom: `1px solid ${theme.colors.border}` }}>
           {renderFormattedText(summary)}
         </div>
       );

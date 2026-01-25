@@ -26,6 +26,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
 }) => {
   const { theme } = useTheme();
   const panelRef = useRef<HTMLDivElement>(null);
+
   usePanelFocusListener('canvas-list', events, () => panelRef.current?.focus());
   const [selectedCanvasId, setSelectedCanvasId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,6 +41,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
   // Get fileTree to access FileInfo metadata
   const fileTreeSlice = context.getSlice('fileTree');
   const fileTreeData = fileTreeSlice?.data as FileTree | null;
+  const fileTreeSha = fileTreeData?.sha;
 
   // Helper to find FileInfo for a canvas path
   const getCanvasFileInfo = useCallback((canvasPath: string): FileInfo | undefined => {
@@ -249,8 +251,8 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '12px',
-          paddingLeft: 'clamp(12px, 3vw, 20px)',
-          paddingRight: 'clamp(12px, 3vw, 20px)',
+          paddingLeft: 'clamp(8px, 2vw, 16px)',
+          paddingRight: 'clamp(8px, 2vw, 16px)',
           flexWrap: 'wrap',
         }}
       >
@@ -484,6 +486,8 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
             onOpenCanvas={handleOpenCanvas}
             selectedNodeId={selectedCanvasId ? `canvas:${selectedCanvasId}` : undefined}
             defaultOpen={false}
+            verticalPadding="0px"
+            horizontalNodePadding="clamp(8px, 2vw, 16px)"
           />
         )}
       </div>
