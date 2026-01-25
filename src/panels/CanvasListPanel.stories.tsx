@@ -422,6 +422,266 @@ export const MonorepoWithPackages: Story = {
 };
 
 /**
+ * With Narratives - Shows canvases with associated narrative templates
+ * Demonstrates the tree structure with expandable narratives
+ */
+export const WithNarratives: Story = {
+  args: {} as never,
+  render: () => {
+    const mockFileTreeWithNarratives = {
+      sha: 'mock-sha-narratives',
+      allFiles: [
+        // Authentication canvas and its narrative
+        {
+          name: 'authentication-flow.otel.canvas',
+          relativePath: '.principal-views/authentication-flow.otel.canvas',
+          path: '.principal-views/authentication-flow.otel.canvas',
+        },
+        {
+          name: 'auth-scenarios.narrative.json',
+          relativePath: '.principal-views/__narratives__/auth-scenarios.narrative.json',
+          path: '.principal-views/__narratives__/auth-scenarios.narrative.json',
+        },
+
+        // Payment canvas and its narrative
+        {
+          name: 'payment-processing.otel.canvas',
+          relativePath: '.principal-views/payment-processing.otel.canvas',
+          path: '.principal-views/payment-processing.otel.canvas',
+        },
+        {
+          name: 'payment-scenarios.narrative.json',
+          relativePath: '.principal-views/__narratives__/payment-scenarios.narrative.json',
+          path: '.principal-views/__narratives__/payment-scenarios.narrative.json',
+        },
+
+        // User registration canvas (no narrative)
+        {
+          name: 'user-registration.otel.canvas',
+          relativePath: '.principal-views/user-registration.otel.canvas',
+          path: '.principal-views/user-registration.otel.canvas',
+        },
+
+        // Data pipeline canvas and its narrative
+        {
+          name: 'data-pipeline.otel.canvas',
+          relativePath: '.principal-views/data-pipeline.otel.canvas',
+          path: '.principal-views/data-pipeline.otel.canvas',
+        },
+        {
+          name: 'pipeline-scenarios.narrative.json',
+          relativePath: '.principal-views/__narratives__/pipeline-scenarios.narrative.json',
+          path: '.principal-views/__narratives__/pipeline-scenarios.narrative.json',
+        },
+      ],
+    };
+
+    // Create mock slices
+    const mockSlices = new Map([
+      [
+        'fileTree',
+        {
+          scope: 'repository' as const,
+          name: 'fileTree',
+          data: mockFileTreeWithNarratives,
+          loading: false,
+          error: null,
+          refresh: async () => {},
+        },
+      ],
+    ]);
+
+    // Create custom readFile that returns narrative templates
+    const mockReadFile = async (path: string) => {
+      console.log('[Mock] readFile:', path);
+
+      // Return appropriate narrative templates based on path
+      if (path.includes('auth-scenarios.narrative.json')) {
+                return JSON.stringify({
+                  version: '1.0.0',
+                  name: 'Authentication Scenarios',
+                  canvas: 'authentication-flow.otel.canvas',
+                  mode: 'flow',
+                  scenarios: [
+                    {
+                      id: 'successful-login',
+                      priority: 1,
+                      description: 'Successful Login',
+                      condition: { type: 'event', event: 'auth.success' },
+                      template: {
+                        introduction: 'User logged in successfully',
+                        flow: ['Credentials validated', 'Session created'],
+                      },
+                    },
+                    {
+                      id: 'failed-login',
+                      priority: 2,
+                      description: 'Failed Login',
+                      condition: { type: 'event', event: 'auth.failed' },
+                      template: {
+                        introduction: 'Login failed',
+                        flow: ['Invalid credentials'],
+                      },
+                    },
+                    {
+                      id: 'oauth-login',
+                      priority: 3,
+                      description: 'OAuth Login',
+                      condition: { type: 'event', event: 'auth.oauth' },
+                      template: {
+                        introduction: 'OAuth authentication',
+                        flow: ['OAuth provider verified'],
+                      },
+                    },
+                  ],
+                });
+              }
+
+              if (path.includes('payment-scenarios.narrative.json')) {
+                return JSON.stringify({
+                  version: '1.0.0',
+                  name: 'Payment Flow Scenarios',
+                  canvas: 'payment-processing.otel.canvas',
+                  mode: 'flow',
+                  scenarios: [
+                    {
+                      id: 'credit-card-success',
+                      priority: 1,
+                      description: 'Credit Card Payment Success',
+                      condition: { type: 'event', event: 'payment.success' },
+                      template: {
+                        introduction: 'Payment processed successfully',
+                        flow: ['Card validated', 'Payment authorized'],
+                      },
+                    },
+                    {
+                      id: 'payment-declined',
+                      priority: 2,
+                      description: 'Payment Declined',
+                      condition: { type: 'event', event: 'payment.declined' },
+                      template: {
+                        introduction: 'Payment declined',
+                        flow: ['Card declined by processor'],
+                      },
+                    },
+                    {
+                      id: 'refund-flow',
+                      priority: 3,
+                      description: 'Refund Processing',
+                      condition: { type: 'event', event: 'payment.refund' },
+                      template: {
+                        introduction: 'Refund processed',
+                        flow: ['Refund initiated', 'Refund completed'],
+                      },
+                    },
+                    {
+                      id: 'partial-refund',
+                      priority: 4,
+                      description: 'Partial Refund',
+                      condition: { type: 'event', event: 'payment.partial_refund' },
+                      template: {
+                        introduction: 'Partial refund processed',
+                        flow: ['Partial amount refunded'],
+                      },
+                    },
+                  ],
+                });
+              }
+
+              if (path.includes('pipeline-scenarios.narrative.json')) {
+                return JSON.stringify({
+                  version: '1.0.0',
+                  name: 'Data Pipeline Scenarios',
+                  canvas: 'data-pipeline.otel.canvas',
+                  mode: 'flow',
+                  scenarios: [
+                    {
+                      id: 'batch-processing',
+                      priority: 1,
+                      description: 'Batch Data Processing',
+                      condition: { type: 'event', event: 'pipeline.batch' },
+                      template: {
+                        introduction: 'Batch processing completed',
+                        flow: ['Data ingested', 'Data transformed'],
+                      },
+                    },
+                    {
+                      id: 'realtime-streaming',
+                      priority: 2,
+                      description: 'Real-time Streaming',
+                      condition: { type: 'event', event: 'pipeline.stream' },
+                      template: {
+                        introduction: 'Stream processing active',
+                        flow: ['Data streaming', 'Real-time processing'],
+                      },
+                    },
+                  ],
+                });
+              }
+
+      // Default empty narrative
+      return JSON.stringify({
+        version: '1.0.0',
+        name: 'Default Narrative',
+        canvas: 'unknown',
+        scenarios: [],
+      });
+    };
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          slices: mockSlices,
+          getSlice: <T,>(name: string): T | undefined => {
+            const slice = mockSlices.get(name) as T | undefined;
+            console.log('[Story] getSlice:', name, slice ? 'found' : 'not found');
+            return slice;
+          },
+        }}
+        actionsOverrides={{
+          readFile: mockReadFile,
+        }}
+      >
+        {(props) => {
+          console.log('[Story] Rendering CanvasListPanel');
+          console.log('[Story] Actions:', props.actions);
+          console.log('[Story] Has readFile:', typeof (props.actions as any).readFile === 'function');
+          return (
+            <>
+              <CanvasListPanel {...props} />
+              <div
+                style={{
+                  position: 'fixed',
+                  bottom: '20px',
+                  right: '20px',
+                  background: '#1a1a1a',
+                  border: '1px solid #333',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  color: '#fff',
+                  fontSize: '12px',
+                  maxWidth: '320px',
+                }}
+              >
+                <strong>Narratives Demo:</strong>
+                <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '11px' }}>
+                  <li>Open browser console to see debug logs</li>
+                  <li>Click chevrons to expand/collapse narratives</li>
+                  <li>Authentication has 3 scenarios</li>
+                  <li>Payment has 4 scenarios</li>
+                  <li>User Registration has no narrative</li>
+                  <li>Data Pipeline has 2 scenarios</li>
+                </ul>
+              </div>
+            </>
+          );
+        }}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
  * Change Detection Test - Interactive story for testing SHA-based change detection
  * Demonstrates how the panel responds to file tree changes and manual refresh
  */

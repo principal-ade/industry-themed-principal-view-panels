@@ -8,6 +8,7 @@ import { CanvasCard } from './canvas-list/components/CanvasCard';
 import type { DiscoveredCanvas } from '@principal-ai/principal-view-core/browser';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
 import { CanvasNarrativeTreeCore, type CanvasNarrativeNodeData } from '@principal-ade/dynamic-file-tree';
+import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 
 /**
  * CanvasListPanel - A panel for displaying .otel.canvas files
@@ -35,6 +36,17 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
 
   // Load canvas and narrative data
   const { canvases, narratives, isLoading, error, refreshData } = useCanvasNarrativeData({ context, actions });
+
+  // Get fileTree to access FileInfo metadata
+  const fileTreeSlice = context.getSlice('fileTree');
+  const fileTreeData = fileTreeSlice?.data as FileTree | null;
+
+  // Helper to find FileInfo for a canvas path
+  const getCanvasFileInfo = useCallback((canvasPath: string): FileInfo | undefined => {
+    return fileTreeData?.allFiles.find(f =>
+      f.path === canvasPath || f.relativePath === canvasPath
+    );
+  }, [fileTreeData]);
 
   // Get unique packages for filter
   const availablePackages = useMemo(() => {
@@ -92,22 +104,29 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
 
   const handleCanvasClick = (canvas: DiscoveredCanvas) => {
     setSelectedCanvasId(canvas.id);
-    // Emit canvas:selected event for other panels
+    // Emit canvas:selected event for other panels with FileInfo
     if (events) {
+      const canvasFileInfo = getCanvasFileInfo(canvas.path);
       events.emit({
         type: 'custom',
         source: 'canvas-list-panel',
         timestamp: Date.now(),
-        payload: { action: 'selectCanvas', canvasId: canvas.id, canvas },
+        payload: {
+          action: 'selectCanvas',
+          canvasId: canvas.id,
+          canvas,
+          canvasFileInfo, // Include FileInfo with lastModified, size, etc.
+        },
       });
     }
   };
 
   const handleTreeNodeClick = useCallback((node: CanvasNarrativeNodeData) => {
     if (node.type === 'canvas' && node.canvas) {
-      // Canvas click - existing behavior
+      // Canvas click - include FileInfo
       setSelectedCanvasId(node.canvas.id);
       if (events) {
+        const canvasFileInfo = getCanvasFileInfo(node.canvas.path);
         events.emit({
           type: 'custom',
           source: 'canvas-list-panel',
@@ -116,13 +135,16 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
             action: 'selectCanvas',
             canvasId: node.canvas.id,
             canvas: node.canvas,
+            canvasFileInfo,
           },
         });
       }
     } else if (node.type === 'narrative' && node.narrative && node.canvas) {
-      // Narrative click - NEW behavior with enriched payload
+      // Narrative click - include FileInfo for both canvas and narrative files
       setSelectedCanvasId(node.canvas.id);
       if (events) {
+        const canvasFileInfo = getCanvasFileInfo(node.canvas.path);
+        const narrativeFileInfo = getCanvasFileInfo(node.narrative.path);
         events.emit({
           type: 'custom',
           source: 'canvas-list-panel',
@@ -131,14 +153,38 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
             action: 'selectCanvas',
             canvasId: node.canvas.id,
             canvas: node.canvas,
+            canvasFileInfo,
             narrativeId: node.narrative.id,
             narrative: node.narrative,
             narrativeTemplate: node.narrativeTemplate,
+            narrativeFileInfo,
           },
         });
       }
     }
-  }, [events]);
+  }, [events, getCanvasFileInfo]);
+
+  const handleOpenCanvas = useCallback((canvas: DiscoveredCanvas) => {
+    // Open canvas for editing
+    if (actions?.openFile) {
+      actions.openFile(canvas.path);
+    }
+    // Also emit event for other panels to respond
+    if (events) {
+      const canvasFileInfo = getCanvasFileInfo(canvas.path);
+      events.emit({
+        type: 'custom',
+        source: 'canvas-list-panel',
+        timestamp: Date.now(),
+        payload: {
+          action: 'openCanvas',
+          canvasId: canvas.id,
+          canvas,
+          canvasFileInfo,
+        },
+      });
+    }
+  }, [actions, events, getCanvasFileInfo]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -180,7 +226,8 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
       tabIndex={-1}
       style={{
         position: 'relative',
-        padding: 'clamp(12px, 3vw, 20px)',
+        paddingTop: 'clamp(12px, 3vw, 20px)',
+        paddingBottom: 'clamp(12px, 3vw, 20px)',
         fontFamily: theme.fonts.body,
         height: '100%',
         boxSizing: 'border-box',
@@ -201,6 +248,8 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '12px',
+          paddingLeft: 'clamp(12px, 3vw, 20px)',
+          paddingRight: 'clamp(12px, 3vw, 20px)',
           flexWrap: 'wrap',
         }}
       >
@@ -362,6 +411,8 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
           style={{
             flexShrink: 0,
             padding: '12px',
+            marginLeft: 'clamp(12px, 3vw, 20px)',
+            marginRight: 'clamp(12px, 3vw, 20px)',
             background: `${theme.colors.error}20`,
             border: `1px solid ${theme.colors.error}`,
             borderRadius: theme.radii[2],
@@ -429,6 +480,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
             narratives={narratives}
             theme={theme}
             onClick={handleTreeNodeClick}
+            onOpenCanvas={handleOpenCanvas}
             selectedNodeId={selectedCanvasId ? `canvas:${selectedCanvasId}` : undefined}
             defaultOpen={false}
           />

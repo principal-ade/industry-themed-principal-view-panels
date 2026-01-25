@@ -8,6 +8,7 @@ import { Loader, Save, X, Pencil, Copy, Check, Info, MessageSquareOff, Grid3X3, 
 import { ConfigLoader } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
+import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 
 interface GraphPanelState {
   canvas: ExtendedCanvas | null;
@@ -44,6 +45,12 @@ export interface CanvasEditorPanelProps extends PanelComponentProps {
    * Canvas display name.
    */
   canvasName?: string;
+
+  /**
+   * Optional canvas file info with metadata (size, lastModified, etc.).
+   * Used for detecting file changes and auto-reloading.
+   */
+  canvasFileInfo?: FileInfo | null;
 }
 
 /**
@@ -59,6 +66,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   selectedConfigId,
   canvasPath,
   canvasName,
+  canvasFileInfo,
 }) => {
   const { theme } = useTheme();
 
@@ -92,6 +100,9 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
   // Track if we should skip the next file change (after save)
   const skipNextFileChangeRef = useRef(false);
+
+  // Track canvas file timestamp for auto-reload on changes
+  const canvasFileTimestampRef = useRef<number | null>(null);
 
   // Track "copied" feedback for copy path button
   const [pathCopied, setPathCopied] = useState(false);
@@ -358,57 +369,57 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     loadConfiguration();
   }, [canvasPath, loadConfiguration]);
 
-  // Track fileTree data for change detection
-  const fileTreeSlice = context.hasSlice('fileTree') ? context.getSlice('fileTree') : null;
-  const fileTreeData = fileTreeSlice?.data as { allFiles?: Array<{ path?: string; relativePath?: string; name?: string }> } | null;
-  const fileTreeDataRef = useRef(fileTreeData);
-
-  // Reload when fileTree data changes (e.g., files added/modified/deleted on disk)
-  // Only reload if the change affects the currently selected canvas or library
+  // Update timestamp ref when FileInfo prop changes
   useEffect(() => {
-    const prevData = fileTreeDataRef.current;
-    fileTreeDataRef.current = fileTreeData;
-
-    // Skip if this is the initial render
-    if (prevData === null) {
-      return;
+    if (canvasFileInfo?.lastModified) {
+      canvasFileTimestampRef.current = canvasFileInfo.lastModified.getTime();
     }
+  }, [canvasFileInfo]);
 
-    // Skip if we just saved (we caused this file change)
-    if (skipNextFileChangeRef.current) {
-      skipNextFileChangeRef.current = false;
-      return;
-    }
+  // Auto-reload on file changes via workspace:changed events
+  useEffect(() => {
+    if (!events || !canvasPath) return;
 
-    // Check if the data reference actually changed
-    if (prevData !== fileTreeData && fileTreeData !== null) {
-      // Check if the canvas file or library changed
-      const prevFiles = prevData.allFiles || [];
-      const newFiles = fileTreeData.allFiles || [];
-
-      // Find the canvas file in both old and new file lists
-      const prevConfigFile = prevFiles.find(f => (f.path || f.relativePath) === canvasPath);
-      const newConfigFile = newFiles.find(f => (f.path || f.relativePath) === canvasPath);
-
-      // Check if library.yaml changed
-      const libraryPath = ConfigLoader.findLibraryPath(newFiles);
-      const prevLibraryFile = libraryPath ? prevFiles.find(f => (f.path || f.relativePath) === libraryPath) : null;
-      const newLibraryFile = libraryPath ? newFiles.find(f => (f.path || f.relativePath) === libraryPath) : null;
-
-      // Only reload if current canvas or library file changed/appeared/disappeared
-      const configChanged = prevConfigFile !== newConfigFile;
-      const libraryChanged = prevLibraryFile !== newLibraryFile;
-
-      if (configChanged || libraryChanged) {
-        console.log('[PrincipalViewGraph] Current canvas or library changed, reloading...', {
-          configChanged,
-          libraryChanged,
-          canvasPath
-        });
-        loadConfiguration();
+    const handleWorkspaceChange = () => {
+      // Skip if we just saved (we caused this file change)
+      if (skipNextFileChangeRef.current) {
+        skipNextFileChangeRef.current = false;
+        return;
       }
-    }
-  }, [fileTreeData, loadConfiguration, canvasPath]);
+
+      // Get current file tree to check timestamps
+      const ctx = contextRef.current;
+      if (!ctx.hasSlice('fileTree')) return;
+
+      const fileTreeSlice = ctx.getSlice('fileTree');
+      const fileTreeData = fileTreeSlice?.data as FileTree | null;
+      if (!fileTreeData?.allFiles) return;
+
+      // Check canvas file timestamp
+      const canvasFile = fileTreeData.allFiles.find(f =>
+        f.path === canvasPath || f.relativePath === canvasPath
+      );
+
+      if (canvasFile?.lastModified) {
+        const currentTimestamp = canvasFile.lastModified.getTime();
+        if (canvasFileTimestampRef.current && currentTimestamp !== canvasFileTimestampRef.current) {
+          console.log('[CanvasEditorPanel] Canvas file modified, reloading...', {
+            path: canvasPath,
+            lastLoaded: new Date(canvasFileTimestampRef.current),
+            current: new Date(currentTimestamp),
+          });
+
+          loadConfiguration();
+          canvasFileTimestampRef.current = currentTimestamp;
+        }
+      }
+    };
+
+    events.on('workspace:changed', handleWorkspaceChange);
+    return () => {
+      events.off('workspace:changed', handleWorkspaceChange);
+    };
+  }, [events, canvasPath, loadConfiguration]);
 
   // Subscribe to data refresh events
   useEffect(() => {

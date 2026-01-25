@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PanelContextValue, PanelActions } from '@principal-ade/panel-framework-core';
 import type { DiscoveredCanvas } from '@principal-ai/principal-view-core/browser';
 import type { NarrativeTemplate } from '@principal-ai/principal-view-core/browser';
+import type { FileTree } from '@principal-ai/repository-abstraction';
 import { NarrativeLoader, type NarrativeFile } from '../../execution-viewer/NarrativeLoader';
 import { useCanvasData } from './useCanvasData';
 
@@ -40,10 +41,7 @@ export const useCanvasNarrativeData = ({
 
   // Extract file tree data
   const fileTreeSlice = context.getSlice('fileTree');
-  const fileTreeData = fileTreeSlice?.data as {
-    allFiles?: Array<{ path?: string; relativePath?: string; name?: string }>;
-    sha?: string;
-  } | null;
+  const fileTreeData = fileTreeSlice?.data as FileTree | null;
   const fileTreeSha = fileTreeData?.sha;
 
   // Get readFile from actions parameter

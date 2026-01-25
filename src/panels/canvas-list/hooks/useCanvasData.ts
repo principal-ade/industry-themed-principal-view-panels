@@ -30,11 +30,7 @@ export const useCanvasData = ({
 
   // Extract stable references from context to avoid unnecessary re-renders
   const fileTreeSlice = context.getSlice('fileTree');
-  const fileTreeData = fileTreeSlice?.data as {
-    fileTree?: FileTree;
-    allFiles?: Array<{ path?: string; relativePath?: string; name?: string }>;
-    sha?: string;
-  } | null;
+  const fileTreeData = fileTreeSlice?.data as FileTree | null;
   const fileTreeSha = fileTreeData?.sha;
 
   // Track the last loaded SHA to prevent redundant loads
@@ -56,25 +52,14 @@ export const useCanvasData = ({
     setError(null);
 
     try {
-      // Check if we have a proper FileTree
-      let fileTree: FileTree | null = null;
-
-      if (fileTreeData?.fileTree) {
-        // New format with FileTree object
-        fileTree = fileTreeData.fileTree;
-      } else if (fileTreeData?.allFiles) {
-        // Legacy format - convert to FileTree
-        fileTree = convertToFileTree(fileTreeData.allFiles, fileTreeSha || 'unknown');
-      }
-
-      if (!fileTree) {
+      if (!fileTreeData) {
         setCanvases(EMPTY_CANVAS_ARRAY);
         lastLoadedSha.current = fileTreeSha;
         return;
       }
 
-      // Use new CanvasDiscovery system
-      const result = await discovery.current.discover(fileTree, {
+      // Use new CanvasDiscovery system with FileTree (includes full FileInfo[] with lastModified)
+      const result = await discovery.current.discover(fileTreeData, {
         // Don't include content - just metadata for listing
         includeContent: false,
       });
@@ -120,49 +105,3 @@ export const useCanvasData = ({
     refreshCanvases,
   };
 };
-
-/**
- * Convert legacy allFiles array to FileTree structure
- * This maintains backward compatibility with older panel contexts
- */
-function convertToFileTree(
-  allFiles: Array<{ path?: string; relativePath?: string; name?: string }>,
-  sha: string
-): FileTree {
-  const fileInfos = allFiles.map(file => ({
-    path: file.path || file.relativePath || '',
-    relativePath: file.relativePath || file.path || '',
-    name: file.name || (file.relativePath || file.path || '').split('/').pop() || '',
-    extension: (file.name || '').split('.').pop() || '',
-    size: 0,
-    lastModified: new Date(),
-    isDirectory: false,
-  }));
-
-  return {
-    sha,
-    root: {
-      path: '/',
-      name: '',
-      relativePath: '',
-      children: [],
-      fileCount: fileInfos.length,
-      totalSize: 0,
-      depth: 0,
-    },
-    allFiles: fileInfos,
-    allDirectories: [],
-    stats: {
-      totalFiles: fileInfos.length,
-      totalDirectories: 0,
-      totalSize: 0,
-      maxDepth: 0,
-    },
-    metadata: {
-      id: 'panel-context',
-      timestamp: new Date(),
-      sourceType: 'panel',
-      sourceInfo: {},
-    },
-  };
-}
