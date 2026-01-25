@@ -1120,11 +1120,17 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           boxSizing: 'border-box',
         }}
       >
-        {/* Canvas Title - Show the currently loaded canvas */}
+        {/* Canvas Title - Show the currently loaded canvas and narrative */}
         {state.canvasName && (
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <span style={{ fontSize: theme.fontSizes[2], fontWeight: theme.fontWeights.medium, color: theme.colors.text, fontFamily: theme.fonts.body }}>
               {state.canvasName}
+              {state.narrativeTemplate && (
+                <span style={{ opacity: 0.7 }}>
+                  {' / '}
+                  {state.narrativeTemplate.name || state.selectedNarrativeId}
+                </span>
+              )}
             </span>
           </div>
         )}

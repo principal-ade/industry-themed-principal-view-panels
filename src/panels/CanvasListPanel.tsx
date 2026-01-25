@@ -486,7 +486,6 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
             onOpenCanvas={handleOpenCanvas}
             selectedNodeId={selectedCanvasId ? `canvas:${selectedCanvasId}` : undefined}
             defaultOpen={false}
-            verticalPadding="0px"
             horizontalNodePadding="clamp(8px, 2vw, 16px)"
           />
         )}
