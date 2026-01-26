@@ -488,7 +488,6 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   // Sync narrative props to state
   useEffect(() => {
     if (narrativeTemplateProp && selectedNarrativeIdProp) {
-      console.log('[CanvasDetailPanel] Setting narrative from props:', selectedNarrativeIdProp);
       setState(prev => ({
         ...prev,
         selectedNarrativeId: selectedNarrativeIdProp,
