@@ -197,7 +197,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
       tabIndex={-1}
       style={{
         position: 'relative',
-        paddingTop: 'clamp(12px, 3vw, 20px)',
+        paddingTop: 'clamp(8px, 2vw, 12px)',
         paddingBottom: 'clamp(12px, 3vw, 20px)',
         fontFamily: theme.fonts.body,
         height: '100%',
