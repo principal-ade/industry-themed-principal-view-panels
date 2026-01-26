@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useCallback } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
-import { AlertCircle, Search, X, RefreshCw, Activity, HelpCircle, Copy, Check } from 'lucide-react';
+import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check } from 'lucide-react';
 import { useCanvasNarrativeData } from './canvas-list/hooks/useCanvasNarrativeData';
 import { CanvasCard } from './canvas-list/components/CanvasCard';
 import type { DiscoveredCanvas } from '@principal-ai/principal-view-core';
@@ -31,7 +31,6 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
   const [selectedCanvasId, setSelectedCanvasId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState<string>('all');
   const [showHelp, setShowHelp] = useState(false);
   const [cliCommandCopied, setCliCommandCopied] = useState(false);
 
@@ -50,40 +49,9 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
     );
   }, [fileTreeData]);
 
-  // Get unique packages for filter
-  const availablePackages = useMemo(() => {
-    const packages = new Set<string>();
-    canvases.forEach((canvas) => {
-      if (canvas.packageName) {
-        packages.add(canvas.packageName);
-      }
-    });
-    return Array.from(packages).sort();
-  }, [canvases]);
-
-  // Check if we have root-level canvases
-  const hasRootCanvases = useMemo(() => {
-    return canvases.some(c => c.scope === 'root');
-  }, [canvases]);
-
-  // Only show filter if there are multiple groups (packages + root)
-  const shouldShowPackageFilter = useMemo(() => {
-    const totalGroups = availablePackages.length + (hasRootCanvases ? 1 : 0);
-    return totalGroups > 1;
-  }, [availablePackages.length, hasRootCanvases]);
-
-  // Filter canvases by package and search query
+  // Filter canvases by search query
   const filteredCanvases = useMemo(() => {
     let filtered = canvases;
-
-    // Filter by package
-    if (selectedPackage !== 'all') {
-      if (selectedPackage === 'root') {
-        filtered = filtered.filter((canvas) => canvas.scope === 'root');
-      } else {
-        filtered = filtered.filter((canvas) => canvas.packageName === selectedPackage);
-      }
-    }
 
     // Filter by search query
     if (searchQuery.trim()) {
@@ -102,7 +70,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
     }
 
     return filtered;
-  }, [canvases, selectedPackage, searchQuery]);
+  }, [canvases, searchQuery]);
 
   const handleCanvasClick = (canvas: DiscoveredCanvas) => {
     setSelectedCanvasId(canvas.id);
@@ -236,7 +204,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
+        gap: 0,
         overflow: 'hidden',
         backgroundColor: theme.colors.background,
         color: theme.colors.text,
@@ -251,112 +219,84 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '12px',
-          paddingLeft: 'clamp(8px, 2vw, 16px)',
+          paddingLeft: 'clamp(16px, 4vw, 24px)',
           paddingRight: 'clamp(8px, 2vw, 16px)',
           flexWrap: 'wrap',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: theme.fontSizes[4],
-              color: theme.colors.text,
-            }}
-          >
-            Canvas Files
-          </h2>
+        <h2
+          style={{
+            margin: 0,
+            fontSize: theme.fontSizes[4],
+            color: theme.colors.text,
+          }}
+        >
+          Storyboards
+        </h2>
 
-          {!isLoading && shouldShowPackageFilter && (
-            <select
-              value={selectedPackage}
-              onChange={(e) => setSelectedPackage(e.target.value)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: canvases.length >= 10 ? '1 1 200px' : '0 0 auto', maxWidth: canvases.length >= 10 ? '400px' : 'none' }}>
+          {/* Search input - only show if there are 10 or more canvases */}
+          {canvases.length >= 10 && (
+            <div
               style={{
-                fontSize: theme.fontSizes[1],
-                color: theme.colors.text,
-                background: theme.colors.backgroundSecondary,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.radii[1],
-                padding: '4px 10px',
-                cursor: 'pointer',
-                fontFamily: theme.fonts.body,
-                outline: 'none',
+                position: 'relative',
+                flex: 1,
+                minWidth: '150px',
               }}
             >
-              <option value="all">All Packages ({canvases.length})</option>
-              {hasRootCanvases && (
-                <option value="root">Root ({canvases.filter(c => c.scope === 'root').length})</option>
-              )}
-              {availablePackages.map((pkg) => (
-                <option key={pkg} value={pkg}>
-                  {pkg} ({canvases.filter(c => c.packageName === pkg).length})
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 200px', maxWidth: '400px' }}>
-          {/* Search input */}
-          <div
-            style={{
-              position: 'relative',
-              flex: 1,
-              minWidth: '150px',
-            }}
-          >
-            <Search
-              size={16}
-              color={theme.colors.textSecondary}
-              style={{
-                position: 'absolute',
-                left: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                pointerEvents: 'none',
-              }}
-            />
-            <input
-              type="text"
-              placeholder="Search canvases..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 32px 8px 32px',
-                fontSize: theme.fontSizes[1],
-                fontFamily: theme.fonts.body,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.radii[2],
-                background: theme.colors.backgroundSecondary,
-                color: theme.colors.text,
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
+              <Search
+                size={16}
+                color={theme.colors.textSecondary}
                 style={{
                   position: 'absolute',
-                  right: '6px',
+                  left: '10px',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  background: 'transparent',
-                  border: 'none',
-                  padding: '4px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: theme.colors.textSecondary,
+                  pointerEvents: 'none',
                 }}
-                aria-label="Clear search"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
+              />
+              <input
+                type="text"
+                placeholder="Search storyboards..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 32px 8px 32px',
+                  fontSize: theme.fontSizes[1],
+                  fontFamily: theme.fonts.body,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.radii[2],
+                  background: theme.colors.backgroundSecondary,
+                  color: theme.colors.text,
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '6px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: theme.colors.textSecondary,
+                  }}
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Refresh button */}
           <button
@@ -460,15 +400,13 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '16px',
               color: theme.colors.textSecondary,
               padding: '24px',
             }}
           >
-            <Activity size={48} color={theme.colors.border} />
             <div style={{ textAlign: 'center' }}>
               <p style={{ margin: 0, fontSize: theme.fontSizes[2] }}>
-                {searchQuery ? 'No canvases match your search' : 'No canvas files found'}
+                {searchQuery ? 'No storyboards match your search' : 'No storyboards found'}
               </p>
               <p style={{ margin: '8px 0 0 0', fontSize: theme.fontSizes[1] }}>
                 {searchQuery
@@ -486,7 +424,8 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
             onOpenCanvas={handleOpenCanvas}
             selectedNodeId={selectedCanvasId ? `canvas:${selectedCanvasId}` : undefined}
             defaultOpen={false}
-            horizontalNodePadding="clamp(8px, 2vw, 16px)"
+            horizontalNodePadding="clamp(16px, 4vw, 24px)"
+            verticalPadding="10px"
           />
         )}
       </div>
@@ -554,7 +493,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
                   fontWeight: theme.fontWeights.medium,
                   color: theme.colors.text,
                 }}>
-                  Canvas List Panel
+                  Storyboards Panel
                 </h3>
                 <p style={{
                   margin: 0,
