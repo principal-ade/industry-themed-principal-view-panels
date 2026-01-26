@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
-import { useTheme } from '@principal-ade/industry-theme';
+import { useTheme, type Theme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
-import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, NarrativeTemplate, NarrativeScenario } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, NarrativeTemplate, NarrativeScenario, OtelAttributes } from '@principal-ai/principal-view-core';
 import { renderNarrative } from '@principal-ai/principal-view-core';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
@@ -13,7 +13,7 @@ import {
   type ExecutionMetadata,
   type ExecutionArtifact,
 } from './execution-viewer/ExecutionLoader';
-import { Activity, HelpCircle, X, Pencil } from 'lucide-react';
+import { Activity, HelpCircle, X, Pencil, FileText } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { NarrativeLoader, type NarrativeFile } from './execution-viewer/NarrativeLoader';
@@ -26,7 +26,7 @@ export type ViewMode = 'raw' | 'narrative' | 'summary';
 /**
  * Loading skeleton component
  */
-const LoadingSkeleton: React.FC<{ theme: any }> = ({ theme }) => {
+const LoadingSkeleton: React.FC<{ theme: Theme }> = ({ theme }) => {
   const pulseAnimation = {
     animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
   };
@@ -518,7 +518,6 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           path: string;
         };
         narrativeId?: string;
-        narrative?: any;
         narrativeTemplate?: NarrativeTemplate;
       };
     }
@@ -566,7 +565,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   useEffect(() => {
     if (!events || !canvasPathProp) return;
 
-    const handleWorkspaceChange = (_event: any) => {
+    const handleWorkspaceChange = (_event: unknown) => {
       // Get current file tree to check timestamps
       const ctx = contextRef.current;
       if (!ctx.hasSlice('fileTree')) return;
@@ -716,7 +715,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   // Handle narrative event click - highlight corresponding canvas node
   const handleNarrativeEventClick = useCallback((event: import('@principal-ai/principal-view-core').OtelEvent, eventIndex: number) => {
     setState(prev => {
-      const nodeId = mapEventToNodeId({ name: event.name, time: Number(event.timestamp), attributes: event.attributes as any }, prev.canvas);
+      const nodeId = mapEventToNodeId({ name: event.name, time: Number(event.timestamp), attributes: event.attributes }, prev.canvas);
       return {
         ...prev,
         highlightedNodeId: nodeId,
@@ -725,9 +724,28 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     });
   }, []);
 
+  // Handle source click in node info panel
+  const handleSourceClick = useCallback((nodeId: string, source: string) => {
+    // Remove glob patterns (* characters) to get the base path
+    const cleanPath = source.replace(/\*/g, '');
+
+    console.log('[CanvasDetailPanel] Source clicked - opening file:', cleanPath, 'from node:', nodeId);
+
+    // Emit file:open event (same as git changes panel)
+    // Pass relative path, not absolute - the context will resolve it
+    if (eventsRef.current) {
+      eventsRef.current.emit({
+        type: 'file:open',
+        source: 'canvas-detail-panel',
+        timestamp: Date.now(),
+        payload: { path: cleanPath },
+      });
+    }
+  }, []);
+
   // Handle node click on canvas - find corresponding event and highlight narrative
   const handleNodeClick = useCallback((nodeId: string, event: React.MouseEvent) => {
-    // Handle shift+click to open source files
+    // Handle shift+click to open source files (legacy - now handled by onSourceClick)
     if (event.shiftKey) {
       setState(prev => {
         if (!prev.canvas) return prev;
@@ -736,8 +754,8 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         const node = prev.canvas.nodes?.find(n => n.id === nodeId);
         if (!node) return prev;
 
-        // Extract sources from node.pv or node.data.pv
-        const nodePv = (node as any).pv || ((node as any).data as any)?.pv;
+        // Extract sources from node.pv
+        const nodePv = node.pv as PVNodeExtension | undefined;
         const sources = nodePv?.sources as string[] | undefined;
 
         if (sources && sources.length > 0) {
@@ -767,10 +785,42 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
 
     // Regular click - highlight corresponding narrative
     setState(prev => {
-      if (!prev.execution || !prev.canvas) return prev;
+      if (!prev.canvas) return prev;
+
+      // Handle preview mode (no execution, but has selected scenario)
+      if (!prev.execution && prev.selectedScenario) {
+        // Get event names from scenario template in order
+        const eventNames = Object.keys(prev.selectedScenario.template.events || {});
+
+        // Find node in canvas
+        const node = prev.canvas.nodes?.find(n => n.id === nodeId);
+        if (!node) return prev;
+
+        // Get event name from node
+        const nodePv = node.pv as PVNodeExtension | undefined;
+        const nodeEventName = nodePv?.event?.name;
+
+        if (nodeEventName) {
+          // Find index of this event in the template
+          const eventIndex = eventNames.indexOf(nodeEventName);
+
+          if (eventIndex >= 0) {
+            return {
+              ...prev,
+              highlightedNodeId: nodeId,
+              currentEventIndex: eventIndex,
+            };
+          }
+        }
+
+        return prev;
+      }
+
+      // Handle execution mode (has execution data)
+      if (!prev.execution) return prev;
 
       const spans = ExecutionLoader.getSpans(prev.execution);
-      const allEvents: Array<{ name: string; time: number; attributes?: any }> = [];
+      const allEvents: Array<{ name: string; time: number; attributes?: OtelAttributes }> = [];
 
       // Collect all events from all spans
       for (const span of spans) {
@@ -836,7 +886,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     // Priority 1: Hovered execution preview
     if (state.hoveredExecution) {
       const spans = ExecutionLoader.getSpans(state.hoveredExecution);
-      const allEvents: Array<{ name: string; time: number; attributes?: any }> = [];
+      const allEvents: Array<{ name: string; time: number; attributes?: OtelAttributes }> = [];
 
       for (const span of spans) {
         if (span.events) {
@@ -881,7 +931,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     // Priority 3: Currently selected execution
     if (state.execution) {
       const spans = ExecutionLoader.getSpans(state.execution);
-      const allEvents: Array<{ name: string; time: number; attributes?: any }> = [];
+      const allEvents: Array<{ name: string; time: number; attributes?: OtelAttributes }> = [];
 
       for (const span of spans) {
         if (span.events) {
@@ -1116,6 +1166,42 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           <span>Edit</span>
         </button>
 
+        {/* Documentation Button - Show when canvas has markdown documentation */}
+        {state.canvas?.pv?.markdown && (
+          <button
+            onClick={() => {
+              const markdownPath = state.canvas?.pv?.markdown;
+              if (markdownPath && eventsRef.current) {
+                console.log('[CanvasDetailPanel] Opening documentation:', markdownPath);
+                eventsRef.current.emit({
+                  type: 'file:open',
+                  source: 'canvas-detail-panel',
+                  timestamp: Date.now(),
+                  payload: { path: markdownPath },
+                });
+              }
+            }}
+            style={{
+              padding: '0 12px',
+              height: '28px',
+              background: theme.colors.background,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: '4px',
+              color: theme.colors.text,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: theme.fontSizes[2],
+              fontFamily: theme.fonts.body,
+            }}
+            title="View documentation"
+          >
+            <FileText size={14} />
+            <span>Docs</span>
+          </button>
+        )}
+
         {/* Playback controls removed - all events now display by default */}
 
         {/* Help Button - Show when canvas-only (no execution/narratives) */}
@@ -1242,10 +1328,11 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
               <ScenarioDetailsPanel
                 spans={[]} // Empty spans when showing scenario without execution
                 currentSpanIndex={0}
-                currentEventIndex={0}
+                currentEventIndex={state.currentEventIndex}
                 narrativeTemplate={state.narrativeTemplate ?? undefined}
                 viewMode={state.viewMode}
                 onViewModeChange={handleViewModeChange}
+                onNarrativeEventClick={handleNarrativeEventClick}
                 showNavigation={false}
                 showTestName={false}
                 availableExecutions={state.availableExecutions.filter(
@@ -1394,6 +1481,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
               highlightedNodeId={state.highlightedNodeId}
               activeNodeIds={activeNodeIds}
               onNodeClick={handleNodeClick}
+              onSourceClick={handleSourceClick}
             />
           </div>
         ) : (

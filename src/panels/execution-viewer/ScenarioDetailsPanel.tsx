@@ -219,7 +219,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
         backgroundColor: theme.colors.background,
         color: theme.colors.text,
         fontFamily: theme.fonts.monospace,
-        fontSize: '14px',
+        fontSize: theme.fontSizes[1],
         boxSizing: 'border-box',
         display: 'flex',
         flexDirection: 'column',
@@ -237,7 +237,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
         {/* Scenario Name */}
         {scenarioName && (
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: theme.colors.text }}>
+            <h2 style={{ margin: 0, fontSize: theme.fontSizes[4], fontWeight: 600, color: theme.colors.text }}>
               {scenarioName}
             </h2>
             {/* Close Button - Icon only */}
@@ -284,7 +284,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                   borderRadius: '4px',
                   color: '#fff',
                   cursor: 'pointer',
-                  fontSize: '13px',
+                  fontSize: theme.fontSizes[1],
                 }}
               >
                 <span>
@@ -338,7 +338,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                           color: '#fff',
                           textAlign: 'left',
                           cursor: 'pointer',
-                          fontSize: '13px',
+                          fontSize: theme.fontSizes[1],
                           fontStyle: 'italic',
                         }}
                       >
@@ -373,7 +373,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                           color: '#fff',
                           textAlign: 'left',
                           cursor: 'pointer',
-                          fontSize: '13px',
+                          fontSize: theme.fontSizes[1],
                         }}
                       >
                         {execution.name}
@@ -400,13 +400,13 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                   borderRadius: '4px',
                   color: currentSpanIndex === 0 ? theme.colors.textMuted : theme.colors.text,
                   cursor: currentSpanIndex === 0 ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
+                  fontSize: theme.fontSizes[1],
                   opacity: currentSpanIndex === 0 ? 0.5 : 1,
                 }}
               >
                 ← Prev
               </button>
-              <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+              <div style={{ fontSize: theme.fontSizes[1], fontWeight: 'bold' }}>
                 Test {currentSpanIndex + 1} of {spans.length}
               </div>
               <button
@@ -419,7 +419,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                   borderRadius: '4px',
                   color: currentSpanIndex === spans.length - 1 ? theme.colors.textMuted : theme.colors.text,
                   cursor: currentSpanIndex === spans.length - 1 ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
+                  fontSize: theme.fontSizes[1],
                   opacity: currentSpanIndex === spans.length - 1 ? 0.5 : 1,
                 }}
               >
@@ -427,7 +427,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
               </button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ fontSize: '13px', color: theme.colors.textMuted }}>
+              <div style={{ fontSize: theme.fontSizes[1], color: theme.colors.textMuted }}>
                 <span style={{ color: '#4ade80' }}>All Passed ✓</span>
               </div>
               <button
@@ -455,7 +455,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
         )}
 
         {showTestName && (
-          <div style={{ fontSize: '13px', color: theme.colors.textMuted, marginBottom: '15px' }}>
+          <div style={{ fontSize: theme.fontSizes[1], color: theme.colors.textMuted, marginBottom: '15px' }}>
             Test: {currentSpan?.name || 'Loading...'}
           </div>
         )}
@@ -489,10 +489,10 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ fontWeight: 'bold', fontSize: '18px', marginBottom: '16px' }}>
+            <div style={{ fontWeight: 'bold', fontSize: theme.fontSizes[4], marginBottom: '16px' }}>
               How to Read This Panel
             </div>
-            <div style={{ fontSize: '14px', marginBottom: '16px', lineHeight: '1.6' }}>
+            <div style={{ fontSize: theme.fontSizes[1], marginBottom: '16px', lineHeight: '1.6' }}>
               <p style={{ marginBottom: '12px' }}>
                 <strong>Timeline shows both events and logs:</strong>
               </p>
@@ -520,7 +520,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                 border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                fontSize: '14px',
+                fontSize: theme.fontSizes[1],
                 fontWeight: 500,
               }}
             >
@@ -554,7 +554,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
             {selectedScenario.template.introduction && (
               <div
                 style={{
-                  fontSize: '16px',
+                  fontSize: theme.fontSizes[3],
                   fontWeight: 600,
                   color: theme.colors.text,
                   marginBottom: '16px',
@@ -566,7 +566,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
             {selectedScenario.template.summary && (
               <div
                 style={{
-                  fontSize: '14px',
+                  fontSize: theme.fontSizes[1],
                   color: theme.colors.textMuted,
                   lineHeight: '1.6',
                   padding: '12px',
@@ -582,23 +582,53 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
           <div style={{ fontFamily: theme.fonts.body }}>
             {selectedScenario.template.events && Object.keys(selectedScenario.template.events).length > 0 ? (
               <div>
-                {Object.entries(selectedScenario.template.events).map(([eventName, template]) => (
-                  <div
-                    key={eventName}
-                    style={{
-                      padding: '8px 20px 12px 20px',
-                      backgroundColor: theme.colors.backgroundSecondary,
-                      borderBottom: `1px solid ${theme.colors.border}`,
-                      fontSize: '15px',
-                      lineHeight: '1.6',
-                      fontWeight: 500,
-                    }}
-                  >
-                    <div style={{ fontSize: '14px', color: theme.colors.text, lineHeight: '1.7' }}>
-                      {highlightTemplateVariables(String(template))}
+                {Object.entries(selectedScenario.template.events).map(([eventName, template], eventIndex) => {
+                  const isActive = eventIndex === currentEventIndex;
+                  return (
+                    <div
+                      key={eventName}
+                      onClick={() => {
+                        if (onNarrativeEventClick) {
+                          // Create minimal OtelEvent from template for graph highlighting
+                          const templateEvent: import('@principal-ai/principal-view-core').OtelEvent = {
+                            name: eventName,
+                            timestamp: 0, // No actual timestamp in preview mode
+                            type: 'span' as const,
+                            spanId: 'preview',
+                            traceId: 'preview',
+                            attributes: {},
+                          };
+                          onNarrativeEventClick(templateEvent, eventIndex);
+                        }
+                      }}
+                      onMouseEnter={(e) => {
+                        if (onNarrativeEventClick && !isActive) {
+                          e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary || '#2a2a2a';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                        }
+                      }}
+                      style={{
+                        padding: '8px 20px 12px 20px',
+                        backgroundColor: isActive ? theme.colors.backgroundTertiary || '#2a2a2a' : theme.colors.backgroundSecondary,
+                        borderBottom: `1px solid ${theme.colors.border}`,
+                        borderLeft: isActive ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
+                        fontSize: theme.fontSizes[2],
+                        lineHeight: '1.6',
+                        fontWeight: isActive ? 600 : 500,
+                        cursor: onNarrativeEventClick ? 'pointer' : 'default',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div style={{ fontSize: theme.fontSizes[1], color: theme.colors.text, lineHeight: '1.7' }}>
+                        {highlightTemplateVariables(String(template))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div
@@ -609,7 +639,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                   background: theme.colors.backgroundSecondary,
                 }}
               >
-                <div style={{ fontSize: '14px' }}>No event templates defined for this scenario</div>
+                <div style={{ fontSize: theme.fontSizes[1] }}>No event templates defined for this scenario</div>
               </div>
             )}
           </div>
@@ -621,8 +651,8 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
               color: theme.colors.textMuted,
             }}
           >
-            <div style={{ fontSize: '16px', marginBottom: '12px' }}>ⓘ No narrative template available</div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+            <div style={{ fontSize: theme.fontSizes[3], marginBottom: '12px' }}>ⓘ No narrative template available</div>
+            <div style={{ fontSize: theme.fontSizes[1], lineHeight: '1.6' }}>
               Create a narrative template to see a human-readable
               <br />
               summary of this test execution.
@@ -637,7 +667,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                 border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                fontSize: '14px',
+                fontSize: theme.fontSizes[1],
               }}
             >
               View Raw Events
@@ -654,8 +684,8 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
               color: theme.colors.textMuted,
             }}
           >
-            <div style={{ fontSize: '16px', marginBottom: '12px' }}>ⓘ No execution selected</div>
-            <div style={{ fontSize: '14px', lineHeight: '1.6' }}>
+            <div style={{ fontSize: theme.fontSizes[3], marginBottom: '12px' }}>ⓘ No execution selected</div>
+            <div style={{ fontSize: theme.fontSizes[1], lineHeight: '1.6' }}>
               Select an execution from the dropdown above to view raw events.
             </div>
           </div>
@@ -699,13 +729,13 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                       gap: '8px',
                     }}
                   >
-                    <div style={{ color: '#f59e0b', fontSize: '13px', fontWeight: 'bold', flexShrink: 0 }}>
+                    <div style={{ color: '#f59e0b', fontSize: theme.fontSizes[1], fontWeight: 'bold', flexShrink: 0 }}>
                       EVENT: {item.name}
                     </div>
                     {filepath && (
                       <div
                         style={{
-                          fontSize: '12px',
+                          fontSize: theme.fontSizes[0],
                           color: isCodeUnderTest ? '#4ade80' : '#60a5fa',
                           fontFamily: 'monospace',
                           background: isCodeUnderTest ? '#064e3b' : '#1e3a8a',
@@ -729,7 +759,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                       padding: '8px',
                       borderRadius: '4px',
                       margin: 0,
-                      fontSize: '13px',
+                      fontSize: theme.fontSizes[1],
                       lineHeight: '1.5',
                       overflow: 'auto',
                       maxWidth: '100%',
@@ -771,11 +801,11 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                     }}
                   >
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '16px' }}>{getSeverityIcon(item.severity!)}</span>
+                      <span style={{ fontSize: theme.fontSizes[3] }}>{getSeverityIcon(item.severity!)}</span>
                       <span
                         style={{
                           color: severityColor,
-                          fontSize: '13px',
+                          fontSize: theme.fontSizes[1],
                           fontWeight: 'bold',
                         }}
                       >
@@ -785,7 +815,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                     {serviceName && (
                       <div
                         style={{
-                          fontSize: '12px',
+                          fontSize: theme.fontSizes[0],
                           color: '#9ca3af',
                           background: '#1e293b',
                           padding: '2px 6px',
@@ -804,13 +834,13 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                       padding: '8px',
                       borderRadius: '4px',
                       marginBottom: item.attributes && Object.keys(item.attributes).length > 0 ? '8px' : '0',
-                      fontSize: '13px',
+                      fontSize: theme.fontSizes[1],
                     }}
                   >
                     {typeof item.body === 'string' ? (
                       item.body
                     ) : (
-                      <pre style={{ margin: 0, fontSize: '13px', lineHeight: '1.5' }}>
+                      <pre style={{ margin: 0, fontSize: theme.fontSizes[1], lineHeight: '1.5' }}>
                         {yaml.dump(item.body, { indent: 2, lineWidth: -1 })}
                       </pre>
                     )}
@@ -824,7 +854,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                         padding: '8px',
                         borderRadius: '4px',
                         margin: 0,
-                        fontSize: '12px',
+                        fontSize: theme.fontSizes[0],
                         lineHeight: '1.5',
                         opacity: 0.8,
                       }}
