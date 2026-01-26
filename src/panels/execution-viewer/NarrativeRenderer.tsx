@@ -172,7 +172,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
             if (key.includes('.')) {
               // Nested key: convert "skill.name" -> { skill: { name: value } }
               const parts = key.split('.');
-              let current: any = eventContext;
+              let current: Record<string, unknown> = eventContext;
               for (let i = 0; i < parts.length - 1; i++) {
                 if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
                   current[parts[i]] = {};

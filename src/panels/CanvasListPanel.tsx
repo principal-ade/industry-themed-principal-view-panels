@@ -162,7 +162,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
     // The parent will update the file tree SHA, which will trigger automatic reload via useEffect
     if (events) {
       events.emit({
-        type: 'canvas:refresh' as any,
+        type: 'canvas:refresh',
         source: 'canvas-list-panel',
         timestamp: Date.now(),
         payload: {},

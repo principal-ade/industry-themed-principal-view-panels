@@ -4,6 +4,7 @@ import { CanvasListPanel } from './CanvasListPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import type { PanelEvent } from '../types';
+import type { FileTree } from '@principal-ai/repository-abstraction';
 
 const meta = {
   title: 'Panels/CanvasListPanel',
@@ -70,7 +71,7 @@ const mockFileTreeEmpty = {
 };
 
 // Helper to create mock slices with actions
-const createMockSlices = (fileTreeData: any) => {
+const createMockSlices = (fileTreeData: FileTree | null) => {
   return new Map([
     [
       'fileTree',
@@ -643,9 +644,6 @@ export const WithNarratives: Story = {
         }}
       >
         {(props) => {
-          console.log('[Story] Rendering CanvasListPanel');
-          console.log('[Story] Actions:', props.actions);
-          console.log('[Story] Has readFile:', typeof (props.actions as any).readFile === 'function');
           return (
             <>
               <CanvasListPanel {...props} />
