@@ -32,11 +32,6 @@ interface GraphPanelState {
  */
 export interface CanvasEditorPanelProps extends PanelComponentProps {
   /**
-   * Canvas ID for tracking and display.
-   */
-  selectedConfigId?: string;
-
-  /**
    * Canvas path to load (relative to repository root).
    */
   canvasPath?: string;
@@ -63,7 +58,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   context,
   actions,
   events,
-  selectedConfigId,
   canvasPath,
   canvasName,
   canvasFileInfo,

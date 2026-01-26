@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
-import { GraphRenderer, swapGraphOrientation } from '@principal-ai/principal-view-react';
+import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, NarrativeTemplate, NarrativeScenario } from '@principal-ai/principal-view-core';
-import { renderNarrative, CanvasConverter } from '@principal-ai/principal-view-core';
+import { renderNarrative } from '@principal-ai/principal-view-core';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/narrative-converter';
@@ -13,7 +13,7 @@ import {
   type ExecutionMetadata,
   type ExecutionArtifact,
 } from './execution-viewer/ExecutionLoader';
-import { Loader, Activity, Grid3x3, HelpCircle, X, Pencil, RotateCw } from 'lucide-react';
+import { Activity, HelpCircle, X, Pencil } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { NarrativeLoader, type NarrativeFile } from './execution-viewer/NarrativeLoader';
@@ -280,7 +280,6 @@ interface CanvasDetailPanelState {
   currentSpanIndex: number;
   currentEventIndex: number;
   highlightedNodeId: string | null;
-  showGrid: boolean;
   narrativeTemplate: NarrativeTemplate | null;
   availableNarratives: NarrativeFile[];
   viewMode: ViewMode;
@@ -288,7 +287,6 @@ interface CanvasDetailPanelState {
   hoveredExecutionId: string | null;
   hoveredExecution: ExecutionArtifact | null;
   hoveredScenarioEventNames: string[] | null;
-  canvasRotationKey: number; // Used to force GraphRenderer remount on rotation
   selectedScenarioId: string | null;
   selectedScenario: NarrativeScenario | null;
 }
@@ -330,7 +328,6 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     currentSpanIndex: 0,
     currentEventIndex: 0,
     highlightedNodeId: null,
-    showGrid: false,
     narrativeTemplate: null,
     availableNarratives: [],
     viewMode: 'narrative',
@@ -338,7 +335,6 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     hoveredExecutionId: null,
     hoveredExecution: null,
     hoveredScenarioEventNames: null,
-    canvasRotationKey: 0,
     selectedScenarioId: null,
     selectedScenario: null,
   });
@@ -570,7 +566,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   useEffect(() => {
     if (!events || !canvasPathProp) return;
 
-    const handleWorkspaceChange = (event: any) => {
+    const handleWorkspaceChange = (_event: any) => {
       // Get current file tree to check timestamps
       const ctx = contextRef.current;
       if (!ctx.hasSlice('fileTree')) return;
@@ -632,49 +628,6 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   }, [events, canvasPathProp, narrativePathProp, selectedCanvasIdProp, loadCanvas]);
 
   // Playback control
-  const handleToggleGrid = useCallback(() => {
-    setState(prev => ({ ...prev, showGrid: !prev.showGrid }));
-  }, []);
-
-  const handleRotateCanvas = useCallback(() => {
-    if (!state.canvas) return;
-
-    // Convert canvas to internal format
-    const { nodes, edges } = CanvasConverter.canvasToGraph(state.canvas);
-
-    // Swap orientation
-    const { nodes: rotatedNodes, edges: rotatedEdges } = swapGraphOrientation(nodes, edges);
-
-    // Update canvas with new positions and sides
-    const updatedCanvas: ExtendedCanvas = {
-      ...state.canvas,
-      nodes: rotatedNodes.map((node, idx) => {
-        const originalNode = state.canvas!.nodes![idx];
-        return {
-          ...originalNode,
-          x: node.position?.x ?? 0,
-          y: node.position?.y ?? 0,
-        };
-      }),
-      edges: rotatedEdges.map((edge, idx) => {
-        const originalEdge = state.canvas!.edges![idx];
-        const data = edge.data as Record<string, unknown> | undefined;
-        return {
-          ...originalEdge,
-          fromSide: (data?.fromSide as 'top' | 'right' | 'bottom' | 'left') ?? originalEdge.fromSide,
-          toSide: (data?.toSide as 'top' | 'right' | 'bottom' | 'left') ?? originalEdge.toSide,
-        };
-      }),
-    };
-
-    // Increment rotation key to force GraphRenderer remount
-    setState(prev => ({
-      ...prev,
-      canvas: updatedCanvas,
-      canvasRotationKey: prev.canvasRotationKey + 1,
-    }));
-  }, [state.canvas]);
-
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setState(prev => ({ ...prev, viewMode: mode }));
   }, []);
@@ -1138,48 +1091,6 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 
-        {/* Grid Toggle */}
-        <button
-          onClick={handleToggleGrid}
-          style={{
-            padding: '0 10px',
-            height: '28px',
-            background: state.showGrid ? '#3b82f6' : theme.colors.background,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: '4px',
-            color: theme.colors.text,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-          }}
-          title={state.showGrid ? 'Hide Grid' : 'Show Grid'}
-        >
-          <Grid3x3 size={14} />
-        </button>
-
-        {/* Rotate Canvas Button */}
-        <button
-          onClick={handleRotateCanvas}
-          disabled={!state.canvas}
-          style={{
-            padding: '0 10px',
-            height: '28px',
-            background: theme.colors.background,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: '4px',
-            color: theme.colors.text,
-            cursor: state.canvas ? 'pointer' : 'not-allowed',
-            opacity: state.canvas ? 1 : 0.5,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-          }}
-          title="Rotate Canvas 90°"
-        >
-          <RotateCw size={14} />
-        </button>
-
         {/* Open in Editor Button */}
         <button
           onClick={handleOpenInEditor}
@@ -1474,11 +1385,10 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
             }}
           >
             <GraphRenderer
-              key={state.canvasRotationKey}
               canvas={state.canvas}
               showMinimap={false}
               showControls={true}
-              showBackground={state.showGrid}
+              showBackground={false}
               backgroundVariant="lines"
               showTooltips={true}
               highlightedNodeId={state.highlightedNodeId}

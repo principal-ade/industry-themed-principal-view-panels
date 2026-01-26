@@ -223,7 +223,7 @@ export const Default: Story = {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
-        {(props) => <CanvasEditorPanel {...props} selectedConfigId={firstCanvas?.id} canvasPath={firstCanvas?.path} canvasName={firstCanvas?.name} />}
+        {(props) => <CanvasEditorPanel {...props} canvasPath={firstCanvas?.path} canvasName={firstCanvas?.name} />}
       </MockPanelProvider>
     );
   },

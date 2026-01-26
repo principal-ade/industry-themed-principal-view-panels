@@ -4,7 +4,6 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check } from 'lucide-react';
 import { useCanvasNarrativeData } from './canvas-list/hooks/useCanvasNarrativeData';
-import { CanvasCard } from './canvas-list/components/CanvasCard';
 import type { DiscoveredCanvas } from '@principal-ai/principal-view-core';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
 import { CanvasNarrativeTreeCore, type CanvasNarrativeNodeData } from '@principal-ade/dynamic-file-tree';
@@ -35,7 +34,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
   const [cliCommandCopied, setCliCommandCopied] = useState(false);
 
   // Load canvas and narrative data
-  const { canvases, narratives, isLoading, error, refreshData } = useCanvasNarrativeData({ context, actions });
+  const { canvases, narratives, isLoading, error } = useCanvasNarrativeData({ context, actions });
 
   // Get fileTree to access FileInfo metadata
   const fileTreeSlice = context.getSlice('fileTree');

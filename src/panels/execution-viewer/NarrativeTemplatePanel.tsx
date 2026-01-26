@@ -4,13 +4,9 @@ import type {
   NarrativeTemplate,
   NarrativeScenario,
 } from '@principal-ai/principal-view-core';
-import type { ExecutionFile } from './ExecutionLoader';
 
 interface NarrativeTemplatePanelProps {
   narrativeTemplate: NarrativeTemplate;
-  availableExecutions?: ExecutionFile[];
-  executionScenarioMap?: Record<string, string>; // Maps execution ID to scenario ID
-  onExecutionSelect?: (executionId: string) => void;
   onScenarioHover?: (eventNames: string[] | null) => void;
   onScenarioClick?: (scenarioId: string, scenario: NarrativeScenario) => void;
 }
@@ -20,9 +16,6 @@ interface NarrativeTemplatePanelProps {
  */
 export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
   narrativeTemplate,
-  availableExecutions = [],
-  executionScenarioMap = {},
-  onExecutionSelect,
   onScenarioHover,
   onScenarioClick,
 }) => {
