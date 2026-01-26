@@ -1482,6 +1482,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
               activeNodeIds={activeNodeIds}
               onNodeClick={handleNodeClick}
               onSourceClick={handleSourceClick}
+              showNodeDetailPanel={true}
             />
           </div>
         ) : (

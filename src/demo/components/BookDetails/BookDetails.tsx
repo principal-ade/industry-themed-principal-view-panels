@@ -104,12 +104,14 @@ export const BookDetails: React.FC<BookDetailsProps> = ({
         </div>
         <div className="node-details-body">
           <section className="detail-section">
-            <h4>Expected Events</h4>
-            <ul className="event-list">
-              {selectedNode.pv.events.map((event, idx) => (
-                <li key={idx}>{event.name}</li>
-              ))}
-            </ul>
+            <h4>Expected Event</h4>
+            {selectedNode.pv.eventRef ? (
+              <ul className="event-list">
+                <li>{selectedNode.pv.eventRef}</li>
+              </ul>
+            ) : (
+              <p>No event reference</p>
+            )}
           </section>
           <section className="detail-section">
             <h4>OTEL Matching</h4>

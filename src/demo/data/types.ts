@@ -61,7 +61,7 @@ export interface CanvasNode {
   label: string;
   position: { x: number; y: number };
   pv: {
-    events: Array<{ name: string }>;
+    eventRef?: string;
     otel: {
       resourceMatch: Record<string, string>;
       spanMatch: Record<string, string>;

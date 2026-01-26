@@ -7,14 +7,42 @@
   "nodes": [
     {
       "id": "user-validation",
-      "nodeType": "rest-api",
-      "label": "User Validation",
-      "position": { "x": 100, "y": 100 },
+      "type": "text",
+      "x": 100,
+      "y": 100,
+      "width": 180,
+      "height": 80,
+      "text": "User Validation",
+      "color": "#4A90E2",
       "pv": {
-        "events": [
-          { "name": "user.authenticated" },
-          { "name": "user.validated" }
-        ],
+        "nodeType": "rest-api",
+        "shape": "rectangle",
+        "icon": "Shield",
+        "event": {
+          "name": "user.authenticated",
+          "description": "User successfully authenticated into the system",
+          "attributes": {
+            "userId": {
+              "type": "string",
+              "required": true,
+              "description": "Unique user identifier"
+            },
+            "sessionId": {
+              "type": "string",
+              "required": true,
+              "description": "Session token"
+            },
+            "timestamp": {
+              "type": "string",
+              "required": true,
+              "description": "Authentication timestamp"
+            },
+            "method": {
+              "type": "string",
+              "description": "Auth method (password/oauth/sso)"
+            }
+          }
+        },
         "otel": {
           "resourceMatch": {
             "service.name": "checkout-service"
@@ -27,14 +55,45 @@
     },
     {
       "id": "inventory-check",
-      "nodeType": "business-logic",
-      "label": "Inventory Check",
-      "position": { "x": 300, "y": 100 },
+      "type": "text",
+      "x": 320,
+      "y": 100,
+      "width": 180,
+      "height": 80,
+      "text": "Inventory Check",
+      "color": "#7B68EE",
       "pv": {
-        "events": [
-          { "name": "inventory.checked" },
-          { "name": "inventory.reserved" }
-        ],
+        "nodeType": "business-logic",
+        "shape": "rectangle",
+        "icon": "Package",
+        "event": {
+          "name": "inventory.checked",
+          "description": "Inventory availability verified",
+          "attributes": {
+            "productId": {
+              "type": "string",
+              "required": true,
+              "description": "Product identifier"
+            },
+            "available": {
+              "type": "boolean",
+              "required": true,
+              "description": "Item availability status"
+            },
+            "quantity": {
+              "type": "number",
+              "description": "Available quantity"
+            },
+            "warehouse": {
+              "type": "string",
+              "description": "Warehouse location"
+            },
+            "reservedUntil": {
+              "type": "string",
+              "description": "Reservation expiration timestamp"
+            }
+          }
+        },
         "otel": {
           "resourceMatch": {
             "service.name": "checkout-service"
@@ -47,14 +106,46 @@
     },
     {
       "id": "payment-processing",
-      "nodeType": "external-api",
-      "label": "Payment Processing",
-      "position": { "x": 500, "y": 100 },
+      "type": "text",
+      "x": 540,
+      "y": 100,
+      "width": 180,
+      "height": 80,
+      "text": "Payment Processing",
+      "color": "#50E3C2",
       "pv": {
-        "events": [
-          { "name": "payment.initiated" },
-          { "name": "payment.completed" }
-        ],
+        "nodeType": "external-api",
+        "shape": "rectangle",
+        "icon": "CreditCard",
+        "event": {
+          "name": "payment.initiated",
+          "description": "Payment processing started",
+          "attributes": {
+            "paymentId": {
+              "type": "string",
+              "required": true,
+              "description": "Payment transaction ID"
+            },
+            "orderId": {
+              "type": "string",
+              "required": true,
+              "description": "Associated order ID"
+            },
+            "amount": {
+              "type": "number",
+              "required": true,
+              "description": "Payment amount"
+            },
+            "provider": {
+              "type": "string",
+              "description": "Payment provider (stripe/paypal)"
+            },
+            "status": {
+              "type": "string",
+              "description": "Payment status (pending/processing)"
+            }
+          }
+        },
         "otel": {
           "resourceMatch": {
             "service.name": "checkout-service"
@@ -67,14 +158,46 @@
     },
     {
       "id": "order-confirmation",
-      "nodeType": "business-logic",
-      "label": "Order Confirmation",
-      "position": { "x": 700, "y": 100 },
+      "type": "text",
+      "x": 760,
+      "y": 100,
+      "width": 180,
+      "height": 80,
+      "text": "Order Confirmation",
+      "color": "#22c55e",
       "pv": {
-        "events": [
-          { "name": "order.created" },
-          { "name": "confirmation.sent" }
-        ],
+        "nodeType": "business-logic",
+        "shape": "rectangle",
+        "icon": "CheckCircle",
+        "event": {
+          "name": "order.created",
+          "description": "New order created in the system",
+          "attributes": {
+            "orderId": {
+              "type": "string",
+              "required": true,
+              "description": "Order identifier"
+            },
+            "userId": {
+              "type": "string",
+              "required": true,
+              "description": "User who created order"
+            },
+            "items": {
+              "type": "array",
+              "description": "List of order items"
+            },
+            "total": {
+              "type": "number",
+              "required": true,
+              "description": "Order total amount"
+            },
+            "currency": {
+              "type": "string",
+              "description": "Currency code (USD, EUR, etc.)"
+            }
+          }
+        },
         "otel": {
           "resourceMatch": {
             "service.name": "checkout-service"
@@ -89,20 +212,20 @@
   "edges": [
     {
       "id": "e1",
-      "from": "user-validation",
-      "to": "inventory-check",
+      "fromNode": "user-validation",
+      "toNode": "inventory-check",
       "label": "on success"
     },
     {
       "id": "e2",
-      "from": "inventory-check",
-      "to": "payment-processing",
+      "fromNode": "inventory-check",
+      "toNode": "payment-processing",
       "label": "items available"
     },
     {
       "id": "e3",
-      "from": "payment-processing",
-      "to": "order-confirmation",
+      "fromNode": "payment-processing",
+      "toNode": "order-confirmation",
       "label": "payment success"
     }
   ]
