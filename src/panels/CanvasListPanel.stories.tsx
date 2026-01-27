@@ -680,6 +680,377 @@ export const WithNarratives: Story = {
 };
 
 /**
+ * Canvas Events Test - Interactive story for testing canvas interaction events
+ * Shows visual feedback for both selectCanvas (click canvas) and openCanvas (click edit button) events
+ */
+export const CanvasEventsTest: Story = {
+  args: {} as never,
+  render: () => {
+    const [eventLog, setEventLog] = useState<Array<{ timestamp: string; action: string; canvasId: string; canvasPath: string; narrativeId?: string }>>([]);
+    const lastEventRef = React.useRef<{ action: string; canvasId: string; time: number } | null>(null);
+
+    const mockFileTreeWithNarratives = {
+      sha: 'mock-sha-narratives',
+      allFiles: [
+        // Authentication canvas and its narrative
+        {
+          name: 'authentication-flow.otel.canvas',
+          relativePath: '.principal-views/authentication-flow.otel.canvas',
+          path: '.principal-views/authentication-flow.otel.canvas',
+        },
+        {
+          name: 'auth-scenarios.narrative.json',
+          relativePath: '.principal-views/__narratives__/auth-scenarios.narrative.json',
+          path: '.principal-views/__narratives__/auth-scenarios.narrative.json',
+        },
+
+        // Payment canvas and its narrative
+        {
+          name: 'payment-processing.otel.canvas',
+          relativePath: '.principal-views/payment-processing.otel.canvas',
+          path: '.principal-views/payment-processing.otel.canvas',
+        },
+        {
+          name: 'payment-scenarios.narrative.json',
+          relativePath: '.principal-views/__narratives__/payment-scenarios.narrative.json',
+          path: '.principal-views/__narratives__/payment-scenarios.narrative.json',
+        },
+
+        // User registration canvas (no narrative)
+        {
+          name: 'user-registration.otel.canvas',
+          relativePath: '.principal-views/user-registration.otel.canvas',
+          path: '.principal-views/user-registration.otel.canvas',
+        },
+
+        // Data pipeline canvas and its narrative
+        {
+          name: 'data-pipeline.otel.canvas',
+          relativePath: '.principal-views/data-pipeline.otel.canvas',
+          path: '.principal-views/data-pipeline.otel.canvas',
+        },
+        {
+          name: 'pipeline-scenarios.narrative.json',
+          relativePath: '.principal-views/__narratives__/pipeline-scenarios.narrative.json',
+          path: '.principal-views/__narratives__/pipeline-scenarios.narrative.json',
+        },
+      ],
+    };
+
+    // Create mock slices
+    const mockSlices = new Map([
+      [
+        'fileTree',
+        {
+          scope: 'repository' as const,
+          name: 'fileTree',
+          data: mockFileTreeWithNarratives,
+          loading: false,
+          error: null,
+          refresh: async () => {},
+        },
+      ],
+    ]);
+
+    // Create custom readFile that returns narrative templates
+    const mockReadFile = async (path: string) => {
+      console.log('[Mock] readFile:', path);
+
+      // Return appropriate narrative templates based on path
+      if (path.includes('auth-scenarios.narrative.json')) {
+        return JSON.stringify({
+          version: '1.0.0',
+          name: 'Authentication Scenarios',
+          canvas: 'authentication-flow.otel.canvas',
+          mode: 'flow',
+          scenarios: [
+            {
+              id: 'successful-login',
+              priority: 1,
+              description: 'Successful Login',
+              condition: { type: 'event', event: 'auth.success' },
+              template: {
+                introduction: 'User logged in successfully',
+                flow: ['Credentials validated', 'Session created'],
+              },
+            },
+            {
+              id: 'failed-login',
+              priority: 2,
+              description: 'Failed Login',
+              condition: { type: 'event', event: 'auth.failed' },
+              template: {
+                introduction: 'Login failed',
+                flow: ['Invalid credentials'],
+              },
+            },
+            {
+              id: 'oauth-login',
+              priority: 3,
+              description: 'OAuth Login',
+              condition: { type: 'event', event: 'auth.oauth' },
+              template: {
+                introduction: 'OAuth authentication',
+                flow: ['OAuth provider verified'],
+              },
+            },
+          ],
+        });
+      }
+
+      if (path.includes('payment-scenarios.narrative.json')) {
+        return JSON.stringify({
+          version: '1.0.0',
+          name: 'Payment Flow Scenarios',
+          canvas: 'payment-processing.otel.canvas',
+          mode: 'flow',
+          scenarios: [
+            {
+              id: 'credit-card-success',
+              priority: 1,
+              description: 'Credit Card Payment Success',
+              condition: { type: 'event', event: 'payment.success' },
+              template: {
+                introduction: 'Payment processed successfully',
+                flow: ['Card validated', 'Payment authorized'],
+              },
+            },
+            {
+              id: 'payment-declined',
+              priority: 2,
+              description: 'Payment Declined',
+              condition: { type: 'event', event: 'payment.declined' },
+              template: {
+                introduction: 'Payment declined',
+                flow: ['Card declined by processor'],
+              },
+            },
+          ],
+        });
+      }
+
+      if (path.includes('pipeline-scenarios.narrative.json')) {
+        return JSON.stringify({
+          version: '1.0.0',
+          name: 'Data Pipeline Scenarios',
+          canvas: 'data-pipeline.otel.canvas',
+          mode: 'flow',
+          scenarios: [
+            {
+              id: 'batch-processing',
+              priority: 1,
+              description: 'Batch Data Processing',
+              condition: { type: 'event', event: 'pipeline.batch' },
+              template: {
+                introduction: 'Batch processing completed',
+                flow: ['Data ingested', 'Data transformed'],
+              },
+            },
+          ],
+        });
+      }
+
+      // Default empty narrative
+      return JSON.stringify({
+        version: '1.0.0',
+        name: 'Default Narrative',
+        canvas: 'unknown',
+        scenarios: [],
+      });
+    };
+
+    // Custom events that log both selectCanvas and openCanvas activity (with deduplication)
+    const mockEvents = {
+      emit: (event: PanelEvent<unknown>) => {
+        const timestamp = new Date().toLocaleTimeString();
+        console.log(`[${timestamp}] Event:`, event);
+
+        // Check if this is a canvas-related event
+        if (event.type === 'custom' && event.payload && typeof event.payload === 'object') {
+          const payload = event.payload as { action?: string; canvasId?: string; canvas?: { path?: string }; narrativeId?: string };
+          if (payload.action === 'openCanvas' || payload.action === 'selectCanvas') {
+            const now = Date.now();
+            const lastEvent = lastEventRef.current;
+
+            // Deduplicate events: ignore if same action+canvasId within 100ms
+            if (
+              lastEvent &&
+              lastEvent.action === payload.action &&
+              lastEvent.canvasId === payload.canvasId &&
+              now - lastEvent.time < 100
+            ) {
+              console.log(`[${timestamp}] Duplicate event ignored`);
+              return;
+            }
+
+            // Update last event tracking
+            lastEventRef.current = {
+              action: payload.action,
+              canvasId: payload.canvasId || 'unknown',
+              time: now,
+            };
+
+            setEventLog((prev) => [
+              {
+                timestamp,
+                action: payload.action,
+                canvasId: payload.canvasId || 'unknown',
+                canvasPath: payload.canvas?.path || 'unknown',
+                narrativeId: payload.narrativeId,
+              },
+              ...prev,
+            ].slice(0, 10)); // Keep last 10 events
+          }
+        }
+      },
+      on: () => () => {},
+      off: () => {},
+    };
+
+    return (
+      <div style={{ display: 'flex', height: '100vh', background: '#0a0a0a' }}>
+        {/* Panel */}
+        <div style={{ flex: 1 }}>
+          <MockPanelProvider
+            contextOverrides={{
+              slices: mockSlices,
+              getSlice: <T,>(name: string) => {
+                return mockSlices.get(name) as T | undefined;
+              },
+            }}
+            actionsOverrides={{
+              readFile: mockReadFile,
+            }}
+            eventsOverride={mockEvents}
+          >
+            {(props) => <CanvasListPanel {...props} />}
+          </MockPanelProvider>
+        </div>
+
+        {/* Event Log Panel */}
+        <div
+          style={{
+            width: 350,
+            background: '#1a1a1a',
+            padding: 20,
+            color: '#fff',
+            overflow: 'auto',
+            borderLeft: '1px solid #333',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}
+        >
+          <div>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: 16 }}>
+              Canvas Events Monitor
+            </h3>
+            <p style={{ margin: 0, fontSize: 12, color: '#aaa', lineHeight: 1.5 }}>
+              Test canvas interactions and see events in real-time:
+            </p>
+            <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, fontSize: 11, color: '#888', lineHeight: 1.6 }}>
+              <li><span style={{ color: '#60a5fa', fontWeight: 'bold' }}>selectCanvas</span> (blue) - Click any canvas</li>
+              <li><span style={{ color: '#22c55e', fontWeight: 'bold' }}>openCanvas</span> (green) - Click edit button on canvases with narratives</li>
+            </ul>
+          </div>
+
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h4 style={{ margin: 0, fontSize: 14 }}>Canvas Events</h4>
+              <button
+                onClick={() => setEventLog([])}
+                style={{
+                  background: '#333',
+                  color: '#aaa',
+                  border: '1px solid #444',
+                  padding: '4px 8px',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                }}
+              >
+                Clear
+              </button>
+            </div>
+            <div
+              style={{
+                flex: 1,
+                fontSize: 11,
+                fontFamily: 'monospace',
+                background: '#0a0a0a',
+                border: '1px solid #333',
+                borderRadius: 6,
+                padding: 12,
+                overflowY: 'auto',
+                minHeight: 0,
+              }}
+            >
+              {eventLog.length === 0 ? (
+                <div style={{ color: '#666' }}>
+                  No events yet. Click a canvas or the edit button to test.
+                </div>
+              ) : (
+                eventLog.map((log, i) => {
+                  const isOpenCanvas = log.action === 'openCanvas';
+                  const bgColor = isOpenCanvas ? '#16a34a20' : '#3b82f620';
+                  const borderColor = isOpenCanvas ? '#16a34a' : '#3b82f6';
+                  const textColor = isOpenCanvas ? '#22c55e' : '#60a5fa';
+
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        marginBottom: 12,
+                        padding: 8,
+                        background: bgColor,
+                        border: `1px solid ${borderColor}`,
+                        borderRadius: 4,
+                      }}
+                    >
+                      <div style={{ color: textColor, marginBottom: 4, fontWeight: 'bold' }}>
+                        [{log.timestamp}] {log.action}
+                      </div>
+                      <div style={{ color: '#aaa', fontSize: 10 }}>
+                        Canvas ID: {log.canvasId}
+                      </div>
+                      <div style={{ color: '#aaa', fontSize: 10 }}>
+                        Path: {log.canvasPath}
+                      </div>
+                      {log.narrativeId && (
+                        <div style={{ color: '#fbbf24', fontSize: 10, marginTop: 4 }}>
+                          Narrative ID: {log.narrativeId}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5, padding: 8, background: '#0a0a0a', borderRadius: 4, border: '1px solid #333' }}>
+            <strong style={{ color: '#aaa' }}>How to Test:</strong>
+            <ol style={{ margin: '8px 0 0 0', paddingLeft: 16, lineHeight: 1.8 }}>
+              <li><strong>Click any canvas</strong> → see <span style={{ color: '#60a5fa' }}>selectCanvas</span> event (blue)</li>
+              <li><strong>Hover over canvas with narrative</strong> → see pencil icon appear</li>
+              <li><strong>Click pencil icon</strong> → see <span style={{ color: '#22c55e' }}>openCanvas</span> event (green)</li>
+            </ol>
+            <div style={{ marginTop: 8, padding: 8, background: '#0a0a0a', border: '1px solid #444', borderRadius: 4 }}>
+              <strong style={{ color: '#aaa' }}>Canvases with narratives:</strong>
+              <div style={{ marginTop: 4, fontSize: 10 }}>
+                • authentication-flow<br/>
+                • payment-processing<br/>
+                • data-pipeline
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  },
+};
+
+/**
  * Change Detection Test - Interactive story for testing SHA-based change detection
  * Demonstrates how the panel responds to file tree changes and manual refresh
  */
