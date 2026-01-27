@@ -41,6 +41,12 @@ export default defineConfig(({ mode: _mode }) => ({
         // Externalize principal-view-core - host app provides it (browser-safe as of v0.12.0)
         '@principal-ai/principal-view-core',
         /^@principal-ai\/principal-view-core\//,
+        // CRITICAL: Externalize react-dnd to prevent "Cannot have two HTML5 backends" error
+        // These must be provided by the host app to ensure a single instance
+        'react-dnd',
+        'react-dnd-html5-backend',
+        'react-arborist',
+        '@principal-ade/dynamic-file-tree',
       ],
       output: {
         globals: {
