@@ -4,9 +4,13 @@ import type {
   NarrativeTemplate,
   NarrativeScenario,
 } from '@principal-ai/principal-view-core';
+import type { ExecutionFile } from './ExecutionLoader';
 
 interface NarrativeTemplatePanelProps {
   narrativeTemplate: NarrativeTemplate;
+  availableExecutions?: ExecutionFile[];
+  executionScenarioMap?: Record<string, string>;
+  onExecutionSelect?: (executionId: string) => void;
   onScenarioHover?: (eventNames: string[] | null) => void;
   onScenarioClick?: (scenarioId: string, scenario: NarrativeScenario) => void;
 }
@@ -16,6 +20,9 @@ interface NarrativeTemplatePanelProps {
  */
 export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
   narrativeTemplate,
+  availableExecutions = [],
+  executionScenarioMap = {},
+  onExecutionSelect,
   onScenarioHover,
   onScenarioClick,
 }) => {
@@ -81,9 +88,15 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
       {/* Scenarios - Scrollable */}
       <div style={{ flex: 1, overflow: 'auto' }}>
         {narrativeTemplate.scenarios?.map((scenario, index) => {
+          const scenarioId = scenario.id || String(index);
+          // Find executions that match this scenario
+          const matchingExecutions = availableExecutions.filter(
+            exec => executionScenarioMap[exec.id] === scenarioId
+          );
+
           return (
             <div
-              key={scenario.id || index}
+              key={scenarioId}
               style={{
                 background: theme.colors.background,
                 borderBottom: `1px solid ${theme.colors.border}`,
@@ -92,7 +105,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
             >
               {/* Scenario Header - Clickable */}
               <div
-                onClick={() => handleScenarioClick(scenario.id || String(index), scenario)}
+                onClick={() => handleScenarioClick(scenarioId, scenario)}
                 style={{
                   padding: '12px 12px 12px 20px',
                   cursor: 'pointer',
@@ -117,10 +130,53 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
               >
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0, fontSize: theme.fontSizes[1], fontWeight: 600 }}>
-                    {scenario.id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                    {scenarioId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                   </h3>
+                  {matchingExecutions.length > 0 && (
+                    <div style={{
+                      marginTop: '4px',
+                      fontSize: theme.fontSizes[0],
+                      color: theme.colors.textSecondary
+                    }}>
+                      {matchingExecutions.length} execution{matchingExecutions.length !== 1 ? 's' : ''}
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Show executions for this scenario */}
+              {matchingExecutions.length > 0 && (
+                <div style={{ paddingLeft: '20px', paddingBottom: '8px' }}>
+                  {matchingExecutions.map(exec => (
+                    <div
+                      key={exec.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onExecutionSelect) {
+                          onExecutionSelect(exec.id);
+                        }
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        marginBottom: '4px',
+                        background: theme.colors.backgroundSecondary,
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: theme.fontSizes[0],
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = theme.colors.border;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = theme.colors.backgroundSecondary;
+                      }}
+                    >
+                      {exec.name}
+                    </div>
+                  ))}
+                </div>
+              )}
 
             </div>
           );

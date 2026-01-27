@@ -177,7 +177,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
                 if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
                   current[parts[i]] = {};
                 }
-                current = current[parts[i]];
+                current = current[parts[i]] as Record<string, unknown>;
               }
               current[parts[parts.length - 1]] = value;
             } else {
