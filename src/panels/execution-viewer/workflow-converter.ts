@@ -44,7 +44,7 @@ function severityToNumber(severity: OtelSeverity): number {
  * Convert TestSpan events to OtelEvent spans
  */
 function convertSpanEvents(span: TestSpan): OtelEvent[] {
-  return span.events.map((event) => ({
+  return (span.events || []).map((event) => ({
     name: event.name,
     timestamp: event.time,
     type: 'span' as const,
@@ -127,7 +127,7 @@ export function convertAllSpansToOtelEvents(spans: TestSpan[], logs: OtelLog[] =
  */
 export function extractTestAttributes(span: TestSpan): Record<string, unknown> {
   // Find assertion.complete event
-  const assertionComplete = span.events.find((e) => e.name === 'assertion.complete');
+  const assertionComplete = span.events?.find((e) => e.name === 'assertion.complete');
 
   if (assertionComplete) {
     return {
