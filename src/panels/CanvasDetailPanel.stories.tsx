@@ -4,7 +4,7 @@ import { CanvasDetailPanel } from './CanvasDetailPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import type { DataSlice } from '../types';
-import type { NarrativeTemplate } from '@principal-ai/principal-view-core';
+import type { WorkflowTemplate } from '@principal-ai/principal-view-core';
 
 /**
  * CanvasDetailPanel - OTEL Execution Visualizer
@@ -14,14 +14,14 @@ import type { NarrativeTemplate } from '@principal-ai/principal-view-core';
  *
  * ## Key Features:
  * - **Event-to-Node Mapping**: Automatically highlights canvas nodes as events play back
- * - **Clickable Narratives**: Click narrative steps to highlight corresponding canvas nodes
- * - **Scenario Matching**: Multiple narrative scenarios (success, error, timeout) matched to execution data
+ * - **Clickable Narratives**: Click workflow steps to highlight corresponding canvas nodes
+ * - **Scenario Matching**: Multiple workflow scenarios (success, error, timeout) matched to execution data
  * - **Test Playback**: Step through execution timeline with automatic node highlighting
  *
  * ## Progressive Onboarding:
  * These stories demonstrate the incremental adoption path:
  * 1. Start with canvas only (architecture documentation)
- * 2. Add narrative templates (human-readable scenarios)
+ * 2. Add workflow templates (human-readable scenarios)
  * 3. Add test execution data (validation & debugging)
  */
 const meta = {
@@ -32,7 +32,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Complete OTEL visualization panel showing canvas architecture, narrative scenarios, and test execution playback. Click narrative steps to highlight nodes!',
+          'Complete OTEL visualization panel showing canvas architecture, workflow scenarios, and test execution playback. Click workflow steps to highlight nodes!',
       },
     },
   },
@@ -385,7 +385,7 @@ const checkoutCanvas = {
   },
 };
 
-const checkoutNarrative: NarrativeTemplate = {
+const checkoutNarrative: WorkflowTemplate = {
   version: '1.0.0',
   canvas: 'checkout-flow.otel.canvas',
   name: 'Checkout Flow',
@@ -862,7 +862,7 @@ export const Step1_CanvasOnly: Story = {
     docs: {
       description: {
         story:
-          'Just the canvas - no narratives or execution data yet. Use this to document your architecture before adding telemetry.',
+          'Just the canvas - no workflows or execution data yet. Use this to document your architecture before adding telemetry.',
       },
     },
   },
@@ -871,7 +871,7 @@ export const Step1_CanvasOnly: Story = {
 /**
  * Step 2: Canvas + Narrative Templates
  *
- * Add narrative scenarios to make telemetry human-readable.
+ * Add workflow scenarios to make telemetry human-readable.
  * Defines success, failure, timeout scenarios but has no execution data yet.
  */
 export const Step2_CanvasWithNarratives: Story = {
@@ -885,9 +885,9 @@ export const Step2_CanvasWithNarratives: Story = {
         content: JSON.stringify(checkoutCanvas),
       },
       {
-        path: '.principal-views/checkout-flow.narrative.json',
-        relativePath: '.principal-views/checkout-flow.narrative.json',
-        name: 'checkout-flow.narrative.json',
+        path: '.principal-views/checkout-flow.workflow.json',
+        relativePath: '.principal-views/checkout-flow.workflow.json',
+        name: 'checkout-flow.workflow.json',
         content: JSON.stringify(checkoutNarrative),
       },
     ]);
@@ -900,8 +900,8 @@ export const Step2_CanvasWithNarratives: Story = {
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
-            selectedNarrativeId="checkout-flow-narrative"
-            narrativeTemplate={checkoutNarrative}
+            selectedWorkflowId="checkout-flow-narrative"
+            workflowTemplate={checkoutNarrative}
           />
         )}
       </MockPanelProvider>
@@ -911,7 +911,7 @@ export const Step2_CanvasWithNarratives: Story = {
     docs: {
       description: {
         story:
-          'Canvas + Narrative templates. Shows scenario structure (success, payment declined, insufficient inventory, timeout) without actual execution data. Click "?" to learn about narratives.',
+          'Canvas + Workflow templates. Shows scenario structure (success, payment declined, insufficient inventory, timeout) without actual execution data. Click "?" to learn about narratives.',
       },
     },
   },
@@ -920,8 +920,8 @@ export const Step2_CanvasWithNarratives: Story = {
 /**
  * Step 3: Successful Checkout Execution
  *
- * Complete flow - canvas + narratives + test execution showing successful checkout.
- * Click narrative steps to highlight corresponding canvas nodes!
+ * Complete flow - canvas + workflows + test execution showing successful checkout.
+ * Click workflow steps to highlight corresponding canvas nodes!
  */
 export const Step3_SuccessfulCheckout: Story = {
   args: {} as never,
@@ -934,9 +934,9 @@ export const Step3_SuccessfulCheckout: Story = {
         content: JSON.stringify(checkoutCanvas),
       },
       {
-        path: '.principal-views/checkout-flow.narrative.json',
-        relativePath: '.principal-views/checkout-flow.narrative.json',
-        name: 'checkout-flow.narrative.json',
+        path: '.principal-views/checkout-flow.workflow.json',
+        relativePath: '.principal-views/checkout-flow.workflow.json',
+        name: 'checkout-flow.workflow.json',
         content: JSON.stringify(checkoutNarrative),
       },
       {
@@ -955,8 +955,8 @@ export const Step3_SuccessfulCheckout: Story = {
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
-            selectedNarrativeId="checkout-flow-narrative"
-            narrativeTemplate={checkoutNarrative}
+            selectedWorkflowId="checkout-flow-narrative"
+            workflowTemplate={checkoutNarrative}
           />
         )}
       </MockPanelProvider>
@@ -989,9 +989,9 @@ export const Scenario_PaymentDeclined: Story = {
         content: JSON.stringify(checkoutCanvas),
       },
       {
-        path: '.principal-views/checkout-flow.narrative.json',
-        relativePath: '.principal-views/checkout-flow.narrative.json',
-        name: 'checkout-flow.narrative.json',
+        path: '.principal-views/checkout-flow.workflow.json',
+        relativePath: '.principal-views/checkout-flow.workflow.json',
+        name: 'checkout-flow.workflow.json',
         content: JSON.stringify(checkoutNarrative),
       },
       {
@@ -1010,8 +1010,8 @@ export const Scenario_PaymentDeclined: Story = {
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
-            selectedNarrativeId="checkout-flow-narrative"
-            narrativeTemplate={checkoutNarrative}
+            selectedWorkflowId="checkout-flow-narrative"
+            workflowTemplate={checkoutNarrative}
           />
         )}
       </MockPanelProvider>
@@ -1021,7 +1021,7 @@ export const Scenario_PaymentDeclined: Story = {
     docs: {
       description: {
         story:
-          '❌ Payment declined scenario. Shows how narrative template detects payment.declined=true and renders appropriate error message. Click "payment.failed" step to highlight payment-processing node.',
+          '❌ Payment declined scenario. Shows how workflow template detects payment.declined=true and renders appropriate error message. Click "payment.failed" step to highlight payment-processing node.',
       },
     },
   },
@@ -1043,9 +1043,9 @@ export const Scenario_InsufficientInventory: Story = {
         content: JSON.stringify(checkoutCanvas),
       },
       {
-        path: '.principal-views/checkout-flow.narrative.json',
-        relativePath: '.principal-views/checkout-flow.narrative.json',
-        name: 'checkout-flow.narrative.json',
+        path: '.principal-views/checkout-flow.workflow.json',
+        relativePath: '.principal-views/checkout-flow.workflow.json',
+        name: 'checkout-flow.workflow.json',
         content: JSON.stringify(checkoutNarrative),
       },
       {
@@ -1064,8 +1064,8 @@ export const Scenario_InsufficientInventory: Story = {
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
-            selectedNarrativeId="checkout-flow-narrative"
-            narrativeTemplate={checkoutNarrative}
+            selectedWorkflowId="checkout-flow-narrative"
+            workflowTemplate={checkoutNarrative}
           />
         )}
       </MockPanelProvider>
@@ -1097,9 +1097,9 @@ export const Scenario_Timeout: Story = {
         content: JSON.stringify(checkoutCanvas),
       },
       {
-        path: '.principal-views/checkout-flow.narrative.json',
-        relativePath: '.principal-views/checkout-flow.narrative.json',
-        name: 'checkout-flow.narrative.json',
+        path: '.principal-views/checkout-flow.workflow.json',
+        relativePath: '.principal-views/checkout-flow.workflow.json',
+        name: 'checkout-flow.workflow.json',
         content: JSON.stringify(checkoutNarrative),
       },
       {
@@ -1118,8 +1118,8 @@ export const Scenario_Timeout: Story = {
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
-            selectedNarrativeId="checkout-flow-narrative"
-            narrativeTemplate={checkoutNarrative}
+            selectedWorkflowId="checkout-flow-narrative"
+            workflowTemplate={checkoutNarrative}
           />
         )}
       </MockPanelProvider>
@@ -1146,7 +1146,7 @@ export const PartialNarrativeCoverage: Story = {
   args: {} as never,
   render: () => {
     // Create a minimal narrative that only covers payment events
-    const partialNarrative: NarrativeTemplate = {
+    const partialNarrative: WorkflowTemplate = {
       version: '1.0.0',
       canvas: 'checkout-flow.otel.canvas',
       name: 'Partial Coverage Demo',
@@ -1216,9 +1216,9 @@ export const PartialNarrativeCoverage: Story = {
         content: JSON.stringify(checkoutCanvas),
       },
       {
-        path: '.principal-views/payment-flow.narrative.json',
-        relativePath: '.principal-views/payment-flow.narrative.json',
-        name: 'payment-flow.narrative.json',
+        path: '.principal-views/payment-flow.workflow.json',
+        relativePath: '.principal-views/payment-flow.workflow.json',
+        name: 'payment-flow.workflow.json',
         content: JSON.stringify(partialNarrative),
       },
     ]);
@@ -1231,8 +1231,8 @@ export const PartialNarrativeCoverage: Story = {
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
-            selectedNarrativeId="payment-flow-narrative"
-            narrativeTemplate={partialNarrative}
+            selectedWorkflowId="payment-flow-narrative"
+            workflowTemplate={partialNarrative}
           />
         )}
       </MockPanelProvider>

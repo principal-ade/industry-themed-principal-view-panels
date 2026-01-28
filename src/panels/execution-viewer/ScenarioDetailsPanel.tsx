@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import { HelpCircle, ChevronDown, X } from 'lucide-react';
 import yaml from 'js-yaml';
-import type { NarrativeTemplate, OtelAttributes, NarrativeScenario } from '@principal-ai/principal-view-core';
-import { NarrativeRenderer } from './NarrativeRenderer';
-import { convertToOtelEvents } from './narrative-converter';
+import type { WorkflowTemplate, OtelAttributes, WorkflowScenario } from '@principal-ai/principal-view-core';
+import { WorkflowRenderer } from './WorkflowRenderer';
+import { convertToOtelEvents } from './workflow-converter';
 
 interface SpanEvent {
   time: number;
@@ -63,9 +63,9 @@ export interface ScenarioDetailsPanelProps {
 
   // Narrative view props
   viewMode?: ViewMode;
-  narrativeTemplate?: NarrativeTemplate;
+  workflowTemplate?: WorkflowTemplate;
   onViewModeChange?: (mode: ViewMode) => void;
-  showNarrativeMetadata?: boolean;
+  showWorkflowMetadata?: boolean;
   onNarrativeEventClick?: (event: import('@principal-ai/principal-view-core').OtelEvent, eventIndex: number) => void;
 
   // UI control props
@@ -87,7 +87,7 @@ export interface ScenarioDetailsPanelProps {
   scenarioName?: string;
 
   // Selected scenario for preview mode (when no execution is selected)
-  selectedScenario?: NarrativeScenario;
+  selectedScenario?: WorkflowScenario;
 }
 
 // Helper functions for log severity
@@ -123,9 +123,9 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
   highlightedPhase,
   onSpanIndexChange,
   viewMode = 'narrative',
-  narrativeTemplate,
+  workflowTemplate,
   onViewModeChange,
-  showNarrativeMetadata = false,
+  showWorkflowMetadata = false,
   onNarrativeEventClick,
   showNavigation = true,
   showTestName = true,
@@ -539,16 +539,16 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
         }}
       >
         {/* Narrative View */}
-        {(viewMode === 'narrative' || viewMode === 'summary') && narrativeTemplate && currentSpan ? (
-          <NarrativeRenderer
-            template={narrativeTemplate}
+        {(viewMode === 'narrative' || viewMode === 'summary') && workflowTemplate && currentSpan ? (
+          <WorkflowRenderer
+            template={workflowTemplate}
             events={otelEvents}
-            showMetadata={showNarrativeMetadata}
+            showMetadata={showWorkflowMetadata}
             onEventClick={onNarrativeEventClick}
             activeEventIndex={currentEventIndex}
             showOnlySummary={viewMode === 'summary'}
           />
-        ) : viewMode === 'summary' && narrativeTemplate && selectedScenario && !currentSpan ? (
+        ) : viewMode === 'summary' && workflowTemplate && selectedScenario && !currentSpan ? (
           <div style={{ padding: '20px', fontFamily: theme.fonts.body }}>
             {/* Scenario Preview - show template without execution data */}
             {selectedScenario.template.introduction && (
@@ -578,7 +578,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
               </div>
             )}
           </div>
-        ) : viewMode === 'narrative' && narrativeTemplate && selectedScenario && !currentSpan ? (
+        ) : viewMode === 'narrative' && workflowTemplate && selectedScenario && !currentSpan ? (
           <div style={{ fontFamily: theme.fonts.body }}>
             {selectedScenario.template.events && Object.keys(selectedScenario.template.events).length > 0 ? (
               <div>
@@ -643,7 +643,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
               </div>
             )}
           </div>
-        ) : (viewMode === 'narrative' || viewMode === 'summary') && !narrativeTemplate ? (
+        ) : (viewMode === 'narrative' || viewMode === 'summary') && !workflowTemplate ? (
           <div
             style={{
               padding: '40px 20px',
@@ -651,9 +651,9 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
               color: theme.colors.textMuted,
             }}
           >
-            <div style={{ fontSize: theme.fontSizes[3], marginBottom: '12px' }}>ⓘ No narrative template available</div>
+            <div style={{ fontSize: theme.fontSizes[3], marginBottom: '12px' }}>ⓘ No workflow template available</div>
             <div style={{ fontSize: theme.fontSizes[1], lineHeight: '1.6' }}>
-              Create a narrative template to see a human-readable
+              Create a workflow template to see a human-readable
               <br />
               summary of this test execution.
             </div>

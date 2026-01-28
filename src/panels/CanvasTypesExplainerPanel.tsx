@@ -179,7 +179,7 @@ const Step3OtelCanvas: React.FC = () => {
           <text x="340" y="179" fill="#a7f3d0" fontSize="7">Example: service.name = "user-service"</text>
 
           <text x="335" y="199" fill="#6ee7b7" fontSize="9" fontWeight="600">Used with:</text>
-          <text x="340" y="214" fill="#d1fae5" fontSize="7">• Narrative templates (.narrative.json)</text>
+          <text x="340" y="214" fill="#d1fae5" fontSize="7">• Workflow templates (.workflow.json)</text>
           <text x="340" y="226" fill="#d1fae5" fontSize="7">• OTEL instrumented code</text>
           <text x="340" y="238" fill="#d1fae5" fontSize="7">• Validation engine</text>
 
@@ -385,8 +385,8 @@ const Step6FileOrganization: React.FC = () => {
           <text x="110" y="251" fill="#6ee7b7" fontSize="8" fontFamily="monospace">api-gateway.otel.canvas</text>
 
           {/* Narratives */}
-          <text x="100" y="275" fill="#a78bfa" fontSize="10" fontFamily="monospace">📁 __narratives__/</text>
-          <text x="120" y="290" fill="#c4b5fd" fontSize="8" fontFamily="monospace">*.narrative.json</text>
+          <text x="100" y="275" fill="#a78bfa" fontSize="10" fontFamily="monospace">📁 __workflows__/</text>
+          <text x="120" y="290" fill="#c4b5fd" fontSize="8" fontFamily="monospace">*.workflow.json</text>
           <text x="285" y="290" fill="#ddd6fe" fontSize="8">← Match .otel.canvas files</text>
         </g>
       </svg>
@@ -399,7 +399,7 @@ const Step6FileOrganization: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #475569'
       }}>
-        Organize by purpose: <strong style={{ color: '#3b82f6' }}>Static .canvas</strong> for documentation, <strong style={{ color: '#10b981' }}>.otel.canvas</strong> for validated workflows, and narratives only for OTEL files.
+        Organize by purpose: <strong style={{ color: '#3b82f6' }}>Static .canvas</strong> for documentation, <strong style={{ color: '#10b981' }}>.otel.canvas</strong> for validated workflows, and workflows only for OTEL files.
       </div>
     </div>
   );

@@ -1,19 +1,19 @@
-import type { NarrativeTemplate } from '@principal-ai/principal-view-core';
+import type { WorkflowTemplate } from '@principal-ai/principal-view-core';
 
-export interface NarrativeFile {
+export interface WorkflowFile {
   /** Unique identifier for this narrative (derived from filename) */
   id: string;
   /** Display name for this narrative */
   name: string;
   /** Full file path */
   path: string;
-  /** Package name for monorepos (e.g., 'core' from 'packages/core/__narratives__/') */
+  /** Package name for monorepos (e.g., 'core' from 'packages/core/__workflows__/') */
   packageName?: string;
   /** Referenced canvas file path from the narrative */
   canvasPath?: string;
 }
 
-export interface NarrativeMetadata {
+export interface WorkflowMetadata {
   /** Narrative name from template */
   name: string;
   /** Description of the narrative */
@@ -32,13 +32,13 @@ export interface NarrativeMetadata {
  * Patterns for finding narrative template files
  */
 const NARRATIVE_FILE_PATTERNS = [
-  // Packages monorepo pattern: packages/core/__narratives__/test-flow.narrative.json
-  /^packages\/([^/]+)\/__narratives__\/(.+)\.narrative\.json$/,
-  // Inside .principal-views: .principal-views/__narratives__/test-flow.narrative.json
-  /^\.principal-views\/__narratives__\/(.+)\.narrative\.json$/,
-  // Direct __narratives__ folder: __narratives__/test-flow.narrative.json
-  /^__narratives__\/(.+)\.narrative\.json$/,
-  // Alternative: .principal-views/*.narrative.json (root level)
+  // Packages monorepo pattern: packages/core/__workflows__/test-flow.workflow.json
+  /^packages\/([^/]+)\/__workflows__\/(.+)\.narrative\.json$/,
+  // Inside .principal-views: .principal-views/__workflows__/test-flow.workflow.json
+  /^\.principal-views\/__workflows__\/(.+)\.narrative\.json$/,
+  // Direct __workflows__ folder: __workflows__/test-flow.workflow.json
+  /^__workflows__\/(.+)\.narrative\.json$/,
+  // Alternative: .principal-views/*.workflow.json (root level)
   /^\.principal-views\/([^/]+)\.narrative\.json$/,
 ];
 
@@ -55,15 +55,15 @@ function getNarrativeNameFromFilename(filename: string): string {
 }
 
 /**
- * Utility for loading and parsing narrative template files from __narratives__/ folders
+ * Utility for loading and parsing narrative template files from __workflows__/ folders
  */
-export class NarrativeLoader {
+export class WorkflowLoader {
   /**
    * Parse JSON narrative template content
    */
-  static parseNarrativeTemplate(content: string): NarrativeTemplate {
+  static parseWorkflowTemplate(content: string): WorkflowTemplate {
     try {
-      return JSON.parse(content) as NarrativeTemplate;
+      return JSON.parse(content) as WorkflowTemplate;
     } catch (error) {
       throw new Error(`Failed to parse narrative template JSON: ${(error as Error).message}`);
     }
@@ -72,7 +72,7 @@ export class NarrativeLoader {
   /**
    * Extract metadata from a narrative template
    */
-  static getNarrativeMetadata(narrative: NarrativeTemplate): NarrativeMetadata {
+  static getWorkflowMetadata(narrative: WorkflowTemplate): WorkflowMetadata {
     const scenarios = narrative.scenarios || [];
 
     // Count scenarios
@@ -96,10 +96,10 @@ export class NarrativeLoader {
   /**
    * Find all narrative template files in the file tree
    */
-  static findNarrativeFiles(
+  static findWorkflowFiles(
     files: Array<{ path?: string; relativePath?: string; name?: string }>
-  ): NarrativeFile[] {
-    const narrativeFiles: NarrativeFile[] = [];
+  ): WorkflowFile[] {
+    const narrativeFiles: WorkflowFile[] = [];
 
     for (const file of files) {
       const filePath = file.relativePath || file.path || '';
@@ -114,20 +114,20 @@ export class NarrativeLoader {
           let baseName: string;
 
           if (pattern === NARRATIVE_FILE_PATTERNS[0]) {
-            // Packages pattern: packages/core/__narratives__/test-flow.narrative.json
+            // Packages pattern: packages/core/__workflows__/test-flow.workflow.json
             packageName = match[1];
             baseName = match[2];
             id = `${packageName}-${baseName}`;
           } else if (pattern === NARRATIVE_FILE_PATTERNS[1]) {
-            // .principal-views/__narratives__ pattern
+            // .principal-views/__workflows__ pattern
             baseName = match[1];
             id = `pv-narratives-${baseName}`;
           } else if (pattern === NARRATIVE_FILE_PATTERNS[2]) {
-            // Direct __narratives__ pattern
+            // Direct __workflows__ pattern
             baseName = match[1];
             id = baseName;
           } else {
-            // .principal-views/*.narrative.json (root level)
+            // .principal-views/*.workflow.json (root level)
             baseName = match[1];
             id = `pv-${baseName}`;
           }
@@ -166,10 +166,10 @@ export class NarrativeLoader {
    * @returns Map of canvas file paths to their associated narrative files
    */
   static matchNarrativesToCanvas(
-    narrativeFiles: NarrativeFile[],
-    narrativeContents: Map<string, NarrativeTemplate>
-  ): Map<string, NarrativeFile[]> {
-    const canvasToNarratives = new Map<string, NarrativeFile[]>();
+    narrativeFiles: WorkflowFile[],
+    narrativeContents: Map<string, WorkflowTemplate>
+  ): Map<string, WorkflowFile[]> {
+    const canvasToNarratives = new Map<string, WorkflowFile[]>();
 
     for (const narrativeFile of narrativeFiles) {
       const narrative = narrativeContents.get(narrativeFile.path);
@@ -195,13 +195,13 @@ export class NarrativeLoader {
   /**
    * Resolve canvas path relative to narrative file location
    *
-   * @param narrativePath - Path to the narrative file
+   * @param workflowPath - Path to the narrative file
    * @param canvasReference - Canvas reference from the narrative (e.g., "./test.otel.canvas")
    * @returns Resolved canvas path
    */
-  private static resolveCanvasPath(narrativePath: string, canvasReference: string): string {
+  private static resolveCanvasPath(workflowPath: string, canvasReference: string): string {
     // Get the directory containing the narrative file
-    const narrativeDir = narrativePath.split('/').slice(0, -1).join('/');
+    const narrativeDir = workflowPath.split('/').slice(0, -1).join('/');
 
     // Handle relative paths
     if (canvasReference.startsWith('./')) {

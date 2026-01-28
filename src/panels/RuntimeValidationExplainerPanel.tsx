@@ -360,7 +360,7 @@ const Step5SelfDocumenting: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #475569'
       }}>
-        Tests become <strong style={{ color: '#10b981' }}>self-documenting</strong> by generating human-readable narratives from OTEL traces, showing exactly what happened with links to source code.
+        Tests become <strong style={{ color: '#10b981' }}>self-documenting</strong> by generating human-readable workflows from OTEL traces, showing exactly what happened with links to source code.
       </div>
     </div>
   );

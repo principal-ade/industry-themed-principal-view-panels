@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme, type Theme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
-import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, NarrativeTemplate, NarrativeScenario, OtelAttributes } from '@principal-ai/principal-view-core';
-import { renderNarrative } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, WorkflowTemplate, WorkflowScenario, OtelAttributes } from '@principal-ai/principal-view-core';
+import { renderWorkflow } from '@principal-ai/principal-view-core';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
-import { convertToOtelEvents, type TestSpan } from './execution-viewer/narrative-converter';
+import { convertToOtelEvents, type TestSpan } from './execution-viewer/workflow-converter';
 import {
   ExecutionLoader,
   type ExecutionFile,
@@ -16,9 +16,9 @@ import {
 import { Activity, HelpCircle, X, Pencil, FileText } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
-import { NarrativeLoader, type NarrativeFile } from './execution-viewer/NarrativeLoader';
-import { NarrativeExplainerPanel } from './NarrativeExplainerPanel';
-import { NarrativeTemplatePanel } from './execution-viewer/NarrativeTemplatePanel';
+import { WorkflowLoader, type WorkflowFile } from './execution-viewer/WorkflowLoader';
+import { WorkflowExplainerPanel } from './WorkflowExplainerPanel';
+import { WorkflowTemplatePanel } from './execution-viewer/WorkflowTemplatePanel';
 
 // View mode type (should be exported from react package in future versions)
 export type ViewMode = 'raw' | 'narrative' | 'summary';
@@ -243,25 +243,25 @@ export interface CanvasDetailPanelProps extends PanelComponentProps {
    * Optional narrative ID to display.
    * If provided, the panel will display this narrative without showing the selector UI.
    */
-  selectedNarrativeId?: string | null;
+  selectedWorkflowId?: string | null;
 
   /**
    * Optional narrative path.
    * Provided when a specific narrative is selected from the canvas list.
    */
-  narrativePath?: string | null;
+  workflowPath?: string | null;
 
   /**
-   * Optional narrative template.
-   * If provided along with selectedNarrativeId, the panel will use this template directly.
+   * Optional workflow template.
+   * If provided along with selectedWorkflowId, the panel will use this template directly.
    */
-  narrativeTemplate?: NarrativeTemplate | null;
+  workflowTemplate?: WorkflowTemplate | null;
 
   /**
-   * Optional narrative file info with metadata (size, lastModified, etc.).
-   * Used for detecting narrative file changes and auto-reloading.
+   * Optional workflow file info with metadata (size, lastModified, etc.).
+   * Used for detecting workflow file changes and auto-reloading.
    */
-  narrativeFileInfo?: FileInfo | null;
+  workflowFileInfo?: FileInfo | null;
 }
 
 interface CanvasDetailPanelState {
@@ -275,26 +275,26 @@ interface CanvasDetailPanelState {
   availableExecutions: ExecutionFile[];
   selectedExecutionId: string | null;
   showHelpModal: boolean;
-  selectedNarrativeId: string | null;
+  selectedWorkflowId: string | null;
   isPlaying: boolean;
   currentSpanIndex: number;
   currentEventIndex: number;
   highlightedNodeId: string | null;
-  narrativeTemplate: NarrativeTemplate | null;
-  availableNarratives: NarrativeFile[];
+  workflowTemplate: WorkflowTemplate | null;
+  availableNarratives: WorkflowFile[];
   viewMode: ViewMode;
   executionScenarioMap: Record<string, string>; // Maps execution ID to scenario ID
   hoveredExecutionId: string | null;
   hoveredExecution: ExecutionArtifact | null;
   hoveredScenarioEventNames: string[] | null;
   selectedScenarioId: string | null;
-  selectedScenario: NarrativeScenario | null;
+  selectedScenario: WorkflowScenario | null;
 }
 
 /**
  * Canvas Detail Panel
  *
- * Displays canvas details with execution artifacts, narrative templates, and playback controls.
+ * Displays canvas details with execution artifacts, workflow templates, and playback controls.
  * Can be controlled via props (selectedCanvasId) or events.
  */
 export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
@@ -305,10 +305,10 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   canvasPath: canvasPathProp,
   canvasName: canvasNameProp,
   canvasFileInfo: canvasFileInfoProp,
-  selectedNarrativeId: selectedNarrativeIdProp,
-  narrativePath: narrativePathProp,
-  narrativeTemplate: narrativeTemplateProp,
-  narrativeFileInfo: narrativeFileInfoProp,
+  selectedWorkflowId: selectedWorkflowIdProp,
+  workflowPath: workflowPathProp,
+  workflowTemplate: workflowTemplateProp,
+  workflowFileInfo: workflowFileInfoProp,
 }) => {
   const { theme } = useTheme();
 
@@ -323,12 +323,12 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     availableExecutions: [],
     selectedExecutionId: null,
     showHelpModal: false,
-    selectedNarrativeId: null,
+    selectedWorkflowId: null,
     isPlaying: false,
     currentSpanIndex: 0,
     currentEventIndex: 0,
     highlightedNodeId: null,
-    narrativeTemplate: null,
+    workflowTemplate: null,
     availableNarratives: [],
     viewMode: 'narrative',
     executionScenarioMap: {},
@@ -381,9 +381,9 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         return;
       }
 
-      // Find execution and narrative files
+      // Find execution and workflow files
       const executionFiles = await ExecutionLoader.findExecutionFiles(fileTreeData.allFiles);
-      const availableNarratives = NarrativeLoader.findNarrativeFiles(fileTreeData.allFiles);
+      const availableNarratives = WorkflowLoader.findWorkflowFiles(fileTreeData.allFiles);
 
       const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
       if (!readFile) {
@@ -408,11 +408,11 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
       // Build event-to-node mapping for this canvas
       eventNodeMapRef.current = buildEventToNodeMap(canvas);
 
-      // Evaluate executions against narrative template to build scenario mapping
-      // Use existing narrative template from state if available
+      // Evaluate executions against workflow template to build scenario mapping
+      // Use existing workflow template from state if available
       const executionScenarioMap: Record<string, string> = {};
-      const currentNarrativeTemplate = state.narrativeTemplate;
-      if (currentNarrativeTemplate && executionFiles.length > 0) {
+      const currentWorkflowTemplate = state.workflowTemplate;
+      if (currentWorkflowTemplate && executionFiles.length > 0) {
         for (const execFile of executionFiles) {
           try {
             const fullExecPath = `${repositoryPath}/${execFile.path}`;
@@ -423,7 +423,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
               if (spans.length > 0) {
                 // For single-span executions, use the first span
                 const events = convertToOtelEvents(spans[0] as TestSpan, []);
-                const result = renderNarrative(currentNarrativeTemplate, events);
+                const result = renderWorkflow(currentWorkflowTemplate, events);
                 executionScenarioMap[execFile.id] = result.scenarioId;
               }
             }
@@ -454,7 +454,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         currentEventIndex: 0,
         highlightedNodeId: null,
         availableNarratives,
-        // Don't overwrite narrativeTemplate and selectedNarrativeId - preserve from state/props
+        // Don't overwrite workflowTemplate and selectedWorkflowId - preserve from state/props
         executionScenarioMap,
       }));
     } catch (error) {
@@ -483,22 +483,22 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
 
   // Sync narrative props to state
   useEffect(() => {
-    if (narrativeTemplateProp && selectedNarrativeIdProp) {
+    if (workflowTemplateProp && selectedWorkflowIdProp) {
       setState(prev => ({
         ...prev,
-        selectedNarrativeId: selectedNarrativeIdProp,
-        narrativeTemplate: narrativeTemplateProp,
+        selectedWorkflowId: selectedWorkflowIdProp,
+        workflowTemplate: workflowTemplateProp,
         viewMode: 'narrative',
       }));
-    } else if (selectedNarrativeIdProp === null && narrativeTemplateProp === null) {
+    } else if (selectedWorkflowIdProp === null && workflowTemplateProp === null) {
       // Clear narrative if explicitly set to null
       setState(prev => ({
         ...prev,
-        selectedNarrativeId: null,
-        narrativeTemplate: null,
+        selectedWorkflowId: null,
+        workflowTemplate: null,
       }));
     }
-  }, [selectedNarrativeIdProp, narrativeTemplateProp]);
+  }, [selectedWorkflowIdProp, workflowTemplateProp]);
 
   // Listen for custom events to switch canvases (event-driven mode)
   useEffect(() => {
@@ -517,8 +517,8 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         canvas?: {
           path: string;
         };
-        narrativeId?: string;
-        narrativeTemplate?: NarrativeTemplate;
+        workflowId?: string;
+        workflowTemplate?: WorkflowTemplate;
       };
     }
 
@@ -529,12 +529,12 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           loadCanvas(payload.canvasId, payload.canvas.path);
 
           // Handle narrative if provided in event
-          if (payload.narrativeId && payload.narrativeTemplate) {
-            console.log('[CanvasDetailPanel] Setting narrative from event:', payload.narrativeId);
+          if (payload.workflowId && payload.workflowTemplate) {
+            console.log('[CanvasDetailPanel] Setting narrative from event:', payload.workflowId);
             setState(prev => ({
               ...prev,
-              selectedNarrativeId: payload.narrativeId || null,
-              narrativeTemplate: payload.narrativeTemplate || null,
+              selectedWorkflowId: payload.workflowId || null,
+              workflowTemplate: payload.workflowTemplate || null,
               viewMode: 'narrative',
             }));
           }
@@ -556,10 +556,10 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   }, [canvasFileInfoProp]);
 
   useEffect(() => {
-    if (narrativeFileInfoProp?.lastModified) {
-      narrativeFileTimestampRef.current = narrativeFileInfoProp.lastModified.getTime();
+    if (workflowFileInfoProp?.lastModified) {
+      narrativeFileTimestampRef.current = workflowFileInfoProp.lastModified.getTime();
     }
-  }, [narrativeFileInfoProp]);
+  }, [workflowFileInfoProp]);
 
   // Auto-reload on file changes via workspace:changed events
   useEffect(() => {
@@ -598,22 +598,22 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         }
       }
 
-      // Check narrative file timestamp
-      if (narrativePathProp) {
+      // Check workflow file timestamp
+      if (workflowPathProp) {
         const narrativeFile = fileTreeData.allFiles.find(f =>
-          f.path === narrativePathProp || f.relativePath === narrativePathProp
+          f.path === workflowPathProp || f.relativePath === workflowPathProp
         );
 
         if (narrativeFile?.lastModified) {
           const currentTimestamp = narrativeFile.lastModified.getTime();
           if (narrativeFileTimestampRef.current && currentTimestamp !== narrativeFileTimestampRef.current) {
             console.log('[CanvasDetailPanel] Narrative file modified, reloading...', {
-              path: narrativePathProp,
+              path: workflowPathProp,
               lastLoaded: new Date(narrativeFileTimestampRef.current),
               current: new Date(currentTimestamp),
             });
 
-            // TODO: Reload narrative template
+            // TODO: Reload workflow template
             narrativeFileTimestampRef.current = currentTimestamp;
           }
         }
@@ -624,7 +624,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     return () => {
       events.off('workspace:changed', handleWorkspaceChange);
     };
-  }, [events, canvasPathProp, narrativePathProp, selectedCanvasIdProp, loadCanvas]);
+  }, [events, canvasPathProp, workflowPathProp, selectedCanvasIdProp, loadCanvas]);
 
   // Playback control
   const handleViewModeChange = useCallback((mode: ViewMode) => {
@@ -862,12 +862,12 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
   }, []);
 
   // Handle scenario click - show ScenarioDetailsPanel for the selected scenario
-  const handleScenarioClick = useCallback((scenarioId: string, scenario: NarrativeScenario) => {
+  const handleScenarioClick = useCallback((scenarioId: string, scenario: WorkflowScenario) => {
     setState(prev => ({
       ...prev,
       selectedScenarioId: scenarioId,
       selectedScenario: scenario,
-      viewMode: 'narrative', // Default to narrative view when showing a scenario
+      viewMode: 'narrative', // Default to workflow view when showing a scenario
     }));
   }, []);
 
@@ -956,12 +956,12 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
       return activeIds.size > 0 ? Array.from(activeIds) : null;
     }
 
-    // Priority 4: Narrative template (default when loaded)
-    if (state.narrativeTemplate) {
+    // Priority 4: Workflow template (default when loaded)
+    if (state.workflowTemplate) {
       const eventNames = new Set<string>();
 
       // Collect all event names from all scenarios
-      for (const scenario of state.narrativeTemplate.scenarios || []) {
+      for (const scenario of state.workflowTemplate.scenarios || []) {
         // Get events from template.events
         if (scenario.template.events) {
           Object.keys(scenario.template.events).forEach(e => eventNames.add(e));
@@ -986,7 +986,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
     }
 
     return null;
-  }, [state.execution, state.canvas, state.hoveredExecution, state.hoveredScenarioEventNames, state.narrativeTemplate]);
+  }, [state.execution, state.canvas, state.hoveredExecution, state.hoveredScenarioEventNames, state.workflowTemplate]);
 
   // Playback effect
   useEffect(() => {
@@ -1127,10 +1127,10 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <span style={{ fontSize: theme.fontSizes[2], fontWeight: theme.fontWeights.medium, color: theme.colors.text, fontFamily: theme.fonts.body }}>
               {state.canvasName}
-              {state.narrativeTemplate && (
+              {state.workflowTemplate && (
                 <span style={{ opacity: 0.7 }}>
                   {' / '}
-                  {state.narrativeTemplate.name || state.selectedNarrativeId}
+                  {state.workflowTemplate.name || state.selectedWorkflowId}
                 </span>
               )}
             </span>
@@ -1224,7 +1224,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                 fontSize: theme.fontSizes[2],
                 fontFamily: theme.fonts.body,
               }}
-              title="Learn about narratives and OTEL testing"
+              title="Learn about workflows and OTEL testing"
             >
               <HelpCircle size={16} />
               Learn About Narratives
@@ -1235,7 +1235,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
 
       {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Event Timeline or Narrative Template or Missing Execution Info - Only show if we have execution OR narratives */}
+        {/* Event Timeline or Narrative Template or Missing Execution Info - Only show if we have execution OR workflows */}
         {(state.execution || state.availableNarratives.length > 0) && (
           <div style={{ flex: '0 0 40%', borderRight: '1px solid #333', overflow: 'hidden' }}>
             {state.execution ? (
@@ -1244,7 +1244,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                 currentSpanIndex={state.currentSpanIndex}
                 currentEventIndex={state.currentEventIndex}
                 onSpanIndexChange={handleSpanIndexChange}
-                narrativeTemplate={state.narrativeTemplate ?? undefined}
+                workflowTemplate={state.workflowTemplate ?? undefined}
                 viewMode={state.viewMode}
                 onViewModeChange={handleViewModeChange}
                 onNarrativeEventClick={handleNarrativeEventClick}
@@ -1302,7 +1302,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                     }));
                   }
                 }}
-                showBackButton={!!(state.narrativeTemplate && state.availableExecutions.length > 0)}
+                showBackButton={!!(state.workflowTemplate && state.availableExecutions.length > 0)}
                 onBackClick={() => {
                   setState(prev => ({
                     ...prev,
@@ -1329,7 +1329,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                 spans={[]} // Empty spans when showing scenario without execution
                 currentSpanIndex={0}
                 currentEventIndex={state.currentEventIndex}
-                narrativeTemplate={state.narrativeTemplate ?? undefined}
+                workflowTemplate={state.workflowTemplate ?? undefined}
                 viewMode={state.viewMode}
                 onViewModeChange={handleViewModeChange}
                 onNarrativeEventClick={handleNarrativeEventClick}
@@ -1409,9 +1409,9 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
                 }
                 selectedScenario={state.selectedScenario ?? undefined}
               />
-            ) : state.narrativeTemplate ? (
-              <NarrativeTemplatePanel
-                narrativeTemplate={state.narrativeTemplate}
+            ) : state.workflowTemplate ? (
+              <WorkflowTemplatePanel
+                workflowTemplate={state.workflowTemplate}
                 availableExecutions={state.availableExecutions}
                 executionScenarioMap={state.executionScenarioMap}
                 onExecutionSelect={handleExecutionSelect}
@@ -1559,7 +1559,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
             >
               <X size={20} />
             </button>
-            <NarrativeExplainerPanel />
+            <WorkflowExplainerPanel />
           </div>
         </div>
       )}

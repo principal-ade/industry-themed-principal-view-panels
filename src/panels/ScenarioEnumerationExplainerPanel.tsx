@@ -197,7 +197,7 @@ const Step3ScenarioConditions: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #475569'
       }}>
-        <strong style={{ color: '#8b5cf6' }}>Validation:</strong> OTEL trace is matched against scenario conditions. The first matching scenario determines which narrative template to use and validates expected behavior.
+        <strong style={{ color: '#8b5cf6' }}>Validation:</strong> OTEL trace is matched against scenario conditions. The first matching scenario determines which workflow template to use and validates expected behavior.
       </div>
     </div>
   );
@@ -212,7 +212,7 @@ const Step4ExhaustiveEnumeration: React.FC = () => {
         {/* User Registration Canvas + Scenarios */}
         <g>
           <rect x="40" y="45" width="520" height="260" fill="#0f172a" stroke="#475569" strokeWidth="2" rx="4" />
-          <text x="300" y="65" textAnchor="middle" fill="#fde68a" fontSize="12" fontWeight="600">user-registration.narrative.json</text>
+          <text x="300" y="65" textAnchor="middle" fill="#fde68a" fontSize="12" fontWeight="600">user-registration.workflow.json</text>
 
           {/* Canvas reference */}
           <rect x="55" y="75" width="490" height="25" fill="#1e3a8a" stroke="#3b82f6" strokeWidth="1" rx="3" />
@@ -302,7 +302,7 @@ const Step5ValidationProcess: React.FC = () => {
           <rect x="320" y="155" width="140" height="65" fill="#064e3b" stroke="#10b981" strokeWidth="2" rx="4" />
           <text x="390" y="173" textAnchor="middle" fill="#6ee7b7" fontSize="10" fontWeight="700">MATCHED ✓</text>
           <text x="328" y="188" fill="#a7f3d0" fontSize="8">Use scenario's</text>
-          <text x="328" y="200" fill="#a7f3d0" fontSize="8">narrative template</text>
+          <text x="328" y="200" fill="#a7f3d0" fontSize="8">workflow template</text>
           <text x="328" y="212" fill="#34d399" fontSize="8" fontWeight="bold">Validation PASSED</text>
 
           <line x1="315" y1="187" x2="285" y2="187" stroke="#475569" strokeWidth="2" markerEnd="url(#arrow1)" />
@@ -372,7 +372,7 @@ const Step6CompleteExample: React.FC = () => {
         {/* Scenarios enumerate outcomes */}
         <g>
           <rect x="310" y="40" width="250" height="90" fill="#064e3b" stroke="#10b981" strokeWidth="2" rx="4" />
-          <text x="435" y="60" textAnchor="middle" fill="#d1fae5" fontSize="11" fontWeight="600">order-processing.narrative.json</text>
+          <text x="435" y="60" textAnchor="middle" fill="#d1fae5" fontSize="11" fontWeight="600">order-processing.workflow.json</text>
 
           <rect x="325" y="70" width="220" height="50" fill="#022c22" stroke="#059669" strokeWidth="1" rx="3" />
           <text x="335" y="85" fill="#a7f3d0" fontSize="8">Enumerated scenarios:</text>
@@ -522,7 +522,7 @@ export const ScenarioEnumerationExplainerPanel: React.FC<ScenarioEnumerationExpl
           Scenario Enumeration Guide
         </h1>
         <p style={{ color: theme.colors.textSecondary, fontSize: '18px' }}>
-          Learn how narrative scenarios enumerate all expected functionality and validate against runtime behavior
+          Learn how workflow scenarios enumerate all expected functionality and validate against runtime behavior
         </p>
       </div>
 

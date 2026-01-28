@@ -372,7 +372,7 @@ const Step5TraceAggregation: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #475569'
       }}>
-        Parent narratives use <strong style={{ color: '#10b981' }}>glob patterns</strong> to aggregate span files from multiple locations, then <strong>correlate by trace_id</strong> to reconstruct the complete distributed trace.
+        Parent workflows use <strong style={{ color: '#10b981' }}>glob patterns</strong> to aggregate span files from multiple locations, then <strong>correlate by trace_id</strong> to reconstruct the complete distributed trace.
       </div>
     </div>
   );

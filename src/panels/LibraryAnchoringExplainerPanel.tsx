@@ -448,8 +448,8 @@ const Step6FileOrganization: React.FC = () => {
           <text x="100" y="155" fill="#3b82f6" fontSize="10" fontFamily="monospace">api-flow.otel.canvas</text>
           <text x="285" y="155" fill="#93c5fd" fontSize="9">← References library + event schemas</text>
 
-          <text x="100" y="175" fill="#a78bfa" fontSize="10" fontFamily="monospace">__narratives__/</text>
-          <text x="120" y="193" fill="#c4b5fd" fontSize="9" fontFamily="monospace">api-flow.narrative.json</text>
+          <text x="100" y="175" fill="#a78bfa" fontSize="10" fontFamily="monospace">__workflows__/</text>
+          <text x="120" y="193" fill="#c4b5fd" fontSize="9" fontFamily="monospace">api-flow.workflow.json</text>
 
           {/* Source code folder */}
           <text x="80" y="220" fill="#fbbf24" fontSize="11" fontFamily="monospace">📁 src/</text>

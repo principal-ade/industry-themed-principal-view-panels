@@ -15,7 +15,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Educational panel demonstrating how canvas hierarchy, OTEL traces, and narratives work together to accelerate production debugging through systematic problem isolation.',
+          'Educational panel demonstrating how canvas hierarchy, OTEL traces, and workflows work together to accelerate production debugging through systematic problem isolation.',
       },
     },
   },

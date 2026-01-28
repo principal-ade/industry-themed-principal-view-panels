@@ -72,7 +72,7 @@ const Step1WhatAreStories: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #059669'
       }}>
-        <strong>Stories work because:</strong> Humans naturally think in narratives, not metrics.
+        <strong>Stories work because:</strong> Humans naturally think in workflows, not metrics.
         "User checkout should take &lt;2s and send confirmation" is clearer than tracking 50 telemetry signals.
       </div>
     </div>

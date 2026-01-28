@@ -206,7 +206,7 @@ const Step4CompareToExpected: React.FC = () => {
         <g>
           <rect x="40" y="50" width="250" height="125" fill="#064e3b" stroke="#10b981" strokeWidth="2" rx="4" />
           <text x="165" y="70" textAnchor="middle" fill="#d1fae5" fontSize="10" fontWeight="600">Expected (Narrative)</text>
-          <text x="50" y="85" fill="#6ee7b7" fontSize="8">success.narrative.json</text>
+          <text x="50" y="85" fill="#6ee7b7" fontSize="8">success.workflow.json</text>
 
           <rect x="55" y="95" width="220" height="70" fill="#022c22" stroke="#059669" strokeWidth="1" rx="3" />
           <text x="65" y="110" fill="#a7f3d0" fontSize="8" fontWeight="600">Expected Flow:</text>

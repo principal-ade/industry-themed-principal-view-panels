@@ -1,16 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import React from 'react';
-import { NarrativeExplainerPanel } from './NarrativeExplainerPanel';
+import { WorkflowExplainerPanel } from './WorkflowExplainerPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 
 const meta = {
-  title: 'Panels/NarrativeExplainerPanel',
-  component: NarrativeExplainerPanel,
+  title: 'Panels/WorkflowExplainerPanel',
+  component: WorkflowExplainerPanel,
   parameters: {
     layout: 'fullscreen',
     docs: {
       description: {
-        component: 'An interactive educational panel that explains narrative template concepts using progressive disclosure and SVG visualizations.',
+        component: 'An interactive educational panel that explains workflow template concepts using progressive disclosure and SVG visualizations.',
       },
     },
   },
@@ -22,7 +22,7 @@ const meta = {
       </ThemeProvider>
     ),
   ],
-} satisfies Meta<typeof NarrativeExplainerPanel>;
+} satisfies Meta<typeof WorkflowExplainerPanel>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

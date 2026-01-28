@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 
-export interface NarrativeExplainerPanelProps {
+export interface WorkflowExplainerPanelProps {
   className?: string;
 }
 
@@ -95,7 +95,7 @@ const Step2Components: React.FC = () => {
               <text x="315" y="98" fill="#c4b5fd" fontSize="9" fontWeight="600">Scenario: success (priority: 1)</text>
               <text x="320" y="110" fill="#94a3b8" fontSize="8" fontFamily="monospace">condition: event = "order.completed"</text>
               <text x="320" y="122" fill="#94a3b8" fontSize="8" fontFamily="monospace">template: "Order #&#123;order.id&#125; completed"</text>
-              <text x="320" y="134" fill="#94a3b8" fontSize="8" fontFamily="monospace">steps: [4 narrative steps...]</text>
+              <text x="320" y="134" fill="#94a3b8" fontSize="8" fontFamily="monospace">steps: [4 workflow steps...]</text>
             </g>
 
             {/* Scenario 2 */}
@@ -377,10 +377,10 @@ const Step6FileStructure: React.FC = () => {
           <text x="60" y="65" fill="#94a3b8" fontSize="11" fontFamily="monospace">.principal-views/</text>
 
           {/* Narratives folder */}
-          <text x="80" y="85" fill="#a78bfa" fontSize="11" fontFamily="monospace">__narratives__/</text>
-          <text x="100" y="105" fill="#c4b5fd" fontSize="10" fontFamily="monospace">auth-flow.narrative.json</text>
-          <text x="100" y="122" fill="#c4b5fd" fontSize="10" fontFamily="monospace">payment-flow.narrative.json</text>
-          <text x="100" y="139" fill="#c4b5fd" fontSize="10" fontFamily="monospace">order-processing.narrative.json</text>
+          <text x="80" y="85" fill="#a78bfa" fontSize="11" fontFamily="monospace">__workflows__/</text>
+          <text x="100" y="105" fill="#c4b5fd" fontSize="10" fontFamily="monospace">auth-flow.workflow.json</text>
+          <text x="100" y="122" fill="#c4b5fd" fontSize="10" fontFamily="monospace">payment-flow.workflow.json</text>
+          <text x="100" y="139" fill="#c4b5fd" fontSize="10" fontFamily="monospace">order-processing.workflow.json</text>
 
           {/* Arrow showing relationship */}
           <line x1="340" y1="105" x2="380" y2="175" stroke="#3b82f6" strokeWidth="2" strokeDasharray="4,2" markerEnd="url(#arrow1)" />
@@ -393,8 +393,8 @@ const Step6FileStructure: React.FC = () => {
 
           {/* Explanation boxes */}
           <rect x="60" y="220" width="240" height="70" fill="#1e293b" stroke="#a78bfa" strokeWidth="1.5" rx="3" />
-          <text x="70" y="235" fill="#c4b5fd" fontSize="10" fontWeight="600">__narratives__/</text>
-          <text x="75" y="248" fill="#94a3b8" fontSize="9">Contains .narrative.json files</text>
+          <text x="70" y="235" fill="#c4b5fd" fontSize="10" fontWeight="600">__workflows__/</text>
+          <text x="75" y="248" fill="#94a3b8" fontSize="9">Contains .workflow.json files</text>
           <text x="75" y="260" fill="#94a3b8" fontSize="9">that define scenarios and</text>
           <text x="75" y="272" fill="#94a3b8" fontSize="9">templates for rendering</text>
           <text x="75" y="284" fill="#94a3b8" fontSize="9">execution stories.</text>
@@ -422,7 +422,7 @@ const Step6FileStructure: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #475569'
       }}>
-        Keep <strong style={{ color: '#a78bfa' }}>narrative templates</strong> in <code>__narratives__/</code> folders and link them to <strong style={{ color: '#34d399' }}>.otel.canvas</strong> files using relative paths.
+        Keep <strong style={{ color: '#a78bfa' }}>workflow templates</strong> in <code>__workflows__/</code> folders and link them to <strong style={{ color: '#34d399' }}>.otel.canvas</strong> files using relative paths.
       </div>
     </div>
   );
@@ -553,7 +553,7 @@ const sections: Section[] = [
   { id: 'workflow', title: 'End-to-End Workflow', component: Step7Workflow },
 ];
 
-export const NarrativeExplainerPanel: React.FC<NarrativeExplainerPanelProps> = ({ className }) => {
+export const WorkflowExplainerPanel: React.FC<WorkflowExplainerPanelProps> = ({ className }) => {
   const { theme } = useTheme();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['what']));
 
@@ -686,7 +686,7 @@ export const NarrativeExplainerPanel: React.FC<NarrativeExplainerPanelProps> = (
           Ready to Create Your Own?
         </h3>
         <p style={{ color: theme.colors.textSecondary, marginBottom: '16px', fontSize: '14px' }}>
-          Now that you understand the concepts, you can create narrative templates for your own execution traces.
+          Now that you understand the concepts, you can create workflow templates for your own execution traces.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -698,7 +698,7 @@ export const NarrativeExplainerPanel: React.FC<NarrativeExplainerPanelProps> = (
           <div style={{ display: 'flex', gap: '8px' }}>
             <span style={{ color: '#34d399' }}>2.</span>
             <span style={{ color: theme.colors.textSecondary }}>
-              Create a <code style={{ color: '#a78bfa' }}>.narrative.json</code> file with scenarios and templates
+              Create a <code style={{ color: '#a78bfa' }}>.workflow.json</code> file with scenarios and templates
             </span>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -717,4 +717,4 @@ export const NarrativeExplainerPanel: React.FC<NarrativeExplainerPanelProps> = (
   );
 };
 
-export default NarrativeExplainerPanel;
+export default WorkflowExplainerPanel;

@@ -3,7 +3,7 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check } from 'lucide-react';
-import { useCanvasNarrativeData } from './canvas-list/hooks/useCanvasNarrativeData';
+import { useCanvasWorkflowData } from './canvas-list/hooks/useCanvasWorkflowData';
 import type { DiscoveredCanvas } from '@principal-ai/principal-view-core';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
 import { CanvasNarrativeTreeCore, type CanvasNarrativeNodeData } from '@principal-ade/dynamic-file-tree';
@@ -34,7 +34,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
   const [cliCommandCopied, setCliCommandCopied] = useState(false);
 
   // Load canvas and narrative data
-  const { canvases, narratives, isLoading, error } = useCanvasNarrativeData({ context, actions });
+  const { canvases, workflows, isLoading, error } = useCanvasWorkflowData({ context, actions });
 
   // Get fileTree to access FileInfo metadata
   const fileTreeSlice = context.getSlice('fileTree');
@@ -71,28 +71,9 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
     return filtered;
   }, [canvases, searchQuery]);
 
-  const handleCanvasClick = (canvas: DiscoveredCanvas) => {
-    setSelectedCanvasId(canvas.id);
-    // Emit canvas:selected event for other panels with FileInfo
-    if (events) {
-      const canvasFileInfo = getCanvasFileInfo(canvas.path);
-      events.emit({
-        type: 'custom',
-        source: 'canvas-list-panel',
-        timestamp: Date.now(),
-        payload: {
-          action: 'selectCanvas',
-          canvasId: canvas.id,
-          canvas,
-          canvasFileInfo, // Include FileInfo with lastModified, size, etc.
-        },
-      });
-    }
-  };
-
   const handleTreeNodeClick = useCallback((node: CanvasNarrativeNodeData) => {
-    if (node.type === 'canvas' && node.canvas) {
-      // Canvas click - include FileInfo
+    if (node.type === 'storyboard' && node.canvas) {
+      // Storyboard click - open canvas editor
       setSelectedCanvasId(node.canvas.id);
       if (events) {
         const canvasFileInfo = getCanvasFileInfo(node.canvas.path);
@@ -101,59 +82,39 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
           source: 'canvas-list-panel',
           timestamp: Date.now(),
           payload: {
-            action: 'selectCanvas',
+            action: 'openCanvas',
             canvasId: node.canvas.id,
             canvas: node.canvas,
             canvasFileInfo,
+            openMode: 'editor', // Indicates canvas editor should be opened
           },
         });
       }
     } else if (node.type === 'narrative' && node.narrative && node.canvas) {
-      // Narrative click - include FileInfo for both canvas and narrative files
+      // Narrative click - open canvas detail with narrative
       setSelectedCanvasId(node.canvas.id);
       if (events) {
         const canvasFileInfo = getCanvasFileInfo(node.canvas.path);
-        const narrativeFileInfo = getCanvasFileInfo(node.narrative.path);
+        const workflowFileInfo = getCanvasFileInfo(node.narrative.path);
         events.emit({
           type: 'custom',
           source: 'canvas-list-panel',
           timestamp: Date.now(),
           payload: {
-            action: 'selectCanvas',
+            action: 'openCanvas',
             canvasId: node.canvas.id,
             canvas: node.canvas,
             canvasFileInfo,
-            narrativeId: node.narrative.id,
+            workflowId: node.narrative.id,
             narrative: node.narrative,
-            narrativeTemplate: node.narrativeTemplate,
-            narrativeFileInfo,
+            workflowTemplate: node.workflowTemplate,
+            workflowFileInfo,
+            openMode: 'detail', // Indicates canvas detail should be opened
           },
         });
       }
     }
   }, [events, getCanvasFileInfo]);
-
-  const handleOpenCanvas = useCallback((canvas: DiscoveredCanvas) => {
-    // Open canvas for editing
-    if (actions?.openFile) {
-      actions.openFile(canvas.path);
-    }
-    // Also emit event for other panels to respond
-    if (events) {
-      const canvasFileInfo = getCanvasFileInfo(canvas.path);
-      events.emit({
-        type: 'custom',
-        source: 'canvas-list-panel',
-        timestamp: Date.now(),
-        payload: {
-          action: 'openCanvas',
-          canvasId: canvas.id,
-          canvas,
-          canvasFileInfo,
-        },
-      });
-    }
-  }, [actions, events, getCanvasFileInfo]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -417,10 +378,9 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
         ) : (
           <CanvasNarrativeTreeCore
             canvases={filteredCanvases}
-            narratives={narratives}
+            narratives={workflows}
             theme={theme}
             onClick={handleTreeNodeClick}
-            onOpenCanvas={handleOpenCanvas}
             selectedNodeId={selectedCanvasId ? `canvas:${selectedCanvasId}` : undefined}
             defaultOpen={false}
             horizontalNodePadding="clamp(16px, 4vw, 24px)"

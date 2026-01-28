@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PanelContextValue, PanelActions } from '@principal-ade/panel-framework-core';
 import type { DiscoveredCanvas } from '@principal-ai/principal-view-core';
-import type { NarrativeTemplate } from '@principal-ai/principal-view-core';
+import type { WorkflowTemplate } from '@principal-ai/principal-view-core';
 import type { FileTree } from '@principal-ai/repository-abstraction';
-import { NarrativeLoader, type NarrativeFile } from '../../execution-viewer/NarrativeLoader';
+import { WorkflowLoader, type WorkflowFile } from '../../execution-viewer/WorkflowLoader';
 import { useCanvasData } from './useCanvasData';
 
 interface UseCanvasNarrativeDataParams {
@@ -13,31 +13,31 @@ interface UseCanvasNarrativeDataParams {
 
 interface UseCanvasNarrativeDataReturn {
   canvases: DiscoveredCanvas[];
-  narratives: Array<{ file: NarrativeFile; template: NarrativeTemplate }>;
+  workflows: Array<{ file: WorkflowFile; template: WorkflowTemplate }>;
   isLoading: boolean;
   error: string | null;
   refreshData: () => Promise<void>;
 }
 
 // Stable empty array to prevent unnecessary re-renders
-const EMPTY_NARRATIVES_ARRAY: Array<{ file: NarrativeFile; template: NarrativeTemplate }> = [];
+const EMPTY_NARRATIVES_ARRAY: Array<{ file: WorkflowFile; template: WorkflowTemplate }> = [];
 
 /**
  * Hook to discover canvases and eagerly load all narrative templates
  * Extends useCanvasData with narrative discovery
  */
-export const useCanvasNarrativeData = ({
+export const useCanvasWorkflowData = ({
   context,
   actions,
 }: UseCanvasNarrativeDataParams): UseCanvasNarrativeDataReturn => {
   // Reuse canvas discovery logic
   const { canvases, isLoading: canvasesLoading, error: canvasesError, refreshCanvases } = useCanvasData({ context });
 
-  const [narratives, setNarratives] = useState<Array<{ file: NarrativeFile; template: NarrativeTemplate }>>(
+  const [workflows, setNarratives] = useState<Array<{ file: WorkflowFile; template: WorkflowTemplate }>>(
     EMPTY_NARRATIVES_ARRAY
   );
-  const [narrativesLoading, setNarrativesLoading] = useState(false);
-  const [narrativesError, setNarrativesError] = useState<string | null>(null);
+  const [workflowsLoading, setNarrativesLoading] = useState(false);
+  const [workflowsError, setNarrativesError] = useState<string | null>(null);
 
   // Extract file tree data
   const fileTreeSlice = context.getSlice('fileTree');
@@ -53,11 +53,11 @@ export const useCanvasNarrativeData = ({
   const loadNarratives = useCallback(async () => {
     // Skip if we've already loaded this exact data
     if (fileTreeSha === lastLoadedNarrativeSha.current) {
-      console.log('[useCanvasNarrativeData] Skipping narrative reload - data unchanged');
+      console.log('[useCanvasWorkflowData] Skipping narrative reload - data unchanged');
       return;
     }
 
-    console.log('[useCanvasNarrativeData] Loading narratives');
+    console.log('[useCanvasWorkflowData] Loading narratives');
 
     setNarrativesLoading(true);
     setNarrativesError(null);
@@ -72,8 +72,8 @@ export const useCanvasNarrativeData = ({
       }
 
       // Discover narrative files
-      const narrativeFiles = NarrativeLoader.findNarrativeFiles(allFiles);
-      console.log('[useCanvasNarrativeData] Found narrative files:', narrativeFiles.length);
+      const narrativeFiles = WorkflowLoader.findWorkflowFiles(allFiles);
+      console.log('[useCanvasWorkflowData] Found narrative files:', narrativeFiles.length);
 
       if (narrativeFiles.length === 0) {
         setNarratives(EMPTY_NARRATIVES_ARRAY);
@@ -85,35 +85,35 @@ export const useCanvasNarrativeData = ({
       const narrativePromises = narrativeFiles.map(async (file) => {
         try {
           if (!readFile) {
-            console.warn('[useCanvasNarrativeData] No readFile action available');
+            console.warn('[useCanvasWorkflowData] No readFile action available');
             return null;
           }
 
           const content = await readFile(file.path);
           if (!content || typeof content !== 'string') {
-            console.warn(`[useCanvasNarrativeData] Empty or invalid content for ${file.path}`);
+            console.warn(`[useCanvasWorkflowData] Empty or invalid content for ${file.path}`);
             return null;
           }
 
-          const template = NarrativeLoader.parseNarrativeTemplate(content);
+          const template = WorkflowLoader.parseWorkflowTemplate(content);
           return { file, template };
         } catch (error) {
-          console.warn(`[useCanvasNarrativeData] Failed to load narrative ${file.path}:`, error);
+          console.warn(`[useCanvasWorkflowData] Failed to load narrative ${file.path}:`, error);
           return null;
         }
       });
 
       const results = await Promise.all(narrativePromises);
-      const loadedNarratives = results.filter((r): r is { file: NarrativeFile; template: NarrativeTemplate } => r !== null);
+      const loadedNarratives = results.filter((r): r is { file: WorkflowFile; template: WorkflowTemplate } => r !== null);
 
-      console.log('[useCanvasNarrativeData] Successfully loaded narratives:', loadedNarratives.length);
+      console.log('[useCanvasWorkflowData] Successfully loaded workflows:', loadedNarratives.length);
 
       setNarratives(loadedNarratives);
       lastLoadedNarrativeSha.current = fileTreeSha;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load narratives';
       setNarrativesError(errorMessage);
-      console.error('[useCanvasNarrativeData] Error loading narratives:', err);
+      console.error('[useCanvasWorkflowData] Error loading workflows:', err);
     } finally {
       setNarrativesLoading(false);
     }
@@ -136,12 +136,12 @@ export const useCanvasNarrativeData = ({
   }, [fileTreeSha]);
 
   // Combine loading and error states
-  const isLoading = canvasesLoading || narrativesLoading;
-  const error = canvasesError || narrativesError;
+  const isLoading = canvasesLoading || workflowsLoading;
+  const error = canvasesError || workflowsError;
 
   return {
     canvases,
-    narratives,
+    workflows,
     isLoading,
     error,
     refreshData,

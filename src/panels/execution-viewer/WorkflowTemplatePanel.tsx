@@ -1,25 +1,25 @@
 import React from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import type {
-  NarrativeTemplate,
-  NarrativeScenario,
+  WorkflowTemplate,
+  WorkflowScenario,
 } from '@principal-ai/principal-view-core';
 import type { ExecutionFile } from './ExecutionLoader';
 
-interface NarrativeTemplatePanelProps {
-  narrativeTemplate: NarrativeTemplate;
+interface WorkflowTemplatePanelProps {
+  workflowTemplate: WorkflowTemplate;
   availableExecutions?: ExecutionFile[];
   executionScenarioMap?: Record<string, string>;
   onExecutionSelect?: (executionId: string) => void;
   onScenarioHover?: (eventNames: string[] | null) => void;
-  onScenarioClick?: (scenarioId: string, scenario: NarrativeScenario) => void;
+  onScenarioClick?: (scenarioId: string, scenario: WorkflowScenario) => void;
 }
 
 /**
- * Panel that displays the structure and content of a narrative template
+ * Panel that displays the structure and content of a workflow template
  */
-export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
-  narrativeTemplate,
+export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
+  workflowTemplate,
   availableExecutions = [],
   executionScenarioMap = {},
   onExecutionSelect,
@@ -28,14 +28,14 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  const handleScenarioClick = (scenarioId: string, scenario: NarrativeScenario) => {
+  const handleScenarioClick = (scenarioId: string, scenario: WorkflowScenario) => {
     if (onScenarioClick) {
       onScenarioClick(scenarioId, scenario);
     }
   };
 
   // Extract event names from a scenario template
-  const getScenarioEventNames = (scenario: NarrativeScenario): string[] => {
+  const getScenarioEventNames = (scenario: WorkflowScenario): string[] => {
     const eventNames: string[] = [];
 
     // Get event names from template.events
@@ -71,7 +71,7 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
           flexShrink: 0,
         }}
       >
-        {narrativeTemplate.description && (
+        {workflowTemplate.description && (
           <p
             style={{
               margin: '0',
@@ -80,14 +80,14 @@ export const NarrativeTemplatePanel: React.FC<NarrativeTemplatePanelProps> = ({
               lineHeight: theme.lineHeights.body,
             }}
           >
-            {narrativeTemplate.description}
+            {workflowTemplate.description}
           </p>
         )}
       </div>
 
       {/* Scenarios - Scrollable */}
       <div style={{ flex: 1, overflow: 'auto' }}>
-        {narrativeTemplate.scenarios?.map((scenario, index) => {
+        {workflowTemplate.scenarios?.map((scenario, index) => {
           const scenarioId = scenario.id || String(index);
           // Find executions that match this scenario
           const matchingExecutions = availableExecutions.filter(

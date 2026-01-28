@@ -4,7 +4,7 @@ import { ScenarioEnumerationExplainerPanel } from './ScenarioEnumerationExplaine
 import { ThemeProvider } from '@principal-ade/industry-theme';
 
 /**
- * ScenarioEnumerationExplainerPanel explains how narrative scenarios work with canvas files
+ * ScenarioEnumerationExplainerPanel explains how workflow scenarios work with canvas files
  * to enumerate all expected functionality and validate runtime behavior.
  */
 const meta = {

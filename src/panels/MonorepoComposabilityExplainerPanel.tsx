@@ -98,8 +98,8 @@ const Step2PackageLevelCanvases: React.FC = () => {
           <text x="60" y="95" fill="#bfdbfe" fontSize="8" fontWeight="600">.principal-views/</text>
           <text x="70" y="108" fill="#93c5fd" fontSize="7" fontFamily="monospace">user-api.otel.canvas</text>
 
-          <text x="60" y="128" fill="#bfdbfe" fontSize="8" fontWeight="600">__narratives__/</text>
-          <text x="70" y="141" fill="#93c5fd" fontSize="7" fontFamily="monospace">registration.narrative.json</text>
+          <text x="60" y="128" fill="#bfdbfe" fontSize="8" fontWeight="600">__workflows__/</text>
+          <text x="70" y="141" fill="#93c5fd" fontSize="7" fontFamily="monospace">registration.workflow.json</text>
 
           <text x="60" y="161" fill="#bfdbfe" fontSize="8" fontWeight="600">tests/__otel__/</text>
           <text x="70" y="174" fill="#60a5fa" fontSize="7" fontFamily="monospace">register-success.span.json</text>
@@ -121,8 +121,8 @@ const Step2PackageLevelCanvases: React.FC = () => {
           <text x="240" y="95" fill="#a7f3d0" fontSize="8" fontWeight="600">.principal-views/</text>
           <text x="250" y="108" fill="#6ee7b7" fontSize="7" fontFamily="monospace">order-api.otel.canvas</text>
 
-          <text x="240" y="128" fill="#a7f3d0" fontSize="8" fontWeight="600">__narratives__/</text>
-          <text x="250" y="141" fill="#6ee7b7" fontSize="7" fontFamily="monospace">create-order.narrative.json</text>
+          <text x="240" y="128" fill="#a7f3d0" fontSize="8" fontWeight="600">__workflows__/</text>
+          <text x="250" y="141" fill="#6ee7b7" fontSize="7" fontFamily="monospace">create-order.workflow.json</text>
 
           <text x="240" y="161" fill="#a7f3d0" fontSize="8" fontWeight="600">tests/__otel__/</text>
           <text x="250" y="174" fill="#34d399" fontSize="7" fontFamily="monospace">create-order-*.span.json</text>
@@ -144,8 +144,8 @@ const Step2PackageLevelCanvases: React.FC = () => {
           <text x="420" y="95" fill="#e9d5ff" fontSize="8" fontWeight="600">.principal-views/</text>
           <text x="430" y="108" fill="#c4b5fd" fontSize="7" fontFamily="monospace">payment-api.otel.canvas</text>
 
-          <text x="420" y="128" fill="#e9d5ff" fontSize="8" fontWeight="600">__narratives__/</text>
-          <text x="430" y="141" fill="#c4b5fd" fontSize="7" fontFamily="monospace">payment.narrative.json</text>
+          <text x="420" y="128" fill="#e9d5ff" fontSize="8" fontWeight="600">__workflows__/</text>
+          <text x="430" y="141" fill="#c4b5fd" fontSize="7" fontFamily="monospace">payment.workflow.json</text>
 
           <text x="420" y="161" fill="#e9d5ff" fontSize="8" fontWeight="600">tests/__otel__/</text>
           <text x="430" y="174" fill="#a78bfa" fontSize="7" fontFamily="monospace">process-payment-*.span.json</text>
@@ -167,7 +167,7 @@ const Step2PackageLevelCanvases: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #475569'
       }}>
-        Each package maintains its own <strong>.otel.canvas</strong> files and narratives to validate <em>service-internal behavior</em>. Tests generate <code>*.span.json</code> files in each package.
+        Each package maintains its own <strong>.otel.canvas</strong> files and workflows to validate <em>service-internal behavior</em>. Tests generate <code>*.span.json</code> files in each package.
       </div>
     </div>
   );
@@ -268,7 +268,7 @@ const Step4RootComposition: React.FC = () => {
 
           {/* Root narrative */}
           <rect x="60" y="195" width="480" height="120" fill="#064e3b" stroke="#10b981" strokeWidth="2" rx="4" />
-          <text x="70" y="210" fill="#a7f3d0" fontSize="9" fontWeight="600">__narratives__/end-to-end-checkout.narrative.json</text>
+          <text x="70" y="210" fill="#a7f3d0" fontSize="9" fontWeight="600">__workflows__/end-to-end-checkout.workflow.json</text>
 
           <rect x="75" y="220" width="450" height="85" fill="#022c22" stroke="#059669" strokeWidth="1" rx="3" />
           <text x="85" y="235" fill="#d1fae5" fontSize="8" fontFamily="monospace">"traces": {'{'}  </text>
@@ -288,7 +288,7 @@ const Step4RootComposition: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #475569'
       }}>
-        Root-level canvases <strong style={{ color: '#8b5cf6' }}>compose package-level canvases</strong>, and root narratives <strong style={{ color: '#10b981' }}>aggregate traces</strong> from all packages using glob patterns and trace correlation.
+        Root-level canvases <strong style={{ color: '#8b5cf6' }}>compose package-level canvases</strong>, and root workflows <strong style={{ color: '#10b981' }}>aggregate traces</strong> from all packages using glob patterns and trace correlation.
       </div>
     </div>
   );
@@ -333,7 +333,7 @@ const Step5HierarchicalValidation: React.FC = () => {
           <text x="300" y="200" textAnchor="middle" fill="#d1fae5" fontSize="11" fontWeight="600">ROOT-LEVEL VALIDATION (Cross-Service)</text>
 
           <rect x="60" y="210" width="480" height="65" fill="#022c22" stroke="#059669" strokeWidth="1" rx="3" />
-          <text x="70" y="225" fill="#6ee7b7" fontSize="8">monorepo/.principal-views/__narratives__/</text>
+          <text x="70" y="225" fill="#6ee7b7" fontSize="8">monorepo/.principal-views/__workflows__/</text>
           <text x="75" y="240" fill="#a7f3d0" fontSize="8">✓ User validated → Order created → Payment processed (complete flow)</text>
           <text x="75" y="253" fill="#a7f3d0" fontSize="8">✓ All services communicated correctly</text>
           <text x="75" y="266" fill="#34d399" fontSize="8" fontWeight="bold">✓ End-to-end checkout scenario succeeds</text>
@@ -373,8 +373,8 @@ const Step6FileOrganization: React.FC = () => {
           <text x="270" y="110" fill="#c4b5fd" fontSize="8">← Shared component types for all packages</text>
           <text x="100" y="125" fill="#c4b5fd" fontSize="9" fontFamily="monospace">checkout-flow.otel.canvas</text>
           <text x="270" y="125" fill="#ddd6fe" fontSize="8">← Composes package-level canvases</text>
-          <text x="100" y="140" fill="#ddd6fe" fontSize="9" fontFamily="monospace">📁 __narratives__/</text>
-          <text x="115" y="155" fill="#e9d5ff" fontSize="8" fontFamily="monospace">end-to-end-checkout.narrative.json</text>
+          <text x="100" y="140" fill="#ddd6fe" fontSize="9" fontFamily="monospace">📁 __workflows__/</text>
+          <text x="115" y="155" fill="#e9d5ff" fontSize="8" fontFamily="monospace">end-to-end-checkout.workflow.json</text>
           <text x="330" y="155" fill="#c4b5fd" fontSize="7">← Aggregates traces</text>
 
           {/* Packages */}
@@ -383,19 +383,19 @@ const Step6FileOrganization: React.FC = () => {
           {/* User service */}
           <rect x="95" y="195" width="450" height="50" fill="#1e3a8a" stroke="#3b82f6" strokeWidth="1" rx="2" />
           <text x="105" y="210" fill="#3b82f6" fontSize="9" fontFamily="monospace">📁 user-service/</text>
-          <text x="120" y="225" fill="#93c5fd" fontSize="8" fontFamily="monospace">.principal-views/user-api.otel.canvas, __narratives__/</text>
+          <text x="120" y="225" fill="#93c5fd" fontSize="8" fontFamily="monospace">.principal-views/user-api.otel.canvas, __workflows__/</text>
           <text x="120" y="237" fill="#60a5fa" fontSize="8" fontFamily="monospace">tests/__otel__/*.span.json</text>
 
           {/* Order service */}
           <rect x="95" y="252" width="450" height="50" fill="#064e3b" stroke="#10b981" strokeWidth="1" rx="2" />
           <text x="105" y="267" fill="#10b981" fontSize="9" fontFamily="monospace">📁 order-service/</text>
-          <text x="120" y="282" fill="#6ee7b7" fontSize="8" fontFamily="monospace">.principal-views/order-api.otel.canvas, __narratives__/</text>
+          <text x="120" y="282" fill="#6ee7b7" fontSize="8" fontFamily="monospace">.principal-views/order-api.otel.canvas, __workflows__/</text>
           <text x="120" y="294" fill="#34d399" fontSize="8" fontFamily="monospace">tests/__otel__/*.span.json</text>
 
           {/* Payment service */}
           <rect x="95" y="309" width="450" height="50" fill="#4c1d95" stroke="#8b5cf6" strokeWidth="1" rx="2" />
           <text x="105" y="324" fill="#8b5cf6" fontSize="9" fontFamily="monospace">📁 payment-service/</text>
-          <text x="120" y="339" fill="#c4b5fd" fontSize="8" fontFamily="monospace">.principal-views/payment-api.otel.canvas, __narratives__/</text>
+          <text x="120" y="339" fill="#c4b5fd" fontSize="8" fontFamily="monospace">.principal-views/payment-api.otel.canvas, __workflows__/</text>
           <text x="120" y="351" fill="#a78bfa" fontSize="8" fontFamily="monospace">tests/__otel__/*.span.json</text>
         </g>
 
@@ -414,7 +414,7 @@ const Step6FileOrganization: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #475569'
       }}>
-        Each package maintains its own canvases and traces. Root <code>.principal-views/</code> contains shared library and composed canvases. Root narratives use glob patterns like <code>"packages/*/tests/__otel__/*.span.json"</code> to aggregate.
+        Each package maintains its own canvases and traces. Root <code>.principal-views/</code> contains shared library and composed canvases. Root workflows use glob patterns like <code>"packages/*/tests/__otel__/*.span.json"</code> to aggregate.
       </div>
     </div>
   );
@@ -467,7 +467,7 @@ const Step7Benefits: React.FC = () => {
           <rect x="40" y="240" width="520" height="85" fill="#1e1b4b" stroke="#10b981" strokeWidth="3" rx="4" />
           <text x="300" y="260" textAnchor="middle" fill="#6ee7b7" fontSize="11" fontWeight="700">THE POWER: COMPOSABILITY WITHOUT COUPLING</text>
 
-          <text x="50" y="280" fill="#ddd6fe" fontSize="9">Each package validates independently, but root narratives can compose those same traces</text>
+          <text x="50" y="280" fill="#ddd6fe" fontSize="9">Each package validates independently, but root workflows can compose those same traces</text>
           <text x="50" y="295" fill="#ddd6fe" fontSize="9">to validate cross-service workflows—without duplicating tests or creating tight coupling.</text>
 
           <text x="50" y="315" fill="#34d399" fontSize="9" fontWeight="bold">You get both service isolation AND end-to-end validation from the same test executions.</text>

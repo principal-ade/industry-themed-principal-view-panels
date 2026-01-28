@@ -423,7 +423,7 @@ export const MonorepoWithPackages: Story = {
 };
 
 /**
- * With Narratives - Shows canvases with associated narrative templates
+ * With Narratives - Shows canvases with associated workflow templates
  * Demonstrates the tree structure with expandable narratives
  */
 export const WithNarratives: Story = {
@@ -439,9 +439,9 @@ export const WithNarratives: Story = {
           path: '.principal-views/authentication-flow.otel.canvas',
         },
         {
-          name: 'auth-scenarios.narrative.json',
-          relativePath: '.principal-views/__narratives__/auth-scenarios.narrative.json',
-          path: '.principal-views/__narratives__/auth-scenarios.narrative.json',
+          name: 'auth-scenarios.workflow.json',
+          relativePath: '.principal-views/__workflows__/auth-scenarios.workflow.json',
+          path: '.principal-views/__workflows__/auth-scenarios.workflow.json',
         },
 
         // Payment canvas and its narrative
@@ -451,9 +451,9 @@ export const WithNarratives: Story = {
           path: '.principal-views/payment-processing.otel.canvas',
         },
         {
-          name: 'payment-scenarios.narrative.json',
-          relativePath: '.principal-views/__narratives__/payment-scenarios.narrative.json',
-          path: '.principal-views/__narratives__/payment-scenarios.narrative.json',
+          name: 'payment-scenarios.workflow.json',
+          relativePath: '.principal-views/__workflows__/payment-scenarios.workflow.json',
+          path: '.principal-views/__workflows__/payment-scenarios.workflow.json',
         },
 
         // User registration canvas (no narrative)
@@ -470,9 +470,9 @@ export const WithNarratives: Story = {
           path: '.principal-views/data-pipeline.otel.canvas',
         },
         {
-          name: 'pipeline-scenarios.narrative.json',
-          relativePath: '.principal-views/__narratives__/pipeline-scenarios.narrative.json',
-          path: '.principal-views/__narratives__/pipeline-scenarios.narrative.json',
+          name: 'pipeline-scenarios.workflow.json',
+          relativePath: '.principal-views/__workflows__/pipeline-scenarios.workflow.json',
+          path: '.principal-views/__workflows__/pipeline-scenarios.workflow.json',
         },
       ],
     };
@@ -492,12 +492,12 @@ export const WithNarratives: Story = {
       ],
     ]);
 
-    // Create custom readFile that returns narrative templates
+    // Create custom readFile that returns workflow templates
     const mockReadFile = async (path: string) => {
       console.log('[Mock] readFile:', path);
 
-      // Return appropriate narrative templates based on path
-      if (path.includes('auth-scenarios.narrative.json')) {
+      // Return appropriate workflow templates based on path
+      if (path.includes('auth-scenarios.workflow.json')) {
                 return JSON.stringify({
                   version: '1.0.0',
                   name: 'Authentication Scenarios',
@@ -538,7 +538,7 @@ export const WithNarratives: Story = {
                 });
               }
 
-              if (path.includes('payment-scenarios.narrative.json')) {
+              if (path.includes('payment-scenarios.workflow.json')) {
                 return JSON.stringify({
                   version: '1.0.0',
                   name: 'Payment Flow Scenarios',
@@ -589,7 +589,7 @@ export const WithNarratives: Story = {
                 });
               }
 
-              if (path.includes('pipeline-scenarios.narrative.json')) {
+              if (path.includes('pipeline-scenarios.workflow.json')) {
                 return JSON.stringify({
                   version: '1.0.0',
                   name: 'Data Pipeline Scenarios',
@@ -680,13 +680,19 @@ export const WithNarratives: Story = {
 };
 
 /**
- * Canvas Events Test - Interactive story for testing canvas interaction events
- * Shows visual feedback for both selectCanvas (click canvas) and openCanvas (click edit button) events
+ * Canvas Events Test - Interactive story for testing canvas open events
+ * Shows visual feedback for openCanvas events from Storyboard and Narrative clicks
+ *
+ * Tree Structure:
+ * - Canvas (folder, always expandable)
+ *   - Storyboard (opens canvas editor)
+ *   - Narrative 1 (opens canvas detail)
+ *   - Narrative 2 (opens canvas detail)
  */
 export const CanvasEventsTest: Story = {
   args: {} as never,
   render: () => {
-    const [eventLog, setEventLog] = useState<Array<{ timestamp: string; action: string; canvasId: string; canvasPath: string; narrativeId?: string }>>([]);
+    const [eventLog, setEventLog] = useState<Array<{ timestamp: string; action: string; canvasId: string; canvasPath: string; workflowId?: string }>>([]);
     const lastEventRef = React.useRef<{ action: string; canvasId: string; time: number } | null>(null);
 
     const mockFileTreeWithNarratives = {
@@ -699,9 +705,9 @@ export const CanvasEventsTest: Story = {
           path: '.principal-views/authentication-flow.otel.canvas',
         },
         {
-          name: 'auth-scenarios.narrative.json',
-          relativePath: '.principal-views/__narratives__/auth-scenarios.narrative.json',
-          path: '.principal-views/__narratives__/auth-scenarios.narrative.json',
+          name: 'auth-scenarios.workflow.json',
+          relativePath: '.principal-views/__workflows__/auth-scenarios.workflow.json',
+          path: '.principal-views/__workflows__/auth-scenarios.workflow.json',
         },
 
         // Payment canvas and its narrative
@@ -711,9 +717,9 @@ export const CanvasEventsTest: Story = {
           path: '.principal-views/payment-processing.otel.canvas',
         },
         {
-          name: 'payment-scenarios.narrative.json',
-          relativePath: '.principal-views/__narratives__/payment-scenarios.narrative.json',
-          path: '.principal-views/__narratives__/payment-scenarios.narrative.json',
+          name: 'payment-scenarios.workflow.json',
+          relativePath: '.principal-views/__workflows__/payment-scenarios.workflow.json',
+          path: '.principal-views/__workflows__/payment-scenarios.workflow.json',
         },
 
         // User registration canvas (no narrative)
@@ -730,9 +736,9 @@ export const CanvasEventsTest: Story = {
           path: '.principal-views/data-pipeline.otel.canvas',
         },
         {
-          name: 'pipeline-scenarios.narrative.json',
-          relativePath: '.principal-views/__narratives__/pipeline-scenarios.narrative.json',
-          path: '.principal-views/__narratives__/pipeline-scenarios.narrative.json',
+          name: 'pipeline-scenarios.workflow.json',
+          relativePath: '.principal-views/__workflows__/pipeline-scenarios.workflow.json',
+          path: '.principal-views/__workflows__/pipeline-scenarios.workflow.json',
         },
       ],
     };
@@ -752,12 +758,12 @@ export const CanvasEventsTest: Story = {
       ],
     ]);
 
-    // Create custom readFile that returns narrative templates
+    // Create custom readFile that returns workflow templates
     const mockReadFile = async (path: string) => {
       console.log('[Mock] readFile:', path);
 
-      // Return appropriate narrative templates based on path
-      if (path.includes('auth-scenarios.narrative.json')) {
+      // Return appropriate workflow templates based on path
+      if (path.includes('auth-scenarios.workflow.json')) {
         return JSON.stringify({
           version: '1.0.0',
           name: 'Authentication Scenarios',
@@ -798,7 +804,7 @@ export const CanvasEventsTest: Story = {
         });
       }
 
-      if (path.includes('payment-scenarios.narrative.json')) {
+      if (path.includes('payment-scenarios.workflow.json')) {
         return JSON.stringify({
           version: '1.0.0',
           name: 'Payment Flow Scenarios',
@@ -829,7 +835,7 @@ export const CanvasEventsTest: Story = {
         });
       }
 
-      if (path.includes('pipeline-scenarios.narrative.json')) {
+      if (path.includes('pipeline-scenarios.workflow.json')) {
         return JSON.stringify({
           version: '1.0.0',
           name: 'Data Pipeline Scenarios',
@@ -867,7 +873,7 @@ export const CanvasEventsTest: Story = {
 
         // Check if this is a canvas-related event
         if (event.type === 'custom' && event.payload && typeof event.payload === 'object') {
-          const payload = event.payload as { action?: string; canvasId?: string; canvas?: { path?: string }; narrativeId?: string };
+          const payload = event.payload as { action?: string; canvasId?: string; canvas?: { path?: string }; workflowId?: string };
           if (payload.action === 'openCanvas' || payload.action === 'selectCanvas') {
             const now = Date.now();
             const lastEvent = lastEventRef.current;
@@ -896,7 +902,7 @@ export const CanvasEventsTest: Story = {
                 action: payload.action,
                 canvasId: payload.canvasId || 'unknown',
                 canvasPath: payload.canvas?.path || 'unknown',
-                narrativeId: payload.narrativeId,
+                workflowId: payload.workflowId,
               },
               ...prev,
             ].slice(0, 10)); // Keep last 10 events
@@ -946,11 +952,11 @@ export const CanvasEventsTest: Story = {
               Canvas Events Monitor
             </h3>
             <p style={{ margin: 0, fontSize: 12, color: '#aaa', lineHeight: 1.5 }}>
-              Test canvas interactions and see events in real-time:
+              All canvases now have a consistent tree structure with Storyboard and Narrative children. Click leaf nodes to trigger events:
             </p>
             <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, fontSize: 11, color: '#888', lineHeight: 1.6 }}>
-              <li><span style={{ color: '#60a5fa', fontWeight: 'bold' }}>selectCanvas</span> (blue) - Click any canvas</li>
-              <li><span style={{ color: '#22c55e', fontWeight: 'bold' }}>openCanvas</span> (green) - Click edit button on canvases with narratives</li>
+              <li><span style={{ color: '#f59e0b', fontWeight: 'bold' }}>Storyboard</span> (yellow) - Opens canvas editor</li>
+              <li><span style={{ color: '#8b5cf6', fontWeight: 'bold' }}>Narrative</span> (purple) - Opens canvas detail view</li>
             </ul>
           </div>
 
@@ -987,14 +993,16 @@ export const CanvasEventsTest: Story = {
             >
               {eventLog.length === 0 ? (
                 <div style={{ color: '#666' }}>
-                  No events yet. Click a canvas or the edit button to test.
+                  No events yet. Expand a canvas and click Storyboard or Narrative to test.
                 </div>
               ) : (
                 eventLog.map((log, i) => {
-                  const isOpenCanvas = log.action === 'openCanvas';
-                  const bgColor = isOpenCanvas ? '#16a34a20' : '#3b82f620';
-                  const borderColor = isOpenCanvas ? '#16a34a' : '#3b82f6';
-                  const textColor = isOpenCanvas ? '#22c55e' : '#60a5fa';
+                  // Color code based on whether it's a narrative (purple) or storyboard (yellow)
+                  const isNarrative = !!log.workflowId;
+                  const bgColor = isNarrative ? '#8b5cf620' : '#f59e0b20';
+                  const borderColor = isNarrative ? '#8b5cf6' : '#f59e0b';
+                  const textColor = isNarrative ? '#a78bfa' : '#fbbf24';
+                  const nodeType = isNarrative ? 'Narrative' : 'Storyboard';
 
                   return (
                     <div
@@ -1008,7 +1016,7 @@ export const CanvasEventsTest: Story = {
                       }}
                     >
                       <div style={{ color: textColor, marginBottom: 4, fontWeight: 'bold' }}>
-                        [{log.timestamp}] {log.action}
+                        [{log.timestamp}] {nodeType} clicked
                       </div>
                       <div style={{ color: '#aaa', fontSize: 10 }}>
                         Canvas ID: {log.canvasId}
@@ -1016,9 +1024,9 @@ export const CanvasEventsTest: Story = {
                       <div style={{ color: '#aaa', fontSize: 10 }}>
                         Path: {log.canvasPath}
                       </div>
-                      {log.narrativeId && (
+                      {log.workflowId && (
                         <div style={{ color: '#fbbf24', fontSize: 10, marginTop: 4 }}>
-                          Narrative ID: {log.narrativeId}
+                          Narrative ID: {log.workflowId}
                         </div>
                       )}
                     </div>
@@ -1031,16 +1039,16 @@ export const CanvasEventsTest: Story = {
           <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5, padding: 8, background: '#0a0a0a', borderRadius: 4, border: '1px solid #333' }}>
             <strong style={{ color: '#aaa' }}>How to Test:</strong>
             <ol style={{ margin: '8px 0 0 0', paddingLeft: 16, lineHeight: 1.8 }}>
-              <li><strong>Click any canvas</strong> → see <span style={{ color: '#60a5fa' }}>selectCanvas</span> event (blue)</li>
-              <li><strong>Hover over canvas with narrative</strong> → see pencil icon appear</li>
-              <li><strong>Click pencil icon</strong> → see <span style={{ color: '#22c55e' }}>openCanvas</span> event (green)</li>
+              <li><strong>Click canvas dropdown</strong> → expands to show children</li>
+              <li><strong>Click Storyboard</strong> → see <span style={{ color: '#fbbf24' }}>yellow</span> event (canvas editor)</li>
+              <li><strong>Click Narrative</strong> → see <span style={{ color: '#a78bfa' }}>purple</span> event (canvas detail)</li>
             </ol>
             <div style={{ marginTop: 8, padding: 8, background: '#0a0a0a', border: '1px solid #444', borderRadius: 4 }}>
-              <strong style={{ color: '#aaa' }}>Canvases with narratives:</strong>
-              <div style={{ marginTop: 4, fontSize: 10 }}>
-                • authentication-flow<br/>
-                • payment-processing<br/>
-                • data-pipeline
+              <strong style={{ color: '#aaa' }}>Tree Structure:</strong>
+              <div style={{ marginTop: 4, fontSize: 10, lineHeight: 1.6 }}>
+                All canvases are now folders with:<br/>
+                • <span style={{ color: '#fbbf24' }}>Storyboard</span> - Opens canvas YAML editor<br/>
+                • <span style={{ color: '#a78bfa' }}>Narratives</span> - Opens scenario detail view
               </div>
             </div>
           </div>

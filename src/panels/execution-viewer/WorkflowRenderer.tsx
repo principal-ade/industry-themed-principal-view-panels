@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
-import { renderNarrative, parseTemplate, selectScenario, computeAggregates } from '@principal-ai/principal-view-core';
-import type { NarrativeTemplate, OtelEvent, NarrativeScenario } from '@principal-ai/principal-view-core';
+import { renderWorkflow, parseTemplate, selectScenario, computeAggregates } from '@principal-ai/principal-view-core';
+import type { WorkflowTemplate, OtelEvent, WorkflowScenario } from '@principal-ai/principal-view-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import yaml from 'js-yaml';
 
-export interface NarrativeRendererProps {
-  /** Narrative template to use for rendering */
-  template: NarrativeTemplate;
+export interface WorkflowRendererProps {
+  /** Workflow template to use for rendering */
+  template: WorkflowTemplate;
 
   /** OTEL events to render */
   events: OtelEvent[];
@@ -20,10 +20,10 @@ export interface NarrativeRendererProps {
   /** Show metadata panel */
   showMetadata?: boolean;
 
-  /** Callback when a narrative step is clicked - receives the event that triggered it */
+  /** Callback when a workflow step is clicked - receives the event that triggered it */
   onEventClick?: (event: OtelEvent, eventIndex: number) => void;
 
-  /** Current active event index (to highlight the corresponding narrative step) */
+  /** Current active event index (to highlight the corresponding workflow step) */
   activeEventIndex?: number;
 
   /** Show only summary (introduction, summary, conditions) without event details */
@@ -33,7 +33,7 @@ export interface NarrativeRendererProps {
 /**
  * Renders OTEL events as a human-readable narrative using a template
  */
-export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
+export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
   template,
   events,
   className,
@@ -65,7 +65,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
   // Get the scenario and metadata
   const result = useMemo(() => {
     try {
-      const rendered = renderNarrative(template, events);
+      const rendered = renderWorkflow(template, events);
       const hasMissingVars = /\{[^}]*\}/.test(rendered.text) || rendered.text.includes('{ERROR:');
 
       return {
@@ -84,17 +84,17 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
         hasMissingVars: false,
       };
     }
-  }, [template, events]) as ReturnType<typeof renderNarrative> & { hasMissingVars: boolean };
+  }, [template, events]) as ReturnType<typeof renderWorkflow> & { hasMissingVars: boolean };
 
   // Get the matched scenario and aggregates for rendering individual events
   const { scenario, aggregates } = useMemo(() => {
     const agg = computeAggregates(events);
     const matchResult = selectScenario(template, events, agg);
-    return { scenario: matchResult.scenario as NarrativeScenario, aggregates: agg };
+    return { scenario: matchResult.scenario as WorkflowScenario, aggregates: agg };
   }, [template, events]);
 
   // Render narrative by rendering each event template individually
-  const renderNarrativeContent = () => {
+  const renderWorkflowContent = () => {
     const elements: React.ReactNode[] = [];
 
     // Build full context with aggregates
@@ -452,7 +452,7 @@ export const NarrativeRenderer: React.FC<NarrativeRendererProps> = ({
           backgroundColor: theme.colors.background,
         }}
       >
-        {renderNarrativeContent()}
+        {renderWorkflowContent()}
       </div>
 
       {/* Metadata Panel (optional) */}

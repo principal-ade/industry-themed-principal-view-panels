@@ -15,8 +15,8 @@ export type { CanvasDetailPanelProps } from './panels/CanvasDetailPanel';
 export { CanvasListPanel } from './panels/CanvasListPanel';
 export { LibraryAnchoringExplainerPanel } from './panels/LibraryAnchoringExplainerPanel';
 export type { LibraryAnchoringExplainerPanelProps } from './panels/LibraryAnchoringExplainerPanel';
-export { NarrativeExplainerPanel } from './panels/NarrativeExplainerPanel';
-export type { NarrativeExplainerPanelProps } from './panels/NarrativeExplainerPanel';
+export { WorkflowExplainerPanel } from './panels/WorkflowExplainerPanel';
+export type { WorkflowExplainerPanelProps } from './panels/WorkflowExplainerPanel';
 export { RuntimeValidationExplainerPanel } from './panels/RuntimeValidationExplainerPanel';
 export type { RuntimeValidationExplainerPanelProps } from './panels/RuntimeValidationExplainerPanel';
 export { TestVsProductionExplainerPanel } from './panels/TestVsProductionExplainerPanel';
@@ -96,7 +96,7 @@ export const panels: PanelDefinition[] = [
       icon: '⚡',
       version: '0.1.0',
       author: 'Principal AI',
-      description: 'Visualizes canvas details with execution artifacts, narrative templates, and playback controls',
+      description: 'Visualizes canvas details with execution artifacts, workflow templates, and playback controls',
       slices: ['fileTree'],
     },
     component: CanvasDetailPanel,

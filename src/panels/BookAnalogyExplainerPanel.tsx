@@ -349,7 +349,7 @@ const Step6ReadingPaths: React.FC = () => {
         <g>
           <rect x="40" y="140" width="140" height="165" fill="#1e3a8a" stroke="#3b82f6" strokeWidth="2" rx="4" />
           <text x="110" y="160" textAnchor="middle" fill="#dbeafe" fontSize="10" fontWeight="600">🎓 Beginner Path</text>
-          <text x="50" y="175" fill="#93c5fd" fontSize="8">beginner.narrative.json</text>
+          <text x="50" y="175" fill="#93c5fd" fontSize="8">beginner.workflow.json</text>
 
           <rect x="50" y="185" width="120" height="110" fill="#0f172a" stroke="#60a5fa" strokeWidth="1" rx="2" />
           <text x="60" y="200" fill="#bfdbfe" fontSize="7" fontWeight="600">Reading Guide:</text>
@@ -365,7 +365,7 @@ const Step6ReadingPaths: React.FC = () => {
         <g>
           <rect x="230" y="140" width="140" height="165" fill="#064e3b" stroke="#10b981" strokeWidth="2" rx="4" />
           <text x="300" y="160" textAnchor="middle" fill="#d1fae5" fontSize="10" fontWeight="600">🚀 Advanced Path</text>
-          <text x="240" y="175" fill="#6ee7b7" fontSize="8">advanced.narrative.json</text>
+          <text x="240" y="175" fill="#6ee7b7" fontSize="8">advanced.workflow.json</text>
 
           <rect x="240" y="185" width="120" height="110" fill="#022c22" stroke="#059669" strokeWidth="1" rx="2" />
           <text x="250" y="200" fill="#a7f3d0" fontSize="7" fontWeight="600">Reading Guide:</text>
@@ -381,7 +381,7 @@ const Step6ReadingPaths: React.FC = () => {
         <g>
           <rect x="420" y="140" width="140" height="165" fill="#4c1d95" stroke="#8b5cf6" strokeWidth="2" rx="4" />
           <text x="490" y="160" textAnchor="middle" fill="#ddd6fe" fontSize="10" fontWeight="600">📑 Reference Path</text>
-          <text x="430" y="175" fill="#c4b5fd" fontSize="8">reference.narrative.json</text>
+          <text x="430" y="175" fill="#c4b5fd" fontSize="8">reference.workflow.json</text>
 
           <rect x="430" y="185" width="120" height="110" fill="#1e1b4b" stroke="#a78bfa" strokeWidth="1" rx="2" />
           <text x="440" y="200" fill="#e9d5ff" fontSize="7" fontWeight="600">Reading Guide:</text>
@@ -445,7 +445,7 @@ const Step7WhyItWorks: React.FC = () => {
           <text x="335" y="95" fill="#a7f3d0" fontSize="8">.otel.canvas file structure</text>
           <text x="335" y="107" fill="#a7f3d0" fontSize="8">OTEL trace with spans</text>
           <text x="335" y="119" fill="#a7f3d0" fontSize="8">Parent-child span relationships</text>
-          <text x="335" y="131" fill="#a7f3d0" fontSize="8">Narrative templates (scenarios)</text>
+          <text x="335" y="131" fill="#a7f3d0" fontSize="8">Workflow templates (scenarios)</text>
           <text x="335" y="143" fill="#a7f3d0" fontSize="8">Validation engine</text>
           <text x="335" y="155" fill="#a7f3d0" fontSize="8">Span attributes (metadata)</text>
           <text x="335" y="167" fill="#a7f3d0" fontSize="8">Monorepo packages</text>
@@ -473,7 +473,7 @@ const Step7WhyItWorks: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #475569'
       }}>
-        The book analogy works because <strong style={{ color: '#10b981' }}>everyone has read a book</strong>! It makes hierarchical canvas composition, OTEL traces, and validation narratives feel natural and intuitive.
+        The book analogy works because <strong style={{ color: '#10b981' }}>everyone has read a book</strong>! It makes hierarchical canvas composition, OTEL traces, and validation workflows feel natural and intuitive.
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import type { DataSlice } from '../types';
 /**
  * Skill Installation - Multi-Agent Telemetry
  *
- * Demonstrates per-event attribute rendering in narrative templates.
+ * Demonstrates per-event attribute rendering in workflow templates.
  * Shows the same skill being installed to different agents with varying attributes.
  */
 const meta = {
@@ -19,7 +19,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Skill installation visualization showing per-event attributes (different agents, modes) rendered in narrative templates.',
+          'Skill installation visualization showing per-event attributes (different agents, modes) rendered in workflow templates.',
       },
     },
   },
@@ -384,9 +384,9 @@ export const MultiAgentInstallation: Story = {
         content: JSON.stringify(skillInstallationCanvas),
       },
       {
-        path: '.principal-views/skill-installation.narrative.json',
-        relativePath: '.principal-views/skill-installation.narrative.json',
-        name: 'skill-installation.narrative.json',
+        path: '.principal-views/skill-installation.workflow.json',
+        relativePath: '.principal-views/skill-installation.workflow.json',
+        name: 'skill-installation.workflow.json',
         content: JSON.stringify(skillInstallationNarrative),
       },
       {
@@ -414,7 +414,7 @@ export const MultiAgentInstallation: Story = {
     docs: {
       description: {
         story:
-          '✅ Installing demo-skill to 4 agents. Check narrative view - should show:\n' +
+          '✅ Installing demo-skill to 4 agents. Check workflow view - should show:\n' +
           '• "Installing demo-skill to Amp (Mode: symlink)"\n' +
           '• "Installing demo-skill to Cursor (Mode: symlink)"\n' +
           '• "Installing demo-skill to Claude Code (Mode: copy)"\n' +
