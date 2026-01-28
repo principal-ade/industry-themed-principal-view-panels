@@ -43,7 +43,6 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
   // Get fileTree to access FileInfo metadata
   const fileTreeSlice = context.getSlice('fileTree');
   const fileTreeData = fileTreeSlice?.data as FileTree | null;
-  const fileTreeSha = fileTreeData?.sha;
 
   // Helper to find FileInfo for a canvas path
   const getCanvasFileInfo = useCallback((canvasPath: string): FileInfo | undefined => {
@@ -109,16 +108,6 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
         // node.workflow only has metadata, we need the full template with scenarios
         const fullWorkflow = workflows.find(wf => wf.file.path === node.workflow?.path);
         const workflowToSend = fullWorkflow ? fullWorkflow.template : node.workflow;
-
-        console.log('[StoryboardListPanel] Emitting workflow click event:', {
-          workflowPath: node.workflow.path,
-          foundFullWorkflow: !!fullWorkflow,
-          workflowsAvailable: workflows.length,
-          workflowPaths: workflows.map(w => w.file.path),
-          workflowToSend,
-          hasScenarios: (workflowToSend as any).scenarios?.length,
-          hasDescription: !!(workflowToSend as any).description,
-        });
 
         events.emit({
           type: 'custom',

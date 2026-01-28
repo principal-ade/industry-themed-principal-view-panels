@@ -66,11 +66,8 @@ export const useCanvasWorkflowData = ({
   const loadNarratives = useCallback(async () => {
     // Skip if we've already loaded this exact data
     if (fileTreeSha === lastLoadedNarrativeSha.current) {
-      console.log('[useCanvasWorkflowData] Skipping narrative reload - data unchanged');
       return;
     }
-
-    console.log('[useCanvasWorkflowData] Loading narratives from storyboards');
 
     setNarrativesLoading(true);
     setNarrativesError(null);
@@ -86,8 +83,6 @@ export const useCanvasWorkflowData = ({
         }))
       );
 
-      console.log('[useCanvasWorkflowData] Found workflow files from storyboards:', allWorkflows.length, allWorkflows.map(w => w.path));
-
       if (allWorkflows.length === 0) {
         setNarratives(EMPTY_NARRATIVES_ARRAY);
         lastLoadedNarrativeSha.current = fileTreeSha;
@@ -98,13 +93,11 @@ export const useCanvasWorkflowData = ({
       const workflowPromises = allWorkflows.map(async (workflow) => {
         try {
           if (!readFile) {
-            console.warn('[useCanvasWorkflowData] No readFile action available');
             return null;
           }
 
           const content = await readFile(workflow.path);
           if (!content || typeof content !== 'string') {
-            console.warn(`[useCanvasWorkflowData] Empty or invalid content for ${workflow.path}`);
             return null;
           }
 
@@ -126,8 +119,6 @@ export const useCanvasWorkflowData = ({
       const results = await Promise.all(workflowPromises);
       const loadedNarratives = results.filter((r): r is { file: WorkflowFile; template: WorkflowTemplate } => r !== null);
 
-      console.log('[useCanvasWorkflowData] Successfully loaded workflows:', loadedNarratives.length);
-
       setNarratives(loadedNarratives);
       lastLoadedNarrativeSha.current = fileTreeSha;
     } catch (err) {
@@ -137,7 +128,6 @@ export const useCanvasWorkflowData = ({
     } finally {
       setNarrativesLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileTreeSha, readFile, storyboards]);
   // Note: fileTreeData is accessed inside but not in deps to avoid infinite loop
   // The SHA ensures we reload when data actually changes

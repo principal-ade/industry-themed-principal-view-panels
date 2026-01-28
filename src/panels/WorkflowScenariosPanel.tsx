@@ -13,7 +13,7 @@ import {
   type ExecutionMetadata,
   type ExecutionArtifact,
 } from './execution-viewer/ExecutionLoader';
-import { Activity, HelpCircle, X, Pencil, FileText } from 'lucide-react';
+import { Activity, X, Pencil, FileText } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { WorkflowLoader, type WorkflowFile } from './execution-viewer/WorkflowLoader';
@@ -306,15 +306,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  // Debug logging to see what props are being received
-  console.log('[WorkflowScenariosPanel] Props received:', {
-    selectedWorkflowId: selectedWorkflowIdProp,
-    workflowPath: workflowPathProp,
-    workflowTemplate: workflowTemplateProp,
-    hasScenarios: workflowTemplateProp?.scenarios?.length,
-    hasDescription: !!workflowTemplateProp?.description,
-  });
-
   const [state, setState] = useState<WorkflowScenariosPanelState>({
     canvas: null,
     execution: null,
@@ -486,14 +477,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
   // Sync narrative props to state
   useEffect(() => {
-    console.log('[WorkflowScenariosPanel] useEffect - workflow template sync:', {
-      hasWorkflowTemplate: !!workflowTemplateProp,
-      hasWorkflowId: !!selectedWorkflowIdProp,
-      scenarios: workflowTemplateProp?.scenarios?.length,
-      description: workflowTemplateProp?.description,
-    });
     if (workflowTemplateProp && selectedWorkflowIdProp) {
-      console.log('[WorkflowScenariosPanel] Setting workflow template in state');
       setState(prev => ({
         ...prev,
         selectedWorkflowId: selectedWorkflowIdProp,
@@ -502,7 +486,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       }));
     } else if (selectedWorkflowIdProp === null && workflowTemplateProp === null) {
       // Clear narrative if explicitly set to null
-      console.log('[WorkflowScenariosPanel] Clearing workflow template from state');
       setState(prev => ({
         ...prev,
         selectedWorkflowId: null,

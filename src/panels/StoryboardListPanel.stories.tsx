@@ -356,22 +356,14 @@ export const WithEventHandling: Story = {
 };
 
 /**
- * Single canvas file
+ * Single storyboard with one workflow
  */
 export const SingleCanvas: Story = {
   args: {} as never,
   render: () => {
-    const allFiles = [
-      {
-        name: 'authentication-flow.otel.canvas',
-        relativePath: '.principal-views/authentication-flow.otel.canvas',
-        path: '.principal-views/authentication-flow.otel.canvas',
-        extension: '.canvas',
-        size: 1024,
-        lastModified: new Date('2024-01-15'),
-        isDirectory: false,
-      },
-    ];
+    const allFiles = createStoryboardFiles('authentication-flow', [
+      { name: 'happy-path', executions: 1 },
+    ]);
 
     const builder = new PathsFileTreeBuilder();
     const fileTree = builder.build({ files: allFiles.map(f => f.path) });
@@ -396,25 +388,21 @@ export const SingleCanvas: Story = {
 };
 
 /**
- * Many canvas files (scrolling behavior)
+ * Many storyboards (scrolling behavior)
  */
 export const ManyCanvases: Story = {
   args: {} as never,
   render: () => {
-    const manyCanvases = Array.from({ length: 20 }, (_, i) => ({
-      name: `workflow-${i + 1}.otel.canvas`,
-      relativePath: `.principal-views/workflow-${i + 1}.otel.canvas`,
-      path: `.principal-views/workflow-${i + 1}.otel.canvas`,
-      extension: '.canvas',
-      size: 1024,
-      lastModified: new Date('2024-01-15'),
-      isDirectory: false,
-    }));
+    const manyStoryboards = Array.from({ length: 20 }, (_, i) =>
+      createStoryboardFiles(`workflow-${i + 1}`, [
+        { name: 'scenario-1', executions: 1 },
+      ])
+    ).flat();
 
     const builder = new PathsFileTreeBuilder();
-    const fileTree = builder.build({ files: manyCanvases.map(f => f.path) });
+    const fileTree = builder.build({ files: manyStoryboards.map(f => f.path) });
     fileTree.sha = 'mock-sha-many';
-    fileTree.allFiles = manyCanvases;
+    fileTree.allFiles = manyStoryboards;
 
     const mockSlices = createMockSlices(fileTree);
 
@@ -1032,7 +1020,7 @@ export const CanvasEventsTest: Story = {
                       </div>
                       {log.workflowId && (
                         <div style={{ color: '#fbbf24', fontSize: 10, marginTop: 4 }}>
-                          Narrative ID: {log.workflowId}
+                          Workflow ID: {log.workflowId}
                         </div>
                       )}
                     </div>
@@ -1045,16 +1033,16 @@ export const CanvasEventsTest: Story = {
           <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5, padding: 8, background: '#0a0a0a', borderRadius: 4, border: '1px solid #333' }}>
             <strong style={{ color: '#aaa' }}>How to Test:</strong>
             <ol style={{ margin: '8px 0 0 0', paddingLeft: 16, lineHeight: 1.8 }}>
-              <li><strong>Click canvas dropdown</strong> → expands to show children</li>
-              <li><strong>Click Storyboard</strong> → see <span style={{ color: '#fbbf24' }}>yellow</span> event (canvas editor)</li>
-              <li><strong>Click Narrative</strong> → see <span style={{ color: '#a78bfa' }}>purple</span> event (canvas detail)</li>
+              <li><strong>Click storyboard dropdown</strong> → expands to show children</li>
+              <li><strong>Click Canvas</strong> → see <span style={{ color: '#fbbf24' }}>yellow</span> event (opens canvas editor)</li>
+              <li><strong>Click Workflow</strong> → see <span style={{ color: '#a78bfa' }}>purple</span> event (opens canvas detail with workflow)</li>
             </ol>
             <div style={{ marginTop: 8, padding: 8, background: '#0a0a0a', border: '1px solid #444', borderRadius: 4 }}>
               <strong style={{ color: '#aaa' }}>Tree Structure:</strong>
               <div style={{ marginTop: 4, fontSize: 10, lineHeight: 1.6 }}>
-                All canvases are now folders with:<br/>
-                • <span style={{ color: '#fbbf24' }}>Storyboard</span> - Opens canvas YAML editor<br/>
-                • <span style={{ color: '#a78bfa' }}>Narratives</span> - Opens scenario detail view
+                All storyboards are folders with:<br/>
+                • <span style={{ color: '#fbbf24' }}>Canvas</span> - Opens canvas editor<br/>
+                • <span style={{ color: '#a78bfa' }}>Workflows</span> - Opens canvas detail with workflow scenarios
               </div>
             </div>
           </div>
@@ -1075,16 +1063,12 @@ export const ChangeDetectionTest: Story = {
     const [canvasCount, setCanvasCount] = useState(5);
     const [eventLog, setEventLog] = useState<string[]>([]);
 
-    // Generate dynamic file list based on count
-    const mockFiles = Array.from({ length: canvasCount }, (_, i) => ({
-      name: `canvas-${i + 1}.otel.canvas`,
-      relativePath: `.principal-views/canvas-${i + 1}.otel.canvas`,
-      path: `.principal-views/canvas-${i + 1}.otel.canvas`,
-      extension: '.canvas',
-      size: 1024,
-      lastModified: new Date('2024-01-15'),
-      isDirectory: false,
-    }));
+    // Generate dynamic storyboard list based on count
+    const mockFiles = Array.from({ length: canvasCount }, (_, i) =>
+      createStoryboardFiles(`storyboard-${i + 1}`, [
+        { name: 'workflow-1', executions: 1 },
+      ])
+    ).flat();
 
     const builder = new PathsFileTreeBuilder();
     const fileTree = builder.build({ files: mockFiles.map(f => f.path) });
@@ -1175,7 +1159,7 @@ export const ChangeDetectionTest: Story = {
                 fontWeight: 500,
               }}
             >
-              Add Canvas (+1)
+              Add Storyboard (+1)
             </button>
 
             <button
@@ -1191,7 +1175,7 @@ export const ChangeDetectionTest: Story = {
                 fontWeight: 500,
               }}
             >
-              Remove Canvas (-1)
+              Remove Storyboard (-1)
             </button>
           </div>
 
@@ -1241,7 +1225,7 @@ export const ChangeDetectionTest: Story = {
           <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5 }}>
             <strong style={{ color: '#aaa' }}>Current State:</strong>
             <div>SHA: {sha.slice(0, 20)}...</div>
-            <div>Canvas Count: {canvasCount}</div>
+            <div>Storyboard Count: {canvasCount}</div>
           </div>
         </div>
       </div>
