@@ -110,6 +110,16 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
         const fullWorkflow = workflows.find(wf => wf.file.path === node.workflow?.path);
         const workflowToSend = fullWorkflow ? fullWorkflow.template : node.workflow;
 
+        console.log('[StoryboardListPanel] Emitting workflow click event:', {
+          workflowPath: node.workflow.path,
+          foundFullWorkflow: !!fullWorkflow,
+          workflowsAvailable: workflows.length,
+          workflowPaths: workflows.map(w => w.file.path),
+          workflowToSend,
+          hasScenarios: (workflowToSend as any).scenarios?.length,
+          hasDescription: !!(workflowToSend as any).description,
+        });
+
         events.emit({
           type: 'custom',
           source: 'storyboard-list-panel',
