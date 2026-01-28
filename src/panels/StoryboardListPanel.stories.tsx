@@ -434,8 +434,8 @@ export const ManyCanvases: Story = {
 };
 
 /**
- * Monorepo with multiple packages - demonstrates package-aware canvas discovery
- * Shows canvas files from both root and package-level .principal-views/ directories
+ * Monorepo with multiple packages - demonstrates package-aware storyboard discovery
+ * Shows storyboard structures from both root and package-level .principal-views/ directories
  */
 export const MonorepoWithPackages: Story = {
   args: {} as never,
@@ -451,25 +451,10 @@ export const MonorepoWithPackages: Story = {
         lastModified: new Date('2024-01-15'),
         isDirectory: false,
       },
-      // Root canvas files
-      {
-        name: 'system-overview.otel.canvas',
-        relativePath: '.principal-views/system-overview.otel.canvas',
-        path: '.principal-views/system-overview.otel.canvas',
-        extension: '.canvas',
-        size: 1024,
-        lastModified: new Date('2024-01-15'),
-        isDirectory: false,
-      },
-      {
-        name: 'integration-tests.canvas',
-        relativePath: '.principal-views/integration-tests.canvas',
-        path: '.principal-views/integration-tests.canvas',
-        extension: '.canvas',
-        size: 1024,
-        lastModified: new Date('2024-01-15'),
-        isDirectory: false,
-      },
+      // Root storyboard - system-overview
+      ...createStoryboardFiles('system-overview', [
+        { name: 'integration-test', executions: 2 },
+      ]).map(f => ({ ...f, relativePath: f.path, path: f.path })),
 
       // Core package
       {
@@ -481,24 +466,22 @@ export const MonorepoWithPackages: Story = {
         lastModified: new Date('2024-01-15'),
         isDirectory: false,
       },
-      {
-        name: 'authentication-flow.otel.canvas',
-        relativePath: 'packages/core/.principal-views/authentication-flow.otel.canvas',
-        path: 'packages/core/.principal-views/authentication-flow.otel.canvas',
-        extension: '.canvas',
-        size: 1024,
-        lastModified: new Date('2024-01-15'),
-        isDirectory: false,
-      },
-      {
-        name: 'data-validation.otel.canvas',
-        relativePath: 'packages/core/.principal-views/data-validation.otel.canvas',
-        path: 'packages/core/.principal-views/data-validation.otel.canvas',
-        extension: '.canvas',
-        size: 1024,
-        lastModified: new Date('2024-01-15'),
-        isDirectory: false,
-      },
+      // Core package storyboards
+      ...createStoryboardFiles('authentication-flow', [
+        { name: 'happy-path', executions: 2 },
+        { name: 'error-handling', executions: 1 },
+      ]).map(f => ({
+        ...f,
+        relativePath: `packages/core/${f.path}`,
+        path: `packages/core/${f.path}`
+      })),
+      ...createStoryboardFiles('data-validation', [
+        { name: 'schema-validation', executions: 1 },
+      ]).map(f => ({
+        ...f,
+        relativePath: `packages/core/${f.path}`,
+        path: `packages/core/${f.path}`
+      })),
 
       // API package
       {
@@ -510,24 +493,21 @@ export const MonorepoWithPackages: Story = {
         lastModified: new Date('2024-01-15'),
         isDirectory: false,
       },
-      {
-        name: 'rest-endpoints.otel.canvas',
-        relativePath: 'packages/api/.principal-views/rest-endpoints.otel.canvas',
-        path: 'packages/api/.principal-views/rest-endpoints.otel.canvas',
-        extension: '.canvas',
-        size: 1024,
-        lastModified: new Date('2024-01-15'),
-        isDirectory: false,
-      },
-      {
-        name: 'graphql-schema.canvas',
-        relativePath: 'packages/api/.principal-views/graphql-schema.canvas',
-        path: 'packages/api/.principal-views/graphql-schema.canvas',
-        extension: '.canvas',
-        size: 1024,
-        lastModified: new Date('2024-01-15'),
-        isDirectory: false,
-      },
+      // API package storyboards
+      ...createStoryboardFiles('rest-endpoints', [
+        { name: 'crud-operations', executions: 3 },
+      ]).map(f => ({
+        ...f,
+        relativePath: `packages/api/${f.path}`,
+        path: `packages/api/${f.path}`
+      })),
+      ...createStoryboardFiles('graphql-schema', [
+        { name: 'query-execution', executions: 2 },
+      ]).map(f => ({
+        ...f,
+        relativePath: `packages/api/${f.path}`,
+        path: `packages/api/${f.path}`
+      })),
 
       // UI package
       {
@@ -539,24 +519,22 @@ export const MonorepoWithPackages: Story = {
         lastModified: new Date('2024-01-15'),
         isDirectory: false,
       },
-      {
-        name: 'component-lifecycle.otel.canvas',
-        relativePath: 'packages/ui/.principal-views/component-lifecycle.otel.canvas',
-        path: 'packages/ui/.principal-views/component-lifecycle.otel.canvas',
-        extension: '.canvas',
-        size: 1024,
-        lastModified: new Date('2024-01-15'),
-        isDirectory: false,
-      },
-      {
-        name: 'user-interactions.otel.canvas',
-        relativePath: 'packages/ui/.principal-views/user-interactions.otel.canvas',
-        path: 'packages/ui/.principal-views/user-interactions.otel.canvas',
-        extension: '.canvas',
-        size: 1024,
-        lastModified: new Date('2024-01-15'),
-        isDirectory: false,
-      },
+      // UI package storyboards
+      ...createStoryboardFiles('component-lifecycle', [
+        { name: 'mount-unmount', executions: 1 },
+      ]).map(f => ({
+        ...f,
+        relativePath: `packages/ui/${f.path}`,
+        path: `packages/ui/${f.path}`
+      })),
+      ...createStoryboardFiles('user-interactions', [
+        { name: 'click-events', executions: 2 },
+        { name: 'form-submission', executions: 1 },
+      ]).map(f => ({
+        ...f,
+        relativePath: `packages/ui/${f.path}`,
+        path: `packages/ui/${f.path}`
+      })),
 
       // Worker package (nested deeper)
       {
@@ -568,15 +546,14 @@ export const MonorepoWithPackages: Story = {
         lastModified: new Date('2024-01-15'),
         isDirectory: false,
       },
-      {
-        name: 'job-processing.otel.canvas',
-        relativePath: 'services/background/worker/.principal-views/job-processing.otel.canvas',
-        path: 'services/background/worker/.principal-views/job-processing.otel.canvas',
-        extension: '.canvas',
-        size: 1024,
-        lastModified: new Date('2024-01-15'),
-        isDirectory: false,
-      },
+      // Worker package storyboards
+      ...createStoryboardFiles('job-processing', [
+        { name: 'batch-jobs', executions: 2 },
+      ]).map(f => ({
+        ...f,
+        relativePath: `services/background/worker/${f.path}`,
+        path: `services/background/worker/${f.path}`
+      })),
     ];
 
     const builder = new PathsFileTreeBuilder();
@@ -612,13 +589,13 @@ export const MonorepoWithPackages: Story = {
                 maxWidth: '320px',
               }}
             >
-              <strong>Package-Aware Discovery:</strong>
+              <strong>Package-Aware Storyboards:</strong>
               <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '11px' }}>
-                <li>Package canvases show package badges</li>
+                <li>Storyboards from multiple packages (root, core, api, ui, worker)</li>
+                <li>Each storyboard has workflows and executions</li>
+                <li>Package badges show which package each storyboard belongs to</li>
                 <li>IDs are prefixed (e.g., core/authentication-flow)</li>
-                <li>Filter by package using dropdown (shows counts)</li>
-                <li>Both .otel.canvas and .canvas types shown</li>
-                <li>Sorted alphabetically by name</li>
+                <li>Demonstrates monorepo structure with nested packages</li>
               </ul>
             </div>
           </>
@@ -629,59 +606,46 @@ export const MonorepoWithPackages: Story = {
 };
 
 /**
- * With Narratives - Shows canvases with associated workflow templates
- * Demonstrates the tree structure with expandable narratives
+ * With Workflows - Shows storyboards with multiple workflow templates
+ * Demonstrates the tree structure with expandable workflows
  */
 export const WithNarratives: Story = {
   args: {} as never,
   render: () => {
-    const mockFileTreeWithNarratives = {
-      sha: 'mock-sha-narratives',
-      allFiles: [
-        // Authentication canvas and its narrative
-        {
-          name: 'authentication-flow.otel.canvas',
-          relativePath: '.principal-views/authentication-flow.otel.canvas',
-          path: '.principal-views/authentication-flow.otel.canvas',
-        },
-        {
-          name: 'auth-scenarios.workflow.json',
-          relativePath: '.principal-views/__workflows__/auth-scenarios.workflow.json',
-          path: '.principal-views/__workflows__/auth-scenarios.workflow.json',
-        },
+    const allFiles = [
+      // Authentication storyboard with 3 workflows
+      ...createStoryboardFiles('authentication-flow', [
+        { name: 'auth-scenarios', executions: 0 },
+        { name: 'successful-login', executions: 2 },
+        { name: 'failed-login', executions: 1 },
+      ]),
 
-        // Payment canvas and its narrative
-        {
-          name: 'payment-processing.otel.canvas',
-          relativePath: '.principal-views/payment-processing.otel.canvas',
-          path: '.principal-views/payment-processing.otel.canvas',
-        },
-        {
-          name: 'payment-scenarios.workflow.json',
-          relativePath: '.principal-views/__workflows__/payment-scenarios.workflow.json',
-          path: '.principal-views/__workflows__/payment-scenarios.workflow.json',
-        },
+      // Payment storyboard with 4 workflows
+      ...createStoryboardFiles('payment-processing', [
+        { name: 'payment-scenarios', executions: 0 },
+        { name: 'credit-card', executions: 3 },
+        { name: 'payment-declined', executions: 1 },
+        { name: 'refund-flow', executions: 2 },
+      ]),
 
-        // User registration canvas (no narrative)
-        {
-          name: 'user-registration.otel.canvas',
-          relativePath: '.principal-views/user-registration.otel.canvas',
-          path: '.principal-views/user-registration.otel.canvas',
-        },
+      // User registration storyboard (single workflow)
+      ...createStoryboardFiles('user-registration', [
+        { name: 'new-user', executions: 1 },
+      ]),
 
-        // Data pipeline canvas and its narrative
-        {
-          name: 'data-pipeline.otel.canvas',
-          relativePath: '.principal-views/data-pipeline.otel.canvas',
-          path: '.principal-views/data-pipeline.otel.canvas',
-        },
-        {
-          name: 'pipeline-scenarios.workflow.json',
-          relativePath: '.principal-views/__workflows__/pipeline-scenarios.workflow.json',
-          path: '.principal-views/__workflows__/pipeline-scenarios.workflow.json',
-        },
-      ],
-    };
+      // Data pipeline storyboard with 2 workflows
+      ...createStoryboardFiles('data-pipeline', [
+        { name: 'pipeline-scenarios', executions: 0 },
+        { name: 'batch-processing', executions: 2 },
+      ]),
+    ];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-narratives';
+    fileTree.allFiles = allFiles;
+
+    const mockFileTreeWithNarratives = fileTree;
 
     // Create mock slices
     const mockSlices = new Map([
@@ -698,140 +662,56 @@ export const WithNarratives: Story = {
       ],
     ]);
 
-    // Create custom readFile that returns workflow templates
+    // Create custom readFile that returns workflow templates or canvas content
     const mockReadFile = async (path: string) => {
       console.log('[Mock] readFile:', path);
 
-      // Return appropriate workflow templates based on path
-      if (path.includes('auth-scenarios.workflow.json')) {
-                return JSON.stringify({
-                  version: '1.0.0',
-                  name: 'Authentication Scenarios',
-                  canvas: 'authentication-flow.otel.canvas',
-                  mode: 'flow',
-                  scenarios: [
-                    {
-                      id: 'successful-login',
-                      priority: 1,
-                      description: 'Successful Login',
-                      condition: { type: 'event', event: 'auth.success' },
-                      template: {
-                        introduction: 'User logged in successfully',
-                        flow: ['Credentials validated', 'Session created'],
-                      },
-                    },
-                    {
-                      id: 'failed-login',
-                      priority: 2,
-                      description: 'Failed Login',
-                      condition: { type: 'event', event: 'auth.failed' },
-                      template: {
-                        introduction: 'Login failed',
-                        flow: ['Invalid credentials'],
-                      },
-                    },
-                    {
-                      id: 'oauth-login',
-                      priority: 3,
-                      description: 'OAuth Login',
-                      condition: { type: 'event', event: 'auth.oauth' },
-                      template: {
-                        introduction: 'OAuth authentication',
-                        flow: ['OAuth provider verified'],
-                      },
-                    },
-                  ],
-                });
-              }
+      // Return canvas content for .otel.canvas files
+      if (path.endsWith('.otel.canvas')) {
+        const canvasName = path.split('/').slice(-2, -1)[0] || 'Mock Canvas';
+        return JSON.stringify({
+          pv: {
+            name: canvasName,
+            version: '1.0.0',
+            description: `Mock canvas for ${canvasName}`,
+          },
+          nodes: [],
+          edges: [],
+        });
+      }
 
-              if (path.includes('payment-scenarios.workflow.json')) {
-                return JSON.stringify({
-                  version: '1.0.0',
-                  name: 'Payment Flow Scenarios',
-                  canvas: 'payment-processing.otel.canvas',
-                  mode: 'flow',
-                  scenarios: [
-                    {
-                      id: 'credit-card-success',
-                      priority: 1,
-                      description: 'Credit Card Payment Success',
-                      condition: { type: 'event', event: 'payment.success' },
-                      template: {
-                        introduction: 'Payment processed successfully',
-                        flow: ['Card validated', 'Payment authorized'],
-                      },
-                    },
-                    {
-                      id: 'payment-declined',
-                      priority: 2,
-                      description: 'Payment Declined',
-                      condition: { type: 'event', event: 'payment.declined' },
-                      template: {
-                        introduction: 'Payment declined',
-                        flow: ['Card declined by processor'],
-                      },
-                    },
-                    {
-                      id: 'refund-flow',
-                      priority: 3,
-                      description: 'Refund Processing',
-                      condition: { type: 'event', event: 'payment.refund' },
-                      template: {
-                        introduction: 'Refund processed',
-                        flow: ['Refund initiated', 'Refund completed'],
-                      },
-                    },
-                    {
-                      id: 'partial-refund',
-                      priority: 4,
-                      description: 'Partial Refund',
-                      condition: { type: 'event', event: 'payment.partial_refund' },
-                      template: {
-                        introduction: 'Partial refund processed',
-                        flow: ['Partial amount refunded'],
-                      },
-                    },
-                  ],
-                });
-              }
+      // Extract workflow name from path for creating appropriate mock data
+      const workflowName = path.split('/').slice(-2, -1)[0] || 'unknown';
+      const storyboardName = path.split('/').slice(-3, -2)[0] || 'unknown';
 
-              if (path.includes('pipeline-scenarios.workflow.json')) {
-                return JSON.stringify({
-                  version: '1.0.0',
-                  name: 'Data Pipeline Scenarios',
-                  canvas: 'data-pipeline.otel.canvas',
-                  mode: 'flow',
-                  scenarios: [
-                    {
-                      id: 'batch-processing',
-                      priority: 1,
-                      description: 'Batch Data Processing',
-                      condition: { type: 'event', event: 'pipeline.batch' },
-                      template: {
-                        introduction: 'Batch processing completed',
-                        flow: ['Data ingested', 'Data transformed'],
-                      },
-                    },
-                    {
-                      id: 'realtime-streaming',
-                      priority: 2,
-                      description: 'Real-time Streaming',
-                      condition: { type: 'event', event: 'pipeline.stream' },
-                      template: {
-                        introduction: 'Stream processing active',
-                        flow: ['Data streaming', 'Real-time processing'],
-                      },
-                    },
-                  ],
-                });
-              }
-
-      // Default empty narrative
+      // Return workflow templates based on the workflow name
       return JSON.stringify({
         version: '1.0.0',
-        name: 'Default Narrative',
-        canvas: 'unknown',
-        scenarios: [],
+        name: workflowName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        canvas: `${storyboardName}.otel.canvas`,
+        mode: 'flow',
+        scenarios: [
+          {
+            id: `${workflowName}-scenario-1`,
+            priority: 1,
+            description: `Scenario 1 for ${workflowName}`,
+            condition: { type: 'event', event: `${storyboardName}.event1` },
+            template: {
+              introduction: `This is scenario 1 for ${workflowName}`,
+              flow: ['Step 1', 'Step 2'],
+            },
+          },
+          {
+            id: `${workflowName}-scenario-2`,
+            priority: 2,
+            description: `Scenario 2 for ${workflowName}`,
+            condition: { type: 'event', event: `${storyboardName}.event2` },
+            template: {
+              introduction: `This is scenario 2 for ${workflowName}`,
+              flow: ['Step A', 'Step B'],
+            },
+          },
+        ],
       });
     };
 
@@ -867,14 +747,14 @@ export const WithNarratives: Story = {
                   maxWidth: '320px',
                 }}
               >
-                <strong>Narratives Demo:</strong>
+                <strong>Workflows Demo:</strong>
                 <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '11px' }}>
                   <li>Open browser console to see debug logs</li>
-                  <li>Click chevrons to expand/collapse narratives</li>
-                  <li>Authentication has 3 scenarios</li>
-                  <li>Payment has 4 scenarios</li>
-                  <li>User Registration has no narrative</li>
-                  <li>Data Pipeline has 2 scenarios</li>
+                  <li>Click chevrons to expand/collapse workflows</li>
+                  <li>Authentication has 3 workflows</li>
+                  <li>Payment has 4 workflows</li>
+                  <li>User Registration has 1 workflow</li>
+                  <li>Data Pipeline has 2 workflows</li>
                 </ul>
               </div>
             </>
@@ -887,13 +767,13 @@ export const WithNarratives: Story = {
 
 /**
  * Canvas Events Test - Interactive story for testing canvas open events
- * Shows visual feedback for openCanvas events from Storyboard and Narrative clicks
+ * Shows visual feedback for openCanvas events from Storyboard and Workflow clicks
  *
  * Tree Structure:
- * - Canvas (folder, always expandable)
- *   - Storyboard (opens canvas editor)
- *   - Narrative 1 (opens canvas detail)
- *   - Narrative 2 (opens canvas detail)
+ * - Storyboard (folder, always expandable)
+ *   - Canvas (canvas file - opens canvas editor)
+ *   - Workflow 1 (opens canvas detail with workflow)
+ *   - Workflow 2 (opens canvas detail with workflow)
  */
 export const CanvasEventsTest: Story = {
   args: {} as never,
@@ -901,53 +781,37 @@ export const CanvasEventsTest: Story = {
     const [eventLog, setEventLog] = useState<Array<{ timestamp: string; action: string; canvasId: string; canvasPath: string; workflowId?: string }>>([]);
     const lastEventRef = React.useRef<{ action: string; canvasId: string; time: number } | null>(null);
 
-    const mockFileTreeWithNarratives = {
-      sha: 'mock-sha-narratives',
-      allFiles: [
-        // Authentication canvas and its narrative
-        {
-          name: 'authentication-flow.otel.canvas',
-          relativePath: '.principal-views/authentication-flow.otel.canvas',
-          path: '.principal-views/authentication-flow.otel.canvas',
-        },
-        {
-          name: 'auth-scenarios.workflow.json',
-          relativePath: '.principal-views/__workflows__/auth-scenarios.workflow.json',
-          path: '.principal-views/__workflows__/auth-scenarios.workflow.json',
-        },
+    const allFiles = [
+      // Authentication storyboard with 3 workflows
+      ...createStoryboardFiles('authentication-flow', [
+        { name: 'successful-login', executions: 0 },
+        { name: 'failed-login', executions: 0 },
+        { name: 'oauth-login', executions: 0 },
+      ]),
 
-        // Payment canvas and its narrative
-        {
-          name: 'payment-processing.otel.canvas',
-          relativePath: '.principal-views/payment-processing.otel.canvas',
-          path: '.principal-views/payment-processing.otel.canvas',
-        },
-        {
-          name: 'payment-scenarios.workflow.json',
-          relativePath: '.principal-views/__workflows__/payment-scenarios.workflow.json',
-          path: '.principal-views/__workflows__/payment-scenarios.workflow.json',
-        },
+      // Payment storyboard with 2 workflows
+      ...createStoryboardFiles('payment-processing', [
+        { name: 'credit-card-success', executions: 0 },
+        { name: 'payment-declined', executions: 0 },
+      ]),
 
-        // User registration canvas (no narrative)
-        {
-          name: 'user-registration.otel.canvas',
-          relativePath: '.principal-views/user-registration.otel.canvas',
-          path: '.principal-views/user-registration.otel.canvas',
-        },
+      // User registration storyboard (single workflow)
+      ...createStoryboardFiles('user-registration', [
+        { name: 'new-user', executions: 0 },
+      ]),
 
-        // Data pipeline canvas and its narrative
-        {
-          name: 'data-pipeline.otel.canvas',
-          relativePath: '.principal-views/data-pipeline.otel.canvas',
-          path: '.principal-views/data-pipeline.otel.canvas',
-        },
-        {
-          name: 'pipeline-scenarios.workflow.json',
-          relativePath: '.principal-views/__workflows__/pipeline-scenarios.workflow.json',
-          path: '.principal-views/__workflows__/pipeline-scenarios.workflow.json',
-        },
-      ],
-    };
+      // Data pipeline storyboard with 1 workflow
+      ...createStoryboardFiles('data-pipeline', [
+        { name: 'batch-processing', executions: 0 },
+      ]),
+    ];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-events-test';
+    fileTree.allFiles = allFiles;
+
+    const mockFileTreeWithNarratives = fileTree;
 
     // Create mock slices
     const mockSlices = new Map([
@@ -964,110 +828,46 @@ export const CanvasEventsTest: Story = {
       ],
     ]);
 
-    // Create custom readFile that returns workflow templates
+    // Create custom readFile that returns workflow templates or canvas content
     const mockReadFile = async (path: string) => {
       console.log('[Mock] readFile:', path);
 
-      // Return appropriate workflow templates based on path
-      if (path.includes('auth-scenarios.workflow.json')) {
+      // Return canvas content for .otel.canvas files
+      if (path.endsWith('.otel.canvas')) {
+        const canvasName = path.split('/').slice(-2, -1)[0] || 'Mock Canvas';
         return JSON.stringify({
-          version: '1.0.0',
-          name: 'Authentication Scenarios',
-          canvas: 'authentication-flow.otel.canvas',
-          mode: 'flow',
-          scenarios: [
-            {
-              id: 'successful-login',
-              priority: 1,
-              description: 'Successful Login',
-              condition: { type: 'event', event: 'auth.success' },
-              template: {
-                introduction: 'User logged in successfully',
-                flow: ['Credentials validated', 'Session created'],
-              },
-            },
-            {
-              id: 'failed-login',
-              priority: 2,
-              description: 'Failed Login',
-              condition: { type: 'event', event: 'auth.failed' },
-              template: {
-                introduction: 'Login failed',
-                flow: ['Invalid credentials'],
-              },
-            },
-            {
-              id: 'oauth-login',
-              priority: 3,
-              description: 'OAuth Login',
-              condition: { type: 'event', event: 'auth.oauth' },
-              template: {
-                introduction: 'OAuth authentication',
-                flow: ['OAuth provider verified'],
-              },
-            },
-          ],
+          pv: {
+            name: canvasName,
+            version: '1.0.0',
+            description: `Mock canvas for ${canvasName}`,
+          },
+          nodes: [],
+          edges: [],
         });
       }
 
-      if (path.includes('payment-scenarios.workflow.json')) {
-        return JSON.stringify({
-          version: '1.0.0',
-          name: 'Payment Flow Scenarios',
-          canvas: 'payment-processing.otel.canvas',
-          mode: 'flow',
-          scenarios: [
-            {
-              id: 'credit-card-success',
-              priority: 1,
-              description: 'Credit Card Payment Success',
-              condition: { type: 'event', event: 'payment.success' },
-              template: {
-                introduction: 'Payment processed successfully',
-                flow: ['Card validated', 'Payment authorized'],
-              },
-            },
-            {
-              id: 'payment-declined',
-              priority: 2,
-              description: 'Payment Declined',
-              condition: { type: 'event', event: 'payment.declined' },
-              template: {
-                introduction: 'Payment declined',
-                flow: ['Card declined by processor'],
-              },
-            },
-          ],
-        });
-      }
+      // Extract workflow name from path for creating appropriate mock data
+      const workflowName = path.split('/').slice(-2, -1)[0] || 'unknown';
+      const storyboardName = path.split('/').slice(-3, -2)[0] || 'unknown';
 
-      if (path.includes('pipeline-scenarios.workflow.json')) {
-        return JSON.stringify({
-          version: '1.0.0',
-          name: 'Data Pipeline Scenarios',
-          canvas: 'data-pipeline.otel.canvas',
-          mode: 'flow',
-          scenarios: [
-            {
-              id: 'batch-processing',
-              priority: 1,
-              description: 'Batch Data Processing',
-              condition: { type: 'event', event: 'pipeline.batch' },
-              template: {
-                introduction: 'Batch processing completed',
-                flow: ['Data ingested', 'Data transformed'],
-              },
-            },
-          ],
-        });
-      }
-
-      // Default empty narrative
+      // Return workflow templates
       return JSON.stringify({
         version: '1.0.0',
-        name: 'Default Narrative',
-        canvas: 'unknown',
-        scenarios: [],
+        name: workflowName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        canvas: `${storyboardName}.otel.canvas`,
+        mode: 'flow',
+        scenarios: [
+          {
+            id: `${workflowName}-scenario-1`,
+            priority: 1,
+            description: `Primary scenario for ${workflowName}`,
+            condition: { type: 'event', event: `${storyboardName}.${workflowName}` },
+            template: {
+              introduction: `This demonstrates ${workflowName} workflow`,
+              flow: ['Step 1', 'Step 2', 'Complete'],
+            },
+          },
+        ],
       });
     };
 
@@ -1155,14 +955,14 @@ export const CanvasEventsTest: Story = {
         >
           <div>
             <h3 style={{ margin: '0 0 12px 0', fontSize: 16 }}>
-              Canvas Events Monitor
+              Storyboard Events Monitor
             </h3>
             <p style={{ margin: 0, fontSize: 12, color: '#aaa', lineHeight: 1.5 }}>
-              All canvases now have a consistent tree structure with Storyboard and Narrative children. Click leaf nodes to trigger events:
+              All storyboards have a tree structure with Canvas and Workflow children. Click nodes to trigger events:
             </p>
             <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, fontSize: 11, color: '#888', lineHeight: 1.6 }}>
-              <li><span style={{ color: '#f59e0b', fontWeight: 'bold' }}>Storyboard</span> (yellow) - Opens canvas editor</li>
-              <li><span style={{ color: '#8b5cf6', fontWeight: 'bold' }}>Narrative</span> (purple) - Opens canvas detail view</li>
+              <li><span style={{ color: '#f59e0b', fontWeight: 'bold' }}>Canvas</span> (yellow) - Opens canvas editor</li>
+              <li><span style={{ color: '#8b5cf6', fontWeight: 'bold' }}>Workflow</span> (purple) - Opens canvas detail view with workflow scenarios</li>
             </ul>
           </div>
 
@@ -1199,16 +999,16 @@ export const CanvasEventsTest: Story = {
             >
               {eventLog.length === 0 ? (
                 <div style={{ color: '#666' }}>
-                  No events yet. Expand a canvas and click Storyboard or Narrative to test.
+                  No events yet. Expand a storyboard and click Canvas or Workflow to test.
                 </div>
               ) : (
                 eventLog.map((log, i) => {
-                  // Color code based on whether it's a narrative (purple) or storyboard (yellow)
-                  const isNarrative = !!log.workflowId;
-                  const bgColor = isNarrative ? '#8b5cf620' : '#f59e0b20';
-                  const borderColor = isNarrative ? '#8b5cf6' : '#f59e0b';
-                  const textColor = isNarrative ? '#a78bfa' : '#fbbf24';
-                  const nodeType = isNarrative ? 'Narrative' : 'Storyboard';
+                  // Color code based on whether it's a workflow (purple) or canvas (yellow)
+                  const isWorkflow = !!log.workflowId;
+                  const bgColor = isWorkflow ? '#8b5cf620' : '#f59e0b20';
+                  const borderColor = isWorkflow ? '#8b5cf6' : '#f59e0b';
+                  const textColor = isWorkflow ? '#a78bfa' : '#fbbf24';
+                  const nodeType = isWorkflow ? 'Workflow' : 'Canvas';
 
                   return (
                     <div

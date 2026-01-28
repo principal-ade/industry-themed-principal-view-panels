@@ -149,11 +149,14 @@ export const useCanvasWorkflowData = ({
     await loadNarratives();
   }, [refreshCanvases, loadNarratives]);
 
-  // Load narratives only when SHA actually changes, not when callback changes
+  // Load narratives when SHA changes or storyboards are updated
   useEffect(() => {
-    loadNarratives();
+    // Only load if we have storyboards (wait for useCanvasData to finish)
+    if (storyboards.length > 0) {
+      loadNarratives();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fileTreeSha]);
+  }, [fileTreeSha, storyboards]);
 
   // Combine loading and error states
   const isLoading = canvasesLoading || workflowsLoading;
