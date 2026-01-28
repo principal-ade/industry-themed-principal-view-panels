@@ -79,7 +79,19 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
   }, [storyboards, searchQuery]);
 
   const handleTreeNodeClick = useCallback((node: StoryboardWorkflowNodeData) => {
-    if (node.type === 'canvas' && node.canvas) {
+    if (node.type === 'overview' && node.markdownPath) {
+      // Overview node click - open markdown documentation
+      setSelectedNodeId(`overview:${node.storyboard?.id}`);
+      if (events) {
+        console.log('[StoryboardListPanel] Opening documentation:', node.markdownPath);
+        events.emit({
+          type: 'file:open',
+          source: 'storyboard-list-panel',
+          timestamp: Date.now(),
+          payload: { path: node.markdownPath },
+        });
+      }
+    } else if (node.type === 'canvas' && node.canvas) {
       // Storyboard (canvas) click - open canvas editor
       setSelectedNodeId(`canvas:${node.canvas.id}`);
       if (events) {

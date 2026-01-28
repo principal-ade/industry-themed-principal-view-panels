@@ -44,7 +44,7 @@ export const useCanvasWorkflowData = ({
     isLoading: canvasesLoading,
     error: canvasesError,
     refreshCanvases
-  } = useCanvasData({ context });
+  } = useCanvasData({ context, actions });
 
   const [workflows, setNarratives] = useState<Array<{ file: WorkflowFile; template: WorkflowTemplate }>>(
     EMPTY_NARRATIVES_ARRAY

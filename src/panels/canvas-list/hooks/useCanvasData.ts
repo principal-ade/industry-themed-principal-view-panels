@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { PanelContextValue } from '@principal-ade/panel-framework-core';
+import type { PanelContextValue, PanelActions } from '@principal-ade/panel-framework-core';
 import {
   CanvasDiscovery,
   type DiscoveredCanvas,
@@ -10,6 +10,7 @@ import type { FileTree } from '@principal-ai/repository-abstraction';
 
 interface UseCanvasDataParams {
   context: PanelContextValue;
+  actions: PanelActions;
 }
 
 interface UseCanvasDataReturn {
@@ -32,6 +33,7 @@ const EMPTY_EXECUTIONS_ARRAY: DiscoveredExecution[] = [];
  */
 export const useCanvasData = ({
   context,
+  actions,
 }: UseCanvasDataParams): UseCanvasDataReturn => {
   const [canvases, setCanvases] = useState<DiscoveredCanvas[]>(EMPTY_CANVAS_ARRAY);
   const [storyboards, setStoryboards] = useState<DiscoveredStoryboard[]>(EMPTY_STORYBOARDS_ARRAY);
@@ -43,6 +45,9 @@ export const useCanvasData = ({
   const fileTreeSlice = context.getSlice('fileTree');
   const fileTreeData = fileTreeSlice?.data as FileTree | null;
   const fileTreeSha = fileTreeData?.sha;
+
+  // Get readFile from actions parameter
+  const readFile = (actions as { readFile?: (path: string) => Promise<string> }).readFile;
 
   // Track the last loaded SHA to prevent redundant loads
   const lastLoadedSha = useRef<string | undefined>(undefined);
@@ -78,8 +83,14 @@ export const useCanvasData = ({
       });
 
       const result = await discovery.current.discover(fileTreeData, {
-        // Don't include content - just metadata for listing
-        includeContent: false,
+        // Include content to extract markdown paths from pv.markdown field
+        includeContent: true,
+        fileReader: async (path: string) => {
+          if (!readFile) {
+            throw new Error('readFile action not available');
+          }
+          return await readFile(path);
+        },
       });
 
       console.log('[useCanvasData] Discovery result:', {
@@ -184,7 +195,7 @@ export const useCanvasData = ({
     } finally {
       setIsLoading(false);
     }
-  }, [fileTreeData, fileTreeSha]);
+  }, [fileTreeData, fileTreeSha, readFile]);
 
   const refreshCanvases = useCallback(async () => {
     // Force reload by clearing the tracking ref and cache

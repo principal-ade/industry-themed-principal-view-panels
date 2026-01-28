@@ -1129,6 +1129,157 @@ export const StoryboardsWithoutWorkflows: Story = {
 };
 
 /**
+ * With Markdown Documentation - Test case for markdown overview nodes
+ * Verifies that canvases with pv.markdown field show Overview nodes in the tree.
+ * This tests the fix for includeContent: true in useCanvasData hook.
+ *
+ * Expected behavior:
+ * - Canvases WITH pv.markdown should show an Overview child node
+ * - Canvases WITHOUT pv.markdown should NOT show an Overview node
+ * - Overview nodes should appear before workflows in the tree
+ */
+export const WithMarkdownDocumentation: Story = {
+  args: {} as never,
+  render: () => {
+    const allFiles = [
+      // Storyboard WITH markdown documentation
+      ...createStoryboardFiles('authentication-flow', [
+        { name: 'login-workflow', executions: 2 },
+        { name: 'logout-workflow', executions: 1 },
+      ]),
+
+      // Storyboard WITH markdown documentation
+      ...createStoryboardFiles('payment-processing', [
+        { name: 'payment-workflow', executions: 1 },
+      ]),
+
+      // Storyboard WITHOUT markdown documentation (control)
+      ...createStoryboardFiles('legacy-feature', [
+        { name: 'legacy-workflow', executions: 0 },
+      ]),
+    ];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-markdown';
+    fileTree.allFiles = allFiles;
+
+    // Custom mock slices with readFile that includes markdown paths
+    const mockSlices = new Map([
+      [
+        'fileTree',
+        {
+          scope: 'repository' as const,
+          name: 'fileTree',
+          data: fileTree,
+          loading: false,
+          error: null,
+          refresh: async () => {},
+        },
+      ],
+    ]);
+
+    // Custom readFile that returns canvas JSON with pv.markdown for some canvases
+    const mockReadFile = async (path: string) => {
+      console.log('[Mock readFile] Called with path:', path);
+
+      // Return proper canvas JSON for .otel.canvas files
+      if (path.endsWith('.otel.canvas')) {
+        const storyboardName = path.split('/').slice(-2, -1)[0] || 'Mock Canvas';
+
+        // Add markdown path for authentication-flow and payment-processing, but NOT legacy-feature
+        const hasMarkdown = storyboardName === 'authentication-flow' || storyboardName === 'payment-processing';
+
+        const content = JSON.stringify({
+          pv: {
+            name: storyboardName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            version: '1.0.0',
+            description: `Mock canvas for ${storyboardName}`,
+            // Include markdown path for some canvases
+            ...(hasMarkdown && { markdown: `.principal-views/${storyboardName}/${storyboardName}.md` }),
+          },
+          nodes: [],
+          edges: [],
+        });
+        console.log('[Mock readFile] Returning canvas content for:', storyboardName, hasMarkdown ? 'WITH markdown' : 'WITHOUT markdown');
+        return content;
+      }
+
+      // Return workflow JSON for .workflow.json files
+      if (path.endsWith('.workflow.json')) {
+        const workflowName = path.split('/').slice(-2, -1)[0] || 'Mock Workflow';
+        const content = JSON.stringify({
+          name: workflowName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          description: `Mock workflow for ${workflowName}`,
+          scenarios: [],
+        });
+        console.log('[Mock readFile] Returning workflow content for:', workflowName);
+        return content;
+      }
+
+      // Return execution JSON for .otel.json files
+      if (path.endsWith('.otel.json')) {
+        const content = JSON.stringify({
+          events: [],
+          metadata: { timestamp: new Date().toISOString() },
+        });
+        console.log('[Mock readFile] Returning execution content');
+        return content;
+      }
+
+      console.warn('[Mock readFile] Unknown file type:', path);
+      return '{}';
+    };
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          slices: mockSlices,
+          getSlice: <T,>(name: string): T | undefined => {
+            return mockSlices.get(name) as T | undefined;
+          },
+        }}
+        actionsOverrides={{
+          readFile: mockReadFile,
+        }}
+      >
+        {(props) => (
+          <>
+            <StoryboardListPanel {...props} />
+            <div
+              style={{
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                background: '#1a1a1a',
+                border: '1px solid #3b82f6',
+                borderRadius: '8px',
+                padding: '12px',
+                color: '#fff',
+                fontSize: '12px',
+                maxWidth: '360px',
+              }}
+            >
+              <strong style={{ color: '#3b82f6' }}>Markdown Documentation Test:</strong>
+              <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '11px', lineHeight: 1.6 }}>
+                <li><strong>authentication-flow:</strong> Has Overview node ✓ (has pv.markdown)</li>
+                <li><strong>payment-processing:</strong> Has Overview node ✓ (has pv.markdown)</li>
+                <li><strong>legacy-feature:</strong> NO Overview node (missing pv.markdown)</li>
+                <li>Expand storyboards to verify Overview nodes appear with <span style={{ color: '#3b82f6' }}>📖 BookOpen</span> icon</li>
+                <li>Overview should appear BEFORE workflows in the tree</li>
+              </ul>
+              <div style={{ marginTop: 8, padding: 8, background: '#0a0a0a', border: '1px solid #3b82f6', borderRadius: 4, fontSize: 10 }}>
+                <strong style={{ color: '#3b82f6' }}>Fix:</strong> useCanvasData now uses includeContent: true to parse canvas JSON and extract pv.markdown field
+              </div>
+            </div>
+          </>
+        )}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
  * Change Detection Test - Interactive story for testing SHA-based change detection
  * Demonstrates how the panel responds to file tree changes and manual refresh
  */
