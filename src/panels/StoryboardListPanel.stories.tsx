@@ -1053,6 +1053,82 @@ export const CanvasEventsTest: Story = {
 };
 
 /**
+ * Storyboards Without Workflows - Test case for bug fix #CORE-201
+ * Previously, storyboards without workflows were not displayed due to a bug in CanvasDiscovery.
+ * This story verifies that storyboards without workflows are now properly discovered and shown.
+ *
+ * According to the design spec (STORYBOARD_DISCOVERY_DESIGN.md), workflows are optional (0 or more).
+ * The bug was at CanvasDiscovery.ts:201-202 which incorrectly skipped storyboards with no workflows.
+ */
+export const StoryboardsWithoutWorkflows: Story = {
+  args: {} as never,
+  render: () => {
+    const allFiles = [
+      // Storyboard with workflows (control group - should work)
+      ...createStoryboardFiles('payment-flow', [
+        { name: 'successful-payment', executions: 2 },
+      ]),
+
+      // Storyboards WITHOUT workflows (test group - these should now appear after fix)
+      ...createStoryboardFiles('architecture-overview', []),
+      ...createStoryboardFiles('system-design', []),
+      ...createStoryboardFiles('data-model', []),
+      ...createStoryboardFiles('api-endpoints', []),
+    ];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-no-workflows';
+    fileTree.allFiles = allFiles;
+
+    const mockSlices = createMockSlices(fileTree);
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          slices: mockSlices,
+          getSlice: <T,>(name: string): T | undefined => {
+            return mockSlices.get(name) as T | undefined;
+          },
+        }}
+      >
+        {(props) => (
+          <>
+            <StoryboardListPanel {...props} />
+            <div
+              style={{
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                background: '#1a1a1a',
+                border: '1px solid #f59e0b',
+                borderRadius: '8px',
+                padding: '12px',
+                color: '#fff',
+                fontSize: '12px',
+                maxWidth: '340px',
+              }}
+            >
+              <strong style={{ color: '#f59e0b' }}>Bug Fix Verification (v0.15.3):</strong>
+              <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '11px', lineHeight: 1.6 }}>
+                <li><strong>Expected:</strong> 5 storyboards should be visible</li>
+                <li><strong>payment-flow:</strong> Has workflows (control)</li>
+                <li><strong>4 others:</strong> NO workflows (previously hidden)</li>
+                <li><strong>Fix:</strong> Removed lines 201-202 from CanvasDiscovery.ts that incorrectly skipped storyboards without workflows</li>
+              </ul>
+              <div style={{ marginTop: 8, padding: 8, background: '#0a0a0a', border: '1px solid #f59e0b', borderRadius: 4, fontSize: 10 }}>
+                ⚠️ <strong>Before fix:</strong> Only "payment-flow" visible (1/5)<br/>
+                ✅ <strong>After fix:</strong> All 5 storyboards visible
+              </div>
+            </div>
+          </>
+        )}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
  * Change Detection Test - Interactive story for testing SHA-based change detection
  * Demonstrates how the panel responds to file tree changes and manual refresh
  */
