@@ -37,7 +37,8 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
 
   // Load storyboard data from discovery system
   // Storyboards come directly from the discovery system (no transformation needed)
-  const { storyboards, isLoading, error } = useCanvasWorkflowData({ context, actions });
+  // Also load full workflow templates for sending complete data when workflows are clicked
+  const { storyboards, workflows, isLoading, error } = useCanvasWorkflowData({ context, actions });
 
   // Get fileTree to access FileInfo metadata
   const fileTreeSlice = context.getSlice('fileTree');
@@ -103,6 +104,12 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
       if (events) {
         const canvasFileInfo = getCanvasFileInfo(node.storyboard.canvas.path);
         const workflowFileInfo = getCanvasFileInfo(node.workflow.path);
+
+        // Look up the full workflow template from the loaded workflows
+        // node.workflow only has metadata, we need the full template with scenarios
+        const fullWorkflow = workflows.find(wf => wf.file.path === node.workflow?.path);
+        const workflowToSend = fullWorkflow ? fullWorkflow.template : node.workflow;
+
         events.emit({
           type: 'custom',
           source: 'storyboard-list-panel',
@@ -113,14 +120,14 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
             canvas: node.storyboard.canvas,
             canvasFileInfo,
             workflowId: node.workflow.id,
-            workflow: node.workflow,
+            workflow: workflowToSend, // Send full template with scenarios and description
             workflowFileInfo,
             openMode: 'detail', // Indicates canvas detail should be opened
           },
         });
       }
     }
-  }, [events, getCanvasFileInfo]);
+  }, [events, getCanvasFileInfo, workflows]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
