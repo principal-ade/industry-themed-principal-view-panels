@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/principal-view-panels",
-  "version": "0.6.6",
+  "version": "0.6.7",
   "description": "Principal View Graph Panels for visualizing graph configurations from .principal-views/ folder as interactive diagrams",
   "type": "module",
   "main": "dist/panels.bundle.js",
@@ -62,7 +62,7 @@
     "@principal-ade/utcp-panel-event": "^0.1.0",
     "@principal-ai/codebase-composition": "^0.2.41",
     "@principal-ai/principal-view-core": "^0.15.3",
-    "@principal-ai/principal-view-react": "^0.10.0",
+    "@principal-ai/principal-view-react": "^0.10.2",
     "@xyflow/react": "^12.0.0",
     "clsx": "^2.1.1",
     "framer-motion": "^11.0.0",

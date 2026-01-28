@@ -8,7 +8,7 @@
  * ConfigurationLoader and LibraryLoader with the async panel context.
  */
 
-import type { FileSystemAdapter } from '@principal-ai/repository-abstraction';
+import type { FileSystemAdapter, FileStats } from '@principal-ai/repository-abstraction';
 
 /**
  * File entry from the fileTree slice
@@ -72,7 +72,7 @@ export class PanelFileSystemAdapter implements FileSystemAdapter {
   // FileSystemAdapter Implementation
   // ============================================================================
 
-  exists(path: string): boolean {
+  async exists(path: string): Promise<boolean> {
     const normalized = this.normalizePath(path);
     const relativePath = this.toRelativePath(normalized);
 
@@ -88,7 +88,7 @@ export class PanelFileSystemAdapter implements FileSystemAdapter {
     return this.isDirectory(path);
   }
 
-  readFile(path: string): string {
+  async readFile(path: string): Promise<string> {
     const normalized = this.normalizePath(path);
     const content = this.fileContentCache.get(normalized);
 
@@ -102,27 +102,27 @@ export class PanelFileSystemAdapter implements FileSystemAdapter {
     return content;
   }
 
-  writeFile(_path: string, _content: string): void {
+  async writeFile(_path: string, _content: string): Promise<void> {
     throw new Error('PanelFileSystemAdapter does not support writeFile. Use panel actions instead.');
   }
 
-  deleteFile(_path: string): void {
+  async deleteFile(_path: string): Promise<void> {
     throw new Error('PanelFileSystemAdapter does not support deleteFile. Use panel actions instead.');
   }
 
-  readBinaryFile(_path: string): Uint8Array {
+  async readBinaryFile(_path: string): Promise<Uint8Array> {
     throw new Error('PanelFileSystemAdapter does not support readBinaryFile.');
   }
 
-  writeBinaryFile(_path: string, _content: Uint8Array): void {
+  async writeBinaryFile(_path: string, _content: Uint8Array): Promise<void> {
     throw new Error('PanelFileSystemAdapter does not support writeBinaryFile.');
   }
 
-  createDir(_path: string): void {
+  async createDir(_path: string): Promise<void> {
     throw new Error('PanelFileSystemAdapter does not support createDir. Use panel actions instead.');
   }
 
-  readDir(path: string): string[] {
+  async readDir(path: string): Promise<string[]> {
     const normalized = this.normalizePath(path);
     const relativePath = this.toRelativePath(normalized);
     const prefix = relativePath ? `${relativePath}/` : '';
@@ -148,11 +148,19 @@ export class PanelFileSystemAdapter implements FileSystemAdapter {
     return Array.from(items);
   }
 
-  deleteDir(_path: string): void {
+  async deleteDir(_path: string): Promise<void> {
     throw new Error('PanelFileSystemAdapter does not support deleteDir. Use panel actions instead.');
   }
 
-  isDirectory(path: string): boolean {
+  async rename(_from: string, _to: string): Promise<void> {
+    throw new Error('PanelFileSystemAdapter does not support rename. Use panel actions instead.');
+  }
+
+  async stat(_path: string): Promise<FileStats> {
+    throw new Error('PanelFileSystemAdapter does not support stat.');
+  }
+
+  async isDirectory(path: string): Promise<boolean> {
     const normalized = this.normalizePath(path);
     const relativePath = this.toRelativePath(normalized);
     const prefix = relativePath ? `${relativePath}/` : '';
@@ -192,6 +200,29 @@ export class PanelFileSystemAdapter implements FileSystemAdapter {
 
   isAbsolute(path: string): boolean {
     return path.startsWith('/');
+  }
+
+  basename(path: string, ext?: string): string {
+    const segments = path.split('/');
+    let base = segments[segments.length - 1] || '';
+    if (ext && base.endsWith(ext)) {
+      base = base.slice(0, -ext.length);
+    }
+    return base;
+  }
+
+  extname(path: string): string {
+    const base = this.basename(path);
+    const lastDot = base.lastIndexOf('.');
+    return lastDot > 0 ? base.slice(lastDot) : '';
+  }
+
+  normalize(path: string): string {
+    return this.normalizePath(path);
+  }
+
+  homedir(): string {
+    return '/';
   }
 
   normalizeRepositoryPath(_inputPath: string): string {
