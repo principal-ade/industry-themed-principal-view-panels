@@ -1,20 +1,22 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useState } from 'react';
-import { CanvasListPanel } from './CanvasListPanel';
-import { ThemeProvider } from '@principal-ade/industry-theme';
+import { StoryboardListPanel } from './StoryboardListPanel';
+import { ThemeProvider, useTheme } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import type { PanelEvent } from '../types';
 import type { FileTree } from '@principal-ai/repository-abstraction';
+import { PathsFileTreeBuilder } from '@principal-ai/repository-abstraction';
+import { DynamicFileTree } from '@principal-ade/dynamic-file-tree';
 
 const meta = {
-  title: 'Panels/CanvasListPanel',
-  component: CanvasListPanel,
+  title: 'Panels/StoryboardListPanel',
+  component: StoryboardListPanel,
   parameters: {
     layout: 'fullscreen',
     docs: {
       description: {
         component:
-          'Lists and manages .otel.canvas files in the project with search and selection capabilities.',
+          'Lists and manages storyboards using the new discovery system (v0.15.1+). Displays hierarchical storyboard structures with canvases, workflows, and executions.',
       },
     },
   },
@@ -28,47 +30,86 @@ const meta = {
       </ThemeProvider>
     ),
   ],
-} satisfies Meta<typeof CanvasListPanel>;
+} satisfies Meta<typeof StoryboardListPanel>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Mock file tree with .otel.canvas files
-const mockFileTreeWithCanvases = {
-  sha: 'mock-sha-123',
-  allFiles: [
+// Helper to create a storyboard file structure
+const createStoryboardFiles = (storyboardName: string, workflows: Array<{ name: string; executions: number }> = []) => {
+  const files: any[] = [
     {
-      name: 'authentication-flow.otel.canvas',
-      relativePath: '.principal-views/authentication-flow.otel.canvas',
-      path: '.principal-views/authentication-flow.otel.canvas',
+      name: `${storyboardName}.otel.canvas`,
+      relativePath: `.principal-views/${storyboardName}/${storyboardName}.otel.canvas`,
+      path: `.principal-views/${storyboardName}/${storyboardName}.otel.canvas`,
+      extension: '.canvas',
+      size: 1024,
+      lastModified: new Date('2024-01-15'),
+      isDirectory: false,
     },
-    {
-      name: 'payment-processing.otel.canvas',
-      relativePath: '.principal-views/payment-processing.otel.canvas',
-      path: '.principal-views/payment-processing.otel.canvas',
-    },
-    {
-      name: 'user-registration.otel.canvas',
-      relativePath: '.principal-views/user-registration.otel.canvas',
-      path: '.principal-views/user-registration.otel.canvas',
-    },
-    {
-      name: 'data-pipeline.otel.canvas',
-      relativePath: '.principal-views/data-pipeline.otel.canvas',
-      path: '.principal-views/data-pipeline.otel.canvas',
-    },
-    {
-      name: 'api-gateway.otel.canvas',
-      relativePath: '.principal-views/api-gateway.otel.canvas',
-      path: '.principal-views/api-gateway.otel.canvas',
-    },
-  ],
+  ];
+
+  workflows.forEach(workflow => {
+    files.push({
+      name: `${workflow.name}.workflow.json`,
+      relativePath: `.principal-views/${storyboardName}/${workflow.name}/${workflow.name}.workflow.json`,
+      path: `.principal-views/${storyboardName}/${workflow.name}/${workflow.name}.workflow.json`,
+      extension: '.json',
+      size: 512,
+      lastModified: new Date('2024-01-15'),
+      isDirectory: false,
+    });
+
+    for (let i = 1; i <= workflow.executions; i++) {
+      files.push({
+        name: `execution-${i}.otel.json`,
+        relativePath: `.principal-views/${storyboardName}/${workflow.name}/execution-${i}.otel.json`,
+        path: `.principal-views/${storyboardName}/${workflow.name}/execution-${i}.otel.json`,
+        extension: '.json',
+        size: 2048,
+        lastModified: new Date('2024-01-16'),
+        isDirectory: false,
+      });
+    }
+  });
+
+  return files;
 };
 
-const mockFileTreeEmpty = {
-  sha: 'mock-sha-empty',
-  allFiles: [],
+// Build mock file tree with storyboard structure using PathsFileTreeBuilder
+const buildMockFileTree = (): FileTree => {
+  const allFiles = [
+    ...createStoryboardFiles('authentication-flow', [
+      { name: 'happy-path', executions: 2 },
+      { name: 'error-handling', executions: 1 },
+    ]),
+    ...createStoryboardFiles('payment-processing', [
+      { name: 'successful-payment', executions: 3 },
+    ]),
+    ...createStoryboardFiles('user-registration', [
+      { name: 'new-user', executions: 1 },
+    ]),
+  ];
+
+  // Extract paths from the file objects
+  const filePaths = allFiles.map(f => f.path);
+
+  // Use PathsFileTreeBuilder to build proper tree structure
+  const builder = new PathsFileTreeBuilder();
+  const fileTree = builder.build({ files: filePaths });
+
+  // Merge in the FileInfo details from our mock files
+  fileTree.allFiles = allFiles;
+
+  return fileTree;
 };
+
+const mockFileTreeWithCanvases: FileTree = buildMockFileTree();
+
+const mockFileTreeEmpty: FileTree = (() => {
+  const builder = new PathsFileTreeBuilder();
+  return builder.build({ files: [] });
+})();
 
 // Helper to create mock slices with actions
 const createMockSlices = (fileTreeData: FileTree | null) => {
@@ -91,12 +132,48 @@ const createMockSlices = (fileTreeData: FileTree | null) => {
         name: 'actions',
         data: {
           readFile: async (path: string) => {
-            console.log('[Mock] readFile:', path);
-            return JSON.stringify({
-              name: 'Mock Narrative',
-              canvas: 'mock.canvas',
-              scenarios: [],
-            });
+            console.log('[Mock readFile] Called with path:', path);
+
+            // Return proper canvas JSON for .otel.canvas files
+            if (path.endsWith('.otel.canvas')) {
+              const canvasName = path.split('/').pop()?.replace('.otel.canvas', '') || 'Mock Canvas';
+              const content = JSON.stringify({
+                pv: {
+                  name: canvasName,
+                  version: '1.0.0',
+                  description: `Mock canvas for ${canvasName}`,
+                },
+                nodes: [],
+                edges: [],
+              });
+              console.log('[Mock readFile] Returning canvas content for:', canvasName);
+              return content;
+            }
+
+            // Return workflow JSON for .workflow.json files
+            if (path.endsWith('.workflow.json')) {
+              const workflowName = path.split('/').slice(-2)[0] || 'Mock Workflow';
+              const content = JSON.stringify({
+                name: workflowName,
+                description: `Mock workflow for ${workflowName}`,
+                scenarios: [],
+              });
+              console.log('[Mock readFile] Returning workflow content for:', workflowName);
+              return content;
+            }
+
+            // Return execution JSON for .otel.json files
+            if (path.endsWith('.otel.json')) {
+              const content = JSON.stringify({
+                events: [],
+                metadata: { timestamp: new Date().toISOString() },
+              });
+              console.log('[Mock readFile] Returning execution content');
+              return content;
+            }
+
+            console.warn('[Mock readFile] Unknown file type:', path);
+            return '{}';
           },
         },
         loading: false,
@@ -124,8 +201,65 @@ export const Default: Story = {
           },
         }}
       >
-        {(props) => <CanvasListPanel {...props} />}
+        {(props) => <StoryboardListPanel {...props} />}
       </MockPanelProvider>
+    );
+  },
+};
+
+/**
+ * Debug View - Shows file tree structure alongside the storyboard panel
+ * This helps verify the file structure is correct for storyboard discovery
+ */
+export const DebugWithFileTree: Story = {
+  args: {} as never,
+  render: () => {
+    const mockSlices = createMockSlices(mockFileTreeWithCanvases);
+
+    const DebugContent = () => {
+      const { theme } = useTheme();
+
+      return (
+        <div style={{ width: '100vw', height: '100vh', background: '#0a0a0a', display: 'flex' }}>
+          {/* Left side - File Tree */}
+          <div style={{ width: '50%', height: '100%', borderRight: '1px solid #333', padding: '20px', overflow: 'auto' }}>
+            <h3 style={{ color: theme.colors.text, marginTop: 0 }}>File Tree Structure</h3>
+            <div style={{ fontSize: '12px', color: theme.colors.textSecondary, marginBottom: '16px' }}>
+              This shows the actual file structure that the discovery system sees.
+              Storyboards require files to be at least 3 levels deep:
+              <code style={{ display: 'block', marginTop: '8px', padding: '8px', background: '#1a1a1a', borderRadius: '4px' }}>
+                .principal-views/storyboard-name/workflow-name/file.json
+              </code>
+            </div>
+            <DynamicFileTree
+              fileTree={mockFileTreeWithCanvases}
+              theme={theme}
+              selectedFile={undefined}
+              onFileSelect={() => {}}
+            />
+          </div>
+
+          {/* Right side - Storyboard Panel */}
+          <div style={{ width: '50%', height: '100%' }}>
+            <MockPanelProvider
+              contextOverrides={{
+                slices: mockSlices,
+                getSlice: <T,>(name: string): T | undefined => {
+                  return mockSlices.get(name) as T | undefined;
+                },
+              }}
+            >
+              {(props) => <StoryboardListPanel {...props} />}
+            </MockPanelProvider>
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <ThemeProvider>
+        <DebugContent />
+      </ThemeProvider>
     );
   },
 };
@@ -148,7 +282,7 @@ export const Loading: Story = {
           },
         }}
       >
-        {(props) => <CanvasListPanel {...props} />}
+        {(props) => <StoryboardListPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -171,7 +305,7 @@ export const Empty: Story = {
           },
         }}
       >
-        {(props) => <CanvasListPanel {...props} />}
+        {(props) => <StoryboardListPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -196,7 +330,7 @@ export const WithEventHandling: Story = {
       >
         {(props) => (
           <>
-            <CanvasListPanel {...props} />
+            <StoryboardListPanel {...props} />
             <div
               style={{
                 position: 'fixed',
@@ -227,16 +361,24 @@ export const WithEventHandling: Story = {
 export const SingleCanvas: Story = {
   args: {} as never,
   render: () => {
-    const mockSlices = createMockSlices({
-      sha: 'mock-sha-single',
-      allFiles: [
-        {
-          name: 'authentication-flow.otel.canvas',
-          relativePath: '.principal-views/authentication-flow.otel.canvas',
-          path: '.principal-views/authentication-flow.otel.canvas',
-        },
-      ],
-    });
+    const allFiles = [
+      {
+        name: 'authentication-flow.otel.canvas',
+        relativePath: '.principal-views/authentication-flow.otel.canvas',
+        path: '.principal-views/authentication-flow.otel.canvas',
+        extension: '.canvas',
+        size: 1024,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
+    ];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-single';
+    fileTree.allFiles = allFiles;
+
+    const mockSlices = createMockSlices(fileTree);
 
     return (
       <MockPanelProvider
@@ -247,7 +389,7 @@ export const SingleCanvas: Story = {
           },
         }}
       >
-        {(props) => <CanvasListPanel {...props} />}
+        {(props) => <StoryboardListPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -263,12 +405,18 @@ export const ManyCanvases: Story = {
       name: `workflow-${i + 1}.otel.canvas`,
       relativePath: `.principal-views/workflow-${i + 1}.otel.canvas`,
       path: `.principal-views/workflow-${i + 1}.otel.canvas`,
+      extension: '.canvas',
+      size: 1024,
+      lastModified: new Date('2024-01-15'),
+      isDirectory: false,
     }));
 
-    const mockSlices = createMockSlices({
-      sha: 'mock-sha-many',
-      allFiles: manyCanvases,
-    });
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: manyCanvases.map(f => f.path) });
+    fileTree.sha = 'mock-sha-many';
+    fileTree.allFiles = manyCanvases;
+
+    const mockSlices = createMockSlices(fileTree);
 
     return (
       <MockPanelProvider
@@ -279,7 +427,7 @@ export const ManyCanvases: Story = {
           },
         }}
       >
-        {(props) => <CanvasListPanel {...props} />}
+        {(props) => <StoryboardListPanel {...props} />}
       </MockPanelProvider>
     );
   },
@@ -292,93 +440,151 @@ export const ManyCanvases: Story = {
 export const MonorepoWithPackages: Story = {
   args: {} as never,
   render: () => {
-    const mockFileTreeWithPackages = {
-      sha: 'mock-sha-monorepo',
-      allFiles: [
-        // Root package.json
-        {
-          name: 'package.json',
-          relativePath: 'package.json',
-          path: 'package.json',
-        },
-        // Root canvas files
-        {
-          name: 'system-overview.otel.canvas',
-          relativePath: '.principal-views/system-overview.otel.canvas',
-          path: '.principal-views/system-overview.otel.canvas',
-        },
-        {
-          name: 'integration-tests.canvas',
-          relativePath: '.principal-views/integration-tests.canvas',
-          path: '.principal-views/integration-tests.canvas',
-        },
+    const allFiles = [
+      // Root package.json
+      {
+        name: 'package.json',
+        relativePath: 'package.json',
+        path: 'package.json',
+        extension: '.json',
+        size: 512,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
+      // Root canvas files
+      {
+        name: 'system-overview.otel.canvas',
+        relativePath: '.principal-views/system-overview.otel.canvas',
+        path: '.principal-views/system-overview.otel.canvas',
+        extension: '.canvas',
+        size: 1024,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
+      {
+        name: 'integration-tests.canvas',
+        relativePath: '.principal-views/integration-tests.canvas',
+        path: '.principal-views/integration-tests.canvas',
+        extension: '.canvas',
+        size: 1024,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
 
-        // Core package
-        {
-          name: 'package.json',
-          relativePath: 'packages/core/package.json',
-          path: 'packages/core/package.json',
-        },
-        {
-          name: 'authentication-flow.otel.canvas',
-          relativePath: 'packages/core/.principal-views/authentication-flow.otel.canvas',
-          path: 'packages/core/.principal-views/authentication-flow.otel.canvas',
-        },
-        {
-          name: 'data-validation.otel.canvas',
-          relativePath: 'packages/core/.principal-views/data-validation.otel.canvas',
-          path: 'packages/core/.principal-views/data-validation.otel.canvas',
-        },
+      // Core package
+      {
+        name: 'package.json',
+        relativePath: 'packages/core/package.json',
+        path: 'packages/core/package.json',
+        extension: '.json',
+        size: 512,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
+      {
+        name: 'authentication-flow.otel.canvas',
+        relativePath: 'packages/core/.principal-views/authentication-flow.otel.canvas',
+        path: 'packages/core/.principal-views/authentication-flow.otel.canvas',
+        extension: '.canvas',
+        size: 1024,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
+      {
+        name: 'data-validation.otel.canvas',
+        relativePath: 'packages/core/.principal-views/data-validation.otel.canvas',
+        path: 'packages/core/.principal-views/data-validation.otel.canvas',
+        extension: '.canvas',
+        size: 1024,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
 
-        // API package
-        {
-          name: 'package.json',
-          relativePath: 'packages/api/package.json',
-          path: 'packages/api/package.json',
-        },
-        {
-          name: 'rest-endpoints.otel.canvas',
-          relativePath: 'packages/api/.principal-views/rest-endpoints.otel.canvas',
-          path: 'packages/api/.principal-views/rest-endpoints.otel.canvas',
-        },
-        {
-          name: 'graphql-schema.canvas',
-          relativePath: 'packages/api/.principal-views/graphql-schema.canvas',
-          path: 'packages/api/.principal-views/graphql-schema.canvas',
-        },
+      // API package
+      {
+        name: 'package.json',
+        relativePath: 'packages/api/package.json',
+        path: 'packages/api/package.json',
+        extension: '.json',
+        size: 512,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
+      {
+        name: 'rest-endpoints.otel.canvas',
+        relativePath: 'packages/api/.principal-views/rest-endpoints.otel.canvas',
+        path: 'packages/api/.principal-views/rest-endpoints.otel.canvas',
+        extension: '.canvas',
+        size: 1024,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
+      {
+        name: 'graphql-schema.canvas',
+        relativePath: 'packages/api/.principal-views/graphql-schema.canvas',
+        path: 'packages/api/.principal-views/graphql-schema.canvas',
+        extension: '.canvas',
+        size: 1024,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
 
-        // UI package
-        {
-          name: 'package.json',
-          relativePath: 'packages/ui/package.json',
-          path: 'packages/ui/package.json',
-        },
-        {
-          name: 'component-lifecycle.otel.canvas',
-          relativePath: 'packages/ui/.principal-views/component-lifecycle.otel.canvas',
-          path: 'packages/ui/.principal-views/component-lifecycle.otel.canvas',
-        },
-        {
-          name: 'user-interactions.otel.canvas',
-          relativePath: 'packages/ui/.principal-views/user-interactions.otel.canvas',
-          path: 'packages/ui/.principal-views/user-interactions.otel.canvas',
-        },
+      // UI package
+      {
+        name: 'package.json',
+        relativePath: 'packages/ui/package.json',
+        path: 'packages/ui/package.json',
+        extension: '.json',
+        size: 512,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
+      {
+        name: 'component-lifecycle.otel.canvas',
+        relativePath: 'packages/ui/.principal-views/component-lifecycle.otel.canvas',
+        path: 'packages/ui/.principal-views/component-lifecycle.otel.canvas',
+        extension: '.canvas',
+        size: 1024,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
+      {
+        name: 'user-interactions.otel.canvas',
+        relativePath: 'packages/ui/.principal-views/user-interactions.otel.canvas',
+        path: 'packages/ui/.principal-views/user-interactions.otel.canvas',
+        extension: '.canvas',
+        size: 1024,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
 
-        // Worker package (nested deeper)
-        {
-          name: 'package.json',
-          relativePath: 'services/background/worker/package.json',
-          path: 'services/background/worker/package.json',
-        },
-        {
-          name: 'job-processing.otel.canvas',
-          relativePath: 'services/background/worker/.principal-views/job-processing.otel.canvas',
-          path: 'services/background/worker/.principal-views/job-processing.otel.canvas',
-        },
-      ],
-    };
+      // Worker package (nested deeper)
+      {
+        name: 'package.json',
+        relativePath: 'services/background/worker/package.json',
+        path: 'services/background/worker/package.json',
+        extension: '.json',
+        size: 512,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
+      {
+        name: 'job-processing.otel.canvas',
+        relativePath: 'services/background/worker/.principal-views/job-processing.otel.canvas',
+        path: 'services/background/worker/.principal-views/job-processing.otel.canvas',
+        extension: '.canvas',
+        size: 1024,
+        lastModified: new Date('2024-01-15'),
+        isDirectory: false,
+      },
+    ];
 
-    const mockSlices = createMockSlices(mockFileTreeWithPackages);
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-monorepo';
+    fileTree.allFiles = allFiles;
+
+    const mockSlices = createMockSlices(fileTree);
 
     return (
       <MockPanelProvider
@@ -391,7 +597,7 @@ export const MonorepoWithPackages: Story = {
       >
         {(props) => (
           <>
-            <CanvasListPanel {...props} />
+            <StoryboardListPanel {...props} />
             <div
               style={{
                 position: 'fixed',
@@ -646,7 +852,7 @@ export const WithNarratives: Story = {
         {(props) => {
           return (
             <>
-              <CanvasListPanel {...props} />
+              <StoryboardListPanel {...props} />
               <div
                 style={{
                   position: 'fixed',
@@ -899,7 +1105,7 @@ export const CanvasEventsTest: Story = {
             setEventLog((prev) => [
               {
                 timestamp,
-                action: payload.action,
+                action: payload.action || 'unknown',
                 canvasId: payload.canvasId || 'unknown',
                 canvasPath: payload.canvas?.path || 'unknown',
                 workflowId: payload.workflowId,
@@ -929,7 +1135,7 @@ export const CanvasEventsTest: Story = {
             }}
             eventsOverride={mockEvents}
           >
-            {(props) => <CanvasListPanel {...props} />}
+            {(props) => <StoryboardListPanel {...props} />}
           </MockPanelProvider>
         </div>
 
@@ -1074,9 +1280,18 @@ export const ChangeDetectionTest: Story = {
       name: `canvas-${i + 1}.otel.canvas`,
       relativePath: `.principal-views/canvas-${i + 1}.otel.canvas`,
       path: `.principal-views/canvas-${i + 1}.otel.canvas`,
+      extension: '.canvas',
+      size: 1024,
+      lastModified: new Date('2024-01-15'),
+      isDirectory: false,
     }));
 
-    const mockSlices = createMockSlices({ sha, allFiles: mockFiles });
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: mockFiles.map(f => f.path) });
+    fileTree.sha = sha;
+    fileTree.allFiles = mockFiles;
+
+    const mockSlices = createMockSlices(fileTree);
 
     // Custom events that log activity
     const mockEvents = {
@@ -1103,7 +1318,7 @@ export const ChangeDetectionTest: Story = {
             }}
             eventsOverride={mockEvents}
           >
-            {(props) => <CanvasListPanel {...props} />}
+            {(props) => <StoryboardListPanel {...props} />}
           </MockPanelProvider>
         </div>
 

@@ -212,59 +212,53 @@ const LoadingSkeleton: React.FC<{ theme: Theme }> = ({ theme }) => {
 };
 
 /**
- * Props for CanvasDetailPanel
+ * Props for WorkflowScenariosPanel
  */
-export interface CanvasDetailPanelProps extends PanelComponentProps {
+export interface WorkflowScenariosPanelProps extends PanelComponentProps {
   /**
-   * Optional canvas ID to display.
-   * If provided, this takes precedence over events.
-   * This allows the host to control panel state via props instead of events.
+   * Canvas ID to display (optional - can be controlled via props or events).
    */
   selectedCanvasId?: string | null;
 
   /**
-   * Optional canvas path to load.
-   * If provided along with selectedCanvasId, the panel will load this canvas immediately.
+   * Path to the .canvas file (optional).
    */
   canvasPath?: string | null;
 
   /**
-   * Optional canvas name for display.
+   * Canvas name for display (optional).
    */
   canvasName?: string | null;
 
   /**
-   * Optional canvas file info with metadata (size, lastModified, etc.).
+   * Canvas file info with metadata (optional).
    * Used for detecting file changes and auto-reloading.
    */
   canvasFileInfo?: FileInfo | null;
 
   /**
-   * Optional narrative ID to display.
-   * If provided, the panel will display this narrative without showing the selector UI.
+   * Workflow ID to display (optional - but recommended for proper workflow display).
    */
   selectedWorkflowId?: string | null;
 
   /**
-   * Optional narrative path.
-   * Provided when a specific narrative is selected from the canvas list.
+   * Path to the workflow file (optional).
    */
   workflowPath?: string | null;
 
   /**
-   * Optional workflow template.
-   * If provided along with selectedWorkflowId, the panel will use this template directly.
+   * Workflow template with scenarios and steps (optional - but panel requires this to display workflows).
    */
   workflowTemplate?: WorkflowTemplate | null;
 
   /**
-   * Optional workflow file info with metadata (size, lastModified, etc.).
+   * Workflow file info with metadata (optional).
    * Used for detecting workflow file changes and auto-reloading.
    */
   workflowFileInfo?: FileInfo | null;
 }
 
-interface CanvasDetailPanelState {
+interface WorkflowScenariosPanelState {
   canvas: ExtendedCanvas | null;
   execution: ExecutionArtifact | null;
   metadata: ExecutionMetadata | null;
@@ -292,12 +286,12 @@ interface CanvasDetailPanelState {
 }
 
 /**
- * Canvas Detail Panel
+ * Workflow Scenarios Panel
  *
- * Displays canvas details with execution artifacts, workflow templates, and playback controls.
- * Can be controlled via props (selectedCanvasId) or events.
+ * Displays a specific workflow's scenarios overlaid on a canvas diagram, with execution artifacts and playback controls.
+ * Requires both a canvas and workflow to be specified via props.
  */
-export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
+export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   context,
   actions,
   events,
@@ -312,7 +306,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  const [state, setState] = useState<CanvasDetailPanelState>({
+  const [state, setState] = useState<WorkflowScenariosPanelState>({
     canvas: null,
     execution: null,
     metadata: null,
@@ -1203,40 +1197,12 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         )}
 
         {/* Playback controls removed - all events now display by default */}
-
-        {/* Help Button - Show when canvas-only (no execution/narratives) */}
-        {state.canvas && !state.execution && state.availableNarratives.length === 0 && (
-          <div style={{ marginLeft: 'auto' }}>
-            <button
-              onClick={() => setState(prev => ({ ...prev, showHelpModal: true }))}
-              style={{
-                padding: '0 12px',
-                height: '28px',
-                background: '#3b82f6',
-                border: 'none',
-                borderRadius: '4px',
-                color: theme.colors.text,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontWeight: theme.fontWeights.medium,
-                fontSize: theme.fontSizes[2],
-                fontFamily: theme.fonts.body,
-              }}
-              title="Learn about workflows and OTEL testing"
-            >
-              <HelpCircle size={16} />
-              Learn About Narratives
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Event Timeline or Narrative Template or Missing Execution Info - Only show if we have execution OR workflows */}
-        {(state.execution || state.availableNarratives.length > 0) && (
+        {/* Event Timeline or Workflow Template - Always show since workflow is required */}
+        {state.workflowTemplate && (
           <div style={{ flex: '0 0 40%', borderRight: '1px solid #333', overflow: 'hidden' }}>
             {state.execution ? (
               <ScenarioDetailsPanel
@@ -1467,7 +1433,7 @@ export const CanvasDetailPanel: React.FC<CanvasDetailPanelProps> = ({
         {state.canvas ? (
           <div
             style={{
-              flex: state.execution || state.availableNarratives.length > 0 ? '0 0 60%' : '1 1 100%',
+              flex: '0 0 60%', // Always 60% since workflow is always present
               position: 'relative',
             }}
           >

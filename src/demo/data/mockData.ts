@@ -50,7 +50,7 @@ export const canvasMetadataList: CanvasMetadata[] = [
  * Canvases by ID
  */
 export const canvases: Record<string, Canvas> = {
-  'checkout-flow': checkoutFlowCanvas as Canvas,
+  'checkout-flow': checkoutFlowCanvas as unknown as Canvas,
 };
 
 /**

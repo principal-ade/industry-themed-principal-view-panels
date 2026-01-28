@@ -28,6 +28,7 @@ const config: StorybookConfig = {
   async viteFinal(config) {
     return {
       ...config,
+      cacheDir: 'node_modules/.vite-storybook', // Use separate cache to avoid conflicts
       resolve: {
         ...config.resolve,
         conditions: ['browser', 'import', 'module', 'default'],
@@ -45,9 +46,10 @@ const config: StorybookConfig = {
       },
       optimizeDeps: {
         ...config.optimizeDeps,
+        force: true, // Force re-optimization of dependencies
         include: [
           ...(config.optimizeDeps?.include || []),
-          '@principal-ade/dynamic-file-tree',
+          // Removed '@principal-ade/dynamic-file-tree' to avoid caching issues
           '@principal-ai/principal-view-core',
         ],
         exclude: [

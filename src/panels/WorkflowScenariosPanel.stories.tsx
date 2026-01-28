@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React from 'react';
-import { CanvasDetailPanel } from './CanvasDetailPanel';
+import { WorkflowScenariosPanel } from './WorkflowScenariosPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import type { DataSlice } from '../types';
 import type { WorkflowTemplate } from '@principal-ai/principal-view-core';
 
 /**
- * CanvasDetailPanel - OTEL Execution Visualizer
+ * WorkflowScenariosPanel - OTEL Execution Visualizer
  *
  * Visualizes OpenTelemetry execution artifacts from tests overlaid on canvas architecture diagrams.
  * Demonstrates the complete workflow: Canvas Narrative Templates Test Execution Visual Debugging
@@ -25,8 +25,8 @@ import type { WorkflowTemplate } from '@principal-ai/principal-view-core';
  * 3. Add test execution data (validation & debugging)
  */
 const meta = {
-  title: 'Panels/CanvasDetailPanel',
-  component: CanvasDetailPanel,
+  title: 'Panels/WorkflowScenariosPanel',
+  component: WorkflowScenariosPanel,
   parameters: {
     layout: 'fullscreen',
     docs: {
@@ -46,7 +46,7 @@ const meta = {
       </ThemeProvider>
     ),
   ],
-} satisfies Meta<typeof CanvasDetailPanel>;
+} satisfies Meta<typeof WorkflowScenariosPanel>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -848,11 +848,14 @@ export const Step1_CanvasOnly: Story = {
     return (
       <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
         {(props) => (
-          <CanvasDetailPanel
+          <WorkflowScenariosPanel
             {...props}
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
+            selectedWorkflowId="checkout-flow-narrative"
+            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
+            workflowTemplate={checkoutWorkflow}
           />
         )}
       </MockPanelProvider>
@@ -862,7 +865,7 @@ export const Step1_CanvasOnly: Story = {
     docs: {
       description: {
         story:
-          'Just the canvas - no workflows or execution data yet. Use this to document your architecture before adding telemetry.',
+          'Canvas with workflow scenarios defined - documenting expected behavior patterns.',
       },
     },
   },
@@ -895,12 +898,13 @@ export const Step2_CanvasWithNarratives: Story = {
     return (
       <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
         {(props) => (
-          <CanvasDetailPanel
+          <WorkflowScenariosPanel
             {...props}
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
             selectedWorkflowId="checkout-flow-narrative"
+            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
             workflowTemplate={checkoutWorkflow}
           />
         )}
@@ -950,12 +954,13 @@ export const Step3_SuccessfulCheckout: Story = {
     return (
       <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
         {(props) => (
-          <CanvasDetailPanel
+          <WorkflowScenariosPanel
             {...props}
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
             selectedWorkflowId="checkout-flow-narrative"
+            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
             workflowTemplate={checkoutWorkflow}
           />
         )}
@@ -1005,12 +1010,13 @@ export const Scenario_PaymentDeclined: Story = {
     return (
       <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
         {(props) => (
-          <CanvasDetailPanel
+          <WorkflowScenariosPanel
             {...props}
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
             selectedWorkflowId="checkout-flow-narrative"
+            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
             workflowTemplate={checkoutWorkflow}
           />
         )}
@@ -1059,12 +1065,13 @@ export const Scenario_InsufficientInventory: Story = {
     return (
       <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
         {(props) => (
-          <CanvasDetailPanel
+          <WorkflowScenariosPanel
             {...props}
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
             selectedWorkflowId="checkout-flow-narrative"
+            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
             workflowTemplate={checkoutWorkflow}
           />
         )}
@@ -1113,12 +1120,13 @@ export const Scenario_Timeout: Story = {
     return (
       <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
         {(props) => (
-          <CanvasDetailPanel
+          <WorkflowScenariosPanel
             {...props}
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
             selectedWorkflowId="checkout-flow-narrative"
+            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
             workflowTemplate={checkoutWorkflow}
           />
         )}
@@ -1226,12 +1234,13 @@ export const PartialNarrativeCoverage: Story = {
     return (
       <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
         {(props) => (
-          <CanvasDetailPanel
+          <WorkflowScenariosPanel
             {...props}
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
             selectedWorkflowId="payment-flow-narrative"
+            workflowPath=".principal-views/checkout-flow/payment-workflow.json"
             workflowTemplate={partialWorkflow}
           />
         )}
@@ -1291,11 +1300,14 @@ export const CanvasWithDocumentation: Story = {
     return (
       <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
         {(props) => (
-          <CanvasDetailPanel
+          <WorkflowScenariosPanel
             {...props}
             selectedCanvasId="checkout-flow"
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
+            selectedWorkflowId="checkout-flow-narrative"
+            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
+            workflowTemplate={checkoutWorkflow}
           />
         )}
       </MockPanelProvider>

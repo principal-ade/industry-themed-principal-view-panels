@@ -1,6 +1,6 @@
 import { CanvasEditorPanel } from './panels/CanvasEditorPanel';
-import { CanvasDetailPanel } from './panels/CanvasDetailPanel';
-import { CanvasListPanel } from './panels/CanvasListPanel';
+import { WorkflowScenariosPanel } from './panels/WorkflowScenariosPanel';
+import { StoryboardListPanel } from './panels/StoryboardListPanel';
 import type { PanelDefinition, PanelContextValue } from './types';
 import { principalViewPanelTools } from './tools';
 
@@ -10,9 +10,9 @@ export type { EventControllerPanelProps, PlaybackState, PlaybackStatus } from '.
 
 export { CanvasEditorPanel } from './panels/CanvasEditorPanel';
 export type { CanvasEditorPanelProps } from './panels/CanvasEditorPanel';
-export { CanvasDetailPanel } from './panels/CanvasDetailPanel';
-export type { CanvasDetailPanelProps } from './panels/CanvasDetailPanel';
-export { CanvasListPanel } from './panels/CanvasListPanel';
+export { WorkflowScenariosPanel } from './panels/WorkflowScenariosPanel';
+export type { WorkflowScenariosPanelProps } from './panels/WorkflowScenariosPanel';
+export { StoryboardListPanel } from './panels/StoryboardListPanel';
 export { LibraryAnchoringExplainerPanel } from './panels/LibraryAnchoringExplainerPanel';
 export type { LibraryAnchoringExplainerPanelProps } from './panels/LibraryAnchoringExplainerPanel';
 export { WorkflowExplainerPanel } from './panels/WorkflowExplainerPanel';
@@ -91,20 +91,20 @@ export const panels: PanelDefinition[] = [
   },
   {
     metadata: {
-      id: 'principal-ai.canvas-detail',
-      name: 'Canvas Detail',
+      id: 'principal-ai.workflow-scenarios',
+      name: 'Workflow Scenarios',
       icon: '⚡',
       version: '0.1.0',
       author: 'Principal AI',
-      description: 'Visualizes canvas details with execution artifacts, workflow templates, and playback controls',
+      description: 'Visualizes workflow scenarios with execution artifacts, templates, and playback controls',
       slices: ['fileTree'],
     },
-    component: CanvasDetailPanel,
+    component: WorkflowScenariosPanel,
 
     onMount: async (context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log(
-        'Canvas Detail Panel mounted',
+        'Workflow Scenarios Panel mounted',
         context.currentScope.repository?.path
       );
 
@@ -116,25 +116,25 @@ export const panels: PanelDefinition[] = [
 
     onUnmount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
-      console.log('Canvas Detail Panel unmounting');
+      console.log('Workflow Scenarios Panel unmounting');
     },
   },
   {
     metadata: {
-      id: 'principal-ai.canvas-list',
-      name: 'Canvas List',
-      icon: '📋',
+      id: 'principal-ai.storyboard-list',
+      name: 'Storyboard List',
+      icon: '📖',
       version: '0.1.0',
       author: 'Principal AI',
-      description: 'Lists and manages .otel.canvas files in the project with search and selection',
+      description: 'Lists and manages storyboards using the new discovery system (v0.15.1+)',
       slices: ['fileTree'],
     },
-    component: CanvasListPanel,
+    component: StoryboardListPanel,
 
     onMount: async (context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log(
-        'Canvas List Panel mounted',
+        'Storyboard List Panel mounted',
         context.currentScope.repository?.path
       );
 
@@ -146,7 +146,7 @@ export const panels: PanelDefinition[] = [
 
     onUnmount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
-      console.log('Canvas List Panel unmounting');
+      console.log('Storyboard List Panel unmounting');
     },
   },
 ];

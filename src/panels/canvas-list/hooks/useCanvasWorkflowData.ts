@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PanelContextValue, PanelActions } from '@principal-ade/panel-framework-core';
-import type { DiscoveredCanvas } from '@principal-ai/principal-view-core';
-import type { WorkflowTemplate } from '@principal-ai/principal-view-core';
+import type {
+  DiscoveredCanvas,
+  DiscoveredStoryboard,
+  DiscoveredExecution,
+  WorkflowTemplate
+} from '@principal-ai/principal-view-core';
 import type { FileTree } from '@principal-ai/repository-abstraction';
 import { WorkflowLoader, type WorkflowFile } from '../../execution-viewer/WorkflowLoader';
 import { useCanvasData } from './useCanvasData';
@@ -13,6 +17,8 @@ interface UseCanvasNarrativeDataParams {
 
 interface UseCanvasNarrativeDataReturn {
   canvases: DiscoveredCanvas[];
+  storyboards: DiscoveredStoryboard[];
+  executions: DiscoveredExecution[];
   workflows: Array<{ file: WorkflowFile; template: WorkflowTemplate }>;
   isLoading: boolean;
   error: string | null;
@@ -30,8 +36,15 @@ export const useCanvasWorkflowData = ({
   context,
   actions,
 }: UseCanvasNarrativeDataParams): UseCanvasNarrativeDataReturn => {
-  // Reuse canvas discovery logic
-  const { canvases, isLoading: canvasesLoading, error: canvasesError, refreshCanvases } = useCanvasData({ context });
+  // Reuse canvas discovery logic - now includes storyboards and executions
+  const {
+    canvases,
+    storyboards,
+    executions,
+    isLoading: canvasesLoading,
+    error: canvasesError,
+    refreshCanvases
+  } = useCanvasData({ context });
 
   const [workflows, setNarratives] = useState<Array<{ file: WorkflowFile; template: WorkflowTemplate }>>(
     EMPTY_NARRATIVES_ARRAY
@@ -141,6 +154,8 @@ export const useCanvasWorkflowData = ({
 
   return {
     canvases,
+    storyboards,
+    executions,
     workflows,
     isLoading,
     error,

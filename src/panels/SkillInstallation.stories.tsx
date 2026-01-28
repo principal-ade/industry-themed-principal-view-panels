@@ -1,9 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React from 'react';
-import { CanvasDetailPanel } from './CanvasDetailPanel';
+import { WorkflowScenariosPanel } from './WorkflowScenariosPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import type { DataSlice } from '../types';
+import type { WorkflowTemplate } from '@principal-ai/principal-view-core';
 
 /**
  * Skill Installation - Multi-Agent Telemetry
@@ -13,7 +14,7 @@ import type { DataSlice } from '../types';
  */
 const meta = {
   title: 'Panels/SkillInstallation',
-  component: CanvasDetailPanel,
+  component: WorkflowScenariosPanel,
   parameters: {
     layout: 'fullscreen',
     docs: {
@@ -33,7 +34,7 @@ const meta = {
       </ThemeProvider>
     ),
   ],
-} satisfies Meta<typeof CanvasDetailPanel>;
+} satisfies Meta<typeof WorkflowScenariosPanel>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -400,11 +401,14 @@ export const MultiAgentInstallation: Story = {
     return (
       <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
         {(props) => (
-          <CanvasDetailPanel
+          <WorkflowScenariosPanel
             {...props}
             selectedCanvasId="skill-installation"
             canvasPath=".principal-views/skill-installation.otel.canvas"
             canvasName="Skill Installation"
+            selectedWorkflowId="skill-installation-workflow"
+            workflowPath=".principal-views/skill-installation/skill-workflow.json"
+            workflowTemplate={skillInstallationNarrative as WorkflowTemplate}
           />
         )}
       </MockPanelProvider>

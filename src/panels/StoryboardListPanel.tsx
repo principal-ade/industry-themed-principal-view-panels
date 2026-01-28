@@ -4,21 +4,23 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check } from 'lucide-react';
 import { useCanvasWorkflowData } from './canvas-list/hooks/useCanvasWorkflowData';
-import type { DiscoveredCanvas } from '@principal-ai/principal-view-core';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
-import { CanvasNarrativeTreeCore, type CanvasNarrativeNodeData } from '@principal-ade/dynamic-file-tree';
+import { StoryboardWorkflowsTreeCore, type StoryboardWorkflowNodeData } from '@principal-ade/dynamic-file-tree';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 
 /**
- * CanvasListPanel - A panel for displaying .otel.canvas files
+ * StoryboardListPanel - A panel for displaying storyboards from the discovery system
  *
  * This panel shows:
- * - List/grid of available canvas files from the file tree
- * - Search functionality to filter canvases
- * - Canvas metadata (name, source, path)
+ * - Hierarchical storyboard structures with canvases and workflows
+ * - Search functionality to filter storyboards
+ * - Storyboard metadata (name, source, path, workflows)
  * - Click to select and emit events for detail views
+ *
+ * Uses the new storyboard discovery system from @principal-ai/principal-view-core@0.15.1+
+ * Storyboards are provided directly by the discovery system, no transformation needed.
  */
-export const CanvasListPanel: React.FC<PanelComponentProps> = ({
+export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
   context,
   actions,
   events,
@@ -26,15 +28,16 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
   const { theme } = useTheme();
   const panelRef = useRef<HTMLDivElement>(null);
 
-  usePanelFocusListener('canvas-list', events, () => panelRef.current?.focus());
-  const [selectedCanvasId, setSelectedCanvasId] = useState<string | null>(null);
+  usePanelFocusListener('storyboard-list', events, () => panelRef.current?.focus());
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [cliCommandCopied, setCliCommandCopied] = useState(false);
 
-  // Load canvas and narrative data
-  const { canvases, workflows, isLoading, error } = useCanvasWorkflowData({ context, actions });
+  // Load storyboard data from discovery system
+  // Storyboards come directly from the discovery system (no transformation needed)
+  const { storyboards, isLoading, error } = useCanvasWorkflowData({ context, actions });
 
   // Get fileTree to access FileInfo metadata
   const fileTreeSlice = context.getSlice('fileTree');
@@ -48,38 +51,42 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
     );
   }, [fileTreeData]);
 
-  // Filter canvases by search query
-  const filteredCanvases = useMemo(() => {
-    let filtered = canvases;
+  // Filter storyboards by search query
+  const filteredStoryboards = useMemo(() => {
+    let filtered = storyboards;
 
     // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter((canvas) => {
+      filtered = filtered.filter((storyboard) => {
         // Search in name
-        if (canvas.name.toLowerCase().includes(query)) return true;
+        if (storyboard.name.toLowerCase().includes(query)) return true;
         // Search in path
-        if (canvas.path.toLowerCase().includes(query)) return true;
+        if (storyboard.path.toLowerCase().includes(query)) return true;
         // Search in basename
-        if (canvas.basename.toLowerCase().includes(query)) return true;
+        if (storyboard.basename.toLowerCase().includes(query)) return true;
         // Search in package name
-        if (canvas.packageName && canvas.packageName.toLowerCase().includes(query)) return true;
+        if (storyboard.packageName && storyboard.packageName.toLowerCase().includes(query)) return true;
+        // Search in canvas name
+        if (storyboard.canvas.name.toLowerCase().includes(query)) return true;
+        // Search in workflows
+        if (storyboard.workflows.some(wf => wf.name.toLowerCase().includes(query))) return true;
         return false;
       });
     }
 
     return filtered;
-  }, [canvases, searchQuery]);
+  }, [storyboards, searchQuery]);
 
-  const handleTreeNodeClick = useCallback((node: CanvasNarrativeNodeData) => {
-    if (node.type === 'storyboard' && node.canvas) {
-      // Storyboard click - open canvas editor
-      setSelectedCanvasId(node.canvas.id);
+  const handleTreeNodeClick = useCallback((node: StoryboardWorkflowNodeData) => {
+    if (node.type === 'canvas' && node.canvas) {
+      // Storyboard (canvas) click - open canvas editor
+      setSelectedNodeId(`canvas:${node.canvas.id}`);
       if (events) {
         const canvasFileInfo = getCanvasFileInfo(node.canvas.path);
         events.emit({
           type: 'custom',
-          source: 'canvas-list-panel',
+          source: 'storyboard-list-panel',
           timestamp: Date.now(),
           payload: {
             action: 'openCanvas',
@@ -90,24 +97,23 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
           },
         });
       }
-    } else if (node.type === 'narrative' && node.narrative && node.canvas) {
-      // Narrative click - open canvas detail with narrative
-      setSelectedCanvasId(node.canvas.id);
+    } else if (node.type === 'workflow' && node.workflow && node.storyboard) {
+      // Workflow click - select workflow and open canvas detail with workflow
+      setSelectedNodeId(`workflow:${node.workflow.id}`);
       if (events) {
-        const canvasFileInfo = getCanvasFileInfo(node.canvas.path);
-        const workflowFileInfo = getCanvasFileInfo(node.narrative.path);
+        const canvasFileInfo = getCanvasFileInfo(node.storyboard.canvas.path);
+        const workflowFileInfo = getCanvasFileInfo(node.workflow.path);
         events.emit({
           type: 'custom',
-          source: 'canvas-list-panel',
+          source: 'storyboard-list-panel',
           timestamp: Date.now(),
           payload: {
             action: 'openCanvas',
-            canvasId: node.canvas.id,
-            canvas: node.canvas,
+            canvasId: node.storyboard.canvas.id,
+            canvas: node.storyboard.canvas,
             canvasFileInfo,
-            workflowId: node.narrative.id,
-            narrative: node.narrative,
-            workflowTemplate: node.workflowTemplate,
+            workflowId: node.workflow.id,
+            workflow: node.workflow,
             workflowFileInfo,
             openMode: 'detail', // Indicates canvas detail should be opened
           },
@@ -124,7 +130,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
     if (events) {
       events.emit({
         type: 'canvas:refresh',
-        source: 'canvas-list-panel',
+        source: 'storyboard-list-panel',
         timestamp: Date.now(),
         payload: {},
       });
@@ -142,14 +148,14 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
   };
 
   const handleCopyCliCommand = useCallback(() => {
-    const cliCommand = canvases.length > 0
+    const cliCommand = storyboards.length > 0
       ? 'npx @principal-ai/principal-view-cli --help'
       : 'npx @principal-ai/principal-view-cli init';
     navigator.clipboard.writeText(cliCommand).then(() => {
       setCliCommandCopied(true);
       setTimeout(() => setCliCommandCopied(false), 2000);
     });
-  }, [canvases.length]);
+  }, [storyboards.length]);
 
   return (
     <div
@@ -194,9 +200,9 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
           Storyboards
         </h2>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: canvases.length >= 10 ? '1 1 200px' : '0 0 auto', maxWidth: canvases.length >= 10 ? '400px' : 'none' }}>
-          {/* Search input - only show if there are 10 or more canvases */}
-          {canvases.length >= 10 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: storyboards.length >= 10 ? '1 1 200px' : '0 0 auto', maxWidth: storyboards.length >= 10 ? '400px' : 'none' }}>
+          {/* Search input - only show if there are 10 or more storyboards */}
+          {storyboards.length >= 10 && (
             <div
               style={{
                 position: 'relative',
@@ -273,7 +279,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
               justifyContent: 'center',
               transition: 'all 0.2s ease',
             }}
-            title="Refresh canvases"
+            title="Refresh storyboards"
           >
             <RefreshCw
               size={16}
@@ -350,9 +356,9 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
               fontSize: theme.fontSizes[2],
             }}
           >
-            Loading canvases...
+            Loading storyboards...
           </div>
-        ) : filteredCanvases.length === 0 ? (
+        ) : filteredStoryboards.length === 0 ? (
           <div
             style={{
               height: '100%',
@@ -376,12 +382,11 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
             </div>
           </div>
         ) : (
-          <CanvasNarrativeTreeCore
-            canvases={filteredCanvases}
-            narratives={workflows}
+          <StoryboardWorkflowsTreeCore
+            storyboards={filteredStoryboards}
             theme={theme}
             onClick={handleTreeNodeClick}
-            selectedNodeId={selectedCanvasId ? `canvas:${selectedCanvasId}` : undefined}
+            selectedNodeId={selectedNodeId ?? undefined}
             defaultOpen={false}
             horizontalNodePadding="clamp(16px, 4vw, 24px)"
             verticalPadding="10px"
@@ -436,7 +441,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
             >
               <X size={16} />
             </button>
-            {canvases.length === 0 ? (
+            {storyboards.length === 0 ? (
               <EmptyStateContent theme={theme} />
             ) : (
               <div style={{
@@ -482,9 +487,10 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
                     color: theme.colors.textMuted,
                     lineHeight: 1.6,
                   }}>
-                    <li>Browse and search through available canvas files</li>
+                    <li>Browse and search through available storyboards</li>
                     <li>Filter by package if you have a monorepo structure</li>
-                    <li>Click a canvas to view it in the editor panel</li>
+                    <li>Click a storyboard to view the canvas in the editor</li>
+                    <li>Click a workflow to view executions for that workflow</li>
                     <li>Use the refresh button to rescan for new files</li>
                   </ul>
                 </div>
@@ -510,7 +516,7 @@ export const CanvasListPanel: React.FC<PanelComponentProps> = ({
                     color: theme.colors.textMuted,
                     lineHeight: 1.5,
                   }}>
-                    View available commands for managing canvas files:
+                    View available commands for managing storyboards:
                   </p>
                   <button
                     onClick={handleCopyCliCommand}
