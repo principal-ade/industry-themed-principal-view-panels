@@ -11,7 +11,7 @@ interface Section {
   component: React.ComponentType;
 }
 
-const Step1WhatIsNarrative: React.FC = () => {
+const Step1WhatIsWorkflow: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <svg viewBox="0 0 600 200" style={{ width: '100%', height: 'auto' }}>
@@ -544,7 +544,7 @@ const Step7Workflow: React.FC = () => {
 };
 
 const sections: Section[] = [
-  { id: 'what', title: 'What is a Narrative?', component: Step1WhatIsNarrative },
+  { id: 'what', title: 'What is a Workflow?', component: Step1WhatIsWorkflow },
   { id: 'components', title: 'Template Components', component: Step2Components },
   { id: 'scenarios', title: 'How Scenarios Match', component: Step3Scenarios },
   { id: 'templates', title: 'Template Variables', component: Step4Templates },

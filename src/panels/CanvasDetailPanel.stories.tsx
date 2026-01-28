@@ -385,7 +385,7 @@ const checkoutCanvas = {
   },
 };
 
-const checkoutNarrative: WorkflowTemplate = {
+const checkoutWorkflow: WorkflowTemplate = {
   version: '1.0.0',
   canvas: 'checkout-flow.otel.canvas',
   name: 'Checkout Flow',
@@ -888,7 +888,7 @@ export const Step2_CanvasWithNarratives: Story = {
         path: '.principal-views/checkout-flow.workflow.json',
         relativePath: '.principal-views/checkout-flow.workflow.json',
         name: 'checkout-flow.workflow.json',
-        content: JSON.stringify(checkoutNarrative),
+        content: JSON.stringify(checkoutWorkflow),
       },
     ]);
 
@@ -901,7 +901,7 @@ export const Step2_CanvasWithNarratives: Story = {
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
             selectedWorkflowId="checkout-flow-narrative"
-            workflowTemplate={checkoutNarrative}
+            workflowTemplate={checkoutWorkflow}
           />
         )}
       </MockPanelProvider>
@@ -937,7 +937,7 @@ export const Step3_SuccessfulCheckout: Story = {
         path: '.principal-views/checkout-flow.workflow.json',
         relativePath: '.principal-views/checkout-flow.workflow.json',
         name: 'checkout-flow.workflow.json',
-        content: JSON.stringify(checkoutNarrative),
+        content: JSON.stringify(checkoutWorkflow),
       },
       {
         path: '.principal-views/__executions__/checkout-success.otel.json',
@@ -956,7 +956,7 @@ export const Step3_SuccessfulCheckout: Story = {
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
             selectedWorkflowId="checkout-flow-narrative"
-            workflowTemplate={checkoutNarrative}
+            workflowTemplate={checkoutWorkflow}
           />
         )}
       </MockPanelProvider>
@@ -992,7 +992,7 @@ export const Scenario_PaymentDeclined: Story = {
         path: '.principal-views/checkout-flow.workflow.json',
         relativePath: '.principal-views/checkout-flow.workflow.json',
         name: 'checkout-flow.workflow.json',
-        content: JSON.stringify(checkoutNarrative),
+        content: JSON.stringify(checkoutWorkflow),
       },
       {
         path: '.principal-views/__executions__/checkout-payment-declined.otel.json',
@@ -1011,7 +1011,7 @@ export const Scenario_PaymentDeclined: Story = {
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
             selectedWorkflowId="checkout-flow-narrative"
-            workflowTemplate={checkoutNarrative}
+            workflowTemplate={checkoutWorkflow}
           />
         )}
       </MockPanelProvider>
@@ -1046,7 +1046,7 @@ export const Scenario_InsufficientInventory: Story = {
         path: '.principal-views/checkout-flow.workflow.json',
         relativePath: '.principal-views/checkout-flow.workflow.json',
         name: 'checkout-flow.workflow.json',
-        content: JSON.stringify(checkoutNarrative),
+        content: JSON.stringify(checkoutWorkflow),
       },
       {
         path: '.principal-views/__executions__/checkout-insufficient-inventory.otel.json',
@@ -1065,7 +1065,7 @@ export const Scenario_InsufficientInventory: Story = {
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
             selectedWorkflowId="checkout-flow-narrative"
-            workflowTemplate={checkoutNarrative}
+            workflowTemplate={checkoutWorkflow}
           />
         )}
       </MockPanelProvider>
@@ -1100,7 +1100,7 @@ export const Scenario_Timeout: Story = {
         path: '.principal-views/checkout-flow.workflow.json',
         relativePath: '.principal-views/checkout-flow.workflow.json',
         name: 'checkout-flow.workflow.json',
-        content: JSON.stringify(checkoutNarrative),
+        content: JSON.stringify(checkoutWorkflow),
       },
       {
         path: '.principal-views/__executions__/checkout-timeout.otel.json',
@@ -1119,7 +1119,7 @@ export const Scenario_Timeout: Story = {
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
             selectedWorkflowId="checkout-flow-narrative"
-            workflowTemplate={checkoutNarrative}
+            workflowTemplate={checkoutWorkflow}
           />
         )}
       </MockPanelProvider>
@@ -1146,7 +1146,7 @@ export const PartialNarrativeCoverage: Story = {
   args: {} as never,
   render: () => {
     // Create a minimal narrative that only covers payment events
-    const partialNarrative: WorkflowTemplate = {
+    const partialWorkflow: WorkflowTemplate = {
       version: '1.0.0',
       canvas: 'checkout-flow.otel.canvas',
       name: 'Partial Coverage Demo',
@@ -1219,7 +1219,7 @@ export const PartialNarrativeCoverage: Story = {
         path: '.principal-views/payment-flow.workflow.json',
         relativePath: '.principal-views/payment-flow.workflow.json',
         name: 'payment-flow.workflow.json',
-        content: JSON.stringify(partialNarrative),
+        content: JSON.stringify(partialWorkflow),
       },
     ]);
 
@@ -1232,7 +1232,7 @@ export const PartialNarrativeCoverage: Story = {
             canvasPath=".principal-views/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
             selectedWorkflowId="payment-flow-narrative"
-            workflowTemplate={partialNarrative}
+            workflowTemplate={partialWorkflow}
           />
         )}
       </MockPanelProvider>
