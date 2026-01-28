@@ -818,7 +818,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
       // Collect all events from all spans
       for (const span of spans) {
-        if (span.events) {
+        if (span?.events) {
           for (const event of span.events) {
             allEvents.push({
               name: event.name,
@@ -883,7 +883,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       const allEvents: Array<{ name: string; time: number; attributes?: OtelAttributes }> = [];
 
       for (const span of spans) {
-        if (span.events) {
+        if (span?.events) {
           for (const event of span.events) {
             allEvents.push({
               name: event.name,
@@ -928,7 +928,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       const allEvents: Array<{ name: string; time: number; attributes?: OtelAttributes }> = [];
 
       for (const span of spans) {
-        if (span.events) {
+        if (span?.events) {
           for (const event of span.events) {
             allEvents.push({
               name: event.name,
