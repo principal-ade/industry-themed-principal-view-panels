@@ -8,7 +8,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
  * familiar metaphor of reading a book with nested parts, chapters, and sections.
  */
 const meta = {
-  title: 'Panels/BookAnalogyExplainerPanel',
+  title: 'ExplainerPanels/BookAnalogyExplainerPanel',
   component: BookAnalogyExplainerPanel,
   parameters: {
     layout: 'fullscreen',

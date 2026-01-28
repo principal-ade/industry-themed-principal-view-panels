@@ -70,53 +70,60 @@ export const useCanvasWorkflowData = ({
       return;
     }
 
-    console.log('[useCanvasWorkflowData] Loading narratives');
+    console.log('[useCanvasWorkflowData] Loading narratives from storyboards');
 
     setNarrativesLoading(true);
     setNarrativesError(null);
 
     try {
-      const allFiles = fileTreeData?.allFiles || [];
+      // Use workflows from discovered storyboards instead of rediscovering with regex patterns
+      // The core library already found all workflows, we just need to load their content
+      const allWorkflows = storyboards.flatMap(storyboard =>
+        storyboard.workflows.map(workflow => ({
+          path: workflow.path,
+          id: workflow.id,
+          name: workflow.name,
+        }))
+      );
 
-      if (allFiles.length === 0) {
+      console.log('[useCanvasWorkflowData] Found workflow files from storyboards:', allWorkflows.length, allWorkflows.map(w => w.path));
+
+      if (allWorkflows.length === 0) {
         setNarratives(EMPTY_NARRATIVES_ARRAY);
         lastLoadedNarrativeSha.current = fileTreeSha;
         return;
       }
 
-      // Discover narrative files
-      const narrativeFiles = WorkflowLoader.findWorkflowFiles(allFiles);
-      console.log('[useCanvasWorkflowData] Found narrative files:', narrativeFiles.length);
-
-      if (narrativeFiles.length === 0) {
-        setNarratives(EMPTY_NARRATIVES_ARRAY);
-        lastLoadedNarrativeSha.current = fileTreeSha;
-        return;
-      }
-
-      // Eagerly load all narrative templates in parallel
-      const narrativePromises = narrativeFiles.map(async (file) => {
+      // Eagerly load all workflow templates in parallel
+      const workflowPromises = allWorkflows.map(async (workflow) => {
         try {
           if (!readFile) {
             console.warn('[useCanvasWorkflowData] No readFile action available');
             return null;
           }
 
-          const content = await readFile(file.path);
+          const content = await readFile(workflow.path);
           if (!content || typeof content !== 'string') {
-            console.warn(`[useCanvasWorkflowData] Empty or invalid content for ${file.path}`);
+            console.warn(`[useCanvasWorkflowData] Empty or invalid content for ${workflow.path}`);
             return null;
           }
 
           const template = WorkflowLoader.parseWorkflowTemplate(content);
-          return { file, template };
+          return {
+            file: {
+              id: workflow.id,
+              name: workflow.name,
+              path: workflow.path,
+            },
+            template
+          };
         } catch (error) {
-          console.warn(`[useCanvasWorkflowData] Failed to load narrative ${file.path}:`, error);
+          console.warn(`[useCanvasWorkflowData] Failed to load workflow ${workflow.path}:`, error);
           return null;
         }
       });
 
-      const results = await Promise.all(narrativePromises);
+      const results = await Promise.all(workflowPromises);
       const loadedNarratives = results.filter((r): r is { file: WorkflowFile; template: WorkflowTemplate } => r !== null);
 
       console.log('[useCanvasWorkflowData] Successfully loaded workflows:', loadedNarratives.length);
@@ -131,7 +138,7 @@ export const useCanvasWorkflowData = ({
       setNarrativesLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fileTreeSha, readFile]);
+  }, [fileTreeSha, readFile, storyboards]);
   // Note: fileTreeData is accessed inside but not in deps to avoid infinite loop
   // The SHA ensures we reload when data actually changes
 

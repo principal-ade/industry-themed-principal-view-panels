@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { AgentMonitoringGapExplainerPanel } from './AgentMonitoringGapExplainerPanel';
 
 const meta = {
-  title: 'Pitch Deck/Agent Monitoring Gap',
+  title: 'ExplainerPanels/AgentMonitoringGapExplainerPanel',
   component: AgentMonitoringGapExplainerPanel,
   parameters: {
     layout: 'fullscreen',

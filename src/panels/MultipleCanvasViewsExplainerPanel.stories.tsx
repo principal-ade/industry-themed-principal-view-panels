@@ -8,7 +8,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
  * by multiple different canvases, each providing a different perspective.
  */
 const meta = {
-  title: 'Panels/MultipleCanvasViewsExplainerPanel',
+  title: 'ExplainerPanels/MultipleCanvasViewsExplainerPanel',
   component: MultipleCanvasViewsExplainerPanel,
   parameters: {
     layout: 'fullscreen',

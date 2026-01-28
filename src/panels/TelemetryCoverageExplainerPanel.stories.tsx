@@ -8,7 +8,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
  * using library.yaml sources and OTEL code.filepath attributes.
  */
 const meta = {
-  title: 'Panels/TelemetryCoverageExplainerPanel',
+  title: 'ExplainerPanels/TelemetryCoverageExplainerPanel',
   component: TelemetryCoverageExplainerPanel,
   parameters: {
     layout: 'fullscreen',

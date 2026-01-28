@@ -8,7 +8,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
  * downstream effects and upstream requirements when making changes.
  */
 const meta = {
-  title: 'Panels/ChangeImpactAnalysisExplainerPanel',
+  title: 'ExplainerPanels/ChangeImpactAnalysisExplainerPanel',
   component: ChangeImpactAnalysisExplainerPanel,
   parameters: {
     layout: 'fullscreen',

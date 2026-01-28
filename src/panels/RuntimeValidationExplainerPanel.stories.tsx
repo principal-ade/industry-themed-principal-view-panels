@@ -8,7 +8,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
  * how to verify that your code actually does what you expect at runtime, not just that tests pass.
  */
 const meta = {
-  title: 'Panels/RuntimeValidationExplainerPanel',
+  title: 'ExplainerPanels/RuntimeValidationExplainerPanel',
   component: RuntimeValidationExplainerPanel,
   parameters: {
     layout: 'fullscreen',

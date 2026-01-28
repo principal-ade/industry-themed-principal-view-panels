@@ -8,7 +8,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
  * and .otel.canvas (runtime validated) files and when to use each type.
  */
 const meta = {
-  title: 'Panels/CanvasTypesExplainerPanel',
+  title: 'ExplainerPanels/CanvasTypesExplainerPanel',
   component: CanvasTypesExplainerPanel,
   parameters: {
     layout: 'fullscreen',

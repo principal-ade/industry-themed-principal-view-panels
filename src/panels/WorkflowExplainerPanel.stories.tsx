@@ -4,7 +4,7 @@ import { WorkflowExplainerPanel } from './WorkflowExplainerPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 
 const meta = {
-  title: 'Panels/WorkflowExplainerPanel',
+  title: 'ExplainerPanels/WorkflowExplainerPanel',
   component: WorkflowExplainerPanel,
   parameters: {
     layout: 'fullscreen',

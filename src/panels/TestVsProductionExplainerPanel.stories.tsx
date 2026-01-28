@@ -8,7 +8,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
  * and production telemetry monitoring - how the same infrastructure serves different purposes.
  */
 const meta = {
-  title: 'Panels/TestVsProductionExplainerPanel',
+  title: 'ExplainerPanels/TestVsProductionExplainerPanel',
   component: TestVsProductionExplainerPanel,
   parameters: {
     layout: 'fullscreen',

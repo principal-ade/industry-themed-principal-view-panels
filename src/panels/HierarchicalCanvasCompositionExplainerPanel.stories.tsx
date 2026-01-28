@@ -8,7 +8,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
  * into composable canvases using OTEL parent-child span relationships.
  */
 const meta = {
-  title: 'Panels/HierarchicalCanvasCompositionExplainerPanel',
+  title: 'ExplainerPanels/HierarchicalCanvasCompositionExplainerPanel',
   component: HierarchicalCanvasCompositionExplainerPanel,
   parameters: {
     layout: 'fullscreen',

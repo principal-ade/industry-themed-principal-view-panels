@@ -8,7 +8,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
  * rapidly isolate and debug production issues by matching traces to canvas nodes.
  */
 const meta = {
-  title: 'Panels/ProductionDebuggingExplainerPanel',
+  title: 'ExplainerPanels/ProductionDebuggingExplainerPanel',
   component: ProductionDebuggingExplainerPanel,
   parameters: {
     layout: 'fullscreen',

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { SystemStoriesSolutionExplainerPanel } from './SystemStoriesSolutionExplainerPanel';
 
 const meta = {
-  title: 'Pitch Deck/System Stories Solution',
+  title: 'ExplainerPanels/SystemStoriesSolutionExplainerPanel',
   component: SystemStoriesSolutionExplainerPanel,
   parameters: {
     layout: 'fullscreen',

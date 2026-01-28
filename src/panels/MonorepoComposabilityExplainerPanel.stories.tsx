@@ -8,7 +8,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
  * across package boundaries in a monorepo for end-to-end validation.
  */
 const meta = {
-  title: 'Panels/MonorepoComposabilityExplainerPanel',
+  title: 'ExplainerPanels/MonorepoComposabilityExplainerPanel',
   component: MonorepoComposabilityExplainerPanel,
   parameters: {
     layout: 'fullscreen',

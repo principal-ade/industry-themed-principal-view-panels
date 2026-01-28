@@ -8,7 +8,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
  * with canvas files to anchor architectural components to actual source code.
  */
 const meta = {
-  title: 'Panels/LibraryAnchoringExplainerPanel',
+  title: 'ExplainerPanels/LibraryAnchoringExplainerPanel',
   component: LibraryAnchoringExplainerPanel,
   parameters: {
     layout: 'fullscreen',

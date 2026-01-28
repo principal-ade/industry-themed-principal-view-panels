@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { WhyNowAgentRevolutionExplainerPanel } from './WhyNowAgentRevolutionExplainerPanel';
 
 const meta = {
-  title: 'Pitch Deck/Why Now - Agent Revolution',
+  title: 'ExplainerPanels/WhyNowAgentRevolutionExplainerPanel',
   component: WhyNowAgentRevolutionExplainerPanel,
   parameters: {
     layout: 'fullscreen',

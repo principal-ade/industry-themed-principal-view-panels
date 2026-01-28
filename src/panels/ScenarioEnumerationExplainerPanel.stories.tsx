@@ -8,7 +8,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
  * to enumerate all expected functionality and validate runtime behavior.
  */
 const meta = {
-  title: 'Panels/ScenarioEnumerationExplainerPanel',
+  title: 'ExplainerPanels/ScenarioEnumerationExplainerPanel',
   component: ScenarioEnumerationExplainerPanel,
   parameters: {
     layout: 'fullscreen',

@@ -29,26 +29,30 @@ export interface WorkflowMetadata {
 }
 
 /**
- * Patterns for finding narrative template files
+ * Patterns for finding workflow template files
+ * Supports both .workflow.json (new) and .narrative.json (old) extensions
  */
 const NARRATIVE_FILE_PATTERNS = [
   // Packages monorepo pattern: packages/core/__workflows__/test-flow.workflow.json
-  /^packages\/([^/]+)\/__workflows__\/(.+)\.narrative\.json$/,
+  /^packages\/([^/]+)\/__workflows__\/(.+)\.(narrative|workflow)\.json$/,
   // Inside .principal-views: .principal-views/__workflows__/test-flow.workflow.json
-  /^\.principal-views\/__workflows__\/(.+)\.narrative\.json$/,
+  /^\.principal-views\/__workflows__\/(.+)\.(narrative|workflow)\.json$/,
   // Direct __workflows__ folder: __workflows__/test-flow.workflow.json
-  /^__workflows__\/(.+)\.narrative\.json$/,
+  /^__workflows__\/(.+)\.(narrative|workflow)\.json$/,
+  // Nested in .principal-views subdirectories: .principal-views/validation/validation-workflow/validation-workflow.workflow.json
+  /^\.principal-views\/[^/]+\/[^/]+\/([^/]+)\.(narrative|workflow)\.json$/,
   // Alternative: .principal-views/*.workflow.json (root level)
-  /^\.principal-views\/([^/]+)\.narrative\.json$/,
+  /^\.principal-views\/([^/]+)\.(narrative|workflow)\.json$/,
 ];
 
 /**
- * Extract narrative name from filename
+ * Extract workflow name from filename
+ * Supports both .workflow.json and .narrative.json extensions
  */
 function getNarrativeNameFromFilename(filename: string): string {
   // Convert kebab-case to Title Case for display
   return filename
-    .replace(/\.narrative\.json$/, '')
+    .replace(/\.(narrative|workflow)\.json$/, '')
     .split('-')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
@@ -126,6 +130,12 @@ export class WorkflowLoader {
             // Direct __workflows__ pattern
             baseName = match[1];
             id = baseName;
+          } else if (pattern === NARRATIVE_FILE_PATTERNS[3]) {
+            // Nested .principal-views subdirectory pattern
+            baseName = match[1];
+            // Extract subdirectory path for id (e.g., "validation/validation-workflow")
+            const pathParts = filePath.replace(/^\.principal-views\//, '').replace(/\/[^/]+\.(narrative|workflow)\.json$/, '');
+            id = pathParts.replace(/\//g, '/');
           } else {
             // .principal-views/*.workflow.json (root level)
             baseName = match[1];
