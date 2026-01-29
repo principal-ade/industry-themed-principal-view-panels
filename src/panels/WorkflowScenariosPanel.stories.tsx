@@ -796,7 +796,11 @@ const timeoutCheckout = {
 // ============================================================================
 
 const createMockProvider = (files: Array<{ path: string; relativePath: string; name: string; content: string }>) => {
-  const fileTreeData = { allFiles: files };
+  const fileTreeData = {
+    allFiles: files,
+    allDirectories: [],
+    sha: 'mock-sha-' + Date.now(),
+  };
   const mockSlices = new Map<string, DataSlice>();
   mockSlices.set('fileTree', {
     scope: 'repository',
@@ -1256,6 +1260,199 @@ export const PartialNarrativeCoverage: Story = {
           '• Inventory scenario: checkout.initiated, inventory.checking, inventory.insufficient\n' +
           '• Shipping scenario: checkout.initiated, shipping.calculating, shipping.calculated\n\n' +
           'Default view should show ONLY those 7 nodes as active. Hover over each scenario to highlight just its 3 nodes. Click a scenario to see its template without needing execution data.',
+      },
+    },
+  },
+};
+
+/**
+ * Co-Located Executions (Recommended Pattern)
+ *
+ * Demonstrates the RECOMMENDED storyboard structure with executions co-located in workflow directories.
+ * This ensures each workflow only shows its own execution artifacts, not executions from other workflows.
+ *
+ * Structure:
+ * .principal-views/
+ *   └── checkout-flow/
+ *       ├── checkout-flow.otel.canvas          (storyboard canvas)
+ *       ├── complete-checkout/                 (workflow 1)
+ *       │   ├── complete-checkout.workflow.json
+ *       │   ├── success.otel.json              (co-located execution)
+ *       │   └── payment-declined.otel.json     (co-located execution)
+ *       └── quick-checkout/                    (workflow 2)
+ *           ├── quick-checkout.workflow.json
+ *           └── express-success.otel.json      (co-located execution)
+ */
+export const CoLocatedExecutions: Story = {
+  args: {} as never,
+  render: () => {
+    // Define a simplified workflow for the complete checkout
+    const completeCheckoutWorkflow: WorkflowTemplate = {
+      version: '1.0.0',
+      canvas: 'checkout-flow.otel.canvas',
+      name: 'Complete Checkout',
+      description: 'Full checkout process with all steps',
+      mode: 'timeline' as const,
+      scenarioSelection: 'first-match' as const,
+      showLogsPerSpan: true,
+      scenarios: [
+        {
+          id: 'payment-declined',
+          priority: 1,
+          description: 'Payment was declined',
+          condition: {
+            requires: ['payment.failed'],
+          },
+          template: {
+            introduction: 'Payment Declined',
+            events: {
+              'checkout.initiated': 'Started checkout',
+              'payment.initiated': 'Processing payment',
+              'payment.failed': 'Payment declined - {{error.message}}',
+            },
+            summary: 'Payment was declined.',
+          },
+        },
+        {
+          id: 'checkout-success',
+          priority: 2,
+          description: 'Successful checkout',
+          condition: {
+            requires: ['order.created'],
+          },
+          template: {
+            introduction: 'Checkout Complete',
+            events: {
+              'checkout.initiated': 'Started checkout',
+              'payment.initiated': 'Processing payment',
+              'payment.completed': 'Payment successful',
+              'order.created': 'Order {{order.id}} created',
+            },
+            summary: 'Order successfully created!',
+          },
+        },
+      ],
+    };
+
+    // Quick checkout workflow (different workflow in same storyboard)
+    const quickCheckoutWorkflow: WorkflowTemplate = {
+      version: '1.0.0',
+      canvas: 'checkout-flow.otel.canvas',
+      name: 'Quick Checkout',
+      description: 'Express checkout for returning customers',
+      mode: 'timeline' as const,
+      scenarioSelection: 'first-match' as const,
+      scenarios: [
+        {
+          id: 'express-success',
+          priority: 1,
+          description: 'Quick checkout success',
+          condition: {
+            requires: ['order.created'],
+          },
+          template: {
+            introduction: 'Express Checkout Complete',
+            events: {
+              'checkout.initiated': 'Express checkout started',
+              'payment.completed': 'Saved payment method used',
+              'order.created': 'Order {{order.id}} created',
+            },
+            summary: 'Express order created!',
+          },
+        },
+      ],
+    };
+
+    const mock = createMockProvider([
+      // Storyboard canvas
+      {
+        path: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        relativePath: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        name: 'checkout-flow.otel.canvas',
+        content: JSON.stringify(checkoutCanvas),
+      },
+      // Workflow 1: Complete Checkout
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/complete-checkout.workflow.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/complete-checkout.workflow.json',
+        name: 'complete-checkout.workflow.json',
+        content: JSON.stringify(completeCheckoutWorkflow),
+      },
+      // Workflow 1 Executions (co-located)
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/success.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/success.otel.json',
+        name: 'success.otel.json',
+        content: JSON.stringify(successfulCheckout),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/payment-declined.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/payment-declined.otel.json',
+        name: 'payment-declined.otel.json',
+        content: JSON.stringify(paymentDeclinedCheckout),
+      },
+      // Workflow 2: Quick Checkout
+      {
+        path: '.principal-views/checkout-flow/quick-checkout/quick-checkout.workflow.json',
+        relativePath: '.principal-views/checkout-flow/quick-checkout/quick-checkout.workflow.json',
+        name: 'quick-checkout.workflow.json',
+        content: JSON.stringify(quickCheckoutWorkflow),
+      },
+      // Workflow 2 Execution (co-located) - modified for quick checkout
+      {
+        path: '.principal-views/checkout-flow/quick-checkout/express-success.otel.json',
+        relativePath: '.principal-views/checkout-flow/quick-checkout/express-success.otel.json',
+        name: 'express-success.otel.json',
+        content: JSON.stringify({
+          ...successfulCheckout,
+          metadata: {
+            ...successfulCheckout.metadata,
+            source: 'test:quick-checkout',
+          },
+          spans: [
+            {
+              ...successfulCheckout.spans[0],
+              name: 'express checkout',
+              // Only 3 events for quick checkout
+              events: [
+                successfulCheckout.spans[0].events[0], // checkout.initiated
+                successfulCheckout.spans[0].events[4], // payment.completed
+                successfulCheckout.spans[0].events[7], // order.created
+              ],
+            },
+          ],
+        }),
+      },
+    ]);
+
+    return (
+      <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
+        {(props) => (
+          <WorkflowScenariosPanel
+            {...props}
+            selectedCanvasId="checkout-flow"
+            canvasPath=".principal-views/checkout-flow/checkout-flow.otel.canvas"
+            canvasName="Checkout Flow"
+            selectedWorkflowId="checkout-flow/complete-checkout"
+            workflowPath=".principal-views/checkout-flow/complete-checkout/complete-checkout.workflow.json"
+            workflowTemplate={completeCheckoutWorkflow}
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '🎯 RECOMMENDED PATTERN: Co-located executions in workflow directories.\n\n' +
+          'This storyboard has TWO workflows:\n' +
+          '  1. Complete Checkout (2 executions: success.otel.json, payment-declined.otel.json)\n' +
+          '  2. Quick Checkout (1 execution: express-success.otel.json)\n\n' +
+          'Each workflow ONLY shows its own co-located executions. This prevents:\n' +
+          '  • Execution from Quick Checkout appearing in Complete Checkout workflow\n' +
+          '  • Incorrect scenario mappings when events don\'t match the workflow template\n\n' +
+          'The directory structure creates isolated contexts for each workflow.',
       },
     },
   },

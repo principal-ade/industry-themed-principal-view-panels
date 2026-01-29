@@ -3,23 +3,18 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme, type Theme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, WorkflowTemplate, WorkflowScenario, OtelAttributes } from '@principal-ai/principal-view-core';
-import { renderWorkflow } from '@principal-ai/principal-view-core';
+import { renderWorkflow, type ExecutionData, type DiscoveredExecution, type DiscoveredWorkflow } from '@principal-ai/principal-view-core';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 import { AnimatedResizableLayout } from '@principal-ade/panels';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/workflow-converter';
-import {
-  ExecutionLoader,
-  type ExecutionFile,
-  type ExecutionMetadata,
-  type ExecutionArtifact,
-} from './execution-viewer/ExecutionLoader';
 import { Activity, X, Pencil, FileText } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
-import { WorkflowLoader, type WorkflowFile } from './execution-viewer/WorkflowLoader';
 import { WorkflowExplainerPanel } from './WorkflowExplainerPanel';
 import { WorkflowTemplatePanel } from './execution-viewer/WorkflowTemplatePanel';
+import { useCanvasData } from './canvas-list/hooks/useCanvasData';
+import { parseExecutionArtifact, getSpans, getExecutionMetadata, type ExecutionMetadata } from './execution-viewer/executionUtils';
 
 // View mode type (should be exported from react package in future versions)
 export type ViewMode = 'raw' | 'narrative' | 'summary';
@@ -261,13 +256,13 @@ export interface WorkflowScenariosPanelProps extends PanelComponentProps {
 
 interface WorkflowScenariosPanelState {
   canvas: ExtendedCanvas | null;
-  execution: ExecutionArtifact | null;
+  execution: ExecutionData | null;
   metadata: ExecutionMetadata | null;
   loading: boolean;
   error: string | null;
   selectedCanvasId: string | null;
   canvasName: string | null;
-  availableExecutions: ExecutionFile[];
+  availableExecutions: DiscoveredExecution[];
   selectedExecutionId: string | null;
   showHelpModal: boolean;
   selectedWorkflowId: string | null;
@@ -276,11 +271,11 @@ interface WorkflowScenariosPanelState {
   currentEventIndex: number;
   highlightedNodeId: string | null;
   workflowTemplate: WorkflowTemplate | null;
-  availableNarratives: WorkflowFile[];
+  availableNarratives: DiscoveredWorkflow[];
   viewMode: ViewMode;
   executionScenarioMap: Record<string, string>; // Maps execution ID to scenario ID
   hoveredExecutionId: string | null;
-  hoveredExecution: ExecutionArtifact | null;
+  hoveredExecution: ExecutionData | null;
   hoveredScenarioEventNames: string[] | null;
   selectedScenarioId: string | null;
   selectedScenario: WorkflowScenario | null;
@@ -306,6 +301,9 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   workflowFileInfo: workflowFileInfoProp,
 }) => {
   const { theme } = useTheme();
+
+  // Use core discovery system for executions and workflows (storyboards contain both)
+  const { storyboards, executions } = useCanvasData({ context, actions });
 
   const [state, setState] = useState<WorkflowScenariosPanelState>({
     canvas: null,
@@ -376,9 +374,12 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
         return;
       }
 
-      // Find execution and workflow files
-      const executionFiles = await ExecutionLoader.findExecutionFiles(fileTreeData.allFiles);
-      const availableNarratives = WorkflowLoader.findWorkflowFiles(fileTreeData.allFiles);
+      // Note: We don't get executions/workflows here because they're loaded by useCanvasData
+      // and will be empty on first render. Instead, we'll populate them via state updates
+      // once discovery completes. For now, just set empty arrays and let the effect below
+      // update them when discovery finishes.
+      const executionFiles: typeof executions = [];
+      const availableNarratives: typeof storyboards[0]['workflows'] = [];
 
       const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
       if (!readFile) {
@@ -413,8 +414,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
             const fullExecPath = `${repositoryPath}/${execFile.path}`;
             const execContent = await readFile(fullExecPath);
             if (execContent && typeof execContent === 'string') {
-              const execution = JSON.parse(execContent) as ExecutionArtifact;
-              const spans = ExecutionLoader.getSpans(execution);
+              const execution = parseExecutionArtifact(execContent);
+              const spans = getSpans(execution);
               if (spans.length > 0) {
                 // For single-span executions, use the first span
                 const events = convertToOtelEvents(spans[0] as TestSpan, []);
@@ -461,6 +462,62 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       }));
     }
   }, []);
+
+  // Update available executions and workflows when discovery completes
+  useEffect(() => {
+    if (executions.length > 0 || storyboards.length > 0) {
+      const availableNarratives = storyboards.flatMap(sb => sb.workflows);
+
+      setState(prev => {
+        // Find the current workflow to get its co-located executions
+        const currentWorkflow = availableNarratives.find(
+          w => w.id === prev.selectedWorkflowId
+        );
+
+        // Use ONLY executions that are co-located with this workflow (directory-based association)
+        const workflowExecutions = currentWorkflow?.executions || [];
+
+        // Re-evaluate execution scenario mapping with discovered executions
+        const executionScenarioMap: Record<string, string> = {};
+        if (prev.workflowTemplate && workflowExecutions.length > 0) {
+          const readFile = (actionsRef.current as { readFile?: (path: string) => Promise<string> }).readFile;
+          const repositoryPath = (contextRef.current as { repositoryPath?: string }).repositoryPath;
+
+          if (readFile && repositoryPath) {
+            // Async evaluation - we'll update the map as executions load
+            for (const execFile of workflowExecutions) {
+              readFile(`${repositoryPath}/${execFile.path}`)
+                .then(content => {
+                  const execution = parseExecutionArtifact(content);
+                  const spans = getSpans(execution);
+                  if (spans.length > 0 && prev.workflowTemplate) {
+                    const events = convertToOtelEvents(spans[0] as TestSpan, []);
+                    const result = renderWorkflow(prev.workflowTemplate, events);
+                    setState(s => ({
+                      ...s,
+                      executionScenarioMap: {
+                        ...s.executionScenarioMap,
+                        [execFile.id]: result.scenarioId,
+                      },
+                    }));
+                  }
+                })
+                .catch(err => {
+                  console.warn(`[WorkflowScenariosPanel] Failed to evaluate execution ${execFile.id}:`, err);
+                });
+            }
+          }
+        }
+
+        return {
+          ...prev,
+          availableExecutions: workflowExecutions,
+          availableNarratives,
+          executionScenarioMap,
+        };
+      });
+    }
+  }, [executions, storyboards]);
 
   // Prop-controlled mode: Load canvas when props change
   useEffect(() => {
@@ -672,8 +729,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       const fullExecutionPath = `${repositoryPath}/${execution.path}`;
       const executionContent = await readFile(fullExecutionPath);
       if (executionContent && typeof executionContent === 'string') {
-        const executionArtifact = ExecutionLoader.parseExecutionArtifact(executionContent);
-        const metadata = ExecutionLoader.getExecutionMetadata(executionArtifact);
+        const executionArtifact = parseExecutionArtifact(executionContent);
+        const metadata = getExecutionMetadata(executionArtifact);
         setState(prev => ({
           ...prev,
           selectedExecutionId: executionId,
@@ -693,10 +750,10 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
   const handleSpanIndexChange = useCallback((newSpanIndex: number) => {
     setState(prev => {
-      const spans = prev.execution ? ExecutionLoader.getSpans(prev.execution) : [];
+      const spans = prev.execution ? getSpans(prev.execution) : [];
       const newSpan = spans[newSpanIndex];
       const newEvent = newSpan?.events?.[0]; // Start at first event of new span
-      const highlightedNodeId = newEvent ? mapEventToNodeId(newEvent, prev.canvas) : null;
+      const highlightedNodeId = newEvent ? mapEventToNodeId({ ...newEvent, attributes: newEvent.attributes as OtelAttributes }, prev.canvas) : null;
 
       return {
         ...prev,
@@ -814,7 +871,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       // Handle execution mode (has execution data)
       if (!prev.execution) return prev;
 
-      const spans = ExecutionLoader.getSpans(prev.execution);
+      const spans = getSpans(prev.execution);
       const allEvents: Array<{ name: string; time: number; attributes?: OtelAttributes }> = [];
 
       // Collect all events from all spans
@@ -824,7 +881,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
             allEvents.push({
               name: event.name,
               time: event.time,
-              attributes: event.attributes,
+              attributes: event.attributes as OtelAttributes,
             });
           }
         }
@@ -880,7 +937,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
     // Priority 1: Hovered execution preview
     if (state.hoveredExecution) {
-      const spans = ExecutionLoader.getSpans(state.hoveredExecution);
+      const spans = getSpans(state.hoveredExecution);
       const allEvents: Array<{ name: string; time: number; attributes?: OtelAttributes }> = [];
 
       for (const span of spans) {
@@ -889,7 +946,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
             allEvents.push({
               name: event.name,
               time: event.time,
-              attributes: event.attributes,
+              attributes: event.attributes as OtelAttributes,
             });
           }
         }
@@ -925,7 +982,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
     // Priority 3: Currently selected execution
     if (state.execution) {
-      const spans = ExecutionLoader.getSpans(state.execution);
+      const spans = getSpans(state.execution);
       const allEvents: Array<{ name: string; time: number; attributes?: OtelAttributes }> = [];
 
       for (const span of spans) {
@@ -934,7 +991,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
             allEvents.push({
               name: event.name,
               time: event.time,
-              attributes: event.attributes,
+              attributes: event.attributes as OtelAttributes,
             });
           }
         }
@@ -995,7 +1052,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
     playbackTimerRef.current = setInterval(() => {
       setState(prev => {
-        const spans = prev.execution ? ExecutionLoader.getSpans(prev.execution) : [];
+        const spans = prev.execution ? getSpans(prev.execution) : [];
         if (spans.length === 0) return { ...prev, isPlaying: false };
 
         const currentSpan = spans[prev.currentSpanIndex];
@@ -1022,7 +1079,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
         const newSpan = spans[newSpanIndex];
         const newEvent = newSpan?.events?.[newEventIndex];
         const highlightedNodeId = newEvent
-          ? mapEventToNodeId(newEvent, prev.canvas)
+          ? mapEventToNodeId({ ...newEvent, attributes: newEvent.attributes as OtelAttributes }, prev.canvas)
           : null;
 
         return {
@@ -1209,7 +1266,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
               <div style={{ height: '100%', overflow: 'hidden', background: '#0a0a0a' }}>
                 {state.execution ? (
                   <ScenarioDetailsPanel
-                    spans={ExecutionLoader.getSpans(state.execution) as TestSpan[]}
+                    spans={getSpans(state.execution) as TestSpan[]}
                     currentSpanIndex={state.currentSpanIndex}
                     currentEventIndex={state.currentEventIndex}
                     onSpanIndexChange={handleSpanIndexChange}
@@ -1217,7 +1274,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                     viewMode={state.viewMode}
                     onViewModeChange={handleViewModeChange}
                     onNarrativeEventClick={handleNarrativeEventClick}
-                    showNavigation={ExecutionLoader.getSpans(state.execution).length > 1}
+                    showNavigation={getSpans(state.execution).length > 1}
                     showTestName={false}
                     availableExecutions={state.availableExecutions}
                     selectedExecutionId={state.selectedExecutionId}
@@ -1250,7 +1307,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                                 const fullExecutionPath = `${repositoryPath}/${execution.path}`;
                                 const executionContent = await readFile(fullExecutionPath);
                                 if (executionContent && typeof executionContent === 'string') {
-                                  const executionArtifact = ExecutionLoader.parseExecutionArtifact(executionContent);
+                                  const executionArtifact = parseExecutionArtifact(executionContent);
                                   setState(prev => ({
                                     ...prev,
                                     hoveredExecutionId: execution.id,
@@ -1336,7 +1393,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                                 const fullExecutionPath = `${repositoryPath}/${execution.path}`;
                                 const executionContent = await readFile(fullExecutionPath);
                                 if (executionContent && typeof executionContent === 'string') {
-                                  const executionArtifact = ExecutionLoader.parseExecutionArtifact(executionContent);
+                                  const executionArtifact = parseExecutionArtifact(executionContent);
                                   setState(prev => ({
                                     ...prev,
                                     hoveredExecutionId: execution.id,
@@ -1381,6 +1438,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                 ) : state.workflowTemplate ? (
                   <WorkflowTemplatePanel
                     workflowTemplate={state.workflowTemplate}
+                    canvas={state.canvas}
                     availableExecutions={state.availableExecutions}
                     executionScenarioMap={state.executionScenarioMap}
                     onExecutionSelect={handleExecutionSelect}

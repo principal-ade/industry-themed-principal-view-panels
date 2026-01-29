@@ -3,12 +3,14 @@ import { useTheme } from '@principal-ade/industry-theme';
 import type {
   WorkflowTemplate,
   WorkflowScenario,
+  DiscoveredExecution,
+  ExtendedCanvas,
 } from '@principal-ai/principal-view-core';
-import type { ExecutionFile } from './ExecutionLoader';
 
 interface WorkflowTemplatePanelProps {
   workflowTemplate: WorkflowTemplate;
-  availableExecutions?: ExecutionFile[];
+  canvas?: ExtendedCanvas | null;
+  availableExecutions?: DiscoveredExecution[];
   executionScenarioMap?: Record<string, string>;
   onExecutionSelect?: (executionId: string) => void;
   onScenarioHover?: (eventNames: string[] | null) => void;
@@ -20,6 +22,7 @@ interface WorkflowTemplatePanelProps {
  */
 export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
   workflowTemplate,
+  canvas,
   availableExecutions = [],
   executionScenarioMap = {},
   onExecutionSelect,
@@ -49,6 +52,37 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
     }
 
     return eventNames;
+  };
+
+  // Extract source paths from canvas nodes for events in this scenario
+  const getScenarioSources = (scenario: WorkflowScenario): string[] => {
+    if (!canvas?.nodes) return [];
+
+    const eventNames = getScenarioEventNames(scenario);
+    const sources = new Set<string>();
+
+    // Look through canvas nodes to find sources for these events
+    canvas.nodes.forEach(node => {
+      // Get event name from node
+      const eventName = node.pv?.event?.name ||
+        ('metadata' in node ? (node.metadata as Record<string, unknown>)?.['pv.event'] : undefined);
+
+      if (eventName && typeof eventName === 'string' && eventNames.includes(eventName)) {
+        // Extract sources from node
+        const nodeSources = node.pv?.sources ||
+          ('metadata' in node ? (node.metadata as Record<string, unknown>)?.['pv.sources'] : undefined);
+
+        if (Array.isArray(nodeSources)) {
+          nodeSources.forEach(src => {
+            if (typeof src === 'string') {
+              sources.add(src);
+            }
+          });
+        }
+      }
+    });
+
+    return Array.from(sources).sort();
   };
 
   return (
@@ -93,6 +127,8 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
           const matchingExecutions = availableExecutions.filter(
             exec => executionScenarioMap[exec.id] === scenarioId
           );
+          // Get source paths for this scenario
+          const sources = getScenarioSources(scenario);
 
           return (
             <div
@@ -139,6 +175,20 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
                       color: theme.colors.textSecondary
                     }}>
                       {matchingExecutions.length} execution{matchingExecutions.length !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                  {sources.length > 0 && (
+                    <div style={{
+                      marginTop: '6px',
+                      fontSize: theme.fontSizes[0],
+                      color: theme.colors.textTertiary || theme.colors.textSecondary,
+                      fontFamily: 'monospace',
+                    }}>
+                      {sources.map(source => (
+                        <div key={source} style={{ marginTop: '2px' }}>
+                          📁 {source}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

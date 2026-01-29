@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import { HelpCircle, ChevronDown, X } from 'lucide-react';
 import yaml from 'js-yaml';
-import type { WorkflowTemplate, OtelAttributes, WorkflowScenario } from '@principal-ai/principal-view-core';
+import type { WorkflowTemplate, OtelAttributes, WorkflowScenario, ExtendedCanvas } from '@principal-ai/principal-view-core';
 import { WorkflowRenderer } from './WorkflowRenderer';
 import { convertToOtelEvents } from './workflow-converter';
 
@@ -88,6 +88,9 @@ export interface ScenarioDetailsPanelProps {
 
   // Selected scenario for preview mode (when no execution is selected)
   selectedScenario?: WorkflowScenario;
+
+  // Canvas for looking up source paths
+  canvas?: ExtendedCanvas | null;
 }
 
 // Helper functions for log severity
@@ -138,10 +141,38 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
   onBackClick,
   scenarioName,
   selectedScenario,
+  canvas,
 }) => {
   const { theme } = useTheme();
   const [showHelp, setShowHelp] = useState(false);
   const [showExecutionSelector, setShowExecutionSelector] = useState(false);
+
+  // Helper to get source paths for an event name
+  const getEventSources = (eventName: string): string[] => {
+    if (!canvas?.nodes) return [];
+
+    const sources = new Set<string>();
+
+    canvas.nodes.forEach(node => {
+      const nodeEventName = node.pv?.event?.name ||
+        ('metadata' in node ? (node.metadata as Record<string, unknown>)?.['pv.event'] : undefined);
+
+      if (nodeEventName === eventName) {
+        const nodeSources = node.pv?.sources ||
+          ('metadata' in node ? (node.metadata as Record<string, unknown>)?.['pv.sources'] : undefined);
+
+        if (Array.isArray(nodeSources)) {
+          nodeSources.forEach(src => {
+            if (typeof src === 'string') {
+              sources.add(src);
+            }
+          });
+        }
+      }
+    });
+
+    return Array.from(sources).sort();
+  };
 
   // Helper to highlight template variables in text
   const highlightTemplateVariables = (text: string) => {
@@ -626,6 +657,25 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                       <div style={{ fontSize: theme.fontSizes[1], color: theme.colors.text, lineHeight: '1.7' }}>
                         {highlightTemplateVariables(String(template))}
                       </div>
+                      {/* Show source paths for this event */}
+                      {(() => {
+                        const sources = getEventSources(eventName);
+                        return sources.length > 0 ? (
+                          <div style={{
+                            marginTop: '6px',
+                            fontSize: theme.fontSizes[0],
+                            color: theme.colors.textTertiary || theme.colors.textSecondary,
+                            fontFamily: 'monospace',
+                            opacity: 0.8,
+                          }}>
+                            {sources.map(source => (
+                              <div key={source} style={{ marginTop: '2px' }}>
+                                📁 {source}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   );
                 })}

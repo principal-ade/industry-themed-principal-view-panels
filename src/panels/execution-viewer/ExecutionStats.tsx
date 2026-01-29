@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ExecutionMetadata } from './ExecutionLoader';
+import type { ExecutionMetadata } from './executionUtils';
 
 interface ExecutionStatsProps {
   metadata: ExecutionMetadata;

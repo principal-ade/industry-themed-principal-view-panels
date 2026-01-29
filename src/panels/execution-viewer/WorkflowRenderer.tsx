@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { renderWorkflow, parseTemplate, selectScenario, computeAggregates } from '@principal-ai/principal-view-core';
-import type { WorkflowTemplate, OtelEvent, WorkflowScenario } from '@principal-ai/principal-view-core';
+import type { WorkflowTemplate, OtelEvent, WorkflowScenario, ExtendedCanvas } from '@principal-ai/principal-view-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import yaml from 'js-yaml';
 
@@ -28,6 +28,9 @@ export interface WorkflowRendererProps {
 
   /** Show only summary (introduction, summary, conditions) without event details */
   showOnlySummary?: boolean;
+
+  /** Canvas for looking up source paths */
+  canvas?: ExtendedCanvas | null;
 }
 
 /**
@@ -42,8 +45,36 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
   onEventClick,
   activeEventIndex,
   showOnlySummary = false,
+  canvas,
 }) => {
   const { theme } = useTheme();
+
+  // Helper to get source paths for an event name
+  const getEventSources = (eventName: string): string[] => {
+    if (!canvas?.nodes) return [];
+
+    const sources = new Set<string>();
+
+    canvas.nodes.forEach(node => {
+      const nodeEventName = node.pv?.event?.name ||
+        ('metadata' in node ? (node.metadata as Record<string, unknown>)?.['pv.event'] : undefined);
+
+      if (nodeEventName === eventName) {
+        const nodeSources = node.pv?.sources ||
+          ('metadata' in node ? (node.metadata as Record<string, unknown>)?.['pv.sources'] : undefined);
+
+        if (Array.isArray(nodeSources)) {
+          nodeSources.forEach(src => {
+            if (typeof src === 'string') {
+              sources.add(src);
+            }
+          });
+        }
+      }
+    });
+
+    return Array.from(sources).sort();
+  };
   const activeEventRef = React.useRef<HTMLDivElement>(null);
   const [contextMenu, setContextMenu] = React.useState<{
     visible: boolean;
@@ -227,6 +258,25 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
               }}
             >
               {renderFormattedText(renderedText)}
+              {/* Show source paths for this event */}
+              {(() => {
+                const sources = getEventSources(event.name);
+                return sources.length > 0 ? (
+                  <div style={{
+                    marginTop: '6px',
+                    fontSize: '11px',
+                    color: theme.colors.textTertiary || theme.colors.textSecondary,
+                    fontFamily: 'monospace',
+                    opacity: 0.8,
+                  }}>
+                    {sources.map(source => (
+                      <div key={source} style={{ marginTop: '2px' }}>
+                        📁 {source}
+                      </div>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
             </div>
           </div>
         );

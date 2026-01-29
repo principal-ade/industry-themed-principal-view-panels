@@ -4,10 +4,10 @@ import type {
   DiscoveredCanvas,
   DiscoveredStoryboard,
   DiscoveredExecution,
+  DiscoveredWorkflow,
   WorkflowTemplate
 } from '@principal-ai/principal-view-core';
 import type { FileTree } from '@principal-ai/repository-abstraction';
-import { WorkflowLoader, type WorkflowFile } from '../../execution-viewer/WorkflowLoader';
 import { useCanvasData } from './useCanvasData';
 
 interface UseCanvasNarrativeDataParams {
@@ -19,14 +19,14 @@ interface UseCanvasNarrativeDataReturn {
   canvases: DiscoveredCanvas[];
   storyboards: DiscoveredStoryboard[];
   executions: DiscoveredExecution[];
-  workflows: Array<{ file: WorkflowFile; template: WorkflowTemplate }>;
+  workflows: Array<{ file: DiscoveredWorkflow; template: WorkflowTemplate }>;
   isLoading: boolean;
   error: string | null;
   refreshData: () => Promise<void>;
 }
 
 // Stable empty array to prevent unnecessary re-renders
-const EMPTY_NARRATIVES_ARRAY: Array<{ file: WorkflowFile; template: WorkflowTemplate }> = [];
+const EMPTY_NARRATIVES_ARRAY: Array<{ file: DiscoveredWorkflow; template: WorkflowTemplate }> = [];
 
 /**
  * Hook to discover canvases and eagerly load all narrative templates
@@ -46,7 +46,7 @@ export const useCanvasWorkflowData = ({
     refreshCanvases
   } = useCanvasData({ context, actions });
 
-  const [workflows, setNarratives] = useState<Array<{ file: WorkflowFile; template: WorkflowTemplate }>>(
+  const [workflows, setNarratives] = useState<Array<{ file: DiscoveredWorkflow; template: WorkflowTemplate }>>(
     EMPTY_NARRATIVES_ARRAY
   );
   const [workflowsLoading, setNarrativesLoading] = useState(false);
@@ -101,13 +101,9 @@ export const useCanvasWorkflowData = ({
             return null;
           }
 
-          const template = WorkflowLoader.parseWorkflowTemplate(content);
+          const template = JSON.parse(content) as WorkflowTemplate;
           return {
-            file: {
-              id: workflow.id,
-              name: workflow.name,
-              path: workflow.path,
-            },
+            file: workflow,
             template
           };
         } catch (error) {
@@ -117,7 +113,7 @@ export const useCanvasWorkflowData = ({
       });
 
       const results = await Promise.all(workflowPromises);
-      const loadedNarratives = results.filter((r): r is { file: WorkflowFile; template: WorkflowTemplate } => r !== null);
+      const loadedNarratives = results.filter((r): r is { file: DiscoveredWorkflow; template: WorkflowTemplate } => r !== null);
 
       setNarratives(loadedNarratives);
       lastLoadedNarrativeSha.current = fileTreeSha;
