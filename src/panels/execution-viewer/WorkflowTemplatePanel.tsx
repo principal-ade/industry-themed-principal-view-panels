@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
+import { FileCode } from 'lucide-react';
 import type {
   WorkflowTemplate,
   WorkflowScenario,
@@ -176,8 +177,9 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
                       fontFamily: 'monospace',
                     }}>
                       {sources.map(source => (
-                        <div key={source} style={{ marginTop: '2px' }}>
-                          📁 {source}
+                        <div key={source} style={{ marginTop: '2px', padding: '4px 0', display: 'flex', alignItems: 'center' }}>
+                          <FileCode size={14} style={{ marginRight: '4px', flexShrink: 0 }} />
+                          {source}
                         </div>
                       ))}
                     </div>

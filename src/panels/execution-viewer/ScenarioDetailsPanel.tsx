@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { HelpCircle, ChevronDown, X } from 'lucide-react';
+import { HelpCircle, ChevronDown, X, FileCode } from 'lucide-react';
 import yaml from 'js-yaml';
 import type { WorkflowTemplate, OtelAttributes, WorkflowScenario, ExtendedCanvas } from '@principal-ai/principal-view-core';
 import { WorkflowRenderer } from './WorkflowRenderer';
@@ -658,7 +658,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                         return sources.length > 0 ? (
                           <div style={{
                             marginTop: '6px',
-                            fontSize: theme.fontSizes[0],
+                            fontSize: theme.fontSizes[1],
                             color: theme.colors.textTertiary || theme.colors.textSecondary,
                             fontFamily: 'monospace',
                             opacity: 0.8,
@@ -677,18 +677,21 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                                   marginTop: '2px',
                                   padding: '4px 0',
                                   cursor: onSourceClick ? 'pointer' : 'default',
-                                  transition: 'opacity 0.2s',
+                                  transition: 'all 0.2s',
                                 }}
                                 onMouseEnter={(e) => {
                                   if (onSourceClick) {
                                     e.currentTarget.style.opacity = '1';
+                                    e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary || '#2a2a2a';
                                   }
                                 }}
                                 onMouseLeave={(e) => {
                                   e.currentTarget.style.opacity = '0.8';
+                                  e.currentTarget.style.backgroundColor = 'transparent';
                                 }}
                               >
-                                📁 {source}
+                                <FileCode size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
+                                {source}
                               </div>
                             ))}
                           </div>
