@@ -91,6 +91,9 @@ export interface ScenarioDetailsPanelProps {
 
   // Canvas for looking up source paths
   canvas?: ExtendedCanvas | null;
+
+  // Source file click handler
+  onSourceClick?: (source: string) => void;
 }
 
 // Helper functions for log severity
@@ -142,6 +145,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
   scenarioName,
   selectedScenario,
   canvas,
+  onSourceClick,
 }) => {
   const { theme } = useTheme();
   const [showHelp, setShowHelp] = useState(false);
@@ -633,16 +637,6 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                           onNarrativeEventClick(templateEvent, eventIndex);
                         }
                       }}
-                      onMouseEnter={(e) => {
-                        if (onNarrativeEventClick && !isActive) {
-                          e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary || '#2a2a2a';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                        }
-                      }}
                       style={{
                         padding: '8px 20px 12px 20px',
                         backgroundColor: isActive ? theme.colors.backgroundTertiary || '#2a2a2a' : theme.colors.backgroundSecondary,
@@ -670,7 +664,30 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                             opacity: 0.8,
                           }}>
                             {sources.map(source => (
-                              <div key={source} style={{ marginTop: '2px' }}>
+                              <div
+                                key={source}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onSourceClick) {
+                                    const cleanPath = source.replace(/\*/g, '');
+                                    onSourceClick(cleanPath);
+                                  }
+                                }}
+                                style={{
+                                  marginTop: '2px',
+                                  padding: '4px 0',
+                                  cursor: onSourceClick ? 'pointer' : 'default',
+                                  transition: 'opacity 0.2s',
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (onSourceClick) {
+                                    e.currentTarget.style.opacity = '1';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.opacity = '0.8';
+                                }}
+                              >
                                 📁 {source}
                               </div>
                             ))}

@@ -182,21 +182,19 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
                       ))}
                     </div>
                   )}
-                  {matchingExecutions.length > 0 && (
-                    <div style={{
-                      marginTop: '12px',
-                      fontSize: theme.fontSizes[0],
-                      color: theme.colors.textSecondary
-                    }}>
-                      Test Trace
-                    </div>
-                  )}
                 </div>
               </div>
 
               {/* Show executions for this scenario */}
               {matchingExecutions.length > 0 && (
-                <div style={{ paddingLeft: '20px', paddingRight: '12px', paddingBottom: '12px', marginTop: '0px' }}>
+                <div style={{ paddingLeft: '20px', paddingRight: '12px', paddingBottom: '12px', marginTop: '12px' }}>
+                  <div style={{
+                    fontSize: theme.fontSizes[0],
+                    color: theme.colors.textSecondary,
+                    marginBottom: '4px'
+                  }}>
+                    Test Trace
+                  </div>
                   {matchingExecutions.map(exec => (
                     <div
                       key={exec.id}
@@ -207,7 +205,7 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
                         }
                       }}
                       style={{
-                        padding: '0px 12px',
+                        padding: '4px 12px',
                         marginBottom: '4px',
                         background: theme.colors.backgroundSecondary,
                         borderRadius: '4px',

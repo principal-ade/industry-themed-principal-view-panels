@@ -795,6 +795,21 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     }
   }, []);
 
+  // Handle source click from scenario details panel (simplified signature)
+  const handleScenarioSourceClick = useCallback((source: string) => {
+    console.log('[WorkflowScenariosPanel] Source clicked - opening file:', source);
+
+    // Emit file:open event
+    if (eventsRef.current) {
+      eventsRef.current.emit({
+        type: 'file:open',
+        source: 'workflow-scenarios-panel',
+        timestamp: Date.now(),
+        payload: { path: source },
+      });
+    }
+  }, []);
+
   // Handle node click on canvas - find corresponding event and highlight narrative
   const handleNodeClick = useCallback((nodeId: string, event: React.MouseEvent) => {
     // Handle shift+click to open source files (legacy - now handled by onSourceClick)
@@ -1280,6 +1295,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                     availableExecutions={state.availableExecutions}
                     selectedExecutionId={state.selectedExecutionId}
                     onExecutionSelect={handleExecutionSelect}
+                    onSourceClick={handleScenarioSourceClick}
                     onDeselectExecution={() => {
                       setState(prev => ({
                         ...prev,
@@ -1368,6 +1384,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                     )}
                     selectedExecutionId={state.selectedExecutionId}
                     onExecutionSelect={handleExecutionSelect}
+                    onSourceClick={handleScenarioSourceClick}
                     onDeselectExecution={() => {
                       setState(prev => ({
                         ...prev,
