@@ -278,6 +278,25 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     });
   }, [canvasPath]);
 
+  // Handle source click in node info panel
+  const handleSourceClick = useCallback((nodeId: string, source: string) => {
+    // Remove glob patterns (* characters) to get the base path
+    const cleanPath = source.replace(/\*/g, '');
+
+    console.log('[CanvasEditorPanel] Source clicked - opening file:', cleanPath, 'from node:', nodeId);
+
+    // Emit file:open event (same as git changes panel)
+    // Pass relative path, not absolute - the context will resolve it
+    if (eventsRef.current) {
+      eventsRef.current.emit({
+        type: 'file:open',
+        source: 'canvas-editor-panel',
+        timestamp: Date.now(),
+        payload: { path: cleanPath },
+      });
+    }
+  }, []);
+
   // Toggle edit mode
   const toggleEditMode = useCallback(() => {
     setState(prev => {
@@ -729,6 +748,8 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
             onPendingChangesChange={(hasChanges) => {
               setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
             }}
+            showNodeDetailPanel={true}
+            onSourceClick={handleSourceClick}
           />
         </div>
 

@@ -5,6 +5,7 @@ import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, WorkflowTemplate, WorkflowScenario, OtelAttributes } from '@principal-ai/principal-view-core';
 import { renderWorkflow } from '@principal-ai/principal-view-core';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
+import { AnimatedResizableLayout } from '@principal-ade/panels';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/workflow-converter';
 import {
@@ -1200,261 +1201,263 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Event Timeline or Workflow Template - Always show since workflow is required */}
-        {state.workflowTemplate && (
-          <div style={{ flex: '0 0 40%', borderRight: '1px solid #333', overflow: 'hidden' }}>
-            {state.execution ? (
-              <ScenarioDetailsPanel
-                spans={ExecutionLoader.getSpans(state.execution) as TestSpan[]}
-                currentSpanIndex={state.currentSpanIndex}
-                currentEventIndex={state.currentEventIndex}
-                onSpanIndexChange={handleSpanIndexChange}
-                workflowTemplate={state.workflowTemplate ?? undefined}
-                viewMode={state.viewMode}
-                onViewModeChange={handleViewModeChange}
-                onNarrativeEventClick={handleNarrativeEventClick}
-                showNavigation={ExecutionLoader.getSpans(state.execution).length > 1}
-                showTestName={false}
-                availableExecutions={state.availableExecutions}
-                selectedExecutionId={state.selectedExecutionId}
-                onExecutionSelect={handleExecutionSelect}
-                onDeselectExecution={() => {
-                  setState(prev => ({
-                    ...prev,
-                    selectedExecutionId: null,
-                    execution: null,
-                    metadata: null,
-                    isPlaying: false,
-                    currentSpanIndex: 0,
-                    currentEventIndex: 0,
-                    highlightedNodeId: null,
-                  }));
-                }}
-                onExecutionHover={(executionId) => {
-                  if (executionId) {
-                    // Load the execution for preview (hover)
-                    const execution = state.availableExecutions.find(e => e.id === executionId);
-                    if (execution) {
-                      (async () => {
-                        try {
-                          const ctx = contextRef.current;
-                          const acts = actionsRef.current;
-                          const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
-                          const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        {state.workflowTemplate && state.canvas ? (
+          <AnimatedResizableLayout
+            theme={theme}
+            leftPanel={
+              <div style={{ height: '100%', overflow: 'hidden', background: '#0a0a0a' }}>
+                {state.execution ? (
+                  <ScenarioDetailsPanel
+                    spans={ExecutionLoader.getSpans(state.execution) as TestSpan[]}
+                    currentSpanIndex={state.currentSpanIndex}
+                    currentEventIndex={state.currentEventIndex}
+                    onSpanIndexChange={handleSpanIndexChange}
+                    workflowTemplate={state.workflowTemplate ?? undefined}
+                    viewMode={state.viewMode}
+                    onViewModeChange={handleViewModeChange}
+                    onNarrativeEventClick={handleNarrativeEventClick}
+                    showNavigation={ExecutionLoader.getSpans(state.execution).length > 1}
+                    showTestName={false}
+                    availableExecutions={state.availableExecutions}
+                    selectedExecutionId={state.selectedExecutionId}
+                    onExecutionSelect={handleExecutionSelect}
+                    onDeselectExecution={() => {
+                      setState(prev => ({
+                        ...prev,
+                        selectedExecutionId: null,
+                        execution: null,
+                        metadata: null,
+                        isPlaying: false,
+                        currentSpanIndex: 0,
+                        currentEventIndex: 0,
+                        highlightedNodeId: null,
+                      }));
+                    }}
+                    onExecutionHover={(executionId) => {
+                      if (executionId) {
+                        // Load the execution for preview (hover)
+                        const execution = state.availableExecutions.find(e => e.id === executionId);
+                        if (execution) {
+                          (async () => {
+                            try {
+                              const ctx = contextRef.current;
+                              const acts = actionsRef.current;
+                              const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
+                              const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
 
-                          if (readFile && repositoryPath) {
-                            const fullExecutionPath = `${repositoryPath}/${execution.path}`;
-                            const executionContent = await readFile(fullExecutionPath);
-                            if (executionContent && typeof executionContent === 'string') {
-                              const executionArtifact = ExecutionLoader.parseExecutionArtifact(executionContent);
-                              setState(prev => ({
-                                ...prev,
-                                hoveredExecutionId: execution.id,
-                                hoveredExecution: executionArtifact,
-                              }));
+                              if (readFile && repositoryPath) {
+                                const fullExecutionPath = `${repositoryPath}/${execution.path}`;
+                                const executionContent = await readFile(fullExecutionPath);
+                                if (executionContent && typeof executionContent === 'string') {
+                                  const executionArtifact = ExecutionLoader.parseExecutionArtifact(executionContent);
+                                  setState(prev => ({
+                                    ...prev,
+                                    hoveredExecutionId: execution.id,
+                                    hoveredExecution: executionArtifact,
+                                  }));
+                                }
+                              }
+                            } catch (error) {
+                              console.error('[ExecutionViewer] Failed to load execution for preview:', error);
                             }
-                          }
-                        } catch (error) {
-                          console.error('[ExecutionViewer] Failed to load execution for preview:', error);
+                          })();
                         }
-                      })();
+                      } else {
+                        setState(prev => ({
+                          ...prev,
+                          hoveredExecutionId: null,
+                          hoveredExecution: null,
+                        }));
+                      }
+                    }}
+                    showBackButton={!!(state.workflowTemplate && state.availableExecutions.length > 0)}
+                    onBackClick={() => {
+                      setState(prev => ({
+                        ...prev,
+                        selectedExecutionId: null,
+                        execution: null,
+                        metadata: null,
+                        isPlaying: false,
+                        currentSpanIndex: 0,
+                        currentEventIndex: 0,
+                        highlightedNodeId: null,
+                      }));
+                    }}
+                    scenarioName={
+                      state.selectedExecutionId && state.executionScenarioMap[state.selectedExecutionId]
+                        ? state.executionScenarioMap[state.selectedExecutionId]
+                            .split('-')
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ')
+                        : undefined
                     }
-                  } else {
-                    setState(prev => ({
-                      ...prev,
-                      hoveredExecutionId: null,
-                      hoveredExecution: null,
-                    }));
-                  }
-                }}
-                showBackButton={!!(state.workflowTemplate && state.availableExecutions.length > 0)}
-                onBackClick={() => {
-                  setState(prev => ({
-                    ...prev,
-                    selectedExecutionId: null,
-                    execution: null,
-                    metadata: null,
-                    isPlaying: false,
-                    currentSpanIndex: 0,
-                    currentEventIndex: 0,
-                    highlightedNodeId: null,
-                  }));
-                }}
-                scenarioName={
-                  state.selectedExecutionId && state.executionScenarioMap[state.selectedExecutionId]
-                    ? state.executionScenarioMap[state.selectedExecutionId]
-                        .split('-')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ')
-                    : undefined
-                }
-              />
-            ) : state.selectedScenario ? (
-              <ScenarioDetailsPanel
-                spans={[]} // Empty spans when showing scenario without execution
-                currentSpanIndex={0}
-                currentEventIndex={state.currentEventIndex}
-                workflowTemplate={state.workflowTemplate ?? undefined}
-                viewMode={state.viewMode}
-                onViewModeChange={handleViewModeChange}
-                onNarrativeEventClick={handleNarrativeEventClick}
-                showNavigation={false}
-                showTestName={false}
-                availableExecutions={state.availableExecutions.filter(
-                  exec => state.executionScenarioMap[exec.id] === state.selectedScenarioId
-                )}
-                selectedExecutionId={state.selectedExecutionId}
-                onExecutionSelect={handleExecutionSelect}
-                onDeselectExecution={() => {
-                  setState(prev => ({
-                    ...prev,
-                    selectedExecutionId: null,
-                    execution: null,
-                    metadata: null,
-                    isPlaying: false,
-                    currentSpanIndex: 0,
-                    currentEventIndex: 0,
-                    highlightedNodeId: null,
-                  }));
-                }}
-                onExecutionHover={(executionId) => {
-                  if (executionId) {
-                    const execution = state.availableExecutions.find(e => e.id === executionId);
-                    if (execution) {
-                      (async () => {
-                        try {
-                          const ctx = contextRef.current;
-                          const acts = actionsRef.current;
-                          const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
-                          const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
+                  />
+                ) : state.selectedScenario ? (
+                  <ScenarioDetailsPanel
+                    spans={[]} // Empty spans when showing scenario without execution
+                    currentSpanIndex={0}
+                    currentEventIndex={state.currentEventIndex}
+                    workflowTemplate={state.workflowTemplate ?? undefined}
+                    viewMode={state.viewMode}
+                    onViewModeChange={handleViewModeChange}
+                    onNarrativeEventClick={handleNarrativeEventClick}
+                    showNavigation={false}
+                    showTestName={false}
+                    availableExecutions={state.availableExecutions.filter(
+                      exec => state.executionScenarioMap[exec.id] === state.selectedScenarioId
+                    )}
+                    selectedExecutionId={state.selectedExecutionId}
+                    onExecutionSelect={handleExecutionSelect}
+                    onDeselectExecution={() => {
+                      setState(prev => ({
+                        ...prev,
+                        selectedExecutionId: null,
+                        execution: null,
+                        metadata: null,
+                        isPlaying: false,
+                        currentSpanIndex: 0,
+                        currentEventIndex: 0,
+                        highlightedNodeId: null,
+                      }));
+                    }}
+                    onExecutionHover={(executionId) => {
+                      if (executionId) {
+                        const execution = state.availableExecutions.find(e => e.id === executionId);
+                        if (execution) {
+                          (async () => {
+                            try {
+                              const ctx = contextRef.current;
+                              const acts = actionsRef.current;
+                              const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
+                              const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
 
-                          if (readFile && repositoryPath) {
-                            const fullExecutionPath = `${repositoryPath}/${execution.path}`;
-                            const executionContent = await readFile(fullExecutionPath);
-                            if (executionContent && typeof executionContent === 'string') {
-                              const executionArtifact = ExecutionLoader.parseExecutionArtifact(executionContent);
-                              setState(prev => ({
-                                ...prev,
-                                hoveredExecutionId: execution.id,
-                                hoveredExecution: executionArtifact,
-                              }));
+                              if (readFile && repositoryPath) {
+                                const fullExecutionPath = `${repositoryPath}/${execution.path}`;
+                                const executionContent = await readFile(fullExecutionPath);
+                                if (executionContent && typeof executionContent === 'string') {
+                                  const executionArtifact = ExecutionLoader.parseExecutionArtifact(executionContent);
+                                  setState(prev => ({
+                                    ...prev,
+                                    hoveredExecutionId: execution.id,
+                                    hoveredExecution: executionArtifact,
+                                  }));
+                                }
+                              }
+                            } catch (error) {
+                              console.error('[ExecutionViewer] Failed to load execution for preview:', error);
                             }
-                          }
-                        } catch (error) {
-                          console.error('[ExecutionViewer] Failed to load execution for preview:', error);
+                          })();
                         }
-                      })();
+                      } else {
+                        setState(prev => ({
+                          ...prev,
+                          hoveredExecutionId: null,
+                          hoveredExecution: null,
+                        }));
+                      }
+                    }}
+                    showBackButton={true}
+                    onBackClick={() => {
+                      setState(prev => ({
+                        ...prev,
+                        selectedScenarioId: null,
+                        selectedScenario: null,
+                        selectedExecutionId: null,
+                        execution: null,
+                        metadata: null,
+                      }));
+                    }}
+                    scenarioName={
+                      state.selectedScenarioId
+                        ? state.selectedScenarioId
+                            .split('-')
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ')
+                        : undefined
                     }
-                  } else {
-                    setState(prev => ({
-                      ...prev,
-                      hoveredExecutionId: null,
-                      hoveredExecution: null,
-                    }));
-                  }
-                }}
-                showBackButton={true}
-                onBackClick={() => {
-                  setState(prev => ({
-                    ...prev,
-                    selectedScenarioId: null,
-                    selectedScenario: null,
-                    selectedExecutionId: null,
-                    execution: null,
-                    metadata: null,
-                  }));
-                }}
-                scenarioName={
-                  state.selectedScenarioId
-                    ? state.selectedScenarioId
-                        .split('-')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ')
-                    : undefined
-                }
-                selectedScenario={state.selectedScenario ?? undefined}
-              />
-            ) : state.workflowTemplate ? (
-              <WorkflowTemplatePanel
-                workflowTemplate={state.workflowTemplate}
-                availableExecutions={state.availableExecutions}
-                executionScenarioMap={state.executionScenarioMap}
-                onExecutionSelect={handleExecutionSelect}
-                onScenarioHover={handleScenarioHover}
-                onScenarioClick={handleScenarioClick}
-              />
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  background: '#0a0a0a',
-                  padding: '20px',
-                }}
-              >
-                <div style={{ textAlign: 'center', maxWidth: '400px' }}>
-                  <Activity size={48} style={{ margin: '0 auto 20px', opacity: 0.3, color: '#666' }} />
-                  <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>
-                    No Execution Artifacts Found
-                  </h3>
-                  <p style={{ margin: '0 0 16px 0', color: '#999', lineHeight: 1.5, fontSize: '13px' }}>
-                    The canvas is displayed, but execution data is missing. Run tests to generate execution artifacts.
-                  </p>
+                    selectedScenario={state.selectedScenario ?? undefined}
+                  />
+                ) : state.workflowTemplate ? (
+                  <WorkflowTemplatePanel
+                    workflowTemplate={state.workflowTemplate}
+                    availableExecutions={state.availableExecutions}
+                    executionScenarioMap={state.executionScenarioMap}
+                    onExecutionSelect={handleExecutionSelect}
+                    onScenarioHover={handleScenarioHover}
+                    onScenarioClick={handleScenarioClick}
+                  />
+                ) : (
                   <div
                     style={{
-                      background: '#1e1e1e',
-                      padding: '10px',
-                      borderRadius: '4px',
-                      fontFamily: 'monospace',
-                      fontSize: '11px',
-                      textAlign: 'left',
-                      color: '#d4d4d4',
-                      marginBottom: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '100%',
+                      background: '#0a0a0a',
+                      padding: '20px',
                     }}
                   >
-                    <div># Save execution artifacts to:</div>
-                    <div style={{ marginTop: '4px' }}>__executions__/*.otel.json</div>
-                    <div>packages/*/__executions__/*.otel.json</div>
-                    <div style={{ color: '#888', fontSize: '10px', marginTop: '4px' }}># Only .otel.json files are supported</div>
+                    <div style={{ textAlign: 'center', maxWidth: '400px' }}>
+                      <Activity size={48} style={{ margin: '0 auto 20px', opacity: 0.3, color: '#666' }} />
+                      <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', fontWeight: 600, color: '#fff' }}>
+                        No Execution Artifacts Found
+                      </h3>
+                      <p style={{ margin: '0 0 16px 0', color: '#999', lineHeight: 1.5, fontSize: '13px' }}>
+                        The canvas is displayed, but execution data is missing. Run tests to generate execution artifacts.
+                      </p>
+                      <div
+                        style={{
+                          background: '#1e1e1e',
+                          padding: '10px',
+                          borderRadius: '4px',
+                          fontFamily: 'monospace',
+                          fontSize: '11px',
+                          textAlign: 'left',
+                          color: '#d4d4d4',
+                          marginBottom: '12px',
+                        }}
+                      >
+                        <div># Save execution artifacts to:</div>
+                        <div style={{ marginTop: '4px' }}>__executions__/*.otel.json</div>
+                        <div>packages/*/__executions__/*.otel.json</div>
+                        <div style={{ color: '#888', fontSize: '10px', marginTop: '4px' }}># Only .otel.json files are supported</div>
+                      </div>
+                      <p style={{ margin: 0, color: '#666', fontSize: '11px', fontStyle: 'italic' }}>
+                        Tip: Use exportExecutionArtifact() in your tests
+                      </p>
+                    </div>
                   </div>
-                  <p style={{ margin: 0, color: '#666', fontSize: '11px', fontStyle: 'italic' }}>
-                    Tip: Use exportExecutionArtifact() in your tests
-                  </p>
-                </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Canvas View - Full width when canvas-only, 60% when execution/narratives exist */}
-        {state.canvas ? (
-          <div
-            style={{
-              flex: '0 0 60%', // Always 60% since workflow is always present
-              position: 'relative',
-            }}
-          >
-            <GraphRenderer
-              canvas={state.canvas}
-              showMinimap={false}
-              showControls={true}
-              showBackground={false}
-              backgroundVariant="lines"
-              showTooltips={true}
-              highlightedNodeId={state.highlightedNodeId}
-              activeNodeIds={activeNodeIds}
-              onNodeClick={handleNodeClick}
-              onSourceClick={handleSourceClick}
-              showNodeDetailPanel={true}
-            />
-          </div>
+            }
+            rightPanel={
+              <div style={{ height: '100%', position: 'relative', background: '#0a0a0a' }}>
+                <GraphRenderer
+                  canvas={state.canvas}
+                  showMinimap={false}
+                  showControls={true}
+                  showBackground={false}
+                  backgroundVariant="lines"
+                  showTooltips={true}
+                  highlightedNodeId={state.highlightedNodeId}
+                  activeNodeIds={activeNodeIds}
+                  onNodeClick={handleNodeClick}
+                  onSourceClick={handleSourceClick}
+                  showNodeDetailPanel={true}
+                />
+              </div>
+            }
+            collapsibleSide="left"
+            defaultSize={40}
+            minSize={20}
+            showCollapseButton={false}
+            animationDuration={250}
+          />
         ) : (
           <div
             style={{
-              flex: '0 0 60%',
+              height: '100%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
