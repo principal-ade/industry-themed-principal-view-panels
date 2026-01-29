@@ -81,7 +81,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        sources: ['src/checkout/*.ts', 'src/cart/checkout.ts'],
+        sources: ['src/checkout/index.ts', 'src/checkout/session.ts', 'src/cart/checkout.ts'],
         event: {
           name: 'checkout.initiated',
           description: 'Session begins',
@@ -110,7 +110,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        sources: ['src/payment/*.ts'],
+        sources: ['src/payment/processor.ts', 'src/payment/gateway.ts'],
         event: {
           name: 'payment.initiated',
           description: 'Payment processing begins',
@@ -136,6 +136,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
+        sources: ['src/inventory/stock-checker.ts', 'src/inventory/warehouse.ts'],
         event: {
           name: 'inventory.checking',
           description: 'Checking stock',
@@ -160,6 +161,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
+        sources: ['src/shipping/calculator.ts', 'src/shipping/rate-provider.ts'],
         event: {
           name: 'shipping.calculating',
           description: 'Calculating shipping',
@@ -187,6 +189,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
+        sources: ['src/payment/processor.ts', 'src/payment/transaction.ts'],
         event: {
           name: 'payment.completed',
           description: 'Payment successful',
@@ -212,6 +215,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
+        sources: ['src/payment/processor.ts', 'src/payment/error-handler.ts'],
         event: {
           name: 'payment.failed',
           description: 'Payment failed',
@@ -238,6 +242,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
+        sources: ['src/inventory/reservation.ts', 'src/inventory/warehouse.ts'],
         event: {
           name: 'inventory.reserved',
           description: 'Stock reserved',
@@ -263,6 +268,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
+        sources: ['src/inventory/stock-checker.ts', 'src/inventory/error-handler.ts'],
         event: {
           name: 'inventory.insufficient',
           description: 'Out of stock',
@@ -288,6 +294,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
+        sources: ['src/shipping/calculator.ts', 'src/shipping/delivery-estimator.ts'],
         event: {
           name: 'shipping.calculated',
           description: 'Shipping determined',
@@ -316,6 +323,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
+        sources: ['src/order/order-service.ts', 'src/order/confirmation.ts'],
         event: {
           name: 'order.created',
           description: 'Order finalized',

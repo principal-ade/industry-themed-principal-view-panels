@@ -168,15 +168,6 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
                   <h3 style={{ margin: 0, fontSize: theme.fontSizes[1], fontWeight: 600 }}>
                     {scenarioId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                   </h3>
-                  {matchingExecutions.length > 0 && (
-                    <div style={{
-                      marginTop: '4px',
-                      fontSize: theme.fontSizes[0],
-                      color: theme.colors.textSecondary
-                    }}>
-                      {matchingExecutions.length} execution{matchingExecutions.length !== 1 ? 's' : ''}
-                    </div>
-                  )}
                   {sources.length > 0 && (
                     <div style={{
                       marginTop: '6px',
@@ -191,12 +182,21 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
                       ))}
                     </div>
                   )}
+                  {matchingExecutions.length > 0 && (
+                    <div style={{
+                      marginTop: '12px',
+                      fontSize: theme.fontSizes[0],
+                      color: theme.colors.textSecondary
+                    }}>
+                      Test Trace
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Show executions for this scenario */}
               {matchingExecutions.length > 0 && (
-                <div style={{ paddingLeft: '20px', paddingBottom: '8px' }}>
+                <div style={{ paddingLeft: '20px', paddingRight: '12px', paddingBottom: '12px', marginTop: '0px' }}>
                   {matchingExecutions.map(exec => (
                     <div
                       key={exec.id}
@@ -207,7 +207,7 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
                         }
                       }}
                       style={{
-                        padding: '6px 12px',
+                        padding: '0px 12px',
                         marginBottom: '4px',
                         background: theme.colors.backgroundSecondary,
                         borderRadius: '4px',

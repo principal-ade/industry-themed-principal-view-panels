@@ -1276,6 +1276,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                     onNarrativeEventClick={handleNarrativeEventClick}
                     showNavigation={getSpans(state.execution).length > 1}
                     showTestName={false}
+                    canvas={state.canvas}
                     availableExecutions={state.availableExecutions}
                     selectedExecutionId={state.selectedExecutionId}
                     onExecutionSelect={handleExecutionSelect}
@@ -1361,6 +1362,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                     onNarrativeEventClick={handleNarrativeEventClick}
                     showNavigation={false}
                     showTestName={false}
+                    canvas={state.canvas}
                     availableExecutions={state.availableExecutions.filter(
                       exec => state.executionScenarioMap[exec.id] === state.selectedScenarioId
                     )}
