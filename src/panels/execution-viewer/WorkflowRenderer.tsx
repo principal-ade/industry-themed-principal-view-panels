@@ -195,80 +195,156 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
         return aTime - bTime;
       });
 
-      sortedEvents.forEach((event, eventIndex) => {
-        const eventTemplate = scenario.template.events?.[event.name];
+      // Create a map of execution events by name for quick lookup
+      const executionEventsByName = new Map<string, { event: OtelEvent; index: number }[]>();
+      sortedEvents.forEach((event, index) => {
+        const existing = executionEventsByName.get(event.name) || [];
+        existing.push({ event, index });
+        executionEventsByName.set(event.name, existing);
+      });
+
+      // Track which execution events we've rendered
+      const renderedEventIndices = new Set<number>();
+
+      // Get template events in order (if defined)
+      const templateEventNames = scenario.template.events ? Object.keys(scenario.template.events) : [];
+
+      // First, render template events in order (showing missing ones)
+      templateEventNames.forEach((templateEventName) => {
+        const eventTemplate = scenario.template.events?.[templateEventName];
         if (!eventTemplate) return;
 
-        // Build context with event attributes as nested objects for Handlebars
-        const eventContext: Record<string, unknown> = { ...fullContext };
+        const matchingEvents = executionEventsByName.get(templateEventName) || [];
 
-        // Convert flat dot-notation keys to nested objects
-        if (event.attributes) {
-          for (const [key, value] of Object.entries(event.attributes)) {
-            if (key.includes('.')) {
-              // Nested key: convert "skill.name" -> { skill: { name: value } }
-              const parts = key.split('.');
-              let current: Record<string, unknown> = eventContext;
-              for (let i = 0; i < parts.length - 1; i++) {
-                if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
-                  current[parts[i]] = {};
-                }
-                current = current[parts[i]] as Record<string, unknown>;
-              }
-              current[parts[parts.length - 1]] = value;
-            } else {
-              // Simple key
-              eventContext[key] = value;
-            }
-          }
-        }
+        if (matchingEvents.length === 0) {
+          // Event is in template but NOT in execution - show template text
+          // Variables won't resolve, showing {{variableName}} as the indicator it's missing
+          const renderedText = parseTemplate(eventTemplate, fullContext);
 
-        const renderedText = parseTemplate(eventTemplate, eventContext);
+          // Create a synthetic event for click handling
+          const syntheticEventIndex = sortedEvents.length + templateEventNames.indexOf(templateEventName);
+          const syntheticEvent: OtelEvent = {
+            name: templateEventName,
+            timestamp: 0,
+            attributes: {},
+          };
 
-        // Make the entire event block clickable
-        elements.push(
-          <div
-            key={`event-${eventIndex}`}
-            ref={activeEventIndex === eventIndex ? activeEventRef : null}
-            onClick={() => {
-              if (onEventClick) {
-                onEventClick(event, eventIndex);
-              }
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setContextMenu({
-                visible: true,
-                x: e.clientX,
-                y: e.clientY,
-                event,
-              });
-            }}
-            style={{
-              cursor: onEventClick ? 'pointer' : 'default',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            {/* Event content card */}
+          elements.push(
             <div
+              key={`missing-event-${templateEventName}`}
+              onClick={() => {
+                if (onEventClick) {
+                  onEventClick(syntheticEvent, syntheticEventIndex);
+                }
+              }}
               style={{
-                padding: '8px 20px 12px 20px',
-                backgroundColor: activeEventIndex === eventIndex ? theme.colors.muted : theme.colors.backgroundSecondary,
-                borderBottom: `1px solid ${theme.colors.border}`,
-                borderLeft: activeEventIndex === eventIndex ? `4px solid ${theme.colors.primary}` : '4px solid transparent',
-                fontSize: theme.fontSizes[1],
-                lineHeight: '1.7',
-                fontWeight: 500,
-                transition: 'background-color 0.2s ease, border-color 0.2s ease',
-                color: theme.colors.text,
+                cursor: onEventClick ? 'pointer' : 'default',
+                transition: 'all 0.2s ease',
               }}
             >
-              {renderFormattedText(renderedText)}
-              {/* Show source paths for this event */}
-              <SourceFileList sources={getEventSources(event.name)} onSourceClick={onSourceClick} />
+              <div
+                style={{
+                  padding: '8px 20px 12px 20px',
+                  backgroundColor: activeEventIndex === syntheticEventIndex ? theme.colors.muted : theme.colors.backgroundSecondary,
+                  borderBottom: `1px solid ${theme.colors.border}`,
+                  borderLeft: activeEventIndex === syntheticEventIndex ? `4px solid ${theme.colors.warning}` : '4px solid transparent',
+                  fontSize: theme.fontSizes[1],
+                  lineHeight: '1.7',
+                  fontWeight: 500,
+                  transition: 'background-color 0.2s ease, border-color 0.2s ease',
+                  color: theme.colors.text,
+                }}
+              >
+                {renderFormattedText(renderedText)}
+                <SourceFileList sources={getEventSources(templateEventName)} onSourceClick={onSourceClick} />
+              </div>
             </div>
-          </div>
-        );
+          );
+        } else {
+          // Render all matching execution events
+          matchingEvents.forEach(({ event, index: eventIndex }) => {
+            renderedEventIndices.add(eventIndex);
+
+            // Build context with event attributes as nested objects for Handlebars
+            const eventContext: Record<string, unknown> = { ...fullContext };
+
+            // Convert flat dot-notation keys to nested objects
+            if (event.attributes) {
+              for (const [key, value] of Object.entries(event.attributes)) {
+                if (key.includes('.')) {
+                  // Nested key: convert "skill.name" -> { skill: { name: value } }
+                  const parts = key.split('.');
+                  let current: Record<string, unknown> = eventContext;
+                  for (let i = 0; i < parts.length - 1; i++) {
+                    if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
+                      current[parts[i]] = {};
+                    }
+                    current = current[parts[i]] as Record<string, unknown>;
+                  }
+                  current[parts[parts.length - 1]] = value;
+                } else {
+                  // Simple key
+                  eventContext[key] = value;
+                }
+              }
+            }
+
+            const renderedText = parseTemplate(eventTemplate, eventContext);
+
+            // Make the entire event block clickable
+            elements.push(
+              <div
+                key={`event-${eventIndex}`}
+                ref={activeEventIndex === eventIndex ? activeEventRef : null}
+                onClick={() => {
+                  if (onEventClick) {
+                    onEventClick(event, eventIndex);
+                  }
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setContextMenu({
+                    visible: true,
+                    x: e.clientX,
+                    y: e.clientY,
+                    event,
+                  });
+                }}
+                style={{
+                  cursor: onEventClick ? 'pointer' : 'default',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {/* Event content card */}
+                <div
+                  style={{
+                    padding: '8px 20px 12px 20px',
+                    backgroundColor: activeEventIndex === eventIndex ? theme.colors.muted : theme.colors.backgroundSecondary,
+                    borderBottom: `1px solid ${theme.colors.border}`,
+                    borderLeft: activeEventIndex === eventIndex ? `4px solid ${theme.colors.primary}` : '4px solid transparent',
+                    fontSize: theme.fontSizes[1],
+                    lineHeight: '1.7',
+                    fontWeight: 500,
+                    transition: 'background-color 0.2s ease, border-color 0.2s ease',
+                    color: theme.colors.text,
+                  }}
+                >
+                  {renderFormattedText(renderedText)}
+                  {/* Show source paths for this event */}
+                  <SourceFileList sources={getEventSources(event.name)} onSourceClick={onSourceClick} />
+                </div>
+              </div>
+            );
+          });
+        }
+      });
+
+      // Then, render any execution events that weren't in the template (at the end)
+      sortedEvents.forEach((event, eventIndex) => {
+        if (renderedEventIndices.has(eventIndex)) return;
+
+        // This event is in execution but has no template - skip it (same behavior as before)
+        // We could optionally show these as "extra events" if desired
       });
     }
 

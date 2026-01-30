@@ -1503,3 +1503,151 @@ export const IncompleteTemplateData: Story = {
     },
   },
 };
+
+/**
+ * Story: Incomplete Template Data - Missing Event
+ *
+ * This demonstrates what happens when the workflow template defines an event
+ * that is NOT present in the execution data. The narrative should show the
+ * event is missing or skip it gracefully.
+ */
+export const IncompleteTemplateData_MissingEvent: Story = {
+  args: {} as never,
+  render: () => {
+    // Template expects payment.initiated but execution data skips directly to payment.failed
+    const templateExpectingMissingEvent: WorkflowTemplate = {
+      version: '1.0.0',
+      canvas: 'checkout-flow.otel.canvas',
+      name: 'Template Expecting Missing Event',
+      description: 'This template expects an event that the execution data does not contain',
+      mode: 'timeline' as const,
+      scenarioSelection: 'first-match' as const,
+      scenarios: [
+        {
+          id: 'payment-declined-missing-event',
+          priority: 1,
+          description: 'Payment was declined (with missing intermediate event)',
+          condition: {
+            requires: ['payment.failed'],
+          },
+          template: {
+            introduction: 'Payment Declined Flow',
+            events: {
+              'checkout.initiated': 'Customer started checkout with {{cart.itemCount}} items (${{cart.total}})',
+              'user.authenticated': 'User verified their identity', // This event won't exist in the execution!
+              'payment.initiated': 'Started processing payment via {{payment.method}}', // This event won't exist!
+              'payment.failed': 'Payment was declined: {{error.message}}',
+            },
+            summary: 'Payment failed due to card decline. Two intermediate events were not captured.',
+          },
+        },
+      ],
+    };
+
+    // Execution data that SKIPS the user.authenticated and payment.initiated events
+    const executionMissingEvents = {
+      metadata: {
+        canvasName: 'E-Commerce Checkout Flow',
+        exportedAt: new Date().toISOString(),
+        source: 'test:checkout-missing-events',
+        framework: 'bun',
+        status: 'failure' as const,
+      },
+      spans: [
+        {
+          id: 'span-missing-events',
+          name: 'checkout with missing intermediate events',
+          startTime: 1704067300000,
+          endTime: 1704067301500,
+          duration: 1500,
+          status: 'ERROR' as const,
+          attributes: {
+            'span.kind': 'test.case',
+            'test.name': 'checkout with missing intermediate events',
+            'test.framework': 'bun',
+            'test.file': 'checkout.test.ts',
+          },
+          events: [
+            {
+              time: 1704067300000,
+              name: 'checkout.initiated',
+              attributes: {
+                'session.id': 'session_missing_events',
+                'cart.itemCount': 3,
+                'cart.total': 149.99,
+              },
+            },
+            // NOTE: user.authenticated event is MISSING
+            // NOTE: payment.initiated event is MISSING
+            {
+              time: 1704067301500,
+              name: 'payment.failed',
+              attributes: {
+                'error.code': 'card_declined',
+                'error.message': 'Insufficient funds',
+                'payment.declined': true,
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const mock = createMockProvider([
+      {
+        path: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        relativePath: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        name: 'checkout-flow.otel.canvas',
+        content: JSON.stringify(checkoutCanvas),
+      },
+      {
+        path: '.principal-views/checkout-flow/missing-event/missing-event.workflow.json',
+        relativePath: '.principal-views/checkout-flow/missing-event/missing-event.workflow.json',
+        name: 'missing-event.workflow.json',
+        content: JSON.stringify(templateExpectingMissingEvent),
+      },
+      {
+        path: '.principal-views/checkout-flow/missing-event/execution-missing-events.otel.json',
+        relativePath: '.principal-views/checkout-flow/missing-event/execution-missing-events.otel.json',
+        name: 'execution-missing-events.otel.json',
+        content: JSON.stringify(executionMissingEvents),
+      },
+    ]);
+
+    return (
+      <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
+        {(props) => (
+          <WorkflowScenariosPanel
+            {...props}
+            selectedCanvasId="checkout-flow"
+            canvasPath=".principal-views/checkout-flow/checkout-flow.otel.canvas"
+            canvasName="Checkout Flow"
+            selectedWorkflowId="checkout-flow/missing-event"
+            workflowPath=".principal-views/checkout-flow/missing-event/missing-event.workflow.json"
+            workflowTemplate={templateExpectingMissingEvent}
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '⚠️ **Missing Event in Template** - This story demonstrates what happens when the workflow template defines events (like `user.authenticated`, `payment.initiated`) that do NOT exist in the execution data.\n\n' +
+          '**Difference from IncompleteTemplateData:**\n' +
+          '- `IncompleteTemplateData`: Template variables (attributes) are missing\n' +
+          '- `IncompleteTemplateData_MissingEvent`: Entire events are missing from the execution\n\n' +
+          '**What You\'ll See:**\n' +
+          '- Events defined in the template but missing from execution should be handled gracefully\n' +
+          '- The narrative may show gaps or skip missing events\n' +
+          '- This helps identify instrumentation gaps where events aren\'t being captured\n\n' +
+          '**Common Causes:**\n' +
+          '1. Instrumentation was not added for certain events\n' +
+          '2. Events are conditionally emitted and weren\'t triggered\n' +
+          '3. Test execution followed a different code path\n' +
+          '4. Event names have changed between template and instrumentation',
+      },
+    },
+  },
+};
