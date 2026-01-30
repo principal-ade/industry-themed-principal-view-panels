@@ -3,7 +3,7 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme, type Theme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, WorkflowTemplate, WorkflowScenario, OtelAttributes } from '@principal-ai/principal-view-core';
-import { renderWorkflow, type ExecutionData, type DiscoveredExecution, type DiscoveredWorkflow } from '@principal-ai/principal-view-core';
+import { renderWorkflow, type ExecutionData, type DiscoveredTestTrace, type DiscoveredWorkflow } from '@principal-ai/principal-view-core';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 import { AnimatedResizableLayout } from '@principal-ade/panels';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
@@ -262,7 +262,7 @@ interface WorkflowScenariosPanelState {
   error: string | null;
   selectedCanvasId: string | null;
   canvasName: string | null;
-  availableExecutions: DiscoveredExecution[];
+  availableExecutions: DiscoveredTestTrace[];
   selectedExecutionId: string | null;
   showHelpModal: boolean;
   selectedWorkflowId: string | null;
@@ -302,8 +302,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  // Use core discovery system for executions and workflows (storyboards contain both)
-  const { storyboards, executions } = useCanvasData({ context, actions });
+  // Use core discovery system for test traces and workflows (storyboards contain both)
+  const { storyboards, testTraces } = useCanvasData({ context, actions });
 
   const [state, setState] = useState<WorkflowScenariosPanelState>({
     canvas: null,
@@ -374,11 +374,11 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
         return;
       }
 
-      // Note: We don't get executions/workflows here because they're loaded by useCanvasData
+      // Note: We don't get test traces/workflows here because they're loaded by useCanvasData
       // and will be empty on first render. Instead, we'll populate them via state updates
       // once discovery completes. For now, just set empty arrays and let the effect below
       // update them when discovery finishes.
-      const executionFiles: typeof executions = [];
+      const executionFiles: typeof testTraces = [];
       const availableNarratives: typeof storyboards[0]['workflows'] = [];
 
       const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
@@ -463,21 +463,21 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     }
   }, []);
 
-  // Update available executions and workflows when discovery completes
+  // Update available test traces and workflows when discovery completes
   useEffect(() => {
-    if (executions.length > 0 || storyboards.length > 0) {
+    if (testTraces.length > 0 || storyboards.length > 0) {
       const availableNarratives = storyboards.flatMap(sb => sb.workflows);
 
       setState(prev => {
-        // Find the current workflow to get its co-located executions
+        // Find the current workflow to get its co-located test traces
         const currentWorkflow = availableNarratives.find(
           w => w.id === prev.selectedWorkflowId
         );
 
-        // Use ONLY executions that are co-located with this workflow (directory-based association)
-        const workflowExecutions = currentWorkflow?.executions || [];
+        // Use ONLY test traces that are co-located with this workflow (directory-based association)
+        const workflowExecutions = currentWorkflow?.testTraces || [];
 
-        // Re-evaluate execution scenario mapping with discovered executions
+        // Re-evaluate execution scenario mapping with discovered test traces
         const executionScenarioMap: Record<string, string> = {};
         if (prev.workflowTemplate && workflowExecutions.length > 0) {
           const readFile = (actionsRef.current as { readFile?: (path: string) => Promise<string> }).readFile;
@@ -517,7 +517,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
         };
       });
     }
-  }, [executions, storyboards]);
+  }, [testTraces, storyboards]);
 
   // Prop-controlled mode: Load canvas when props change
   useEffect(() => {
@@ -1520,7 +1520,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                   highlightedNodeId={state.highlightedNodeId}
                   activeNodeIds={activeNodeIds}
                   onNodeClick={handleNodeClick}
-                  onSourceClick={handleSourceClick}
                   showNodeDetailPanel={true}
                 />
               </div>

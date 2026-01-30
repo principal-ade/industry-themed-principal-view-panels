@@ -3,7 +3,7 @@ import type { PanelContextValue, PanelActions } from '@principal-ade/panel-frame
 import type {
   DiscoveredCanvas,
   DiscoveredStoryboard,
-  DiscoveredExecution,
+  DiscoveredTestTrace,
   DiscoveredWorkflow,
   WorkflowTemplate
 } from '@principal-ai/principal-view-core';
@@ -18,7 +18,7 @@ interface UseCanvasNarrativeDataParams {
 interface UseCanvasNarrativeDataReturn {
   canvases: DiscoveredCanvas[];
   storyboards: DiscoveredStoryboard[];
-  executions: DiscoveredExecution[];
+  testTraces: DiscoveredTestTrace[];
   workflows: Array<{ file: DiscoveredWorkflow; template: WorkflowTemplate }>;
   isLoading: boolean;
   error: string | null;
@@ -36,11 +36,11 @@ export const useCanvasWorkflowData = ({
   context,
   actions,
 }: UseCanvasNarrativeDataParams): UseCanvasNarrativeDataReturn => {
-  // Reuse canvas discovery logic - now includes storyboards and executions
+  // Reuse canvas discovery logic - now includes storyboards and test traces
   const {
     canvases,
     storyboards,
-    executions,
+    testTraces,
     isLoading: canvasesLoading,
     error: canvasesError,
     refreshCanvases
@@ -151,7 +151,7 @@ export const useCanvasWorkflowData = ({
   return {
     canvases,
     storyboards,
-    executions,
+    testTraces,
     workflows,
     isLoading,
     error,

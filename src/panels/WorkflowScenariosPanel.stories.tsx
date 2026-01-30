@@ -81,7 +81,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        sources: ['src/checkout/index.ts', 'src/checkout/session.ts', 'src/cart/checkout.ts'],
+        sources: ['src/checkout/index.ts'],
         event: {
           name: 'checkout.initiated',
           description: 'Session begins',
@@ -136,7 +136,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        sources: ['src/inventory/stock-checker.ts', 'src/inventory/warehouse.ts'],
+        sources: ['src/inventory/stock-checker.ts'],
         event: {
           name: 'inventory.checking',
           description: 'Checking stock',
@@ -189,7 +189,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        sources: ['src/payment/processor.ts', 'src/payment/transaction.ts'],
+        sources: ['src/payment/processor.ts'],
         event: {
           name: 'payment.completed',
           description: 'Payment successful',
@@ -268,7 +268,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        sources: ['src/inventory/stock-checker.ts', 'src/inventory/error-handler.ts'],
+        sources: ['src/inventory/stock-checker.ts'],
         event: {
           name: 'inventory.insufficient',
           description: 'Out of stock',
@@ -323,7 +323,7 @@ const checkoutCanvas = {
         otel: {
           kind: 'event',
         },
-        sources: ['src/order/order-service.ts', 'src/order/confirmation.ts'],
+        sources: ['src/order/order-service.ts'],
         event: {
           name: 'order.created',
           description: 'Order finalized',
@@ -408,9 +408,6 @@ const checkoutWorkflow: WorkflowTemplate = {
       description: 'Payment was declined',
       condition: {
         requires: ['payment.failed'],
-        assertions: {
-          'payment.declined': { $eq: true },
-        },
       },
       template: {
         introduction: 'Checkout Failed - Payment Declined',
@@ -804,9 +801,25 @@ const timeoutCheckout = {
 // ============================================================================
 
 const createMockProvider = (files: Array<{ path: string; relativePath: string; name: string; content: string }>) => {
+  // Extract unique directories from file paths
+  const dirSet = new Set<string>();
+  files.forEach(file => {
+    const parts = file.path.split('/');
+    for (let i = 1; i < parts.length; i++) {
+      const dir = parts.slice(0, i).join('/');
+      if (dir) dirSet.add(dir);
+    }
+  });
+
+  const allDirectories = Array.from(dirSet).map(path => ({
+    path,
+    relativePath: path,
+    name: path.split('/').pop() || '',
+  }));
+
   const fileTreeData = {
     allFiles: files,
-    allDirectories: [],
+    allDirectories,
     sha: 'mock-sha-' + Date.now(),
   };
   const mockSlices = new Map<string, DataSlice>();
@@ -840,156 +853,6 @@ const createMockProvider = (files: Array<{ path: string; relativePath: string; n
 // ============================================================================
 
 /**
- * Step 1: Canvas Only
- *
- * Starting point - just architecture documentation.
- * Shows canvas structure with nodes and edges representing the checkout flow.
- */
-export const Step1_CanvasOnly: Story = {
-  args: {} as never,
-  render: () => {
-    const mock = createMockProvider([
-      {
-        path: '.principal-views/checkout-flow.otel.canvas',
-        relativePath: '.principal-views/checkout-flow.otel.canvas',
-        name: 'checkout-flow.otel.canvas',
-        content: JSON.stringify(checkoutCanvas),
-      },
-    ]);
-
-    return (
-      <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
-        {(props) => (
-          <WorkflowScenariosPanel
-            {...props}
-            selectedCanvasId="checkout-flow"
-            canvasPath=".principal-views/checkout-flow.otel.canvas"
-            canvasName="Checkout Flow"
-            selectedWorkflowId="checkout-flow-narrative"
-            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
-            workflowTemplate={checkoutWorkflow}
-          />
-        )}
-      </MockPanelProvider>
-    );
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Canvas with workflow scenarios defined - documenting expected behavior patterns.',
-      },
-    },
-  },
-};
-
-/**
- * Step 2: Canvas + Narrative Templates
- *
- * Add workflow scenarios to make telemetry human-readable.
- * Defines success, failure, timeout scenarios but has no execution data yet.
- */
-export const Step2_CanvasWithNarratives: Story = {
-  args: {} as never,
-  render: () => {
-    const mock = createMockProvider([
-      {
-        path: '.principal-views/checkout-flow.otel.canvas',
-        relativePath: '.principal-views/checkout-flow.otel.canvas',
-        name: 'checkout-flow.otel.canvas',
-        content: JSON.stringify(checkoutCanvas),
-      },
-      {
-        path: '.principal-views/checkout-flow.workflow.json',
-        relativePath: '.principal-views/checkout-flow.workflow.json',
-        name: 'checkout-flow.workflow.json',
-        content: JSON.stringify(checkoutWorkflow),
-      },
-    ]);
-
-    return (
-      <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
-        {(props) => (
-          <WorkflowScenariosPanel
-            {...props}
-            selectedCanvasId="checkout-flow"
-            canvasPath=".principal-views/checkout-flow.otel.canvas"
-            canvasName="Checkout Flow"
-            selectedWorkflowId="checkout-flow-narrative"
-            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
-            workflowTemplate={checkoutWorkflow}
-          />
-        )}
-      </MockPanelProvider>
-    );
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Canvas + Workflow templates. Shows scenario structure (success, payment declined, insufficient inventory, timeout) without actual execution data. Click "?" to learn about narratives.',
-      },
-    },
-  },
-};
-
-/**
- * Step 3: Successful Checkout Execution
- *
- * Complete flow - canvas + workflows + test execution showing successful checkout.
- * Click workflow steps to highlight corresponding canvas nodes!
- */
-export const Step3_SuccessfulCheckout: Story = {
-  args: {} as never,
-  render: () => {
-    const mock = createMockProvider([
-      {
-        path: '.principal-views/checkout-flow.otel.canvas',
-        relativePath: '.principal-views/checkout-flow.otel.canvas',
-        name: 'checkout-flow.otel.canvas',
-        content: JSON.stringify(checkoutCanvas),
-      },
-      {
-        path: '.principal-views/checkout-flow.workflow.json',
-        relativePath: '.principal-views/checkout-flow.workflow.json',
-        name: 'checkout-flow.workflow.json',
-        content: JSON.stringify(checkoutWorkflow),
-      },
-      {
-        path: '.principal-views/__executions__/checkout-success.otel.json',
-        relativePath: '.principal-views/__executions__/checkout-success.otel.json',
-        name: 'checkout-success.otel.json',
-        content: JSON.stringify(successfulCheckout),
-      },
-    ]);
-
-    return (
-      <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
-        {(props) => (
-          <WorkflowScenariosPanel
-            {...props}
-            selectedCanvasId="checkout-flow"
-            canvasPath=".principal-views/checkout-flow.otel.canvas"
-            canvasName="Checkout Flow"
-            selectedWorkflowId="checkout-flow-narrative"
-            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
-            workflowTemplate={checkoutWorkflow}
-          />
-        )}
-      </MockPanelProvider>
-    );
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          '✅ Successful checkout execution. Shows full flow: payment processed, inventory reserved, shipping calculated, order created. Switch to "Narrative" view and click steps to highlight nodes!',
-      },
-    },
-  },
-};
-
-/**
  * Payment Declined Scenario
  *
  * Shows checkout failure when payment is declined.
@@ -1000,21 +863,21 @@ export const Scenario_PaymentDeclined: Story = {
   render: () => {
     const mock = createMockProvider([
       {
-        path: '.principal-views/checkout-flow.otel.canvas',
-        relativePath: '.principal-views/checkout-flow.otel.canvas',
+        path: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        relativePath: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
         name: 'checkout-flow.otel.canvas',
         content: JSON.stringify(checkoutCanvas),
       },
       {
-        path: '.principal-views/checkout-flow.workflow.json',
-        relativePath: '.principal-views/checkout-flow.workflow.json',
-        name: 'checkout-flow.workflow.json',
+        path: '.principal-views/checkout-flow/payment-declined-scenario/payment-declined-scenario.workflow.json',
+        relativePath: '.principal-views/checkout-flow/payment-declined-scenario/payment-declined-scenario.workflow.json',
+        name: 'payment-declined-scenario.workflow.json',
         content: JSON.stringify(checkoutWorkflow),
       },
       {
-        path: '.principal-views/__executions__/checkout-payment-declined.otel.json',
-        relativePath: '.principal-views/__executions__/checkout-payment-declined.otel.json',
-        name: 'checkout-payment-declined.otel.json',
+        path: '.principal-views/checkout-flow/payment-declined-scenario/payment-declined.otel.json',
+        relativePath: '.principal-views/checkout-flow/payment-declined-scenario/payment-declined.otel.json',
+        name: 'payment-declined.otel.json',
         content: JSON.stringify(paymentDeclinedCheckout),
       },
     ]);
@@ -1025,10 +888,10 @@ export const Scenario_PaymentDeclined: Story = {
           <WorkflowScenariosPanel
             {...props}
             selectedCanvasId="checkout-flow"
-            canvasPath=".principal-views/checkout-flow.otel.canvas"
+            canvasPath=".principal-views/checkout-flow/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
-            selectedWorkflowId="checkout-flow-narrative"
-            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
+            selectedWorkflowId="checkout-flow/payment-declined-scenario"
+            workflowPath=".principal-views/checkout-flow/payment-declined-scenario/payment-declined-scenario.workflow.json"
             workflowTemplate={checkoutWorkflow}
           />
         )}
@@ -1055,21 +918,21 @@ export const Scenario_InsufficientInventory: Story = {
   render: () => {
     const mock = createMockProvider([
       {
-        path: '.principal-views/checkout-flow.otel.canvas',
-        relativePath: '.principal-views/checkout-flow.otel.canvas',
+        path: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        relativePath: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
         name: 'checkout-flow.otel.canvas',
         content: JSON.stringify(checkoutCanvas),
       },
       {
-        path: '.principal-views/checkout-flow.workflow.json',
-        relativePath: '.principal-views/checkout-flow.workflow.json',
-        name: 'checkout-flow.workflow.json',
+        path: '.principal-views/checkout-flow/insufficient-inventory-scenario/insufficient-inventory-scenario.workflow.json',
+        relativePath: '.principal-views/checkout-flow/insufficient-inventory-scenario/insufficient-inventory-scenario.workflow.json',
+        name: 'insufficient-inventory-scenario.workflow.json',
         content: JSON.stringify(checkoutWorkflow),
       },
       {
-        path: '.principal-views/__executions__/checkout-insufficient-inventory.otel.json',
-        relativePath: '.principal-views/__executions__/checkout-insufficient-inventory.otel.json',
-        name: 'checkout-insufficient-inventory.otel.json',
+        path: '.principal-views/checkout-flow/insufficient-inventory-scenario/insufficient-inventory.otel.json',
+        relativePath: '.principal-views/checkout-flow/insufficient-inventory-scenario/insufficient-inventory.otel.json',
+        name: 'insufficient-inventory.otel.json',
         content: JSON.stringify(insufficientInventoryCheckout),
       },
     ]);
@@ -1080,10 +943,10 @@ export const Scenario_InsufficientInventory: Story = {
           <WorkflowScenariosPanel
             {...props}
             selectedCanvasId="checkout-flow"
-            canvasPath=".principal-views/checkout-flow.otel.canvas"
+            canvasPath=".principal-views/checkout-flow/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
-            selectedWorkflowId="checkout-flow-narrative"
-            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
+            selectedWorkflowId="checkout-flow/insufficient-inventory-scenario"
+            workflowPath=".principal-views/checkout-flow/insufficient-inventory-scenario/insufficient-inventory-scenario.workflow.json"
             workflowTemplate={checkoutWorkflow}
           />
         )}
@@ -1110,20 +973,20 @@ export const Scenario_Timeout: Story = {
   render: () => {
     const mock = createMockProvider([
       {
-        path: '.principal-views/checkout-flow.otel.canvas',
-        relativePath: '.principal-views/checkout-flow.otel.canvas',
+        path: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        relativePath: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
         name: 'checkout-flow.otel.canvas',
         content: JSON.stringify(checkoutCanvas),
       },
       {
-        path: '.principal-views/checkout-flow.workflow.json',
-        relativePath: '.principal-views/checkout-flow.workflow.json',
-        name: 'checkout-flow.workflow.json',
+        path: '.principal-views/checkout-flow/timeout-scenario/timeout-scenario.workflow.json',
+        relativePath: '.principal-views/checkout-flow/timeout-scenario/timeout-scenario.workflow.json',
+        name: 'timeout-scenario.workflow.json',
         content: JSON.stringify(checkoutWorkflow),
       },
       {
-        path: '.principal-views/__executions__/checkout-timeout.otel.json',
-        relativePath: '.principal-views/__executions__/checkout-timeout.otel.json',
+        path: '.principal-views/checkout-flow/timeout-scenario/checkout-timeout.otel.json',
+        relativePath: '.principal-views/checkout-flow/timeout-scenario/checkout-timeout.otel.json',
         name: 'checkout-timeout.otel.json',
         content: JSON.stringify(timeoutCheckout),
       },
@@ -1135,10 +998,10 @@ export const Scenario_Timeout: Story = {
           <WorkflowScenariosPanel
             {...props}
             selectedCanvasId="checkout-flow"
-            canvasPath=".principal-views/checkout-flow.otel.canvas"
+            canvasPath=".principal-views/checkout-flow/checkout-flow.otel.canvas"
             canvasName="Checkout Flow"
-            selectedWorkflowId="checkout-flow-narrative"
-            workflowPath=".principal-views/checkout-flow/checkout-workflow.json"
+            selectedWorkflowId="checkout-flow/timeout-scenario"
+            workflowPath=".principal-views/checkout-flow/timeout-scenario/timeout-scenario.workflow.json"
             workflowTemplate={checkoutWorkflow}
           />
         )}
@@ -1525,6 +1388,117 @@ export const CanvasWithDocumentation: Story = {
           'Canvas with associated markdown documentation. Notice the "Docs" button in the header next to the "Edit" button. ' +
           'Clicking it will emit a file:open event to open the markdown file specified in canvas.pv.markdown. ' +
           'This pattern allows you to provide detailed documentation alongside your canvas diagrams.',
+      },
+    },
+  },
+};
+
+/**
+ * Story: Incomplete Template Data Warning
+ *
+ * Demonstrates what happens when the workflow template expects variables
+ * that aren't present in the execution data. The system will show a warning
+ * banner about incomplete template data.
+ */
+export const IncompleteTemplateData: Story = {
+  args: {} as never,
+  render: () => {
+    // Workflow template that expects variables NOT present in execution data
+    const templateWithMissingVars: WorkflowTemplate = {
+      version: '1.0.0',
+      canvas: 'checkout-flow.otel.canvas',
+      name: 'Template with Missing Variables',
+      description: 'This template expects variables that the execution data does not provide',
+      mode: 'timeline' as const,
+      scenarioSelection: 'first-match' as const,
+      scenarios: [
+        {
+          id: 'payment-declined-missing-vars',
+          priority: 1,
+          description: 'Payment was declined',
+          condition: {
+            requires: ['payment.failed'],
+          },
+          template: {
+            introduction: 'Payment Declined',
+            events: {
+              'checkout.initiated':
+                'Checkout started for {{cart.itemCount}} items totaling ${{cart.total}}',
+              'payment.initiated':
+                'Processing {{payment.method}} payment for ${{payment.amount}}',
+              'payment.failed':
+                'Payment declined\n' +
+                '    • Error Code: {{error.code}}\n' +
+                '    • Reason: {{error.message}}\n' +
+                '    • Customer Name: {{customer.name}}\n' + // This variable doesn't exist!
+                '    • Customer Email: {{customer.email}}\n' + // This variable doesn't exist!
+                '    • Retry Attempt: {{payment.retryCount}}\n' + // This variable doesn't exist!
+                '    • Card Type: {{payment.cardType}}', // This variable doesn't exist!
+            },
+            summary:
+              'Payment was declined for {{customer.name}}. ' + // This variable doesn't exist!
+              'Card ending in {{payment.lastFourDigits}} was rejected.', // This variable doesn't exist!
+          },
+        },
+      ],
+    };
+
+    // Use the existing payment declined execution data (which has limited attributes)
+    const mock = createMockProvider([
+      {
+        path: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        relativePath: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        name: 'checkout-flow.otel.canvas',
+        content: JSON.stringify(checkoutCanvas),
+      },
+      {
+        path: '.principal-views/checkout-flow/template-mismatch/template-mismatch.workflow.json',
+        relativePath: '.principal-views/checkout-flow/template-mismatch/template-mismatch.workflow.json',
+        name: 'template-mismatch.workflow.json',
+        content: JSON.stringify(templateWithMissingVars),
+      },
+      {
+        path: '.principal-views/checkout-flow/template-mismatch/incomplete-template-data.otel.json',
+        relativePath: '.principal-views/checkout-flow/template-mismatch/incomplete-template-data.otel.json',
+        name: 'incomplete-template-data.otel.json',
+        content: JSON.stringify(paymentDeclinedCheckout),
+      },
+    ]);
+
+    return (
+      <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
+        {(props) => (
+          <WorkflowScenariosPanel
+            {...props}
+            selectedCanvasId="checkout-flow"
+            canvasPath=".principal-views/checkout-flow/checkout-flow.otel.canvas"
+            canvasName="Checkout Flow"
+            selectedWorkflowId="checkout-flow/template-mismatch"
+            workflowPath=".principal-views/checkout-flow/template-mismatch/template-mismatch.workflow.json"
+            workflowTemplate={templateWithMissingVars}
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '⚠️ **Incomplete Template Data Warning** - This story demonstrates what happens when the workflow template expects variables (like `{{customer.name}}`, `{{payment.cardType}}`) that are NOT present in the execution data.\n\n' +
+          '**What You\'ll See:**\n' +
+          '- A yellow warning banner at the top of the narrative view\n' +
+          '- Unresolved template variables displayed as `{{variableName}}`\n' +
+          '- A suggestion to click "Raw Events" to see available data\n\n' +
+          '**Common Causes:**\n' +
+          '1. Template expects attributes that weren\'t captured in the test\n' +
+          '2. Attribute names have changed between template and instrumentation\n' +
+          '3. Conditional attributes that may not always be present\n\n' +
+          '**How to Fix:**\n' +
+          '1. Click "Raw Events" in the view mode selector\n' +
+          '2. Right-click on events to see available attributes\n' +
+          '3. Update template to use correct variable names\n' +
+          '4. Or update instrumentation to capture missing data',
       },
     },
   },

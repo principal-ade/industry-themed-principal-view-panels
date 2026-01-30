@@ -749,7 +749,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
               setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
             }}
             showNodeDetailPanel={true}
-            onSourceClick={handleSourceClick}
           />
         </div>
 

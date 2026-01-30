@@ -4,14 +4,14 @@ import { FileCode } from 'lucide-react';
 import type {
   WorkflowTemplate,
   WorkflowScenario,
-  DiscoveredExecution,
+  DiscoveredTestTrace,
   ExtendedCanvas,
 } from '@principal-ai/principal-view-core';
 
 interface WorkflowTemplatePanelProps {
   workflowTemplate: WorkflowTemplate;
   canvas?: ExtendedCanvas | null;
-  availableExecutions?: DiscoveredExecution[];
+  availableExecutions?: DiscoveredTestTrace[];
   executionScenarioMap?: Record<string, string>;
   onExecutionSelect?: (executionId: string) => void;
   onScenarioHover?: (eventNames: string[] | null) => void;

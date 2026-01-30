@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
-import { renderWorkflow, parseTemplate, selectScenario, computeAggregates } from '@principal-ai/principal-view-core';
-import type { WorkflowTemplate, OtelEvent, WorkflowScenario, ExtendedCanvas } from '@principal-ai/principal-view-core';
+import { renderWorkflow, parseTemplate, selectScenario, computeAggregates, ParsedTemplate } from '@principal-ai/principal-view-core';
+import type { WorkflowTemplate, OtelEvent, WorkflowScenario, ExtendedCanvas, TemplateSegment } from '@principal-ai/principal-view-core';
 import { useTheme } from '@principal-ade/industry-theme';
+import { FileCode } from 'lucide-react';
 import yaml from 'js-yaml';
 
 export interface WorkflowRendererProps {
@@ -31,6 +32,9 @@ export interface WorkflowRendererProps {
 
   /** Canvas for looking up source paths */
   canvas?: ExtendedCanvas | null;
+
+  /** Callback when a source path is clicked */
+  onSourceClick?: (source: string) => void;
 }
 
 /**
@@ -46,6 +50,7 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
   activeEventIndex,
   showOnlySummary = false,
   canvas,
+  onSourceClick,
 }) => {
   const { theme } = useTheme();
 
@@ -264,14 +269,40 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
                 return sources.length > 0 ? (
                   <div style={{
                     marginTop: '6px',
-                    fontSize: '11px',
+                    fontSize: theme.fontSizes[1],
                     color: theme.colors.textTertiary || theme.colors.textSecondary,
                     fontFamily: 'monospace',
                     opacity: 0.8,
                   }}>
                     {sources.map(source => (
-                      <div key={source} style={{ marginTop: '2px' }}>
-                        📁 {source}
+                      <div
+                        key={source}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onSourceClick) {
+                            const cleanPath = source.replace(/\*/g, '');
+                            onSourceClick(cleanPath);
+                          }
+                        }}
+                        style={{
+                          marginTop: '2px',
+                          padding: '4px 0',
+                          cursor: onSourceClick ? 'pointer' : 'default',
+                          transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (onSourceClick) {
+                            e.currentTarget.style.opacity = '1';
+                            e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary || '#2a2a2a';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.opacity = '0.8';
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        <FileCode size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
+                        {source}
                       </div>
                     ))}
                   </div>
@@ -296,8 +327,65 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
     return elements;
   };
 
-  // Render formatted text (handles emojis, separators, bullets)
-  const renderFormattedText = (text: string) => {
+  // Render segments from ParsedTemplate with proper variable styling
+  const renderSegments = (segments: TemplateSegment[], lineText: string) => {
+    // Filter segments that appear in this line
+    const lineSegments = segments.filter(seg => lineText.includes(seg.value));
+
+    if (lineSegments.length === 0) {
+      return lineText;
+    }
+
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    lineSegments.forEach((segment, i) => {
+      const segmentIndex = lineText.indexOf(segment.value, lastIndex);
+
+      if (segmentIndex === -1) return;
+
+      // Add text before this segment
+      if (segmentIndex > lastIndex) {
+        parts.push(lineText.substring(lastIndex, segmentIndex));
+      }
+
+      // Add the segment with styling
+      if (segment.type === 'variable') {
+        parts.push(
+          <span
+            key={i}
+            style={{
+              color: segment.resolved ? theme.colors.primary : theme.colors.textTertiary,
+              fontWeight: segment.resolved ? 600 : 400,
+              fontStyle: segment.resolved ? 'normal' : 'italic',
+              fontFamily: theme.fonts.monospace,
+              opacity: segment.resolved ? 1 : 0.7,
+            }}
+          >
+            {segment.resolved ? segment.value : `(${segment.variableName})`}
+          </span>
+        );
+      } else {
+        parts.push(segment.value);
+      }
+
+      lastIndex = segmentIndex + segment.value.length;
+    });
+
+    // Add remaining text
+    if (lastIndex < lineText.length) {
+      parts.push(lineText.substring(lastIndex));
+    }
+
+    return <>{parts}</>;
+  };
+
+  // Render formatted text (handles emojis, separators, bullets, and ParsedTemplate)
+  const renderFormattedText = (input: string | ParsedTemplate) => {
+    // Convert ParsedTemplate to string if needed, or handle structured data
+    const text = input instanceof ParsedTemplate ? input.toString() : input;
+    const parsed = input instanceof ParsedTemplate ? input : null;
+
     const lines = text.split('\n');
     const elements: React.ReactNode[] = [];
 
@@ -340,7 +428,7 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
           >
             <span style={{ color: theme.colors.textSecondary, marginTop: '2px' }}>•</span>
             <span style={{ color: theme.colors.textSecondary, fontSize: '14px', lineHeight: '1.6' }}>
-              {highlightVariables(content)}
+              {parsed ? renderSegments(parsed.segments, content) : highlightVariables(content)}
             </span>
           </div>
         );
@@ -357,7 +445,7 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
               marginTop: '4px',
             }}
           >
-            {highlightVariables(line)}
+            {parsed ? renderSegments(parsed.segments, line) : highlightVariables(line)}
           </div>
         );
       }
@@ -463,32 +551,6 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
         ...style,
       }}
     >
-      {/* Warning Banner for Missing Variables */}
-      {result.hasMissingVars && (
-        <div
-          style={{
-            padding: '12px 20px',
-            backgroundColor: '#854d0e',
-            borderBottom: `1px solid #ca8a04`,
-            color: '#fef3c7',
-            fontSize: '13px',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '8px',
-          }}
-        >
-          <span style={{ fontSize: '16px' }}>⚠️</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, marginBottom: '4px' }}>Incomplete Template Data</div>
-            <div style={{ fontSize: '12px', opacity: 0.9 }}>
-              Some template variables could not be resolved. The execution data may be missing expected attributes.
-              <br />
-              <strong>Click "Raw Events" above to see the actual data available.</strong>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Narrative Text */}
       <div
         style={{

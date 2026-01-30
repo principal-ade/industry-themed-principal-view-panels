@@ -4,7 +4,7 @@ import {
   CanvasDiscovery,
   type DiscoveredCanvas,
   type DiscoveredStoryboard,
-  type DiscoveredExecution
+  type DiscoveredTestTrace
 } from '@principal-ai/principal-view-core';
 import type { FileTree } from '@principal-ai/repository-abstraction';
 
@@ -16,7 +16,7 @@ interface UseCanvasDataParams {
 interface UseCanvasDataReturn {
   canvases: DiscoveredCanvas[];
   storyboards: DiscoveredStoryboard[];
-  executions: DiscoveredExecution[];
+  testTraces: DiscoveredTestTrace[];
   isLoading: boolean;
   error: string | null;
   refreshCanvases: () => Promise<void>;
@@ -25,7 +25,7 @@ interface UseCanvasDataReturn {
 // Stable empty arrays to prevent unnecessary re-renders
 const EMPTY_CANVAS_ARRAY: DiscoveredCanvas[] = [];
 const EMPTY_STORYBOARDS_ARRAY: DiscoveredStoryboard[] = [];
-const EMPTY_EXECUTIONS_ARRAY: DiscoveredExecution[] = [];
+const EMPTY_TEST_TRACES_ARRAY: DiscoveredTestTrace[] = [];
 
 /**
  * Hook to discover and load canvas files from the file tree
@@ -37,7 +37,7 @@ export const useCanvasData = ({
 }: UseCanvasDataParams): UseCanvasDataReturn => {
   const [canvases, setCanvases] = useState<DiscoveredCanvas[]>(EMPTY_CANVAS_ARRAY);
   const [storyboards, setStoryboards] = useState<DiscoveredStoryboard[]>(EMPTY_STORYBOARDS_ARRAY);
-  const [executions, setExecutions] = useState<DiscoveredExecution[]>(EMPTY_EXECUTIONS_ARRAY);
+  const [testTraces, setTestTraces] = useState<DiscoveredTestTrace[]>(EMPTY_TEST_TRACES_ARRAY);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,7 +104,7 @@ export const useCanvasData = ({
 
       setCanvases(sortedCanvases);
       setStoryboards(result.storyboards);
-      setExecutions(result.executions);
+      setTestTraces(result.testTraces);
 
       // Update tracking ref
       lastLoadedSha.current = fileTreeSha;
@@ -133,7 +133,7 @@ export const useCanvasData = ({
   return {
     canvases,
     storyboards,
-    executions,
+    testTraces,
     isLoading,
     error,
     refreshCanvases,

@@ -583,6 +583,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
             activeEventIndex={currentEventIndex}
             showOnlySummary={viewMode === 'summary'}
             canvas={canvas}
+            onSourceClick={onSourceClick}
           />
         ) : viewMode === 'summary' && workflowTemplate && selectedScenario && !currentSpan ? (
           <div style={{ padding: '20px', fontFamily: theme.fonts.body }}>
