@@ -493,7 +493,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
             theme={theme}
             onClick={handleTreeNodeClick}
             selectedNodeId={selectedNodeId ?? undefined}
-            defaultOpen={new Set(filteredStoryboards.map(s => s.packageName || '')).size <= 3}
+            defaultOpen={filteredStoryboards.length <= 2}
             horizontalNodePadding="clamp(16px, 4vw, 24px)"
             verticalPadding="10px"
             workflowCoverageMap={workflowCoverageMap}
