@@ -38,7 +38,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
   // Load storyboard data from discovery system
   // Storyboards come directly from the discovery system (no transformation needed)
   // Also load full workflow templates for sending complete data when workflows are clicked
-  const { storyboards, workflows, isLoading, error } = useCanvasWorkflowData({ context, actions });
+  const { storyboards, workflows, testTraces, isLoading, error } = useCanvasWorkflowData({ context, actions });
 
   // Get fileTree to access FileInfo metadata
   const fileTreeSlice = context.getSlice('fileTree');
@@ -50,6 +50,94 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
       f.path === canvasPath || f.relativePath === canvasPath
     );
   }, [fileTreeData]);
+
+  // Helper to extract workflow folder name from a test trace path
+  // E.g., ".principal-views/authentication-flow/successful-login/execution-1.otel.json" → "successful-login"
+  const getWorkflowFromPath = (path: string): string | null => {
+    const match = path.match(/\.principal-views\/[^/]+\/([^/]+)\//);
+    return match ? match[1] : null;
+  };
+
+  // Helper to build execution-scenario map (similar to WorkflowScenariosPanel logic)
+  const buildExecutionScenarioMap = (
+    workflowTemplate: any,
+    workflowTestTraces: any[]
+  ): Record<string, string> => {
+    const map: Record<string, string> = {};
+
+    if (!workflowTemplate.scenarios) {
+      return map;
+    }
+
+    workflowTestTraces.forEach((trace) => {
+      // Try to match execution to scenario by checking trace content or using index
+      // For now, we'll use a simple heuristic: match by execution order
+      const executionIndex = workflowTestTraces.indexOf(trace);
+      const scenarioIndex = executionIndex % workflowTemplate.scenarios.length;
+      const scenario = workflowTemplate.scenarios[scenarioIndex];
+
+      if (scenario) {
+        const scenarioId = scenario.id || String(scenarioIndex);
+        map[trace.id] = scenarioId;
+      }
+    });
+
+    return map;
+  };
+
+  // Calculate workflow coverage map (workflow ID -> all scenarios have test traces)
+  // This checks if ALL scenarios in the workflow have at least one test trace
+  const workflowCoverageMap = useMemo(() => {
+    const coverageMap: Record<string, boolean> = {};
+
+    workflows.forEach(({ file: workflow, template: workflowTemplate }) => {
+      // Find the storyboard/canvas this workflow belongs to
+      const workflowStoryboard = storyboards.find(sb =>
+        sb.workflows.some(wf => wf.id === workflow.id)
+      );
+
+      if (!workflowStoryboard) {
+        coverageMap[workflow.id] = false;
+        return;
+      }
+
+      // Check if workflow has scenarios
+      if (!workflowTemplate.scenarios || workflowTemplate.scenarios.length === 0) {
+        coverageMap[workflow.id] = false;
+        return;
+      }
+
+      // Filter test traces that belong to this specific workflow folder
+      const workflowFolder = workflow.id.split('/').pop(); // Get last part of workflow ID
+      const workflowTestTraces = testTraces.filter(trace => {
+        const traceWorkflowFolder = getWorkflowFromPath(trace.path);
+        return traceWorkflowFolder === workflowFolder;
+      });
+
+      if (workflowTestTraces.length === 0) {
+        coverageMap[workflow.id] = false;
+        return;
+      }
+
+      // Build execution-scenario map
+      const executionScenarioMap = buildExecutionScenarioMap(workflowTemplate, workflowTestTraces);
+
+      // Count how many scenarios have at least one test trace
+      const totalScenarios = workflowTemplate.scenarios.length;
+      const scenariosWithTests = workflowTemplate.scenarios.filter((scenario: any, index: number) => {
+        const scenarioId = scenario.id || String(index);
+        const matchingExecutions = workflowTestTraces.filter(
+          trace => executionScenarioMap[trace.id] === scenarioId
+        );
+        return matchingExecutions.length > 0;
+      }).length;
+
+      const isFullyCovered = scenariosWithTests === totalScenarios;
+      coverageMap[workflow.id] = isFullyCovered;
+    });
+
+    return coverageMap;
+  }, [workflows, testTraces, storyboards]);
 
   // Filter storyboards by search query
   const filteredStoryboards = useMemo(() => {
@@ -405,9 +493,10 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
             theme={theme}
             onClick={handleTreeNodeClick}
             selectedNodeId={selectedNodeId ?? undefined}
-            defaultOpen={false}
+            defaultOpen={new Set(filteredStoryboards.map(s => s.packageName || '')).size <= 3}
             horizontalNodePadding="clamp(16px, 4vw, 24px)"
             verticalPadding="10px"
+            workflowCoverageMap={workflowCoverageMap}
           />
         )}
       </div>

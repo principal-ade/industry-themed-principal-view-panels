@@ -2,8 +2,8 @@ import React, { useMemo } from 'react';
 import { renderWorkflow, parseTemplate, selectScenario, computeAggregates, ParsedTemplate } from '@principal-ai/principal-view-core';
 import type { WorkflowTemplate, OtelEvent, WorkflowScenario, ExtendedCanvas, TemplateSegment } from '@principal-ai/principal-view-core';
 import { useTheme } from '@principal-ade/industry-theme';
-import { FileCode } from 'lucide-react';
 import yaml from 'js-yaml';
+import { SourceFileList } from './SourceFileList';
 
 export interface WorkflowRendererProps {
   /** Workflow template to use for rendering */
@@ -256,58 +256,16 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
                 backgroundColor: activeEventIndex === eventIndex ? theme.colors.muted : theme.colors.backgroundSecondary,
                 borderBottom: `1px solid ${theme.colors.border}`,
                 borderLeft: activeEventIndex === eventIndex ? `4px solid ${theme.colors.primary}` : '4px solid transparent',
-                fontSize: '15px',
-                lineHeight: '1.6',
+                fontSize: theme.fontSizes[1],
+                lineHeight: '1.7',
                 fontWeight: 500,
                 transition: 'background-color 0.2s ease, border-color 0.2s ease',
+                color: theme.colors.text,
               }}
             >
               {renderFormattedText(renderedText)}
               {/* Show source paths for this event */}
-              {(() => {
-                const sources = getEventSources(event.name);
-                return sources.length > 0 ? (
-                  <div style={{
-                    marginTop: '6px',
-                    fontSize: theme.fontSizes[1],
-                    color: theme.colors.textTertiary || theme.colors.textSecondary,
-                    fontFamily: 'monospace',
-                    opacity: 0.8,
-                  }}>
-                    {sources.map(source => (
-                      <div
-                        key={source}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (onSourceClick) {
-                            const cleanPath = source.replace(/\*/g, '');
-                            onSourceClick(cleanPath);
-                          }
-                        }}
-                        style={{
-                          marginTop: '2px',
-                          padding: '4px 0',
-                          cursor: onSourceClick ? 'pointer' : 'default',
-                          transition: 'all 0.2s',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (onSourceClick) {
-                            e.currentTarget.style.opacity = '1';
-                            e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary || '#2a2a2a';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.opacity = '0.8';
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
-                      >
-                        <FileCode size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
-                        {source}
-                      </div>
-                    ))}
-                  </div>
-                ) : null;
-              })()}
+              <SourceFileList sources={getEventSources(event.name)} onSourceClick={onSourceClick} />
             </div>
           </div>
         );
@@ -427,7 +385,7 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
             }}
           >
             <span style={{ color: theme.colors.textSecondary, marginTop: '2px' }}>•</span>
-            <span style={{ color: theme.colors.textSecondary, fontSize: '14px', lineHeight: '1.6' }}>
+            <span style={{ color: theme.colors.textSecondary, fontSize: theme.fontSizes[1], lineHeight: '1.6' }}>
               {parsed ? renderSegments(parsed.segments, content) : highlightVariables(content)}
             </span>
           </div>
@@ -439,7 +397,7 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
           <div
             key={idx}
             style={{
-              fontSize: '14px',
+              fontSize: theme.fontSizes[1],
               lineHeight: '1.7',
               color: theme.colors.text,
               marginTop: '4px',

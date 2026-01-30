@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { HelpCircle, ChevronDown, X, FileCode } from 'lucide-react';
+import { HelpCircle, X } from 'lucide-react';
 import yaml from 'js-yaml';
 import type { WorkflowTemplate, OtelAttributes, WorkflowScenario, ExtendedCanvas } from '@principal-ai/principal-view-core';
 import { WorkflowRenderer } from './WorkflowRenderer';
 import { convertToOtelEvents } from './workflow-converter';
+import { SourceFileList } from './SourceFileList';
 
 interface SpanEvent {
   time: number;
@@ -149,7 +150,14 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
 }) => {
   const { theme } = useTheme();
   const [showHelp, setShowHelp] = useState(false);
-  const [showExecutionSelector, setShowExecutionSelector] = useState(false);
+  const [activeTab, setActiveTab] = useState<'template' | 'story'>('template');
+
+  // Auto-switch to story tab when execution is selected
+  React.useEffect(() => {
+    if (selectedExecutionId && spans.length > 0 && spans[currentSpanIndex]) {
+      setActiveTab('story');
+    }
+  }, [selectedExecutionId, spans, currentSpanIndex]);
 
   // Helper to get source paths for an event name
   const getEventSources = (eventName: string): string[] => {
@@ -302,122 +310,63 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
           </div>
         )}
 
-        {/* Execution Controls Row */}
-        {availableExecutions.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-            {/* Execution Selector */}
-            <div style={{ position: 'relative' }}>
-              <button
-                onClick={() => setShowExecutionSelector(!showExecutionSelector)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '6px 12px',
-                  background: selectedExecutionId ? '#10b981' : '#2a2a2a',
-                  border: '1px solid #3a3a3a',
-                  borderRadius: '4px',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  fontSize: theme.fontSizes[1],
-                }}
-              >
-                <span>
-                  {selectedExecutionId
-                    ? availableExecutions.find(e => e.id === selectedExecutionId)?.name || 'Select Execution'
-                    : `Execution (${availableExecutions.length})`}
-                </span>
-                <ChevronDown size={16} />
-              </button>
-
-              {/* Execution Selector Dropdown */}
-              {showExecutionSelector && (
-                <>
-                  <div
-                    style={{
-                      position: 'fixed',
-                      inset: 0,
-                      zIndex: 999,
-                    }}
-                    onClick={() => setShowExecutionSelector(false)}
-                  />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      marginTop: '4px',
-                      minWidth: '300px',
-                      maxHeight: '400px',
-                      overflowY: 'auto',
-                      background: '#2a2a2a',
-                      border: '1px solid #3a3a3a',
-                      borderRadius: '4px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                      zIndex: 1000,
-                    }}
-                  >
-                    {/* Option to deselect */}
-                    {onDeselectExecution && (
-                      <button
-                        onClick={() => {
-                          onDeselectExecution();
-                          setShowExecutionSelector(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '10px 16px',
-                          background: !selectedExecutionId ? '#3b82f6' : 'transparent',
-                          border: 'none',
-                          borderBottom: '1px solid #3a3a3a',
-                          color: '#fff',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontSize: theme.fontSizes[1],
-                          fontStyle: 'italic',
-                        }}
-                      >
-                        None (show scenario mapping)
-                      </button>
-                    )}
-                    {availableExecutions.map((execution) => (
-                      <button
-                        key={execution.id}
-                        onMouseEnter={() => {
-                          if (onExecutionHover) {
-                            onExecutionHover(execution.id);
-                          }
-                        }}
-                        onMouseLeave={() => {
-                          if (onExecutionHover) {
-                            onExecutionHover(null);
-                          }
-                        }}
-                        onClick={() => {
-                          if (onExecutionSelect) {
-                            onExecutionSelect(execution.id);
-                          }
-                          setShowExecutionSelector(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '10px 16px',
-                          background: execution.id === selectedExecutionId ? '#3b82f6' : 'transparent',
-                          border: 'none',
-                          borderBottom: '1px solid #3a3a3a',
-                          color: '#fff',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          fontSize: theme.fontSizes[1],
-                        }}
-                      >
-                        {execution.name}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+        {/* Tab Controls */}
+        {selectedScenario && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0', marginBottom: '12px', borderBottom: `1px solid ${theme.colors.border}` }}>
+            {/* Template Tab */}
+            <button
+              onClick={() => {
+                setActiveTab('template');
+                if (onDeselectExecution) {
+                  onDeselectExecution();
+                }
+              }}
+              style={{
+                flex: 1,
+                padding: '8px 16px',
+                background: activeTab === 'template' ? theme.colors.backgroundSecondary : 'transparent',
+                border: 'none',
+                borderBottom: activeTab === 'template' ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
+                color: activeTab === 'template' ? theme.colors.text : theme.colors.textSecondary,
+                cursor: 'pointer',
+                fontSize: theme.fontSizes[1],
+                fontWeight: activeTab === 'template' ? 600 : 400,
+                opacity: 1,
+                transition: 'all 0.2s',
+              }}
+            >
+              Template
+            </button>
+            {/* Story Tab - always show but disabled if no executions */}
+            <button
+              onClick={() => {
+                if (availableExecutions.length > 0) {
+                  setActiveTab('story');
+                  // Auto-select first execution if none selected
+                  if (!selectedExecutionId && availableExecutions.length > 0 && onExecutionSelect) {
+                    onExecutionSelect(availableExecutions[0].id);
+                  }
+                }
+              }}
+              disabled={availableExecutions.length === 0}
+              style={{
+                flex: 1,
+                padding: '8px 16px',
+                background: activeTab === 'story' ? theme.colors.backgroundSecondary : 'transparent',
+                border: 'none',
+                borderBottom: activeTab === 'story' ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
+                color: availableExecutions.length === 0
+                  ? theme.colors.textMuted
+                  : activeTab === 'story' ? theme.colors.text : theme.colors.textSecondary,
+                cursor: availableExecutions.length === 0 ? 'not-allowed' : 'pointer',
+                fontSize: theme.fontSizes[1],
+                fontWeight: activeTab === 'story' ? 600 : 400,
+                transition: 'all 0.2s',
+                opacity: availableExecutions.length === 0 ? 0.5 : 1,
+              }}
+            >
+              Story
+            </button>
           </div>
         )}
 
@@ -573,8 +522,8 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
           padding: viewMode === 'narrative' ? '0' : '20px',
         }}
       >
-        {/* Narrative View */}
-        {(viewMode === 'narrative' || viewMode === 'summary') && workflowTemplate && currentSpan ? (
+        {/* Story Tab - Narrative View with Execution */}
+        {activeTab === 'story' && (viewMode === 'narrative' || viewMode === 'summary') && workflowTemplate && currentSpan ? (
           <WorkflowRenderer
             template={workflowTemplate}
             events={otelEvents}
@@ -585,7 +534,33 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
             canvas={canvas}
             onSourceClick={onSourceClick}
           />
-        ) : viewMode === 'summary' && workflowTemplate && selectedScenario && !currentSpan ? (
+        ) : activeTab === 'story' && !currentSpan && availableExecutions.length === 0 ? (
+          <div
+            style={{
+              padding: '40px 20px',
+              textAlign: 'center',
+              color: theme.colors.textMuted,
+            }}
+          >
+            <div style={{ fontSize: theme.fontSizes[3], marginBottom: '12px' }}>No test traces available</div>
+            <div style={{ fontSize: theme.fontSizes[1], lineHeight: '1.6' }}>
+              Run tests to generate execution artifacts for this scenario.
+            </div>
+          </div>
+        ) : activeTab === 'story' && !currentSpan ? (
+          <div
+            style={{
+              padding: '40px 20px',
+              textAlign: 'center',
+              color: theme.colors.textMuted,
+            }}
+          >
+            <div style={{ fontSize: theme.fontSizes[3], marginBottom: '12px' }}>Loading story...</div>
+            <div style={{ fontSize: theme.fontSizes[1], lineHeight: '1.6' }}>
+              Please wait while the execution data loads.
+            </div>
+          </div>
+        ) : activeTab === 'template' && viewMode === 'summary' && workflowTemplate && selectedScenario ? (
           <div style={{ padding: '20px', fontFamily: theme.fonts.body }}>
             {/* Scenario Preview - show template without execution data */}
             {selectedScenario.template.introduction && (
@@ -615,7 +590,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
               </div>
             )}
           </div>
-        ) : viewMode === 'narrative' && workflowTemplate && selectedScenario && !currentSpan ? (
+        ) : activeTab === 'template' && viewMode === 'narrative' && workflowTemplate && selectedScenario ? (
           <div style={{ fontFamily: theme.fonts.body }}>
             {selectedScenario.template.events && Object.keys(selectedScenario.template.events).length > 0 ? (
               <div>
@@ -640,64 +615,24 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                       }}
                       style={{
                         padding: '8px 20px 12px 20px',
-                        backgroundColor: isActive ? theme.colors.backgroundTertiary || '#2a2a2a' : theme.colors.backgroundSecondary,
+                        backgroundColor: isActive ? theme.colors.muted : theme.colors.backgroundSecondary,
                         borderBottom: `1px solid ${theme.colors.border}`,
-                        borderLeft: isActive ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
-                        fontSize: theme.fontSizes[2],
-                        lineHeight: '1.6',
-                        fontWeight: isActive ? 600 : 500,
+                        borderLeft: isActive ? `4px solid ${theme.colors.primary}` : '4px solid transparent',
+                        fontSize: theme.fontSizes[1],
+                        lineHeight: '1.7',
+                        fontWeight: 500,
+                        color: theme.colors.text,
                         cursor: onNarrativeEventClick ? 'pointer' : 'default',
-                        transition: 'all 0.2s ease',
+                        transition: 'background-color 0.2s ease, border-color 0.2s ease',
                       }}
                     >
-                      <div style={{ fontSize: theme.fontSizes[1], color: theme.colors.text, lineHeight: '1.7' }}>
+                      <div style={{
+                        marginTop: '4px',
+                      }}>
                         {highlightTemplateVariables(String(template))}
                       </div>
                       {/* Show source paths for this event */}
-                      {(() => {
-                        const sources = getEventSources(eventName);
-                        return sources.length > 0 ? (
-                          <div style={{
-                            marginTop: '6px',
-                            fontSize: theme.fontSizes[1],
-                            color: theme.colors.textTertiary || theme.colors.textSecondary,
-                            fontFamily: 'monospace',
-                            opacity: 0.8,
-                          }}>
-                            {sources.map(source => (
-                              <div
-                                key={source}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (onSourceClick) {
-                                    const cleanPath = source.replace(/\*/g, '');
-                                    onSourceClick(cleanPath);
-                                  }
-                                }}
-                                style={{
-                                  marginTop: '2px',
-                                  padding: '4px 0',
-                                  cursor: onSourceClick ? 'pointer' : 'default',
-                                  transition: 'all 0.2s',
-                                }}
-                                onMouseEnter={(e) => {
-                                  if (onSourceClick) {
-                                    e.currentTarget.style.opacity = '1';
-                                    e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary || '#2a2a2a';
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.opacity = '0.8';
-                                  e.currentTarget.style.backgroundColor = 'transparent';
-                                }}
-                              >
-                                <FileCode size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
-                                {source}
-                              </div>
-                            ))}
-                          </div>
-                        ) : null;
-                      })()}
+                      <SourceFileList sources={getEventSources(eventName)} onSourceClick={onSourceClick} />
                     </div>
                   );
                 })}
@@ -748,7 +683,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
         ) : null}
 
         {/* Raw Events View (Timeline) */}
-        {viewMode === 'raw' && !currentSpan && selectedScenario && (
+        {activeTab === 'template' && viewMode === 'raw' && selectedScenario && (
           <div
             style={{
               padding: '40px 20px',
@@ -756,13 +691,13 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
               color: theme.colors.textMuted,
             }}
           >
-            <div style={{ fontSize: theme.fontSizes[3], marginBottom: '12px' }}>ⓘ No execution selected</div>
+            <div style={{ fontSize: theme.fontSizes[3], marginBottom: '12px' }}>ⓘ No raw events in template view</div>
             <div style={{ fontSize: theme.fontSizes[1], lineHeight: '1.6' }}>
-              Select an execution from the dropdown above to view raw events.
+              Switch to the Story tab to view raw execution events.
             </div>
           </div>
         )}
-        {viewMode === 'raw' && currentSpan && (
+        {activeTab === 'story' && viewMode === 'raw' && currentSpan && (
           <div>
             {timeline.map((item, idx) => {
             if (item.type === 'event') {

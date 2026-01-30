@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { FileCode } from 'lucide-react';
+import { FileCode, CheckCircle2, Circle } from 'lucide-react';
 import type {
   WorkflowTemplate,
   WorkflowScenario,
@@ -37,6 +37,18 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
       onScenarioClick(scenarioId, scenario);
     }
   };
+
+  // Calculate coverage statistics
+  const totalScenarios = workflowTemplate.scenarios?.length || 0;
+  const scenariosWithTests = workflowTemplate.scenarios?.filter((scenario, index) => {
+    const scenarioId = scenario.id || String(index);
+    const matchingExecutions = availableExecutions.filter(
+      exec => executionScenarioMap[exec.id] === scenarioId
+    );
+    return matchingExecutions.length > 0;
+  }).length || 0;
+  const coveragePercent = totalScenarios > 0 ? Math.round((scenariosWithTests / totalScenarios) * 100) : 0;
+  const isFullyCovered = scenariosWithTests === totalScenarios && totalScenarios > 0;
 
   // Extract event names from a scenario template
   const getScenarioEventNames = (scenario: WorkflowScenario): string[] => {
@@ -166,9 +178,14 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
                 }}
               >
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0, fontSize: theme.fontSizes[1], fontWeight: 600 }}>
-                    {scenarioId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 style={{ margin: 0, fontSize: theme.fontSizes[1], fontWeight: 600 }}>
+                      {scenarioId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                    </h3>
+                    {matchingExecutions.length > 0 && (
+                      <CheckCircle2 size={14} style={{ color: '#10b981', flexShrink: 0 }} />
+                    )}
+                  </div>
                   {sources.length > 0 && (
                     <div style={{
                       marginTop: '6px',
@@ -186,48 +203,6 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
                   )}
                 </div>
               </div>
-
-              {/* Show executions for this scenario */}
-              {matchingExecutions.length > 0 && (
-                <div style={{ paddingLeft: '20px', paddingRight: '12px', paddingBottom: '12px', marginTop: '12px' }}>
-                  <div style={{
-                    fontSize: theme.fontSizes[0],
-                    color: theme.colors.textSecondary,
-                    marginBottom: '4px'
-                  }}>
-                    Test Trace
-                  </div>
-                  {matchingExecutions.map(exec => (
-                    <div
-                      key={exec.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onExecutionSelect) {
-                          onExecutionSelect(exec.id);
-                        }
-                      }}
-                      style={{
-                        padding: '4px 12px',
-                        marginBottom: '4px',
-                        background: theme.colors.backgroundSecondary,
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: theme.fontSizes[0],
-                        transition: 'background 0.2s',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = theme.colors.border;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = theme.colors.backgroundSecondary;
-                      }}
-                    >
-                      {exec.name}
-                    </div>
-                  ))}
-                </div>
-              )}
-
             </div>
           );
         })}

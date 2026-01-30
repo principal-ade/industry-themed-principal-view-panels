@@ -8,7 +8,7 @@ import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 import { AnimatedResizableLayout } from '@principal-ade/panels';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/workflow-converter';
-import { Activity, X, Pencil, FileText } from 'lucide-react';
+import { Activity, X, Pencil, FileText, CheckCircle2 } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { WorkflowExplainerPanel } from './WorkflowExplainerPanel';
@@ -1055,6 +1055,24 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     return null;
   }, [state.execution, state.canvas, state.hoveredExecution, state.hoveredScenarioEventNames, state.workflowTemplate]);
 
+  // Calculate if all scenarios have test traces
+  const isFullyCovered = useMemo(() => {
+    if (!state.workflowTemplate || !state.workflowTemplate.scenarios) return false;
+
+    const totalScenarios = state.workflowTemplate.scenarios.length;
+    if (totalScenarios === 0) return false;
+
+    const scenariosWithTests = state.workflowTemplate.scenarios.filter((scenario, index) => {
+      const scenarioId = scenario.id || String(index);
+      const matchingExecutions = state.availableExecutions.filter(
+        exec => state.executionScenarioMap[exec.id] === scenarioId
+      );
+      return matchingExecutions.length > 0;
+    }).length;
+
+    return scenariosWithTests === totalScenarios;
+  }, [state.workflowTemplate, state.availableExecutions, state.executionScenarioMap]);
+
   // Playback effect
   useEffect(() => {
     if (!state.isPlaying || !state.execution) {
@@ -1191,14 +1209,19 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       >
         {/* Canvas Title - Show the currently loaded canvas and narrative */}
         {state.canvasName && (
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: theme.fontSizes[2], fontWeight: theme.fontWeights.medium, color: theme.colors.text, fontFamily: theme.fonts.body }}>
               {state.canvasName}
               {state.workflowTemplate && (
-                <span style={{ opacity: 0.7 }}>
-                  {' / '}
-                  {state.workflowTemplate.name || state.selectedWorkflowId}
-                </span>
+                <>
+                  <span style={{ opacity: 0.7 }}>
+                    {' / '}
+                    {state.workflowTemplate.name || state.selectedWorkflowId}
+                  </span>
+                  {isFullyCovered && (
+                    <CheckCircle2 size={16} style={{ color: '#10b981', marginLeft: '8px', verticalAlign: 'middle', display: 'inline' }} />
+                  )}
+                </>
               )}
             </span>
           </div>
@@ -1296,6 +1319,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                     selectedExecutionId={state.selectedExecutionId}
                     onExecutionSelect={handleExecutionSelect}
                     onSourceClick={handleScenarioSourceClick}
+                    selectedScenario={state.selectedScenario ?? undefined}
                     onDeselectExecution={() => {
                       setState(prev => ({
                         ...prev,

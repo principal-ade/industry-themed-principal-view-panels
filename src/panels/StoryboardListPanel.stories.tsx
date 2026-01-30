@@ -1280,6 +1280,174 @@ export const WithMarkdownDocumentation: Story = {
 };
 
 /**
+ * With Coverage Indicators - Demonstrates workflow test coverage checkmarks
+ * Shows green checkmarks next to workflows where ALL scenarios have test traces
+ */
+export const WithCoverageIndicators: Story = {
+  args: {} as never,
+  render: () => {
+    const allFiles = [
+      // Storyboard with FULL test coverage (all scenarios in all workflows have test traces)
+      ...createStoryboardFiles('authentication-flow', [
+        { name: 'successful-login', executions: 2 },      // 2 scenarios, 2 traces - FULL coverage ✓
+        { name: 'failed-login', executions: 2 },          // 2 scenarios, 2 traces - FULL coverage ✓
+        { name: 'password-reset', executions: 2 },        // 2 scenarios, 2 traces - FULL coverage ✓
+      ]),
+
+      // Storyboard with PARTIAL test coverage (some workflows fully covered, some not)
+      ...createStoryboardFiles('payment-processing', [
+        { name: 'credit-card-success', executions: 2 },   // 2 scenarios, 2 traces - FULL coverage ✓
+        { name: 'payment-declined', executions: 1 },      // 2 scenarios, 1 trace - PARTIAL coverage (no checkmark)
+      ]),
+
+      // Storyboard with NO test coverage
+      ...createStoryboardFiles('user-registration', [
+        { name: 'new-user-signup', executions: 0 },       // 2 scenarios, 0 traces - NO coverage
+        { name: 'email-verification', executions: 0 },    // 2 scenarios, 0 traces - NO coverage
+      ]),
+
+      // Single workflow WITH full coverage
+      ...createStoryboardFiles('data-pipeline', [
+        { name: 'batch-processing', executions: 2 },      // 2 scenarios, 2 traces - FULL coverage ✓
+      ]),
+    ];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-coverage';
+    fileTree.allFiles = allFiles;
+
+    // Create mock slices with custom readFile that returns workflow templates with scenarios
+    const mockSlices = new Map([
+      [
+        'fileTree',
+        {
+          scope: 'repository' as const,
+          name: 'fileTree',
+          data: fileTree,
+          loading: false,
+          error: null,
+          refresh: async () => {},
+        },
+      ],
+    ]);
+
+    // Custom readFile that returns workflow templates with 2 scenarios each
+    const mockReadFile = async (path: string) => {
+      // Return canvas content for .otel.canvas files
+      if (path.endsWith('.otel.canvas')) {
+        const storyboardName = path.split('/').slice(-2, -1)[0] || 'Mock Canvas';
+        return JSON.stringify({
+          pv: {
+            name: storyboardName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            version: '1.0.0',
+            description: `Mock canvas for ${storyboardName}`,
+          },
+          nodes: [],
+          edges: [],
+        });
+      }
+
+      // Return workflow templates with 2 scenarios each
+      if (path.endsWith('.workflow.json')) {
+        const workflowName = path.split('/').slice(-2, -1)[0] || 'unknown';
+        const storyboardName = path.split('/').slice(-3, -2)[0] || 'unknown';
+
+        return JSON.stringify({
+          version: '1.0.0',
+          name: workflowName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          canvas: `${storyboardName}.otel.canvas`,
+          mode: 'flow',
+          scenarios: [
+            {
+              id: `${workflowName}-scenario-1`,
+              priority: 1,
+              description: `Primary scenario for ${workflowName}`,
+              condition: { type: 'event', event: `${storyboardName}.event1` },
+              template: {
+                introduction: `This is scenario 1 for ${workflowName}`,
+                flow: ['Step 1', 'Step 2'],
+              },
+            },
+            {
+              id: `${workflowName}-scenario-2`,
+              priority: 2,
+              description: `Secondary scenario for ${workflowName}`,
+              condition: { type: 'event', event: `${storyboardName}.event2` },
+              template: {
+                introduction: `This is scenario 2 for ${workflowName}`,
+                flow: ['Step A', 'Step B'],
+              },
+            },
+          ],
+        });
+      }
+
+      // Return execution JSON for .otel.json files
+      if (path.endsWith('.otel.json')) {
+        return JSON.stringify({
+          events: [],
+          metadata: { timestamp: new Date().toISOString() },
+        });
+      }
+
+      return '{}';
+    };
+
+    const testTraceFiles = allFiles.filter(f => f.path.includes('.otel.json'));
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          slices: mockSlices,
+          getSlice: <T,>(name: string): T | undefined => {
+            return mockSlices.get(name) as T | undefined;
+          },
+        }}
+        actionsOverrides={{
+          readFile: mockReadFile,
+        }}
+      >
+        {(props) => (
+          <>
+            <StoryboardListPanel {...props} />
+            <div
+              style={{
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                background: '#1a1a1a',
+                border: '1px solid #10b981',
+                borderRadius: '8px',
+                padding: '12px',
+                color: '#fff',
+                fontSize: '12px',
+                maxWidth: '360px',
+              }}
+            >
+              <strong style={{ color: '#10b981' }}>Full Scenario Coverage:</strong>
+              <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', fontSize: '11px', lineHeight: 1.6 }}>
+                <li><span style={{ color: '#10b981' }}>✓</span> Green checkmark = ALL scenarios have test traces</li>
+                <li>No checkmark = Missing coverage for some scenarios</li>
+              </ul>
+              <div style={{ marginTop: 8, padding: 8, background: '#0a0a0a', border: '1px solid #10b981', borderRadius: 4, fontSize: 10 }}>
+                <strong>Expected Results (each workflow has 2 scenarios):</strong><br/>
+                • authentication-flow: All 3 workflows ✓ (2/2 scenarios covered each)<br/>
+                • payment-processing: credit-card-success ✓ (2/2), payment-declined ✗ (1/2)<br/>
+                • user-registration: No checkmarks (0/2 scenarios covered each)<br/>
+                • data-pipeline: batch-processing ✓ (2/2)
+                <br/><br/>
+                <strong>Test traces:</strong> {testTraceFiles.length} files
+              </div>
+            </div>
+          </>
+        )}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
  * Change Detection Test - Interactive story for testing SHA-based change detection
  * Demonstrates how the panel responds to file tree changes and manual refresh
  */
