@@ -447,7 +447,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
       <div
         style={{
           flex: 1,
-          overflowY: 'auto',
+          overflowY: 'hidden',
           minHeight: 0,
         }}
       >
