@@ -1,11 +1,9 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { TraceList } from '../components/TraceList';
-import { groupSpansByTrace } from '../types/otel';
 import type { TraceInfo } from '../types/otel';
-import { generateRandomTraces, generateCheckoutTrace, generateAuthErrorTrace, generateComplexTrace } from '../mocks/otelMocks';
 
 /**
  * TraceListPanel - Panel for displaying OpenTelemetry traces
@@ -16,11 +14,11 @@ import { generateRandomTraces, generateCheckoutTrace, generateAuthErrorTrace, ge
  * - Click to select and emit events for trace details
  *
  * Events emitted:
- * - 'custom' with action 'selectTrace' when a trace is clicked
+ * - 'trace:selected' when a trace is clicked
  */
 export const TraceListPanel: React.FC<PanelComponentProps> = ({
-  context,
-  actions,
+  context: _context,
+  actions: _actions,
   events,
 }) => {
   const { theme } = useTheme();
@@ -29,38 +27,22 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
   usePanelFocusListener('trace-list', events, () => panelRef.current?.focus());
   const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>();
 
-  // TODO: Replace with actual trace data from context/telemetry provider
-  // For now, using mock data
-  const mockTraces = useMemo(() => {
-    const checkout = generateCheckoutTrace(true);
-    const auth = generateAuthErrorTrace(true);
-    const complex = generateComplexTrace(true);
-    const random = generateRandomTraces(10);
-
-    const combined = {
-      resourceSpans: [
-        ...checkout.resourceSpans,
-        ...auth.resourceSpans,
-        ...complex.resourceSpans,
-        ...random.resourceSpans,
-      ],
-    };
-
-    return groupSpansByTrace(combined);
-  }, []);
+  // Get traces from telemetry slice
+  const telemetrySlice = context.getSlice<TraceInfo[]>('telemetry');
+  const traces = telemetrySlice?.data || [];
 
   const handleTraceClick = (trace: TraceInfo) => {
     setSelectedTraceId(trace.traceId);
 
-    // Emit event for other panels (like TraceDetailsPanel) to handle
+    // Emit trace:selected event for tab manager to handle
     if (events) {
       events.emit({
-        type: 'custom',
+        type: 'trace:selected',
         source: 'trace-list-panel',
         timestamp: Date.now(),
         payload: {
-          action: 'selectTrace',
           trace,
+          traceId: trace.traceId,
         },
       });
     }
@@ -83,10 +65,11 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
       }}
     >
       <TraceList
-        traces={mockTraces}
+        traces={traces}
         theme={theme}
         onTraceClick={handleTraceClick}
         selectedTraceId={selectedTraceId}
+        emptyMessage={traces.length === 0 ? 'No traces received yet. Waiting for telemetry data...' : undefined}
       />
     </div>
   );

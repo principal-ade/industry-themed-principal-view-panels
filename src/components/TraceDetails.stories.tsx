@@ -40,54 +40,62 @@ type Story = StoryObj<typeof meta>;
 /**
  * Simple trace with API -> DB
  */
-export const SimpleTrace: Story = {
-  render: () => {
-    const { theme } = useTheme();
-    const trace = generateCheckoutTrace();
-    const spans = trace.resourceSpans.flatMap(rs =>
-      rs.scopeSpans.flatMap(ss => ss.spans)
-    );
+const SimpleTraceComponent = () => {
+  const { theme } = useTheme();
+  const trace = generateCheckoutTrace();
+  const spans = trace.resourceSpans.flatMap(rs =>
+    rs.scopeSpans.flatMap(ss => ss.spans)
+  );
 
-    return <TraceDetails spans={spans} theme={theme} />;
-  },
+  return <TraceDetails spans={spans} theme={theme} />;
+};
+
+export const SimpleTrace: Story = {
+  render: () => <SimpleTraceComponent />,
 };
 
 /**
  * Error trace with exception
  */
-export const ErrorTrace: Story = {
-  render: () => {
-    const { theme } = useTheme();
-    const trace = generateAuthErrorTrace();
-    const spans = trace.resourceSpans.flatMap(rs =>
-      rs.scopeSpans.flatMap(ss => ss.spans)
-    );
+const ErrorTraceComponent = () => {
+  const { theme } = useTheme();
+  const trace = generateAuthErrorTrace();
+  const spans = trace.resourceSpans.flatMap(rs =>
+    rs.scopeSpans.flatMap(ss => ss.spans)
+  );
 
-    return <TraceDetails spans={spans} theme={theme} />;
-  },
+  return <TraceDetails spans={spans} theme={theme} />;
+};
+
+export const ErrorTrace: Story = {
+  render: () => <ErrorTraceComponent />,
 };
 
 /**
  * Complex multi-service trace
  */
-export const ComplexTrace: Story = {
-  render: () => {
-    const { theme } = useTheme();
-    const trace = generateComplexTrace();
-    const spans = trace.resourceSpans.flatMap(rs =>
-      rs.scopeSpans.flatMap(ss => ss.spans)
-    );
+const ComplexTraceComponent = () => {
+  const { theme } = useTheme();
+  const trace = generateComplexTrace();
+  const spans = trace.resourceSpans.flatMap(rs =>
+    rs.scopeSpans.flatMap(ss => ss.spans)
+  );
 
-    return <TraceDetails spans={spans} theme={theme} />;
-  },
+  return <TraceDetails spans={spans} theme={theme} />;
+};
+
+export const ComplexTrace: Story = {
+  render: () => <ComplexTraceComponent />,
 };
 
 /**
  * Empty state
  */
+const EmptyComponent = () => {
+  const { theme } = useTheme();
+  return <TraceDetails spans={[]} theme={theme} />;
+};
+
 export const Empty: Story = {
-  render: () => {
-    const { theme } = useTheme();
-    return <TraceDetails spans={[]} theme={theme} />;
-  },
+  render: () => <EmptyComponent />,
 };

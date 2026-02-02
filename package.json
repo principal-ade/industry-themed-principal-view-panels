@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/principal-view-panels",
-  "version": "0.9.0",
+  "version": "0.9.3",
   "description": "Principal View Graph Panels for visualizing graph configurations from .principal-views/ folder as interactive diagrams",
   "type": "module",
   "main": "dist/panels.bundle.js",
@@ -18,6 +18,12 @@
       "import": "./dist/tools.bundle.js",
       "require": "./dist/tools.bundle.js",
       "default": "./dist/tools.bundle.js"
+    },
+    "./types/otel": {
+      "types": "./dist/types/otel.d.ts",
+      "import": "./dist/types/otel.js",
+      "require": "./dist/types/otel.js",
+      "default": "./dist/types/otel.js"
     }
   },
   "keywords": [
@@ -36,8 +42,8 @@
     "dev": "vite build --watch",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "bun test",

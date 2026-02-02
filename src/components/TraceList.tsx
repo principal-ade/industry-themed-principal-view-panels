@@ -61,29 +61,6 @@ export const TraceList: React.FC<TraceListProps> = ({
     }
   };
 
-  // Format timestamp for display
-  const formatTimestamp = (timestampMs: number): string => {
-    const date = new Date(timestampMs);
-    const now = Date.now();
-    const diff = now - timestampMs;
-
-    // If less than 1 minute ago
-    if (diff < 60000) {
-      return 'Just now';
-    }
-    // If less than 1 hour ago
-    if (diff < 3600000) {
-      const minutes = Math.floor(diff / 60000);
-      return `${minutes}m ago`;
-    }
-    // If today
-    if (date.toDateString() === new Date().toDateString()) {
-      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    }
-    // Otherwise show date
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
-
   // Truncate trace ID for display (first 12 characters)
   const truncateTraceId = (traceId: string): string => {
     return traceId.slice(0, 12);

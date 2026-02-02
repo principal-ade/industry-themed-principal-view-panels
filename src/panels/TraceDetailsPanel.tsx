@@ -27,8 +27,8 @@ export interface TraceDetailsPanelProps extends PanelComponentProps {
  * - Panel content loads immediately when prop changes
  */
 export const TraceDetailsPanel: React.FC<TraceDetailsPanelProps> = ({
-  context,
-  actions,
+  context: _context,
+  actions: _actions,
   events,
   selectedTrace,
 }) => {

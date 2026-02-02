@@ -7,6 +7,7 @@ import { useCanvasWorkflowData } from './canvas-list/hooks/useCanvasWorkflowData
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
 import { StoryboardWorkflowsTreeCore, type StoryboardWorkflowNodeData } from '@principal-ade/dynamic-file-tree';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
+import type { WorkflowTemplate, DiscoveredTestTrace, WorkflowScenario } from '@principal-ai/principal-view-core';
 
 /**
  * StoryboardListPanel - A panel for displaying storyboards from the discovery system
@@ -60,8 +61,8 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
 
   // Helper to build execution-scenario map (similar to WorkflowScenariosPanel logic)
   const buildExecutionScenarioMap = (
-    workflowTemplate: any,
-    workflowTestTraces: any[]
+    workflowTemplate: WorkflowTemplate,
+    workflowTestTraces: DiscoveredTestTrace[]
   ): Record<string, string> => {
     const map: Record<string, string> = {};
 
@@ -124,7 +125,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
 
       // Count how many scenarios have at least one test trace
       const totalScenarios = workflowTemplate.scenarios.length;
-      const scenariosWithTests = workflowTemplate.scenarios.filter((scenario: any, index: number) => {
+      const scenariosWithTests = workflowTemplate.scenarios.filter((scenario: WorkflowScenario, index: number) => {
         const scenarioId = scenario.id || String(index);
         const matchingExecutions = workflowTestTraces.filter(
           trace => executionScenarioMap[trace.id] === scenarioId

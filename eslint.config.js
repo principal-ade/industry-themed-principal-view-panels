@@ -47,6 +47,12 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '*.config.js'],
+    files: ['**/*.stories.{ts,tsx}', '.storybook/**', 'src/mocks/**'],
+    rules: {
+      'no-console': 'off', // Allow console in stories and mocks
+    },
+  },
+  {
+    ignores: ['dist/**', 'node_modules/**', '*.config.js', '**/.storybook/**', '**/mockServiceWorker.js', '**/*.stories.ts', '**/*.stories.tsx'],
   }
 );

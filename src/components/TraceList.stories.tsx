@@ -87,15 +87,17 @@ export const Default: Story = {
 /**
  * Empty state with no traces
  */
+const EmptyComponent = () => {
+  const { theme } = useTheme();
+  return (
+    <div style={{ height: '100%', width: '100%', minWidth: 0 }}>
+      <TraceList traces={[]} theme={theme} />
+    </div>
+  );
+};
+
 export const Empty: Story = {
-  render: () => {
-    const { theme } = useTheme();
-    return (
-      <div style={{ height: '100%', width: '100%', minWidth: 0 }}>
-        <TraceList traces={[]} theme={theme} />
-      </div>
-    );
-  },
+  render: () => <EmptyComponent />,
 };
 
 /**
@@ -159,40 +161,44 @@ export const ComplexTraces: Story = {
 /**
  * Without search functionality
  */
-export const NoSearch: Story = {
-  render: () => {
-    const randomTraces = generateRandomTraces(10);
-    const traces = groupSpansByTrace(randomTraces);
-    const { theme } = useTheme();
+const NoSearchComponent = () => {
+  const randomTraces = generateRandomTraces(10);
+  const traces = groupSpansByTrace(randomTraces);
+  const { theme } = useTheme();
 
-    return (
-      <div style={{ height: '100%', width: '100%', minWidth: 0 }}>
-        <TraceList
-          traces={traces}
-          theme={theme}
-          showSearch={false}
-        />
-      </div>
-    );
-  },
+  return (
+    <div style={{ height: '100%', width: '100%', minWidth: 0 }}>
+      <TraceList
+        traces={traces}
+        theme={theme}
+        showSearch={false}
+      />
+    </div>
+  );
+};
+
+export const NoSearch: Story = {
+  render: () => <NoSearchComponent />,
 };
 
 /**
  * With custom empty message
  */
+const CustomEmptyMessageComponent = () => {
+  const { theme } = useTheme();
+  return (
+    <div style={{ height: '100%', width: '100%', minWidth: 0 }}>
+      <TraceList
+        traces={[]}
+        theme={theme}
+        emptyMessage="No telemetry data received yet. Waiting for traces..."
+      />
+    </div>
+  );
+};
+
 export const CustomEmptyMessage: Story = {
-  render: () => {
-    const { theme } = useTheme();
-    return (
-      <div style={{ height: '100%', width: '100%', minWidth: 0 }}>
-        <TraceList
-          traces={[]}
-          theme={theme}
-          emptyMessage="No telemetry data received yet. Waiting for traces..."
-        />
-      </div>
-    );
-  },
+  render: () => <CustomEmptyMessageComponent />,
 };
 
 /**
@@ -224,31 +230,33 @@ export const MixedMatching: Story = {
 /**
  * Live updating simulation - traces appear over time
  */
+const LiveUpdatingComponent = () => {
+  const { theme } = useTheme();
+  const [traces, setTraces] = useState<TraceInfo[]>([]);
+
+  React.useEffect(() => {
+    // Add a new trace every 2 seconds
+    const interval = setInterval(() => {
+      const newTrace = generateRandomTraces(1);
+      const newTraceInfos = groupSpansByTrace(newTrace);
+
+      setTraces((prev) => [...newTraceInfos, ...prev].slice(0, 20)); // Keep last 20
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{ height: '100%', width: '100%', minWidth: 0 }}>
+      <TraceList
+        traces={traces}
+        theme={theme}
+        emptyMessage="Waiting for traces to arrive..."
+      />
+    </div>
+  );
+};
+
 export const LiveUpdating: Story = {
-  render: () => {
-    const { theme } = useTheme();
-    const [traces, setTraces] = useState<TraceInfo[]>([]);
-
-    React.useEffect(() => {
-      // Add a new trace every 2 seconds
-      const interval = setInterval(() => {
-        const newTrace = generateRandomTraces(1);
-        const newTraceInfos = groupSpansByTrace(newTrace);
-
-        setTraces((prev) => [...newTraceInfos, ...prev].slice(0, 20)); // Keep last 20
-      }, 2000);
-
-      return () => clearInterval(interval);
-    }, []);
-
-    return (
-      <div style={{ height: '100%', width: '100%', minWidth: 0 }}>
-        <TraceList
-          traces={traces}
-          theme={theme}
-          emptyMessage="Waiting for traces to arrive..."
-        />
-      </div>
-    );
-  },
+  render: () => <LiveUpdatingComponent />,
 };

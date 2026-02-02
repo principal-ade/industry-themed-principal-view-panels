@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { FileCode, CheckCircle2, Circle } from 'lucide-react';
+import { FileCode, CheckCircle2 } from 'lucide-react';
 import type {
   WorkflowTemplate,
   WorkflowScenario,
@@ -26,7 +26,7 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
   canvas,
   availableExecutions = [],
   executionScenarioMap = {},
-  onExecutionSelect,
+  onExecutionSelect: _onExecutionSelect,
   onScenarioHover,
   onScenarioClick,
 }) => {
@@ -37,18 +37,6 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
       onScenarioClick(scenarioId, scenario);
     }
   };
-
-  // Calculate coverage statistics
-  const totalScenarios = workflowTemplate.scenarios?.length || 0;
-  const scenariosWithTests = workflowTemplate.scenarios?.filter((scenario, index) => {
-    const scenarioId = scenario.id || String(index);
-    const matchingExecutions = availableExecutions.filter(
-      exec => executionScenarioMap[exec.id] === scenarioId
-    );
-    return matchingExecutions.length > 0;
-  }).length || 0;
-  const coveragePercent = totalScenarios > 0 ? Math.round((scenariosWithTests / totalScenarios) * 100) : 0;
-  const isFullyCovered = scenariosWithTests === totalScenarios && totalScenarios > 0;
 
   // Extract event names from a scenario template
   const getScenarioEventNames = (scenario: WorkflowScenario): string[] => {

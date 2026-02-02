@@ -35,6 +35,44 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
+ * Inner component that uses hooks and receives panel props
+ */
+interface PanelInnerProps {
+  props: any;
+  direction: 'horizontal' | 'vertical';
+  selectedTrace: TraceInfo | null;
+  setSelectedTrace: (trace: TraceInfo | null) => void;
+}
+
+const PanelInner: React.FC<PanelInnerProps> = ({ props, direction, selectedTrace, setSelectedTrace }) => {
+  // Listen for trace selection events from TraceListPanel
+  useEffect(() => {
+    if (!props.events) return;
+
+    const unsubscribe = props.events.on('custom', (event: PanelEvent) => {
+      const payload = event.payload as { action?: string; trace?: TraceInfo };
+      const { action, trace } = payload;
+      if (action === 'selectTrace' && trace) {
+        setSelectedTrace(trace);
+      }
+    });
+
+    return unsubscribe;
+  }, [props.events, setSelectedTrace]);
+
+  return (
+    <AnimatedResizableLayout
+      defaultRatio={direction === 'horizontal' ? 0.4 : 0.5}
+      minRatio={direction === 'horizontal' ? 0.2 : 0.3}
+      maxRatio={direction === 'horizontal' ? 0.8 : 0.7}
+    >
+      <TraceListPanel {...props} />
+      <TraceDetailsPanel {...props} selectedTrace={selectedTrace} />
+    </AnimatedResizableLayout>
+  );
+};
+
+/**
  * Integration wrapper that manages trace selection state
  */
 const TraceViewerWrapper: React.FC<{ direction: 'horizontal' | 'vertical' }> = ({ direction }) => {
@@ -42,33 +80,14 @@ const TraceViewerWrapper: React.FC<{ direction: 'horizontal' | 'vertical' }> = (
 
   return (
     <MockPanelProvider>
-      {(props) => {
-        // Listen for trace selection events from TraceListPanel
-        useEffect(() => {
-          if (!props.events) return;
-
-          const unsubscribe = props.events.on('custom', (event: PanelEvent) => {
-            const { action, trace } = event.payload;
-            if (action === 'selectTrace' && trace) {
-              setSelectedTrace(trace);
-            }
-          });
-
-          return unsubscribe;
-        }, [props.events]);
-
-        return (
-          <AnimatedResizableLayout
-            direction={direction}
-            defaultRatio={direction === 'horizontal' ? 0.4 : 0.5}
-            minRatio={direction === 'horizontal' ? 0.2 : 0.3}
-            maxRatio={direction === 'horizontal' ? 0.8 : 0.7}
-          >
-            <TraceListPanel {...props} />
-            <TraceDetailsPanel {...props} selectedTrace={selectedTrace} />
-          </AnimatedResizableLayout>
-        );
-      }}
+      {(props) => (
+        <PanelInner
+          props={props}
+          direction={direction}
+          selectedTrace={selectedTrace}
+          setSelectedTrace={setSelectedTrace}
+        />
+      )}
     </MockPanelProvider>
   );
 };

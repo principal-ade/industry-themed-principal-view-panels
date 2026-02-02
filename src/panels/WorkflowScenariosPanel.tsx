@@ -776,25 +776,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     });
   }, []);
 
-  // Handle source click in node info panel
-  const handleSourceClick = useCallback((nodeId: string, source: string) => {
-    // Remove glob patterns (* characters) to get the base path
-    const cleanPath = source.replace(/\*/g, '');
-
-    console.log('[CanvasDetailPanel] Source clicked - opening file:', cleanPath, 'from node:', nodeId);
-
-    // Emit file:open event (same as git changes panel)
-    // Pass relative path, not absolute - the context will resolve it
-    if (eventsRef.current) {
-      eventsRef.current.emit({
-        type: 'file:open',
-        source: 'canvas-detail-panel',
-        timestamp: Date.now(),
-        payload: { path: cleanPath },
-      });
-    }
-  }, []);
-
   // Handle source click from scenario details panel (simplified signature)
   const handleScenarioSourceClick = useCallback((source: string) => {
     console.log('[WorkflowScenariosPanel] Source clicked - opening file:', source);

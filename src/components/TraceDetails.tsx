@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { OtelSpan } from '../types/otel';
-import { getSpanDuration, getAttributeValue } from '../types/otel';
+import { getSpanDuration } from '../types/otel';
 
 export interface TraceDetailsProps {
   spans: OtelSpan[];

@@ -140,7 +140,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
   selectedExecutionId = null,
   onExecutionSelect,
   onDeselectExecution,
-  onExecutionHover,
+  onExecutionHover: _onExecutionHover,
   showBackButton = false,
   onBackClick,
   scenarioName,

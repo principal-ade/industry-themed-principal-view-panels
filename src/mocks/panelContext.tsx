@@ -186,12 +186,10 @@ export const createMockActions = (
   },
   // Default mock implementations for file operations
   readFile: async (path: string) => {
-    // eslint-disable-next-line no-console
     console.log('[Mock] Reading file:', path);
     return '{}';
   },
   writeFile: async (path: string, content: string) => {
-    // eslint-disable-next-line no-console
     console.log('[Mock] Writing file:', path);
     console.log('[Mock] Content:', content);
   },

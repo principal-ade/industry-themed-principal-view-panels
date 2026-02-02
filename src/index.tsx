@@ -1,6 +1,7 @@
 import { CanvasEditorPanel } from './panels/CanvasEditorPanel';
 import { WorkflowScenariosPanel } from './panels/WorkflowScenariosPanel';
 import { StoryboardListPanel } from './panels/StoryboardListPanel';
+import { TraceListPanel } from './panels/TraceListPanel';
 import type { PanelDefinition, PanelContextValue } from './types';
 import { principalViewPanelTools } from './tools';
 
@@ -13,6 +14,8 @@ export type { CanvasEditorPanelProps } from './panels/CanvasEditorPanel';
 export { WorkflowScenariosPanel } from './panels/WorkflowScenariosPanel';
 export type { WorkflowScenariosPanelProps } from './panels/WorkflowScenariosPanel';
 export { StoryboardListPanel } from './panels/StoryboardListPanel';
+export { TraceListPanel } from './panels/TraceListPanel';
+export { TraceDetailsPanel } from './panels/TraceDetailsPanel';
 export { LibraryAnchoringExplainerPanel } from './panels/LibraryAnchoringExplainerPanel';
 export type { LibraryAnchoringExplainerPanelProps } from './panels/LibraryAnchoringExplainerPanel';
 export { WorkflowExplainerPanel } from './panels/WorkflowExplainerPanel';
@@ -49,6 +52,29 @@ export type { WhyNowAgentRevolutionExplainerPanelProps } from './panels/WhyNowAg
 // Re-export adapter for external use
 export { PanelFileSystemAdapter } from './adapters/PanelFileSystemAdapter';
 export type { FileTreeEntry, PanelFileSystemAdapterOptions } from './adapters/PanelFileSystemAdapter';
+
+// Re-export OTEL types and utilities for external use
+export type {
+  OtelResourceSpans,
+  OtelResourceSpan,
+  OtelResource,
+  OtelScopeSpan,
+  OtelSpan,
+  OtelAttribute,
+  OtelAttributeValue,
+  OtelSpanEvent,
+  OtelSpanKind,
+  TraceInfo,
+} from './types/otel';
+export {
+  getAttributeStringValue,
+  getAttributeValue,
+  flattenResourceAttributes,
+  parseNanoTime,
+  getSpanDuration,
+  getServiceName,
+  groupSpansByTrace,
+} from './types/otel';
 
 /**
  * Export array of panel definitions.
@@ -147,6 +173,30 @@ export const panels: PanelDefinition[] = [
     onUnmount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log('Storyboard List Panel unmounting');
+    },
+  },
+  {
+    metadata: {
+      id: 'principal-ai.trace-list',
+      name: 'Trace List',
+      icon: '📊',
+      version: '0.1.0',
+      author: 'Principal AI',
+      description: 'Lists OpenTelemetry traces with search and filtering',
+      slices: ['telemetry'],
+    },
+    component: TraceListPanel,
+
+    onMount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Trace List Panel mounted');
+
+      // Telemetry slice is automatically managed by RepositoryPanelContext
+    },
+
+    onUnmount: async (_context: PanelContextValue) => {
+      // eslint-disable-next-line no-console
+      console.log('Trace List Panel unmounting');
     },
   },
 ];
