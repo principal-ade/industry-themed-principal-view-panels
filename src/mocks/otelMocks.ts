@@ -1,11 +1,24 @@
 import type {
-  OtelResourceSpans,
-  OtelResourceSpan,
-  OtelResource,
-  OtelSpan,
-  OtelAttribute,
-  OtelSpanKind,
-} from '../types/otel';
+  OtelResourceSpansData,
+  OtelResourceData,
+  OtelSpanData,
+  OtelKeyValue,
+  OtelScopeSpans,
+} from '@principal-ai/principal-view-core';
+
+// Type aliases for mock code
+type OtelResourceSpans = { resourceSpans: OtelResourceSpansData[] };
+type OtelResourceSpan = OtelResourceSpansData;
+type OtelResource = OtelResourceData;
+type OtelSpan = OtelSpanData;
+type OtelAttribute = OtelKeyValue;
+type OtelSpanKind =
+  | 'SPAN_KIND_UNSPECIFIED'
+  | 'SPAN_KIND_INTERNAL'
+  | 'SPAN_KIND_SERVER'
+  | 'SPAN_KIND_CLIENT'
+  | 'SPAN_KIND_PRODUCER'
+  | 'SPAN_KIND_CONSUMER';
 
 /**
  * Create an OTEL attribute
@@ -102,13 +115,14 @@ export function createMockSpan(params: {
     spanId,
     parentSpanId,
     name,
-    kind,
+    kind: kind as unknown as number, // Core uses numeric kind
     startTimeUnixNano: startTime,
     endTimeUnixNano: endTime,
     attributes: spanAttributes,
+    events: [],
     status: hasError
-      ? { code: 'STATUS_CODE_ERROR', message: 'Operation failed' }
-      : { code: 'STATUS_CODE_OK' },
+      ? { code: 2, message: 'Operation failed' } // 2 = ERROR
+      : { code: 1 }, // 1 = OK
   };
 
   if (hasError) {

@@ -1,140 +1,35 @@
 /**
- * OpenTelemetry OTLP/JSON type definitions
+ * Panel-specific OTEL types and utilities
  *
- * Based on: https://opentelemetry.io/docs/specs/otlp/
+ * Base OTEL types should be imported directly from @principal-ai/principal-view-core
+ * This file ONLY contains panel-specific extensions.
  */
 
-export interface OtelResourceSpans {
-  resourceSpans: OtelResourceSpan[];
-}
-
-export interface OtelResourceSpan {
-  resource: OtelResource;
-  scopeSpans: OtelScopeSpan[];
-}
-
-export interface OtelResource {
-  attributes: OtelAttribute[];
-}
-
-export interface OtelScopeSpan {
-  scope: {
-    name: string;
-    version?: string;
-  };
-  spans: OtelSpan[];
-}
-
-export interface OtelSpan {
-  traceId: string;
-  spanId: string;
-  parentSpanId?: string;
-  name: string;
-  kind?: OtelSpanKind;
-  startTimeUnixNano: string;
-  endTimeUnixNano: string;
-  attributes?: OtelAttribute[];
-  events?: OtelSpanEvent[];
-  status?: {
-    code?: 'STATUS_CODE_UNSET' | 'STATUS_CODE_OK' | 'STATUS_CODE_ERROR';
-    message?: string;
-  };
-}
-
-export interface OtelAttribute {
-  key: string;
-  value: {
-    stringValue?: string;
-    intValue?: number;
-    doubleValue?: number;
-    boolValue?: boolean;
-    arrayValue?: { values: OtelAttributeValue[] };
-    kvlistValue?: { values: OtelAttribute[] };
-  };
-}
-
-export type OtelAttributeValue = OtelAttribute['value'];
-
-export interface OtelSpanEvent {
-  timeUnixNano: string;
-  name: string;
-  attributes?: OtelAttribute[];
-}
-
-export type OtelSpanKind =
-  | 'SPAN_KIND_UNSPECIFIED'
-  | 'SPAN_KIND_INTERNAL'
-  | 'SPAN_KIND_SERVER'
-  | 'SPAN_KIND_CLIENT'
-  | 'SPAN_KIND_PRODUCER'
-  | 'SPAN_KIND_CONSUMER';
+import {
+  getAttributeValue,
+  parseNanoTime,
+  type OtelResourceSpansData,
+  type OtelResourceData,
+  type OtelSpanData,
+} from '@principal-ai/principal-view-core';
 
 /**
- * Helper functions
+ * Panel-specific TraceInfo type
+ *
+ * This is different from core's TraceInfo - it includes the full spans array
+ * for display purposes in the panels UI.
  */
-
-export function getAttributeStringValue(attr: OtelAttribute): string | undefined {
-  return attr.value.stringValue;
-}
-
-export function getAttributeValue(
-  attributes: OtelAttribute[] | undefined,
-  key: string
-): string | number | boolean | undefined {
-  const attr = attributes?.find(a => a.key === key);
-  if (!attr) return undefined;
-
-  return (
-    attr.value.stringValue ??
-    attr.value.intValue ??
-    attr.value.doubleValue ??
-    attr.value.boolValue
-  );
-}
-
-export function flattenResourceAttributes(resource: OtelResource): Record<string, string> {
-  const result: Record<string, string> = {};
-
-  for (const attr of resource.attributes) {
-    const value = getAttributeStringValue(attr);
-    if (value !== undefined) {
-      result[attr.key] = value;
-    }
-  }
-
-  return result;
-}
-
-export function parseNanoTime(nanos: string): number {
-  return parseInt(nanos, 10) / 1_000_000;
-}
-
-export function getSpanDuration(span: OtelSpan): number {
-  const start = parseInt(span.startTimeUnixNano, 10);
-  const end = parseInt(span.endTimeUnixNano, 10);
-  return (end - start) / 1_000_000; // milliseconds
-}
-
-export function getServiceName(resource: OtelResource): string | undefined {
-  const attr = resource.attributes.find(a => a.key === 'service.name');
-  return attr?.value.stringValue;
-}
-
-/**
- * Trace-level aggregations
- */
-
 export interface TraceInfo {
   traceId: string;
-  spans: OtelSpan[];
-  rootSpan: OtelSpan | undefined;
+  spans: OtelSpanData[];
+  rootSpan: OtelSpanData | undefined;
   serviceName: string | undefined;
   startTime: number; // milliseconds
   endTime: number; // milliseconds
   duration: number; // milliseconds
   spanCount: number;
   hasErrors: boolean;
-  resource: OtelResource;
+  resource: OtelResourceData;
   matchedWorkflow?: {
     storyboardId: string;
     storyboardName: string;
@@ -147,12 +42,22 @@ export interface TraceInfo {
 }
 
 /**
+ * Helper to get service name from resource
+ */
+export function getServiceName(resource: OtelResourceData): string | undefined {
+  const attr = resource.attributes.find(a => a.key === 'service.name');
+  return attr?.value.stringValue;
+}
+
+/**
  * Group spans by trace ID and compute trace-level information
+ *
+ * This returns the panel-specific TraceInfo type with full span data.
  */
 export function groupSpansByTrace(
-  resourceSpans: OtelResourceSpans
+  resourceSpans: { resourceSpans: OtelResourceSpansData[] }
 ): TraceInfo[] {
-  const traceMap = new Map<string, { spans: OtelSpan[]; resource: OtelResource }>();
+  const traceMap = new Map<string, { spans: OtelSpanData[]; resource: OtelResourceData }>();
 
   // Collect all spans by trace ID
   for (const resourceSpan of resourceSpans.resourceSpans) {
@@ -176,7 +81,7 @@ export function groupSpansByTrace(
     const startTime = Math.min(...spans.map(s => parseNanoTime(s.startTimeUnixNano)));
     const endTime = Math.max(...spans.map(s => parseNanoTime(s.endTimeUnixNano)));
     const hasErrors = spans.some(
-      s => s.status?.code === 'STATUS_CODE_ERROR' || s.events?.some(e => e.name === 'exception')
+      s => s.status?.code === 2 || s.events?.some(e => e.name === 'exception')
     );
 
     // Extract workflow matching information from resource attributes

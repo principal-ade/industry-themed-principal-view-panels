@@ -165,6 +165,7 @@ export const createMockActions = (
   overrides?: Partial<PanelActions> & {
     readFile?: (path: string) => Promise<string>;
     writeFile?: (path: string, content: string) => Promise<void>;
+    clearTelemetry?: () => void;
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): PanelActions & Record<string, any> => ({
@@ -192,6 +193,10 @@ export const createMockActions = (
   writeFile: async (path: string, content: string) => {
     console.log('[Mock] Writing file:', path);
     console.log('[Mock] Content:', content);
+  },
+  // Default mock implementation for clearing telemetry
+  clearTelemetry: () => {
+    console.log('[Mock] Clearing telemetry data');
   },
   ...overrides,
 });

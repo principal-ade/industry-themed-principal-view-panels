@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle, Search, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, Search, Trash2, X } from 'lucide-react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { TraceInfo } from '../types/otel';
 
@@ -7,9 +7,17 @@ export interface TraceListProps {
   traces: TraceInfo[];
   theme: Theme;
   onTraceClick?: (trace: TraceInfo) => void;
+  onClearAll?: () => void;
   selectedTraceId?: string;
   showSearch?: boolean;
   emptyMessage?: string;
+}
+
+interface GroupedTrace {
+  key: string;
+  traces: TraceInfo[];
+  representative: TraceInfo; // Most recent trace in the group
+  count: number;
 }
 
 /**
@@ -26,11 +34,13 @@ export const TraceList: React.FC<TraceListProps> = ({
   traces,
   theme,
   onTraceClick,
+  onClearAll,
   selectedTraceId,
   showSearch = true,
   emptyMessage = 'No traces available',
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   // Filter traces by search query
   const filteredTraces = useMemo(() => {
@@ -49,6 +59,50 @@ export const TraceList: React.FC<TraceListProps> = ({
       return false;
     });
   }, [traces, searchQuery]);
+
+  // Group traces by root span name, error status, and workflow matching
+  const groupedTraces = useMemo((): GroupedTrace[] => {
+    const groups = new Map<string, TraceInfo[]>();
+
+    for (const trace of filteredTraces) {
+      // Create a key based on: root span name, error status, workflow presence
+      const rootSpanName = trace.rootSpan?.name || 'Unknown Operation';
+      const hasErrors = trace.hasErrors ? 'error' : 'success';
+      const hasWorkflow = trace.matchedWorkflow ? 'matched' : 'unmatched';
+      const key = `${rootSpanName}|${hasErrors}|${hasWorkflow}`;
+
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(trace);
+    }
+
+    // Convert to GroupedTrace array
+    return Array.from(groups.entries()).map(([key, traces]) => {
+      // Sort traces by start time (most recent first)
+      const sortedTraces = [...traces].sort((a, b) => b.startTime - a.startTime);
+
+      return {
+        key,
+        traces: sortedTraces,
+        representative: sortedTraces[0], // Most recent
+        count: sortedTraces.length,
+      };
+    });
+  }, [filteredTraces]);
+
+  // Toggle group expansion
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupKey)) {
+        newSet.delete(groupKey);
+      } else {
+        newSet.add(groupKey);
+      }
+      return newSet;
+    });
+  };
 
   // Format duration for display
   const formatDuration = (durationMs: number): string => {
@@ -90,65 +144,106 @@ export const TraceList: React.FC<TraceListProps> = ({
         boxSizing: 'border-box',
       }}
     >
-      {/* Search Bar */}
+      {/* Search Bar with Clear All button */}
       {showSearch && traces.length > 0 && (
         <div
           style={{
-            position: 'relative',
+            display: 'flex',
+            gap: theme.space[2],
             flexShrink: 0,
             minWidth: 0,
             width: '100%',
           }}
         >
-          <Search
-            size={16}
-            color={theme.colors.textSecondary}
+          <div
             style={{
-              position: 'absolute',
-              left: '10px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              pointerEvents: 'none',
+              position: 'relative',
+              flex: 1,
+              minWidth: 0,
             }}
-          />
-          <input
-            type="text"
-            placeholder="Search traces..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 32px 8px 32px',
-              fontSize: theme.fontSizes[1],
-              fontFamily: theme.fonts.body,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.radii[2],
-              background: theme.colors.backgroundSecondary,
-              color: theme.colors.text,
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
+          >
+            <Search
+              size={16}
+              color={theme.colors.textSecondary}
               style={{
                 position: 'absolute',
-                right: '6px',
+                left: '10px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                background: 'transparent',
-                border: 'none',
-                padding: '4px',
-                cursor: 'pointer',
+                pointerEvents: 'none',
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Search traces..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 32px 8px 32px',
+                fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radii[2],
+                background: theme.colors.backgroundSecondary,
+                color: theme.colors.text,
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: '6px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: theme.colors.textSecondary,
+                }}
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          {onClearAll && (
+            <button
+              onClick={onClearAll}
+              style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                color: theme.colors.textSecondary,
+                gap: theme.space[1],
+                padding: `${theme.space[1]} ${theme.space[2]}`,
+                fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
+                color: theme.colors.error,
+                background: 'transparent',
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radii[2],
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
               }}
-              aria-label="Clear search"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = `${theme.colors.error}10`;
+                e.currentTarget.style.borderColor = theme.colors.error;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = theme.colors.border;
+              }}
             >
-              <X size={14} />
+              <Trash2 size={14} />
+              Clear All
             </button>
           )}
         </div>
@@ -167,7 +262,7 @@ export const TraceList: React.FC<TraceListProps> = ({
           gap: theme.space[2],
         }}
       >
-        {filteredTraces.length === 0 ? (
+        {groupedTraces.length === 0 ? (
           <div
             style={{
               display: 'flex',
@@ -183,7 +278,16 @@ export const TraceList: React.FC<TraceListProps> = ({
             {searchQuery ? 'No traces match your search' : emptyMessage}
           </div>
         ) : (
-          filteredTraces.map((trace) => (
+          groupedTraces.map((group) => {
+            const isExpanded = expandedGroups.has(group.key);
+            const isGrouped = group.count > 1;
+            const tracesToShow = isExpanded ? group.traces : [group.representative];
+
+            return (
+              <div key={group.key} style={{ display: 'flex', flexDirection: 'column', gap: theme.space[1] }}>
+                {tracesToShow.map((trace, index) => {
+                  const isRepresentative = index === 0;
+                  return (
             <div
               key={trace.traceId}
               onClick={() => onTraceClick?.(trace)}
@@ -205,8 +309,10 @@ export const TraceList: React.FC<TraceListProps> = ({
                 flexDirection: 'column',
                 gap: theme.space[2],
                 minWidth: 0,
-                width: '100%',
+                width: !isRepresentative && isExpanded ? `calc(100% - ${theme.space[3]})` : '100%',
                 boxSizing: 'border-box',
+                marginLeft: !isRepresentative && isExpanded ? theme.space[3] : '0',
+                opacity: !isRepresentative && isExpanded ? 0.9 : 1,
               }}
               onMouseEnter={(e) => {
                 if (onTraceClick && selectedTraceId !== trace.traceId) {
@@ -368,54 +474,102 @@ export const TraceList: React.FC<TraceListProps> = ({
                 </div>
               </div>
 
-              {/* Workflow Information Row */}
-              {trace.matchedWorkflow ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: theme.space[0],
-                    minWidth: 0,
-                  }}
-                >
-                  <span
+              {/* Workflow Information Row with Count Badge */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: theme.space[2],
+                  minWidth: 0,
+                }}
+              >
+                {trace.matchedWorkflow ? (
+                  <div
                     style={{
-                      fontSize: theme.fontSizes[0],
-                      color: theme.colors.textSecondary,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: theme.space[0],
+                      flex: 1,
+                      minWidth: 0,
                     }}
                   >
-                    {trace.matchedWorkflow.storyboardName}
-                  </span>
-                  {trace.matchedWorkflow.workflowName && (
                     <span
                       style={{
                         fontSize: theme.fontSizes[0],
-                        color: theme.colors.textMuted,
+                        color: theme.colors.textSecondary,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      → {trace.matchedWorkflow.workflowName}
+                      {trace.matchedWorkflow.storyboardName}
                     </span>
-                  )}
-                </div>
-              ) : (
-                <span
-                  style={{
-                    fontSize: theme.fontSizes[0],
-                    color: theme.colors.textMuted,
-                    fontStyle: 'italic',
-                  }}
-                >
-                  No workflow match
-                </span>
-              )}
+                    {trace.matchedWorkflow.workflowName && (
+                      <span
+                        style={{
+                          fontSize: theme.fontSizes[0],
+                          color: theme.colors.textMuted,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        → {trace.matchedWorkflow.workflowName}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: theme.fontSizes[0],
+                      color: theme.colors.textMuted,
+                      fontStyle: 'italic',
+                      flex: 1,
+                    }}
+                  >
+                    No workflow match
+                  </span>
+                )}
+                {isRepresentative && isGrouped && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleGroup(group.key);
+                    }}
+                    style={{
+                      fontSize: theme.fontSizes[0],
+                      fontWeight: theme.fontWeights.medium,
+                      fontFamily: theme.fonts.body,
+                      color: theme.colors.textSecondary,
+                      background: `${theme.colors.primary}15`,
+                      padding: `2px ${theme.space[2]}`,
+                      borderRadius: theme.radii[2],
+                      border: `1px solid ${theme.colors.border}`,
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = `${theme.colors.primary}25`;
+                      e.currentTarget.style.borderColor = theme.colors.primary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = `${theme.colors.primary}15`;
+                      e.currentTarget.style.borderColor = theme.colors.border;
+                    }}
+                  >
+                    {isExpanded ? `Hide ${group.count - 1} more` : `Show ${group.count - 1} more`}
+                  </button>
+                )}
+              </div>
             </div>
-          ))
+                  );
+                })}
+              </div>
+            );
+          })
         )}
       </div>
     </div>

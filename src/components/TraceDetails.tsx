@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react';
 import type { Theme } from '@principal-ade/industry-theme';
-import type { OtelSpan } from '../types/otel';
-import { getSpanDuration } from '../types/otel';
+import type { OtelSpanData } from '@principal-ai/principal-view-core';
+import { getSpanDuration } from '@principal-ai/principal-view-core';
+
+type OtelSpan = OtelSpanData;
 
 export interface TraceDetailsProps {
   spans: OtelSpan[];
@@ -97,7 +99,7 @@ export const TraceDetails: React.FC<TraceDetailsProps> = ({ spans, theme }) => {
   };
 
   const hasError = (span: OtelSpan): boolean => {
-    return span.status?.code === 'STATUS_CODE_ERROR' ||
+    return span.status?.code === 2 || // 2 = ERROR status code
            span.events?.some(e => e.name === 'exception') ||
            false;
   };

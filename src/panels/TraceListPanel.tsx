@@ -17,8 +17,8 @@ import type { TraceInfo } from '../types/otel';
  * - 'trace:selected' when a trace is clicked
  */
 export const TraceListPanel: React.FC<PanelComponentProps> = ({
-  context: _context,
-  actions: _actions,
+  context,
+  actions,
   events,
 }) => {
   const { theme } = useTheme();
@@ -48,6 +48,16 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
     }
   };
 
+  const handleClearAll = () => {
+    // Clear selected trace
+    setSelectedTraceId(undefined);
+
+    // Call clearTelemetry action if available
+    if (actions && 'clearTelemetry' in actions && typeof actions.clearTelemetry === 'function') {
+      (actions as { clearTelemetry: () => void }).clearTelemetry();
+    }
+  };
+
   return (
     <div
       ref={panelRef}
@@ -68,6 +78,7 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
         traces={traces}
         theme={theme}
         onTraceClick={handleTraceClick}
+        onClearAll={handleClearAll}
         selectedTraceId={selectedTraceId}
         emptyMessage={traces.length === 0 ? 'No traces received yet. Waiting for telemetry data...' : undefined}
       />

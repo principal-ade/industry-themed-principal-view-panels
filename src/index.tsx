@@ -53,28 +53,10 @@ export type { WhyNowAgentRevolutionExplainerPanelProps } from './panels/WhyNowAg
 export { PanelFileSystemAdapter } from './adapters/PanelFileSystemAdapter';
 export type { FileTreeEntry, PanelFileSystemAdapterOptions } from './adapters/PanelFileSystemAdapter';
 
-// Re-export OTEL types and utilities for external use
-export type {
-  OtelResourceSpans,
-  OtelResourceSpan,
-  OtelResource,
-  OtelScopeSpan,
-  OtelSpan,
-  OtelAttribute,
-  OtelAttributeValue,
-  OtelSpanEvent,
-  OtelSpanKind,
-  TraceInfo,
-} from './types/otel';
-export {
-  getAttributeStringValue,
-  getAttributeValue,
-  flattenResourceAttributes,
-  parseNanoTime,
-  getSpanDuration,
-  getServiceName,
-  groupSpansByTrace,
-} from './types/otel';
+// Re-export panel-specific OTEL types
+// Note: Base OTEL types should be imported from @principal-ai/principal-view-core
+export type { TraceInfo } from './types/otel';
+export { getServiceName, groupSpansByTrace } from './types/otel';
 
 /**
  * Export array of panel definitions.
