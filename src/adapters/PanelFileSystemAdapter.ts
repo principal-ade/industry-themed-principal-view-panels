@@ -28,6 +28,8 @@ export interface PanelFileSystemAdapterOptions {
   fileTreeFiles: FileTreeEntry[];
   /** Base path for the repository */
   basePath: string;
+  /** Optional readFile function for on-demand file loading (for LibraryDiscovery) */
+  readFile?: (path: string) => Promise<string>;
 }
 
 /**
@@ -40,10 +42,12 @@ export class PanelFileSystemAdapter implements FileSystemAdapter {
   private fileTreeFiles: FileTreeEntry[];
   private basePath: string;
   private fileContentCache: Map<string, string> = new Map();
+  private readFileImpl?: (path: string) => Promise<string>;
 
   constructor(options: PanelFileSystemAdapterOptions) {
     this.fileTreeFiles = options.fileTreeFiles;
     this.basePath = options.basePath;
+    this.readFileImpl = options.readFile;
   }
 
   /**
@@ -90,16 +94,33 @@ export class PanelFileSystemAdapter implements FileSystemAdapter {
 
   async readFile(path: string): Promise<string> {
     const normalized = this.normalizePath(path);
-    const content = this.fileContentCache.get(normalized);
 
-    if (content === undefined) {
-      throw new Error(
-        `File content not cached: ${path}. ` +
-        `Call setFileContent() after loading via panel's readFile action.`
-      );
+    // Try cache first
+    const cachedContent = this.fileContentCache.get(normalized);
+    if (cachedContent !== undefined) {
+      return cachedContent;
     }
 
-    return content;
+    // If readFile function was provided, use it for on-demand loading
+    if (this.readFileImpl) {
+      try {
+        const content = await this.readFileImpl(normalized);
+        // Cache the result for future reads
+        this.fileContentCache.set(normalized, content);
+        return content;
+      } catch (error) {
+        throw new Error(
+          `Failed to read file: ${path}. ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
+    // No cache and no readFile function
+    throw new Error(
+      `File content not cached: ${path}. ` +
+      `Call setFileContent() after loading via panel's readFile action, ` +
+      `or provide a readFile function in adapter options.`
+    );
   }
 
   async writeFile(_path: string, _content: string): Promise<void> {
