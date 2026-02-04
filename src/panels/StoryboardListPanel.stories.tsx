@@ -35,6 +35,19 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+// Helper to create a flat canvas file (no workflows)
+const createFlatCanvasFile = (canvasName: string) => {
+  return {
+    name: `${canvasName}.canvas`,
+    relativePath: `.principal-views/${canvasName}.canvas`,
+    path: `.principal-views/${canvasName}.canvas`,
+    extension: '.canvas',
+    size: 1024,
+    lastModified: new Date('2024-01-10'),
+    isDirectory: false,
+  };
+};
+
 // Helper to create a storyboard file structure
 const createStoryboardFiles = (storyboardName: string, workflows: Array<{ name: string; executions: number }> = []) => {
   const files: any[] = [
@@ -79,6 +92,10 @@ const createStoryboardFiles = (storyboardName: string, workflows: Array<{ name: 
 // Build mock file tree with storyboard structure using PathsFileTreeBuilder
 const buildMockFileTree = (): FileTree => {
   const allFiles = [
+    // Flat canvas files (static documentation - no workflows)
+    createFlatCanvasFile('architecture'),
+    createFlatCanvasFile('system-overview'),
+    // Hierarchical storyboards with workflows
     ...createStoryboardFiles('authentication-flow', [
       { name: 'happy-path', executions: 2 },
       { name: 'error-handling', executions: 1 },
@@ -134,9 +151,9 @@ const createMockSlices = (fileTreeData: FileTree | null) => {
           readFile: async (path: string) => {
             console.log('[Mock readFile] Called with path:', path);
 
-            // Return proper canvas JSON for .otel.canvas files
-            if (path.endsWith('.otel.canvas')) {
-              const canvasName = path.split('/').pop()?.replace('.otel.canvas', '') || 'Mock Canvas';
+            // Return proper canvas JSON for .canvas files (both .canvas and .otel.canvas)
+            if (path.endsWith('.canvas') || path.endsWith('.otel.canvas')) {
+              const canvasName = path.split('/').pop()?.replace(/\.(otel\.)?canvas$/, '') || 'Mock Canvas';
               const content = JSON.stringify({
                 pv: {
                   name: canvasName,

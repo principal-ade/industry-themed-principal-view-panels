@@ -484,7 +484,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
               <p style={{ margin: '8px 0 0 0', fontSize: theme.fontSizes[1] }}>
                 {searchQuery
                   ? 'Try a different search term'
-                  : 'Add .otel.canvas files to .principal-views/ to get started'}
+                  : 'Add .canvas or .otel.canvas files to .principal-views/ to get started'}
               </p>
             </div>
           </div>
@@ -573,7 +573,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
                   color: theme.colors.textMuted,
                   lineHeight: 1.5,
                 }}>
-                  This panel displays all .otel.canvas files found in your project's .principal-views/ directory.
+                  This panel displays all .canvas and .otel.canvas files found in your project's .principal-views/ directory.
                 </p>
                 <div style={{
                   display: 'flex',

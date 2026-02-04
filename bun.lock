@@ -21,7 +21,7 @@
         "@principal-ade/panel-layouts": "^0.3.3",
         "@principal-ade/utcp-panel-event": "^0.1.0",
         "@principal-ai/codebase-composition": "^0.2.41",
-        "@principal-ai/principal-view-core": "^0.21.0",
+        "@principal-ai/principal-view-core": "0.21.1",
         "@principal-ai/repository-abstraction": "^0.5.3",
         "@storybook/addon-docs": "10.1.2",
         "@storybook/addon-links": "10.1.2",
@@ -57,7 +57,7 @@
         "@principal-ade/panel-framework-core": "^0.3.0",
         "@principal-ade/utcp-panel-event": "^0.1.0",
         "@principal-ai/codebase-composition": "^0.2.41",
-        "@principal-ai/principal-view-core": "^0.20.6",
+        "@principal-ai/principal-view-core": "^0.21.0",
         "@principal-ai/repository-abstraction": "^0.5.3",
         "react": ">=19.0.0",
         "react-dom": ">=19.0.0",
@@ -271,7 +271,7 @@
 
     "@principal-ai/codebase-quality-lenses": ["@principal-ai/codebase-quality-lenses@0.1.62", "", { "peerDependencies": { "@a24z/alexandria-cli": ">=0.2.0" }, "optionalPeers": ["@a24z/alexandria-cli"] }, "sha512-8IMPabTVV3jbWq1xZv46HmmEFfc1TrEmfVRow67YWPZ/Yl76A8P/vA/DIO/Z2CgnJ2GlNLJqFVL/a3MZgSKsjQ=="],
 
-    "@principal-ai/principal-view-core": ["@principal-ai/principal-view-core@0.21.0", "", { "dependencies": { "@opentelemetry/api": "1.9.0", "@opentelemetry/exporter-trace-otlp-http": "0.208.0", "@opentelemetry/otlp-transformer": "^0.211.0", "@opentelemetry/resources": "2.2.0", "@opentelemetry/sdk-trace-base": "2.2.0", "@opentelemetry/semantic-conventions": "1.38.0", "@principal-ai/codebase-composition": "^0.2.41", "@principal-ai/repository-abstraction": "^0.5.3", "date-fns": "3.0.0", "handlebars": "^4.7.8", "js-yaml": "4.1.0", "zod": "3.22.0" } }, "sha512-oc9CAsqpgKTZpISB5DUo/8aRuHpL0uoZ+7pJh9FeMO+KVON6mCsAc8uc/6F4+ZuAVtTDGvb2a17ZWCYgrYzZ+g=="],
+    "@principal-ai/principal-view-core": ["@principal-ai/principal-view-core@0.21.1", "", { "dependencies": { "@opentelemetry/api": "1.9.0", "@opentelemetry/exporter-trace-otlp-http": "0.208.0", "@opentelemetry/otlp-transformer": "^0.211.0", "@opentelemetry/resources": "2.2.0", "@opentelemetry/sdk-trace-base": "2.2.0", "@opentelemetry/semantic-conventions": "1.38.0", "@principal-ai/codebase-composition": "^0.2.41", "@principal-ai/repository-abstraction": "^0.5.3", "date-fns": "3.0.0", "handlebars": "^4.7.8", "js-yaml": "4.1.0", "zod": "3.22.0" } }, "sha512-fcXZVFAN79IfSKpTXkyjsQRw9BRw9LXaPZdbj6bip+ebiuK6qc+7IbFqonjy2FHPODT0ohwjIIMQ01TDT23qNw=="],
 
     "@principal-ai/principal-view-react": ["@principal-ai/principal-view-react@0.12.2", "", { "dependencies": { "@principal-ade/industry-theme": "0.1.7", "@principal-ai/codebase-composition": "^0.2.41", "@xyflow/react": "12.0.0", "js-yaml": "4.1.1", "lucide-react": "0.554.0", "zustand": "4.5.0" }, "peerDependencies": { "@principal-ai/principal-view-core": "^0.19.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" } }, "sha512-Sy5a5EWv1IDgQYyhX6HoySJ+O3kC9ZU066vPFv4HT55z6p9BLgodggRl6SiHiFOgoLyQfsapBMhbRFle65R5LQ=="],
 
