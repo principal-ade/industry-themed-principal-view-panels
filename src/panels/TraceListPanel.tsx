@@ -138,7 +138,7 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
           );
 
           if (serviceEntry) {
-            const [serviceId, attrs] = serviceEntry;
+            const [_serviceId, attrs] = serviceEntry;
             setSelectedLibraryPath(libraryForService.path);
             setResources(attrs as Record<string, string>);
             console.info('[TraceListPanel] Loaded service:', serviceToLoad, 'from', libraryForService.path);

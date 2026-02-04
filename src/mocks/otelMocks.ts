@@ -3,7 +3,6 @@ import type {
   OtelResourceData,
   OtelSpanData,
   OtelKeyValue,
-  OtelScopeSpans,
 } from '@principal-ai/principal-view-core';
 
 // Type aliases for mock code
