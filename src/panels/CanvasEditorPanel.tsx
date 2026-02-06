@@ -375,27 +375,46 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     if (!events || !canvasPath) return;
 
     const handleWorkspaceChange = () => {
+      console.log('[CanvasEditorPanel] workspace:changed event received', { canvasPath });
+
       // Skip if we just saved (we caused this file change)
       if (skipNextFileChangeRef.current) {
+        console.log('[CanvasEditorPanel] Skipping - we caused this change');
         skipNextFileChangeRef.current = false;
         return;
       }
 
       // Get current file tree to check timestamps
       const ctx = contextRef.current;
-      if (!ctx.hasSlice('fileTree')) return;
+      if (!ctx.hasSlice('fileTree')) {
+        console.log('[CanvasEditorPanel] No fileTree slice available');
+        return;
+      }
 
       const fileTreeSlice = ctx.getSlice('fileTree');
       const fileTreeData = fileTreeSlice?.data as FileTree | null;
-      if (!fileTreeData?.allFiles) return;
+      if (!fileTreeData?.allFiles) {
+        console.log('[CanvasEditorPanel] No allFiles in fileTreeData');
+        return;
+      }
+
+      console.log('[CanvasEditorPanel] FileTree has', fileTreeData.allFiles.length, 'files, SHA:', fileTreeData.sha);
 
       // Check canvas file timestamp
       const canvasFile = fileTreeData.allFiles.find(f =>
         f.path === canvasPath || f.relativePath === canvasPath
       );
 
+      console.log('[CanvasEditorPanel] Looking for canvas file:', canvasPath, 'Found:', !!canvasFile);
+
       if (canvasFile?.lastModified) {
         const currentTimestamp = canvasFile.lastModified.getTime();
+        console.log('[CanvasEditorPanel] Timestamp comparison:', {
+          stored: canvasFileTimestampRef.current,
+          current: currentTimestamp,
+          changed: canvasFileTimestampRef.current !== currentTimestamp
+        });
+
         if (canvasFileTimestampRef.current && currentTimestamp !== canvasFileTimestampRef.current) {
           console.log('[CanvasEditorPanel] Canvas file modified, reloading...', {
             path: canvasPath,
@@ -406,6 +425,8 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
           loadConfiguration();
           canvasFileTimestampRef.current = currentTimestamp;
         }
+      } else {
+        console.log('[CanvasEditorPanel] Canvas file has no lastModified timestamp');
       }
     };
 
