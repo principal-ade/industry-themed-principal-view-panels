@@ -98,6 +98,14 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   // Track canvas file timestamp for auto-reload on changes
   const canvasFileTimestampRef = useRef<number | null>(null);
 
+  // Extract fileTree SHA to detect changes without breaking ref optimization
+  // This allows effects to trigger when fileTree changes while keeping context as a ref
+  const fileTreeSha = React.useMemo(() => {
+    const slice = context.getSlice('fileTree');
+    const data = slice?.data as FileTree | null;
+    return data?.sha || null;
+  }, [context]);
+
   // Track "copied" feedback for copy path button
   const [pathCopied, setPathCopied] = useState(false);
 
@@ -371,62 +379,37 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   }, [canvasFileInfo]);
 
   // Auto-reload on file changes via workspace:changed events
+  // Note: This provides immediate feedback even before fileTree SHA updates
   useEffect(() => {
     if (!events || !canvasPath) return;
 
     const handleWorkspaceChange = () => {
-      console.log('[CanvasEditorPanel] workspace:changed event received', { canvasPath });
-
       // Skip if we just saved (we caused this file change)
       if (skipNextFileChangeRef.current) {
-        console.log('[CanvasEditorPanel] Skipping - we caused this change');
         skipNextFileChangeRef.current = false;
         return;
       }
 
       // Get current file tree to check timestamps
       const ctx = contextRef.current;
-      if (!ctx.hasSlice('fileTree')) {
-        console.log('[CanvasEditorPanel] No fileTree slice available');
-        return;
-      }
+      if (!ctx.hasSlice('fileTree')) return;
 
       const fileTreeSlice = ctx.getSlice('fileTree');
       const fileTreeData = fileTreeSlice?.data as FileTree | null;
-      if (!fileTreeData?.allFiles) {
-        console.log('[CanvasEditorPanel] No allFiles in fileTreeData');
-        return;
-      }
-
-      console.log('[CanvasEditorPanel] FileTree has', fileTreeData.allFiles.length, 'files, SHA:', fileTreeData.sha);
+      if (!fileTreeData?.allFiles) return;
 
       // Check canvas file timestamp
       const canvasFile = fileTreeData.allFiles.find(f =>
         f.path === canvasPath || f.relativePath === canvasPath
       );
 
-      console.log('[CanvasEditorPanel] Looking for canvas file:', canvasPath, 'Found:', !!canvasFile);
-
       if (canvasFile?.lastModified) {
         const currentTimestamp = canvasFile.lastModified.getTime();
-        console.log('[CanvasEditorPanel] Timestamp comparison:', {
-          stored: canvasFileTimestampRef.current,
-          current: currentTimestamp,
-          changed: canvasFileTimestampRef.current !== currentTimestamp
-        });
 
         if (canvasFileTimestampRef.current && currentTimestamp !== canvasFileTimestampRef.current) {
-          console.log('[CanvasEditorPanel] Canvas file modified, reloading...', {
-            path: canvasPath,
-            lastLoaded: new Date(canvasFileTimestampRef.current),
-            current: new Date(currentTimestamp),
-          });
-
           loadConfiguration();
           canvasFileTimestampRef.current = currentTimestamp;
         }
-      } else {
-        console.log('[CanvasEditorPanel] Canvas file has no lastModified timestamp');
       }
     };
 
@@ -436,48 +419,37 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     };
   }, [events, canvasPath, loadConfiguration]);
 
-  // ALSO watch for fileTree SHA changes to handle race condition
-  // where workspace:changed fires before fileTree is updated
-  // The SHA now changes with each file edit (content-based when dirty)
-  const fileTreeSlice = context?.getSlice('fileTree');
-  const fileTreeData = fileTreeSlice?.data as FileTree | null;
-  const fileTreeSha = fileTreeData?.sha;
-
+  // Watch for fileTree SHA changes to detect external file modifications
+  // This complements workspace:changed to handle race conditions
+  // Using fileTreeSha allows this effect to trigger on changes while keeping context as a ref
   useEffect(() => {
-    if (!canvasPath || !fileTreeData?.allFiles) return;
+    if (!canvasPath || !fileTreeSha) return;
 
     // Skip if we just saved
     if (skipNextFileChangeRef.current) {
       return;
     }
 
+    // Get fresh fileTree data using ref (always up-to-date)
+    const ctx = contextRef.current;
+    const slice = ctx.getSlice('fileTree');
+    const data = slice?.data as FileTree | null;
+    if (!data?.allFiles) return;
+
     // Find canvas file and check timestamp
-    const canvasFile = fileTreeData.allFiles.find(f =>
+    const canvasFile = data.allFiles.find(f =>
       f.path === canvasPath || f.relativePath === canvasPath
     );
 
     if (canvasFile?.lastModified) {
       const currentTimestamp = canvasFile.lastModified.getTime();
 
-      console.log('[CanvasEditorPanel] FileTree SHA changed, checking timestamp:', {
-        stored: canvasFileTimestampRef.current,
-        current: currentTimestamp,
-        sha: fileTreeSha,
-        changed: canvasFileTimestampRef.current !== currentTimestamp
-      });
-
       if (canvasFileTimestampRef.current && currentTimestamp !== canvasFileTimestampRef.current) {
-        console.log('[CanvasEditorPanel] FileTree update detected file modification, reloading...', {
-          path: canvasPath,
-          lastLoaded: new Date(canvasFileTimestampRef.current),
-          current: new Date(currentTimestamp),
-        });
-
         loadConfiguration();
         canvasFileTimestampRef.current = currentTimestamp;
       }
     }
-  }, [canvasPath, loadConfiguration, fileTreeSha]);
+  }, [fileTreeSha, canvasPath, loadConfiguration]);
 
   // Subscribe to data refresh events
   useEffect(() => {
