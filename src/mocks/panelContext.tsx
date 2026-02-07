@@ -8,15 +8,34 @@ import type {
   PanelEventType,
   DataSlice,
 } from '../types';
+import type { GitStatusWithFiles } from '@principal-ai/repository-abstraction';
 
 /**
  * Mock Git Status data for Storybook
+ * Matches GitStatusWithFiles from @principal-ai/repository-abstraction
+ * This is what electron-app provides to panels in production
  */
-const mockGitStatusData = {
-  staged: ['src/components/Button.tsx', 'src/styles/theme.css'],
-  unstaged: ['README.md', 'package.json'],
-  untracked: ['src/new-feature.tsx'],
-  deleted: [],
+const mockGitStatusData: GitStatusWithFiles = {
+  // Metadata fields (from GitStatusMetadata)
+  repoPath: '/Users/developer/my-project',
+  branch: 'main',
+  isDirty: true,
+  hasUntracked: true,
+  hasStaged: true,
+  ahead: 0,
+  behind: 0,
+  watchingEnabled: true,
+  lastChangedAt: new Date().toISOString(),
+
+  // File lists (with correct field names from GitStatusWithFiles)
+  modifiedFiles: ['README.md', 'package.json'], // was: unstaged
+  untrackedFiles: ['src/new-feature.tsx'], // was: untracked
+  stagedFiles: ['src/components/Button.tsx', 'src/styles/theme.css'], // was: staged
+  createdFiles: ['src/new-feature.tsx'], // new field - subset of untracked
+  deletedFiles: [], // was: deleted
+
+  // Hash for React memoization
+  hash: 'mock-hash-abc123def456',
 };
 
 /**
