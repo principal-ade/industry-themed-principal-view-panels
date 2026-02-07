@@ -438,12 +438,13 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
   // ALSO watch for fileTree slice updates directly to handle race condition
   // where workspace:changed fires before fileTree is updated
-  useEffect(() => {
-    if (!context || !canvasPath) return;
+  // Use the fileTree SHA as dependency since it changes with each file edit
+  const fileTreeSlice = context?.getSlice('fileTree');
+  const fileTreeData = fileTreeSlice?.data as FileTree | null;
+  const fileTreeSha = fileTreeData?.sha;
 
-    const fileTreeSlice = context.getSlice('fileTree');
-    const fileTreeData = fileTreeSlice?.data as FileTree | null;
-    if (!fileTreeData?.allFiles) return;
+  useEffect(() => {
+    if (!context || !canvasPath || !fileTreeData?.allFiles) return;
 
     // Skip if we just saved
     if (skipNextFileChangeRef.current) {
@@ -461,7 +462,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       console.log('[CanvasEditorPanel] FileTree updated, checking timestamp:', {
         stored: canvasFileTimestampRef.current,
         current: currentTimestamp,
-        sha: fileTreeData.sha,
+        sha: fileTreeSha,
         changed: canvasFileTimestampRef.current !== currentTimestamp
       });
 
@@ -476,8 +477,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         canvasFileTimestampRef.current = currentTimestamp;
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context, canvasPath, loadConfiguration, context?.getSlice('fileTree')?.data]);
+  }, [context, canvasPath, loadConfiguration, fileTreeData, fileTreeSha]);
 
   // Subscribe to data refresh events
   useEffect(() => {
