@@ -35,17 +35,33 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Helper to create a flat canvas file (no workflows)
-const createFlatCanvasFile = (canvasName: string) => {
-  return {
-    name: `${canvasName}.canvas`,
-    relativePath: `.principal-views/${canvasName}.canvas`,
-    path: `.principal-views/${canvasName}.canvas`,
-    extension: '.canvas',
-    size: 1024,
-    lastModified: new Date('2024-01-10'),
-    isDirectory: false,
-  };
+// Helper to create a static canvas file (documentation/design - .canvas files)
+const createStaticCanvasFile = (canvasName: string, withMarkdown: boolean = false) => {
+  const files = [
+    {
+      name: `${canvasName}.canvas`,
+      relativePath: `.principal-views/${canvasName}/${canvasName}.canvas`,
+      path: `.principal-views/${canvasName}/${canvasName}.canvas`,
+      extension: '.canvas',
+      size: 1024,
+      lastModified: new Date('2024-01-10'),
+      isDirectory: false,
+    },
+  ];
+
+  if (withMarkdown) {
+    files.push({
+      name: `${canvasName}.md`,
+      relativePath: `.principal-views/${canvasName}/${canvasName}.md`,
+      path: `.principal-views/${canvasName}/${canvasName}.md`,
+      extension: '.md',
+      size: 512,
+      lastModified: new Date('2024-01-10'),
+      isDirectory: false,
+    });
+  }
+
+  return files;
 };
 
 // Helper to create a storyboard file structure
@@ -89,13 +105,16 @@ const createStoryboardFiles = (storyboardName: string, workflows: Array<{ name: 
   return files;
 };
 
-// Build mock file tree with storyboard structure using PathsFileTreeBuilder
+// Build mock file tree with both static and runtime-validated canvas files
 const buildMockFileTree = (): FileTree => {
   const allFiles = [
-    // Flat canvas files (static documentation - no workflows)
-    createFlatCanvasFile('architecture'),
-    createFlatCanvasFile('system-overview'),
-    // Hierarchical storyboards with workflows
+    // Static canvas files (documentation/design - .canvas files, no workflows)
+    ...createStaticCanvasFile('architecture', true),        // with markdown
+    ...createStaticCanvasFile('system-overview', true),     // with markdown
+    ...createStaticCanvasFile('database-design', false),    // without markdown
+    ...createStaticCanvasFile('deployment-diagram', false), // without markdown
+
+    // Runtime-validated storyboards (.otel.canvas files with workflows)
     ...createStoryboardFiles('authentication-flow', [
       { name: 'happy-path', executions: 2 },
       { name: 'error-handling', executions: 1 },
@@ -151,19 +170,34 @@ const createMockSlices = (fileTreeData: FileTree | null) => {
           readFile: async (path: string) => {
             console.log('[Mock readFile] Called with path:', path);
 
-            // Return proper canvas JSON for .canvas files (both .canvas and .otel.canvas)
+            // Return proper canvas JSON for .canvas and .otel.canvas files
             if (path.endsWith('.canvas') || path.endsWith('.otel.canvas')) {
-              const canvasName = path.split('/').pop()?.replace(/\.(otel\.)?canvas$/, '') || 'Mock Canvas';
+              const pathParts = path.split('/');
+              const canvasName = pathParts[pathParts.length - 2] || 'Mock Canvas';
+
+              // Check if this is a static .canvas file (not .otel.canvas)
+              const isStaticCanvas = path.endsWith('.canvas') && !path.endsWith('.otel.canvas');
+
+              // For static canvas files, check if markdown exists
+              const markdownPath = isStaticCanvas
+                ? `.principal-views/${canvasName}/${canvasName}.md`
+                : null;
+
+              // Check if markdown file exists in allFiles (for static canvases only)
+              const hasMarkdown = isStaticCanvas && fileTreeData?.allFiles.some(f => f.path === markdownPath);
+
               const content = JSON.stringify({
                 pv: {
-                  name: canvasName,
+                  name: canvasName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                   version: '1.0.0',
                   description: `Mock canvas for ${canvasName}`,
+                  // Add markdown path for static canvases with markdown files
+                  ...(hasMarkdown && { markdown: markdownPath }),
                 },
                 nodes: [],
                 edges: [],
               });
-              console.log('[Mock readFile] Returning canvas content for:', canvasName);
+              console.log('[Mock readFile] Returning canvas content for:', canvasName, isStaticCanvas ? '(static)' : '(otel)', hasMarkdown ? 'with markdown' : '');
               return content;
             }
 
@@ -202,7 +236,10 @@ const createMockSlices = (fileTreeData: FileTree | null) => {
 };
 
 /**
- * Default story showing the canvas list panel with multiple canvas files
+ * Default story showing the canvas list panel with both static and runtime-validated canvas files.
+ * Use the toggle in the header to switch between:
+ * - OTEL: Runtime-validated .otel.canvas files with workflows (authentication-flow, payment-processing, user-registration)
+ * - Static: Documentation .canvas files without workflows (architecture, system-overview, database-design, deployment-diagram)
  */
 export const Default: Story = {
   args: {} as never,

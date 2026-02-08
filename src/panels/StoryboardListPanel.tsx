@@ -5,7 +5,13 @@ import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check } from 'lucide-react';
 import { useCanvasWorkflowData } from './canvas-list/hooks/useCanvasWorkflowData';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
-import { StoryboardWorkflowsTreeCore, type StoryboardWorkflowNodeData } from '@principal-ade/dynamic-file-tree';
+import {
+  StoryboardWorkflowsTreeCore,
+  type StoryboardWorkflowNodeData,
+  CanvasListTreeCore,
+  type CanvasListNodeData,
+  type DiscoveredCanvas,
+} from '@principal-ade/dynamic-file-tree';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 import type { WorkflowTemplate, DiscoveredTestTrace, WorkflowScenario } from '@principal-ai/principal-view-core';
 
@@ -35,6 +41,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [cliCommandCopied, setCliCommandCopied] = useState(false);
+  const [canvasTypeFilter, setCanvasTypeFilter] = useState<'otel' | 'regular'>('otel');
 
   // Load storyboard data from discovery system
   // Storyboards come directly from the discovery system (no transformation needed)
@@ -140,9 +147,12 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
     return coverageMap;
   }, [workflows, testTraces, storyboards]);
 
-  // Filter storyboards by search query
+  // Filter storyboards by search query and canvas type
   const filteredStoryboards = useMemo(() => {
     let filtered = storyboards;
+
+    // Filter by canvas type (always filter to show one type)
+    filtered = filtered.filter((storyboard) => storyboard.canvas.type === canvasTypeFilter);
 
     // Filter by search query
     if (searchQuery.trim()) {
@@ -165,12 +175,19 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
     }
 
     return filtered;
-  }, [storyboards, searchQuery]);
+  }, [storyboards, searchQuery, canvasTypeFilter]);
 
-  const handleTreeNodeClick = useCallback((node: StoryboardWorkflowNodeData) => {
+  // Extract canvases for static canvas view (when canvasTypeFilter === 'regular')
+  const filteredCanvases = useMemo(() => {
+    return filteredStoryboards.map((storyboard) => storyboard.canvas);
+  }, [filteredStoryboards]);
+
+  const handleTreeNodeClick = useCallback((node: StoryboardWorkflowNodeData | CanvasListNodeData) => {
     if (node.type === 'overview' && node.markdownPath) {
       // Overview node click - open markdown documentation
-      setSelectedNodeId(`overview:${node.storyboard?.id}`);
+      // For CanvasListNodeData, canvas is directly on node; for StoryboardWorkflowNodeData, it's on storyboard
+      const canvasId = (node.canvas?.id) || ('storyboard' in node && (node as StoryboardWorkflowNodeData).storyboard?.canvas?.id) || 'unknown';
+      setSelectedNodeId(`overview:${canvasId}`);
       if (events) {
         console.log('[StoryboardListPanel] Opening documentation:', node.markdownPath);
         events.emit({
@@ -181,7 +198,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
         });
       }
     } else if (node.type === 'canvas' && node.canvas) {
-      // Storyboard (canvas) click - open canvas editor
+      // Canvas click - open canvas editor
       setSelectedNodeId(`canvas:${node.canvas.id}`);
       if (events) {
         const canvasFileInfo = getCanvasFileInfo(node.canvas.path);
@@ -198,7 +215,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
           },
         });
       }
-    } else if (node.type === 'workflow' && node.workflow && node.storyboard) {
+    } else if (node.type === 'workflow' && 'workflow' in node && node.workflow && 'storyboard' in node && node.storyboard) {
       // Workflow click - select workflow and open canvas detail with workflow
       setSelectedNodeId(`workflow:${node.workflow.id}`);
       if (events) {
@@ -308,6 +325,54 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
         </h2>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: storyboards.length >= 10 ? '1 1 200px' : '0 0 auto', maxWidth: storyboards.length >= 10 ? '400px' : 'none' }}>
+          {/* Canvas type toggle */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            background: theme.colors.backgroundSecondary,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: theme.radii[2],
+            padding: '4px',
+          }}>
+            <button
+              onClick={() => setCanvasTypeFilter('otel')}
+              style={{
+                background: canvasTypeFilter === 'otel' ? theme.colors.primary : 'transparent',
+                border: 'none',
+                borderRadius: theme.radii[1],
+                padding: '6px 12px',
+                cursor: 'pointer',
+                fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
+                fontWeight: canvasTypeFilter === 'otel' ? 600 : 400,
+                color: canvasTypeFilter === 'otel' ? 'white' : theme.colors.text,
+                transition: 'all 0.2s ease',
+              }}
+              title="Runtime validated .otel.canvas files"
+            >
+              OTEL
+            </button>
+            <button
+              onClick={() => setCanvasTypeFilter('regular')}
+              style={{
+                background: canvasTypeFilter === 'regular' ? theme.colors.primary : 'transparent',
+                border: 'none',
+                borderRadius: theme.radii[1],
+                padding: '6px 12px',
+                cursor: 'pointer',
+                fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
+                fontWeight: canvasTypeFilter === 'regular' ? 600 : 400,
+                color: canvasTypeFilter === 'regular' ? 'white' : theme.colors.text,
+                transition: 'all 0.2s ease',
+              }}
+              title="Static documentation .canvas files"
+            >
+              Static
+            </button>
+          </div>
+
           {/* Search input - only show if there are 10 or more storyboards */}
           {storyboards.length >= 10 && (
             <div
@@ -479,16 +544,18 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
           >
             <div style={{ textAlign: 'center' }}>
               <p style={{ margin: 0, fontSize: theme.fontSizes[2] }}>
-                {searchQuery ? 'No storyboards match your search' : 'No storyboards found'}
+                {searchQuery
+                  ? 'No storyboards match your search'
+                  : `No ${canvasTypeFilter === 'otel' ? '.otel.canvas' : '.canvas'} files found`}
               </p>
               <p style={{ margin: '8px 0 0 0', fontSize: theme.fontSizes[1] }}>
                 {searchQuery
                   ? 'Try a different search term'
-                  : 'Add .canvas or .otel.canvas files to .principal-views/ to get started'}
+                  : `Add ${canvasTypeFilter === 'otel' ? '.otel.canvas' : '.canvas'} files to .principal-views/ to get started`}
               </p>
             </div>
           </div>
-        ) : (
+        ) : canvasTypeFilter === 'otel' ? (
           <StoryboardWorkflowsTreeCore
             storyboards={filteredStoryboards}
             theme={theme}
@@ -498,6 +565,16 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
             horizontalNodePadding="clamp(16px, 4vw, 24px)"
             verticalPadding="10px"
             workflowCoverageMap={workflowCoverageMap}
+          />
+        ) : (
+          <CanvasListTreeCore
+            canvases={filteredCanvases}
+            theme={theme}
+            onClick={handleTreeNodeClick as (node: CanvasListNodeData) => void}
+            selectedNodeId={selectedNodeId ?? undefined}
+            defaultOpen={filteredCanvases.length <= 2}
+            horizontalNodePadding="clamp(16px, 4vw, 24px)"
+            verticalPadding="10px"
           />
         )}
       </div>
@@ -573,7 +650,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
                   color: theme.colors.textMuted,
                   lineHeight: 1.5,
                 }}>
-                  This panel displays all .canvas and .otel.canvas files found in your project's .principal-views/ directory.
+                  This panel displays .canvas (static) and .otel.canvas (runtime validated) files found in your project's .principal-views/ directory. Use the toggle to switch between types.
                 </p>
                 <div style={{
                   display: 'flex',
@@ -595,6 +672,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
                     color: theme.colors.textMuted,
                     lineHeight: 1.6,
                   }}>
+                    <li>Toggle between runtime validated (.otel.canvas) and static (.canvas) files</li>
                     <li>Browse and search through available storyboards</li>
                     <li>Filter by package if you have a monorepo structure</li>
                     <li>Click a storyboard to view the canvas in the editor</li>
