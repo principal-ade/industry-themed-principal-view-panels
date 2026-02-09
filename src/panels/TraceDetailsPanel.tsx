@@ -86,7 +86,7 @@ export const TraceDetailsPanel: React.FC<TraceDetailsPanelProps> = ({
 
           {/* Trace details */}
           <div style={{ flex: 1, minHeight: 0 }}>
-            <TraceDetails spans={selectedTrace.spans} theme={theme} />
+            <TraceDetails key={selectedTrace.traceId} spans={selectedTrace.spans} theme={theme} />
           </div>
         </>
       ) : (
