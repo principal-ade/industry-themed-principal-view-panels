@@ -24,6 +24,9 @@ export interface TraceInfo {
   spans: OtelSpanData[];
   rootSpan: OtelSpanData | undefined;
   serviceName: string | undefined;
+  serviceVersion: string | undefined;
+  repositoryUrl: string | undefined;
+  commitSha: string | undefined;
   startTime: number; // milliseconds
   endTime: number; // milliseconds
   duration: number; // milliseconds
@@ -101,11 +104,19 @@ export function groupSpansByTrace(
       scenarioName,
     } : undefined;
 
+    // Extract version information from resource attributes
+    const serviceVersion = getAttributeValue(resource.attributes, 'service.version') as string | undefined;
+    const repositoryUrl = getAttributeValue(resource.attributes, 'service.repository.url') as string | undefined;
+    const commitSha = getAttributeValue(resource.attributes, 'service.commit.sha') as string | undefined;
+
     traces.push({
       traceId,
       spans,
       rootSpan,
       serviceName: getServiceName(resource),
+      serviceVersion,
+      repositoryUrl,
+      commitSha,
       startTime,
       endTime,
       duration: endTime - startTime,
