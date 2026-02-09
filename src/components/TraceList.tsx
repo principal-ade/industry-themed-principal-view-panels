@@ -42,6 +42,24 @@ export const TraceList: React.FC<TraceListProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
+  // Calculate workflow matching stats
+  const matchingStats = useMemo(() => {
+    const withVersion = traces.filter(t => t.serviceVersion || t.commitSha);
+    const matched = traces.filter(t => t.matchedWorkflow);
+    const versions = new Set(
+      traces
+        .filter(t => t.serviceVersion)
+        .map(t => `${t.serviceName || 'unknown'}@${t.serviceVersion}`)
+    );
+
+    return {
+      total: traces.length,
+      withVersion: withVersion.length,
+      matched: matched.length,
+      versions: Array.from(versions),
+    };
+  }, [traces]);
+
   // Filter traces by search query
   const filteredTraces = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -144,6 +162,36 @@ export const TraceList: React.FC<TraceListProps> = ({
         boxSizing: 'border-box',
       }}
     >
+      {/* Workflow Matching Summary */}
+      {traces.length > 0 && matchingStats.matched > 0 && (
+        <div
+          style={{
+            padding: theme.space[2],
+            backgroundColor: `${theme.colors.success || '#22c55e'}15`,
+            border: `1px solid ${theme.colors.success || '#22c55e'}`,
+            borderRadius: theme.radii[2],
+            fontSize: theme.fontSizes[1],
+            color: theme.colors.text,
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.space[2],
+            flexShrink: 0,
+          }}
+        >
+          <CheckCircle size={16} color={theme.colors.success || '#22c55e'} style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: theme.fontWeights.medium }}>
+              Workflow Matching: {matchingStats.matched}/{matchingStats.total} traces matched
+            </div>
+            {matchingStats.versions.length > 0 && (
+              <div style={{ fontSize: theme.fontSizes[0], color: theme.colors.textSecondary, marginTop: '2px' }}>
+                Versions: {matchingStats.versions.join(', ')}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Search Bar with Clear All button */}
       {showSearch && traces.length > 0 && (
         <div
@@ -381,6 +429,25 @@ export const TraceList: React.FC<TraceListProps> = ({
                         }}
                       >
                         {trace.serviceName}
+                      </span>
+                    )}
+                    {trace.serviceVersion && (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '2px 6px',
+                          fontSize: theme.fontSizes[0],
+                          backgroundColor: `${theme.colors.primary}15`,
+                          color: theme.colors.primary,
+                          border: `1px solid ${theme.colors.primary}40`,
+                          borderRadius: '3px',
+                          fontWeight: theme.fontWeights.medium,
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}
+                        title={`Version: ${trace.serviceVersion}${trace.commitSha ? ` (${trace.commitSha.substring(0, 7)})` : ''}`}
+                      >
+                        v{trace.serviceVersion}
                       </span>
                     )}
                     <span
