@@ -784,52 +784,64 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
                       {schematic.commitSha}
                     </div>
                   </div>
-                  {schematic.workflows && schematic.workflows.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {schematic.workflows.map((workflow: any, wIndex: number) => (
-                        <div
-                          key={wIndex}
-                          style={{
-                            padding: '12px',
-                            backgroundColor: theme.colors.background,
-                            border: `1px solid ${theme.colors.border}`,
-                            borderRadius: '3px',
-                          }}
-                        >
-                          <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>
-                            {workflow.name || 'Unnamed Workflow'}
-                          </div>
-                          {workflow.scenarios && workflow.scenarios.length > 0 && (
-                            <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>
-                              <div style={{ fontWeight: 500, marginBottom: '4px' }}>
-                                Scenarios ({workflow.scenarios.length}):
+                  {(() => {
+                    // Extract all workflows from storyboards
+                    const allWorkflows = schematic.storyboards?.flatMap((storyboard: any) =>
+                      storyboard.workflows || []
+                    ) || [];
+
+                    return allWorkflows.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {allWorkflows.map((workflow: any, wIndex: number) => {
+                          // Scenarios may be at top level or in content field
+                          const scenarios = workflow.scenarios || workflow.content?.scenarios || [];
+
+                          return (
+                            <div
+                              key={wIndex}
+                              style={{
+                                padding: '12px',
+                                backgroundColor: theme.colors.background,
+                                border: `1px solid ${theme.colors.border}`,
+                                borderRadius: '3px',
+                              }}
+                            >
+                              <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>
+                                {workflow.name || 'Unnamed Workflow'}
                               </div>
-                              <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                                {workflow.scenarios.map((scenario: any, sIndex: number) => (
-                                  <li key={sIndex} style={{ marginBottom: '4px' }}>
-                                    <span style={{ fontWeight: 500 }}>{scenario.id}</span>
-                                    {scenario.condition?.requires && scenario.condition.requires.length > 0 && (
-                                      <span style={{ color: theme.colors.textMuted }}>
-                                        {' '}
-                                        - requires: {scenario.condition.requires.join(', ')}
-                                      </span>
-                                    )}
-                                    {scenario.condition?.default && (
-                                      <span style={{ color: theme.colors.textMuted }}> - default fallback</span>
-                                    )}
-                                  </li>
-                                ))}
-                              </ul>
+                              {scenarios.length > 0 && (
+                                <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>
+                                  <div style={{ fontWeight: 500, marginBottom: '4px' }}>
+                                    Scenarios ({scenarios.length}):
+                                  </div>
+                                  <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                                    {scenarios.map((scenario: any, sIndex: number) => (
+                                      <li key={sIndex} style={{ marginBottom: '4px' }}>
+                                        <span style={{ fontWeight: 500 }}>{scenario.id}</span>
+                                        {scenario.condition?.requires && scenario.condition.requires.length > 0 && (
+                                          <span style={{ color: theme.colors.textMuted }}>
+                                            {' '}
+                                            - requires: {scenario.condition.requires.join(', ')}
+                                          </span>
+                                        )}
+                                        {scenario.condition?.default && (
+                                          <span style={{ color: theme.colors.textMuted }}> - default fallback</span>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: '12px', color: theme.colors.textMuted }}>
-                      No workflows found
-                    </div>
-                  )}
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '12px', color: theme.colors.textMuted }}>
+                        No workflows found
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
