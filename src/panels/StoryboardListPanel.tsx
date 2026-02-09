@@ -5,6 +5,7 @@ import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check } from 'lucide-react';
 import { useCanvasWorkflowData } from './canvas-list/hooks/useCanvasWorkflowData';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
+import { StoryboardLoadingGraph } from './canvas-list/components/StoryboardLoadingGraph';
 import {
   StoryboardWorkflowsTreeCore,
   type StoryboardWorkflowNodeData,
@@ -518,18 +519,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
         }}
       >
         {isLoading ? (
-          <div
-            style={{
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: theme.colors.textSecondary,
-              fontSize: theme.fontSizes[2],
-            }}
-          >
-            Loading storyboards...
-          </div>
+          <StoryboardLoadingGraph />
         ) : filteredStoryboards.length === 0 ? (
           <div
             style={{
