@@ -9,7 +9,7 @@ import { LibraryDiscovery } from '@principal-ai/principal-view-core';
 import { PanelFileSystemAdapter } from '../adapters/PanelFileSystemAdapter';
 import yaml from 'js-yaml';
 
-type TabView = 'traces' | 'configuration';
+type TabView = 'traces' | 'configuration' | 'schematics';
 
 /**
  * TraceListPanel - Panel for displaying OpenTelemetry traces
@@ -17,6 +17,7 @@ type TabView = 'traces' | 'configuration';
  * This panel shows:
  * - Traces tab: List of traces with metadata, search/filter, click to select
  * - Configuration tab: Edit library.yaml resources (service.name, etc.) for OTEL setup
+ * - Schematics tab: View workflows/scenarios from version registry
  *
  * Events emitted:
  * - 'trace:selected' when a trace is clicked
@@ -37,6 +38,11 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
   // Get traces from telemetry slice
   const telemetrySlice = context.getSlice<TraceInfo[]>('telemetry');
   const traces = telemetrySlice?.data || [];
+
+  // Get schematics from schematics slice
+  const schematicsSlice = context.getSlice<unknown[]>('schematics');
+  const schematics = schematicsSlice?.data || [];
+  const schematicsLoading = schematicsSlice?.loading || false;
 
   // Configuration tab state
   const [resources, setResources] = useState<Record<string, string>>({});
@@ -359,6 +365,22 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
           }}
         >
           Configuration
+        </button>
+        <button
+          onClick={() => setActiveTab('schematics')}
+          style={{
+            padding: '12px 24px',
+            fontSize: '13px',
+            fontWeight: 500,
+            backgroundColor: activeTab === 'schematics' ? theme.colors.background : 'transparent',
+            color: activeTab === 'schematics' ? theme.colors.text : theme.colors.textSecondary,
+            border: 'none',
+            borderBottom: activeTab === 'schematics' ? `2px solid #3b82f6` : '2px solid transparent',
+            cursor: 'pointer',
+            outline: 'none',
+          }}
+        >
+          Schematics
         </button>
       </div>
 
@@ -724,7 +746,96 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
             </>
           )}
         </div>
-      )}
+      ) : activeTab === 'schematics' ? (
+        <div style={{ flex: 1, padding: '16px', overflow: 'auto' }}>
+          {schematicsLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+              <div style={{ fontSize: '14px', color: theme.colors.textSecondary }}>
+                Loading schematics...
+              </div>
+            </div>
+          ) : schematics.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px' }}>
+              <div style={{ fontSize: '14px', color: theme.colors.textSecondary }}>
+                No schematics found
+              </div>
+              <div style={{ fontSize: '12px', color: theme.colors.textMuted, textAlign: 'center', maxWidth: '400px' }}>
+                Schematics are fetched from traces with version information (repositoryUrl + commitSha).
+                Make sure traces have version attributes and schematics are registered in the version registry.
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {schematics.map((schematic: any, index) => (
+                <div
+                  key={index}
+                  style={{
+                    padding: '16px',
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: '4px',
+                  }}
+                >
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: '4px' }}>
+                      {schematic.repositoryUrl?.replace('https://github.com/', '')}
+                    </div>
+                    <div style={{ fontSize: '12px', color: theme.colors.textMuted, fontFamily: theme.fonts.monospace }}>
+                      {schematic.commitSha}
+                    </div>
+                  </div>
+                  {schematic.workflows && schematic.workflows.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {schematic.workflows.map((workflow: any, wIndex: number) => (
+                        <div
+                          key={wIndex}
+                          style={{
+                            padding: '12px',
+                            backgroundColor: theme.colors.background,
+                            border: `1px solid ${theme.colors.border}`,
+                            borderRadius: '3px',
+                          }}
+                        >
+                          <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>
+                            {workflow.name || 'Unnamed Workflow'}
+                          </div>
+                          {workflow.scenarios && workflow.scenarios.length > 0 && (
+                            <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>
+                              <div style={{ fontWeight: 500, marginBottom: '4px' }}>
+                                Scenarios ({workflow.scenarios.length}):
+                              </div>
+                              <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                                {workflow.scenarios.map((scenario: any, sIndex: number) => (
+                                  <li key={sIndex} style={{ marginBottom: '4px' }}>
+                                    <span style={{ fontWeight: 500 }}>{scenario.id}</span>
+                                    {scenario.condition?.requires && scenario.condition.requires.length > 0 && (
+                                      <span style={{ color: theme.colors.textMuted }}>
+                                        {' '}
+                                        - requires: {scenario.condition.requires.join(', ')}
+                                      </span>
+                                    )}
+                                    {scenario.condition?.default && (
+                                      <span style={{ color: theme.colors.textMuted }}> - default fallback</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '12px', color: theme.colors.textMuted }}>
+                      No workflows found
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 };
