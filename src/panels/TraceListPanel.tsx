@@ -396,7 +396,7 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
             emptyMessage={traces.length === 0 ? 'No traces received yet. Waiting for telemetry data...' : undefined}
           />
         </div>
-      ) : (
+      ) : activeTab === 'configuration' ? (
         <div style={{ flex: 1, padding: '16px', overflow: 'auto' }}>
           {configLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
