@@ -174,7 +174,23 @@ export const createMockContext = (
     },
   };
 
-  return { ...defaultContext, ...overrides };
+  // Merge overrides, but preserve getSlice fallback to mockSlices
+  const merged = { ...defaultContext, ...overrides };
+
+  // If getSlice was overridden, wrap it to fall back to default slices
+  if (overrides?.getSlice) {
+    const customGetSlice = overrides.getSlice;
+    const defaultGetSlice = defaultContext.getSlice;
+    merged.getSlice = <T,>(name: string): DataSlice<T> | undefined => {
+      const customSlice = customGetSlice<T>(name);
+      if (customSlice !== undefined) {
+        return customSlice;
+      }
+      return defaultGetSlice<T>(name);
+    };
+  }
+
+  return merged;
 };
 
 /**

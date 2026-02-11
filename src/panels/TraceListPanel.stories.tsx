@@ -4,6 +4,7 @@ import { TraceListPanel } from './TraceListPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import type { TraceInfo } from '../types/otel';
+import type { VersionSnapshot } from '@principal-ai/principal-view-core';
 
 // Mock trace data
 const now = Date.now();
@@ -457,5 +458,492 @@ export const WithWorkflowMatching: Story = {
         {(props) => <TraceListPanel {...props} />}
       </MockPanelProvider>
     );
+  },
+};
+
+// Mock schematics data (from version registry)
+const mockSchematics: VersionSnapshot[] = [
+  {
+    repositoryUrl: 'https://github.com/example-org/ecommerce-platform',
+    commitSha: 'a1b2c3d4e5f6789012345678901234567890abcd',
+    storyboards: [
+      {
+        id: 'ecommerce-journey',
+        name: 'E-Commerce User Journey',
+        path: '.principal-views/ecommerce-journey.otel.canvas',
+        basename: 'ecommerce-journey',
+        scope: 'root' as const,
+        canvas: {
+          id: 'ecommerce-journey',
+          name: 'E-Commerce User Journey',
+          path: '.principal-views/ecommerce-journey.otel.canvas',
+          basename: 'ecommerce-journey',
+          type: 'otel' as const,
+          scope: 'root' as const,
+        },
+        workflows: [
+          {
+            id: 'authentication-workflow',
+            name: 'Authentication Workflow',
+            path: '.principal-views/ecommerce-journey/authentication-workflow.workflow.json',
+            basename: 'authentication-workflow',
+            storyboardId: 'ecommerce-journey',
+            scope: 'root' as const,
+            testTraces: [],
+            content: {
+              name: 'Authentication Workflow',
+              mode: 'testing' as const,
+              scenarios: [
+                {
+                  id: 'happy-path-login',
+                  condition: {
+                    requires: ['valid-credentials'],
+                    default: false,
+                  },
+                },
+                {
+                  id: 'failed-login-invalid-password',
+                  condition: {
+                    requires: ['invalid-password'],
+                    default: false,
+                  },
+                },
+                {
+                  id: 'failed-login-account-locked',
+                  condition: {
+                    requires: ['account-locked'],
+                    default: false,
+                  },
+                },
+                {
+                  id: 'default-error-scenario',
+                  condition: {
+                    requires: [],
+                    default: true,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            id: 'checkout-workflow',
+            name: 'Checkout Workflow',
+            path: '.principal-views/ecommerce-journey/checkout-workflow.workflow.json',
+            basename: 'checkout-workflow',
+            storyboardId: 'ecommerce-journey',
+            scope: 'root' as const,
+            testTraces: [],
+            content: {
+              name: 'Checkout Workflow',
+              mode: 'testing' as const,
+              scenarios: [
+                {
+                  id: 'standard-checkout',
+                  condition: {
+                    requires: ['cart-not-empty', 'payment-method-valid'],
+                    default: false,
+                  },
+                },
+                {
+                  id: 'express-checkout',
+                  condition: {
+                    requires: ['saved-payment-method', 'saved-address'],
+                    default: false,
+                  },
+                },
+                {
+                  id: 'checkout-with-coupon',
+                  condition: {
+                    requires: ['valid-coupon-code'],
+                    default: false,
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        id: 'admin-operations',
+        name: 'Admin Operations',
+        path: '.principal-views/admin-operations.otel.canvas',
+        basename: 'admin-operations',
+        scope: 'root' as const,
+        canvas: {
+          id: 'admin-operations',
+          name: 'Admin Operations',
+          path: '.principal-views/admin-operations.otel.canvas',
+          basename: 'admin-operations',
+          type: 'otel' as const,
+          scope: 'root' as const,
+        },
+        workflows: [
+          {
+            id: 'product-management',
+            name: 'Product Management',
+            path: '.principal-views/admin-operations/product-management.workflow.json',
+            basename: 'product-management',
+            storyboardId: 'admin-operations',
+            scope: 'root' as const,
+            testTraces: [],
+            content: {
+              name: 'Product Management',
+              mode: 'testing' as const,
+              scenarios: [
+                {
+                  id: 'create-product',
+                  condition: {
+                    requires: ['admin-role'],
+                    default: false,
+                  },
+                },
+                {
+                  id: 'update-product',
+                  condition: {
+                    requires: ['admin-role', 'product-exists'],
+                    default: false,
+                  },
+                },
+                {
+                  id: 'delete-product',
+                  condition: {
+                    requires: ['admin-role', 'product-exists', 'no-active-orders'],
+                    default: false,
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    repositoryUrl: 'https://github.com/example-org/payment-service',
+    commitSha: 'f1e2d3c4b5a69780123456789012345678901234',
+    storyboards: [
+      {
+        id: 'payment-processing',
+        name: 'Payment Processing',
+        path: '.principal-views/payment-processing.otel.canvas',
+        basename: 'payment-processing',
+        scope: 'root' as const,
+        canvas: {
+          id: 'payment-processing',
+          name: 'Payment Processing',
+          path: '.principal-views/payment-processing.otel.canvas',
+          basename: 'payment-processing',
+          type: 'otel' as const,
+          scope: 'root' as const,
+        },
+        workflows: [
+          {
+            id: 'credit-card-payment',
+            name: 'Credit Card Payment',
+            path: '.principal-views/payment-processing/credit-card-payment.workflow.json',
+            basename: 'credit-card-payment',
+            storyboardId: 'payment-processing',
+            scope: 'root' as const,
+            testTraces: [],
+            content: {
+              name: 'Credit Card Payment',
+              mode: 'testing' as const,
+              scenarios: [
+                {
+                  id: 'successful-payment',
+                  condition: {
+                    requires: ['valid-card', 'sufficient-funds'],
+                    default: false,
+                  },
+                },
+                {
+                  id: 'declined-insufficient-funds',
+                  condition: {
+                    requires: ['valid-card'],
+                    default: false,
+                  },
+                },
+                {
+                  id: 'declined-invalid-card',
+                  condition: {
+                    requires: [],
+                    default: true,
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+];
+
+/**
+ * With schematics - shows workflows and scenarios from version registry
+ */
+/**
+ * Mock traces with workflow matching for schematics demo
+ */
+const mockTracesForSchematics: TraceInfo[] = [
+  {
+    traceId: 'trace-1',
+    spanId: 'span-1',
+    startTimeUnixNano: '1640000000000000000',
+    endTimeUnixNano: '1640000001000000000',
+    name: 'User Login',
+    kind: 'SPAN_KIND_SERVER',
+    attributes: [],
+    resource: {
+      attributes: [
+        { key: 'repository.url', value: { stringValue: 'https://github.com/example-org/ecommerce-platform' } },
+        { key: 'repository.commit', value: { stringValue: 'a1b2c3d4e5f6789012345678901234567890abcd' } },
+      ],
+    },
+    matchedWorkflow: {
+      workflowId: 'authentication-workflow',
+      workflowName: 'Authentication Workflow',
+      scenarioId: 'happy-path-login',
+    },
+  },
+  {
+    traceId: 'trace-2',
+    spanId: 'span-2',
+    startTimeUnixNano: '1640000002000000000',
+    endTimeUnixNano: '1640000003000000000',
+    name: 'Process Checkout',
+    kind: 'SPAN_KIND_SERVER',
+    attributes: [],
+    resource: {
+      attributes: [
+        { key: 'repository.url', value: { stringValue: 'https://github.com/example-org/ecommerce-platform' } },
+        { key: 'repository.commit', value: { stringValue: 'a1b2c3d4e5f6789012345678901234567890abcd' } },
+      ],
+    },
+    matchedWorkflow: {
+      workflowId: 'checkout-workflow',
+      workflowName: 'Checkout Workflow',
+      scenarioId: 'standard-checkout',
+    },
+  },
+];
+
+export const WithSchematics: Story = {
+  render: () => {
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          getSlice: (name: string) => {
+            if (name === 'schematics') {
+              return {
+                scope: 'repository' as const,
+                name: 'schematics',
+                data: mockSchematics,
+                loading: false,
+                error: null,
+                refresh: async () => {},
+              };
+            }
+            if (name === 'telemetry') {
+              return {
+                scope: 'repository' as const,
+                name: 'telemetry',
+                data: mockTracesForSchematics,
+                loading: false,
+                error: null,
+                refresh: async () => {},
+              };
+            }
+            return undefined;
+          },
+        }}
+      >
+        {(props) => <TraceListPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Click on the "Schematics" tab to view the version-grouped storyboards tree. The mock data includes traces for some workflows, so you can see the trace indicators (● = has traces, ○ = no traces).',
+      },
+    },
+  },
+};
+
+/**
+ * Schematics with multiple versions (some with traces, some without)
+ */
+export const SchematicsMultipleVersions: Story = {
+  render: () => {
+    // Mock traces only for the first version's authentication workflow
+    const tracesForFirstVersion: TraceInfo[] = [
+      {
+        traceId: 'trace-auth-1',
+        spanId: 'span-auth-1',
+        startTimeUnixNano: '1640000000000000000',
+        endTimeUnixNano: '1640000001000000000',
+        name: 'User Login',
+        kind: 'SPAN_KIND_SERVER',
+        attributes: [],
+        resource: {
+          attributes: [
+            { key: 'repository.url', value: { stringValue: 'https://github.com/example-org/ecommerce-platform' } },
+            { key: 'repository.commit', value: { stringValue: 'a1b2c3d4e5f6789012345678901234567890abcd' } },
+          ],
+        },
+        matchedWorkflow: {
+          workflowId: 'authentication-workflow',
+          workflowName: 'Authentication Workflow',
+          scenarioId: 'happy-path-login',
+        },
+      },
+    ];
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          getSlice: (name: string) => {
+            if (name === 'schematics') {
+              return {
+                scope: 'repository' as const,
+                name: 'schematics',
+                data: mockSchematics,
+                loading: false,
+                error: null,
+                refresh: async () => {
+                  console.log('[Mock] Refreshing schematics slice');
+                },
+              };
+            }
+            if (name === 'telemetry') {
+              return {
+                scope: 'repository' as const,
+                name: 'telemetry',
+                data: tracesForFirstVersion,
+                loading: false,
+                error: null,
+                refresh: async () => {
+                  console.log('[Mock] Refreshing telemetry slice');
+                },
+              };
+            }
+            return undefined;
+          },
+        }}
+      >
+        {(props) => <TraceListPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Navigate to the "Schematics" tab to see multiple versions. Only the first version\'s authentication workflow has traces (●). Use the filter checkbox to show only workflows with traces - this will hide the second and third versions entirely, and hide the checkout and product management workflows.',
+      },
+    },
+  },
+};
+
+/**
+ * Simple schematics test - minimal data for testing
+ */
+export const SchematicsSimpleTest: Story = {
+  render: () => {
+    const testData: VersionSnapshot[] = [{
+      repositoryUrl: 'https://github.com/test/repo',
+      commitSha: 'abc123abc123abc123abc123abc123abc123abc1',
+      storyboards: [{
+        id: 'test-storyboard',
+        name: 'Test Storyboard',
+        path: '.principal-views/test.otel.canvas',
+        basename: 'test',
+        scope: 'root' as const,
+        canvas: {
+          id: 'test',
+          name: 'Test',
+          path: '.principal-views/test.otel.canvas',
+          basename: 'test',
+          type: 'otel' as const,
+          scope: 'root' as const,
+        },
+        workflows: [{
+          id: 'test-workflow',
+          name: 'Test Workflow',
+          path: '.principal-views/test/workflow.json',
+          basename: 'test-workflow',
+          storyboardId: 'test-storyboard',
+          scope: 'root' as const,
+          testTraces: [],
+        }],
+      }],
+    }];
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          getSlice: (name: string) => {
+            if (name === 'schematics') {
+              return {
+                scope: 'repository' as const,
+                name: 'schematics',
+                data: testData,
+                loading: false,
+                error: null,
+                refresh: async () => {},
+              };
+            }
+            return undefined;
+          },
+        }}
+      >
+        {(props) => <TraceListPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Minimal test case with one version and one workflow. Click "Schematics" tab to view the tree.',
+      },
+    },
+  },
+};
+
+/**
+ * Schematics loading state
+ */
+export const SchematicsLoading: Story = {
+  render: () => {
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          getSlice: (name: string) => {
+            if (name === 'schematics') {
+              return {
+                scope: 'repository' as const,
+                name: 'schematics',
+                data: [],
+                loading: true,
+                error: null,
+                refresh: async () => {
+                  console.log('[Mock] Refreshing schematics slice');
+                },
+              };
+            }
+            return undefined;
+          },
+        }}
+      >
+        {(props) => <TraceListPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Navigate to the "Schematics" tab to see the loading state.',
+      },
+    },
   },
 };

@@ -6,7 +6,10 @@ import { TraceList } from '../components/TraceList';
 import type { TraceInfo } from '../types/otel';
 import type { FileTree } from '@principal-ai/repository-abstraction';
 import { LibraryDiscovery } from '@principal-ai/principal-view-core';
+import type { VersionSnapshot } from '@principal-ai/principal-view-core';
 import { PanelFileSystemAdapter } from '../adapters/PanelFileSystemAdapter';
+import { StoryboardWorkflowsTreeCore } from '@principal-ade/dynamic-file-tree';
+import type { StoryboardWorkflowNodeData, WorkflowFilterMode } from '@principal-ade/dynamic-file-tree';
 import yaml from 'js-yaml';
 
 type TabView = 'traces' | 'configuration' | 'schematics';
@@ -17,11 +20,12 @@ type TabView = 'traces' | 'configuration' | 'schematics';
  * This panel shows:
  * - Traces tab: List of traces with metadata, search/filter, click to select
  * - Configuration tab: Edit library.yaml resources (service.name, etc.) for OTEL setup
- * - Schematics tab: View workflows/scenarios from version registry
+ * - Schematics tab: View storyboards/workflows from version registry (historical snapshots)
  *
  * Events emitted:
  * - 'trace:selected' when a trace is clicked
  * - 'library:resources-updated' when resources are saved
+ * - 'schematicWorkflowSelected' when a workflow from version registry is clicked
  */
 export const TraceListPanel: React.FC<PanelComponentProps> = ({
   context,
@@ -34,15 +38,31 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
   usePanelFocusListener('trace-list', events, () => panelRef.current?.focus());
   const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>();
   const [activeTab, setActiveTab] = useState<TabView>('traces');
+  const [selectedSchematicNodeId, setSelectedSchematicNodeId] = useState<string | null>(null);
+  const [workflowFilterMode, setWorkflowFilterMode] = useState<WorkflowFilterMode>('all');
 
   // Get traces from telemetry slice
   const telemetrySlice = context.getSlice<TraceInfo[]>('telemetry');
   const traces = telemetrySlice?.data || [];
 
-  // Get schematics from schematics slice
-  const schematicsSlice = context.getSlice<unknown[]>('schematics');
-  const schematics = schematicsSlice?.data || [];
+  // Get schematics from schematics slice (version registry data)
+  const schematicsSlice = context.getSlice<VersionSnapshot[]>('schematics');
+  const versionSnapshots = schematicsSlice?.data || [];
   const schematicsLoading = schematicsSlice?.loading || false;
+
+  // Build set of workflow IDs that have traces
+  const traceWorkflowsSet = React.useMemo(() => {
+    const workflowSet = new Set<string>();
+
+    traces.forEach(trace => {
+      // Extract workflow info from matchedWorkflow
+      if (trace.matchedWorkflow?.workflowId) {
+        workflowSet.add(trace.matchedWorkflow.workflowId);
+      }
+    });
+
+    return workflowSet;
+  }, [traces]);
 
   // Configuration tab state
   const [resources, setResources] = useState<Record<string, string>>({});
@@ -308,6 +328,32 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
     // Call clearTelemetry action if available
     if (actions && 'clearTelemetry' in actions && typeof actions.clearTelemetry === 'function') {
       (actions as { clearTelemetry: () => void }).clearTelemetry();
+    }
+  };
+
+  const handleSchematicNodeClick = (node: StoryboardWorkflowNodeData) => {
+    // Handle clicks on schematics (version registry data)
+    // Since these are historical snapshots, we don't open files but provide visual feedback
+    if (node.type === 'workflow' && node.workflow) {
+      setSelectedSchematicNodeId(`workflow:${node.workflow.id}`);
+      console.log('[TraceListPanel] Schematic workflow selected:', node.workflow);
+
+      // Emit event for potential future use (e.g., showing workflow details in another panel)
+      if (events) {
+        events.emit({
+          type: 'custom',
+          source: 'trace-list-panel',
+          timestamp: Date.now(),
+          payload: {
+            action: 'schematicWorkflowSelected',
+            workflow: node.workflow,
+            storyboard: node.storyboard,
+          },
+        });
+      }
+    } else if (node.type === 'storyboard' && node.storyboard) {
+      setSelectedSchematicNodeId(`storyboard:${node.storyboard.id}`);
+      console.log('[TraceListPanel] Schematic storyboard selected:', node.storyboard);
     }
   };
 
@@ -747,15 +793,15 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
           )}
         </div>
       ) : activeTab === 'schematics' ? (
-        <div style={{ flex: 1, padding: '16px', overflow: 'auto' }}>
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {schematicsLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ fontSize: '14px', color: theme.colors.textSecondary }}>
                 Loading schematics...
               </div>
             </div>
-          ) : schematics.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px' }}>
+          ) : versionSnapshots.length === 0 ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '24px' }}>
               <div style={{ fontSize: '14px', color: theme.colors.textSecondary }}>
                 No schematics found
               </div>
@@ -765,86 +811,38 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {schematics.map((schematic: any, index) => (
-                <div
-                  key={index}
-                  style={{
-                    padding: '16px',
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: '4px',
-                  }}
-                >
-                  <div style={{ marginBottom: '12px' }}>
-                    <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: '4px' }}>
-                      {schematic.repositoryUrl?.replace('https://github.com/', '')}
-                    </div>
-                    <div style={{ fontSize: '12px', color: theme.colors.textMuted, fontFamily: theme.fonts.monospace }}>
-                      {schematic.commitSha}
-                    </div>
-                  </div>
-                  {(() => {
-                    // Extract all workflows from storyboards
-                    const allWorkflows = schematic.storyboards?.flatMap((storyboard: any) =>
-                      storyboard.workflows || []
-                    ) || [];
-
-                    return allWorkflows.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {allWorkflows.map((workflow: any, wIndex: number) => {
-                          // Scenarios may be at top level or in content field
-                          const scenarios = workflow.scenarios || workflow.content?.scenarios || [];
-
-                          return (
-                            <div
-                              key={wIndex}
-                              style={{
-                                padding: '12px',
-                                backgroundColor: theme.colors.background,
-                                border: `1px solid ${theme.colors.border}`,
-                                borderRadius: '3px',
-                              }}
-                            >
-                              <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '8px' }}>
-                                {workflow.name || 'Unnamed Workflow'}
-                              </div>
-                              {scenarios.length > 0 && (
-                                <div style={{ fontSize: '12px', color: theme.colors.textSecondary }}>
-                                  <div style={{ fontWeight: 500, marginBottom: '4px' }}>
-                                    Scenarios ({scenarios.length}):
-                                  </div>
-                                  <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                                    {scenarios.map((scenario: any, sIndex: number) => (
-                                      <li key={sIndex} style={{ marginBottom: '4px' }}>
-                                        <span style={{ fontWeight: 500 }}>{scenario.id}</span>
-                                        {scenario.condition?.requires && scenario.condition.requires.length > 0 && (
-                                          <span style={{ color: theme.colors.textMuted }}>
-                                            {' '}
-                                            - requires: {scenario.condition.requires.join(', ')}
-                                          </span>
-                                        )}
-                                        {scenario.condition?.default && (
-                                          <span style={{ color: theme.colors.textMuted }}> - default fallback</span>
-                                        )}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '12px', color: theme.colors.textMuted }}>
-                        No workflows found
-                      </div>
-                    );
-                  })()}
+            <>
+              {/* Filter toggle */}
+              {versionSnapshots.length > 0 && (
+                <div style={{ padding: '12px 16px', borderBottom: `1px solid ${theme.colors.border}` }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                    <input
+                      type="checkbox"
+                      checked={workflowFilterMode === 'with-traces'}
+                      onChange={(e) => setWorkflowFilterMode(e.target.checked ? 'with-traces' : 'all')}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>Show only workflows with traces</span>
+                  </label>
                 </div>
-              ))}
-            </div>
+              )}
+
+              {/* Tree container with proper height */}
+              <div style={{ flex: 1, overflow: 'auto' }}>
+                <StoryboardWorkflowsTreeCore
+                  storyboards={[]} // Not used when versionSnapshots is provided
+                  versionSnapshots={versionSnapshots}
+                  theme={theme}
+                  onClick={handleSchematicNodeClick}
+                  selectedNodeId={selectedSchematicNodeId ?? undefined}
+                  defaultOpen={versionSnapshots.length <= 3}
+                  horizontalNodePadding="clamp(16px, 4vw, 24px)"
+                  verticalPadding="10px"
+                  workflowFilterMode={workflowFilterMode}
+                  traceWorkflowsSet={traceWorkflowsSet}
+                />
+              </div>
+            </>
           )}
         </div>
       ) : null}
