@@ -313,7 +313,16 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
   // Get live OTEL traces from telemetry slice
   const telemetrySlice = context.getSlice<TraceInfo[]>('telemetry');
-  const liveTraces = telemetrySlice?.data || [];
+  const allLiveTraces = telemetrySlice?.data || [];
+
+  // Filter live traces to only show traces matching the current workflow
+  const liveTraces = useMemo(() => {
+    if (!selectedWorkflowIdProp) return allLiveTraces;
+
+    return allLiveTraces.filter(trace =>
+      trace.matchedWorkflow?.workflowId === selectedWorkflowIdProp
+    );
+  }, [allLiveTraces, selectedWorkflowIdProp]);
 
   const [state, setState] = useState<WorkflowScenariosPanelState>({
     canvas: null,
