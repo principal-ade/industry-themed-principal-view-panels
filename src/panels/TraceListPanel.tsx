@@ -6,7 +6,7 @@ import { TraceList } from '../components/TraceList';
 import type { TraceInfo } from '../types/otel';
 import type { FileTree } from '@principal-ai/repository-abstraction';
 import { LibraryDiscovery } from '@principal-ai/principal-view-core';
-import type { VersionSnapshot } from '@principal-ai/principal-view-core';
+import type { VersionSnapshot, WorkflowTemplate } from '@principal-ai/principal-view-core';
 import { PanelFileSystemAdapter } from '../adapters/PanelFileSystemAdapter';
 import { StoryboardWorkflowsTreeCore } from '@principal-ade/dynamic-file-tree';
 import type { StoryboardWorkflowNodeData, StoryboardFilterMode } from '@principal-ade/dynamic-file-tree';
@@ -340,6 +340,25 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
 
       // Emit event to open workflow scenarios panel
       if (events) {
+        // For schematic nodes, extract the full workflow template from versionSnapshot
+        let fullWorkflowTemplate = node.workflowTemplate; // Use if available (live file tree)
+
+        if (!fullWorkflowTemplate && node.versionSnapshot && node.workflow) {
+          // Extract from version snapshot (schematic data)
+          const storyboard = node.versionSnapshot.storyboards.find(
+            sb => sb.id === node.storyboard?.id
+          );
+          if (storyboard) {
+            const workflowWithContent = storyboard.workflows.find(
+              w => w.id === node.workflow!.id
+            );
+            // Type guard: check if workflow has content property (DiscoveredWorkflowWithContent)
+            if (workflowWithContent && 'content' in workflowWithContent) {
+              fullWorkflowTemplate = workflowWithContent.content as WorkflowTemplate;
+            }
+          }
+        }
+
         events.emit({
           type: 'custom',
           source: 'trace-list-panel',
@@ -349,7 +368,7 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
             // Workflow data
             workflowId: node.workflow.id,
             workflowPath: node.workflow.path,
-            workflowTemplate: node.workflowTemplate,
+            workflowTemplate: fullWorkflowTemplate,
             workflow: node.workflow,
             // Canvas data
             canvasId: node.canvas?.id || node.storyboard?.canvas.id,
