@@ -25,7 +25,7 @@ type TabView = 'traces' | 'configuration' | 'schematics';
  * Events emitted:
  * - 'trace:selected' when a trace is clicked
  * - 'library:resources-updated' when resources are saved
- * - 'schematicWorkflowSelected' when a workflow from version registry is clicked
+ * - Custom event with 'openWorkflowScenarios' action when a workflow from version registry is clicked
  */
 export const TraceListPanel: React.FC<PanelComponentProps> = ({
   context,
@@ -338,16 +338,32 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
       setSelectedSchematicNodeId(`workflow:${node.workflow.id}`);
       console.log('[TraceListPanel] Schematic workflow selected:', node.workflow);
 
-      // Emit event for potential future use (e.g., showing workflow details in another panel)
+      // Emit event to open workflow scenarios panel
       if (events) {
         events.emit({
           type: 'custom',
           source: 'trace-list-panel',
           timestamp: Date.now(),
           payload: {
-            action: 'schematicWorkflowSelected',
+            action: 'openWorkflowScenarios',
+            // Workflow data
+            workflowId: node.workflow.id,
+            workflowPath: node.workflow.path,
+            workflowTemplate: node.workflowTemplate,
             workflow: node.workflow,
+            // Canvas data
+            canvasId: node.canvas?.id || node.storyboard?.canvas.id,
+            canvasPath: node.canvas?.path || node.storyboard?.canvas.path,
+            canvasName: node.canvas?.name || node.storyboard?.canvas.name,
+            canvas: node.canvas || node.storyboard?.canvas,
+            // Storyboard data
+            storyboardId: node.storyboard?.id,
+            storyboardName: node.storyboard?.name,
             storyboard: node.storyboard,
+            // Version data (for historical context)
+            repositoryUrl: node.repositoryUrl,
+            commitSha: node.commitSha,
+            versionSnapshot: node.versionSnapshot,
           },
         });
       }

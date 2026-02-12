@@ -8,8 +8,12 @@ import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 import { AnimatedResizableLayout } from '@principal-ade/panels';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/workflow-converter';
-import { Activity, X, Pencil, FileText, CheckCircle2 } from 'lucide-react';
+import { Activity, X, Pencil, FileText, CheckCircle2, List, Radar } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
+import { TraceSearchView } from './execution-viewer/TraceSearchView';
+import { LiveTraceSearchView } from './execution-viewer/LiveTraceSearchView';
+import type { TraceInfo } from '../types/otel';
+import type { OtelSpanData, OtelKeyValue } from '@principal-ai/principal-view-core';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { WorkflowExplainerPanel } from './WorkflowExplainerPanel';
 import { WorkflowTemplatePanel } from './execution-viewer/WorkflowTemplatePanel';
@@ -279,6 +283,8 @@ interface WorkflowScenariosPanelState {
   hoveredScenarioEventNames: string[] | null;
   selectedScenarioId: string | null;
   selectedScenario: WorkflowScenario | null;
+  showTraceSearch: boolean;
+  showLiveTraceSearch: boolean;
 }
 
 /**
@@ -305,6 +311,10 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   // Use core discovery system for test traces and workflows (storyboards contain both)
   const { storyboards, testTraces } = useCanvasData({ context, actions });
 
+  // Get live OTEL traces from telemetry slice
+  const telemetrySlice = context.getSlice<TraceInfo[]>('telemetry');
+  const liveTraces = telemetrySlice?.data || [];
+
   const [state, setState] = useState<WorkflowScenariosPanelState>({
     canvas: null,
     execution: null,
@@ -330,6 +340,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     hoveredScenarioEventNames: null,
     selectedScenarioId: null,
     selectedScenario: null,
+    showTraceSearch: false,
+    showLiveTraceSearch: false,
   });
 
   // Store context and actions in refs
@@ -747,6 +759,69 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       console.error('[ExecutionViewer] Failed to load execution:', error);
     }
   }, [state.availableExecutions]);
+
+  // Handle live trace selection (TraceInfo from telemetry slice)
+  const handleLiveTraceSelect = useCallback((traceId: string) => {
+    try {
+      const trace = liveTraces.find(t => t.traceId === traceId);
+      if (!trace) {
+        console.error('[WorkflowScenariosPanel] Live trace not found:', traceId);
+        return;
+      }
+
+      // Convert TraceInfo to ExecutionData format
+      const executionData: ExecutionData = {
+        metadata: {
+          canvasName: state.canvas?.pv?.name || 'Unknown Canvas',
+          exportedAt: new Date().toISOString(),
+          source: `live:${trace.serviceName || 'unknown'}`,
+          framework: 'otel',
+          status: trace.hasErrors ? ('failure' as const) : ('success' as const),
+        },
+        spans: trace.spans.map((span: OtelSpanData) => ({
+          id: span.spanId,
+          name: span.name,
+          startTime: Math.floor(Number(span.startTimeUnixNano) / 1_000_000), // Convert nanos to milliseconds
+          endTime: Math.floor(Number(span.endTimeUnixNano) / 1_000_000),
+          duration: Math.floor((Number(span.endTimeUnixNano) - Number(span.startTimeUnixNano)) / 1_000_000),
+          status: span.status?.code === 2 ? ('ERROR' as const) : ('OK' as const),
+          attributes: span.attributes?.reduce((acc: Record<string, string | number | boolean>, attr: OtelKeyValue) => {
+            const value = attr.value.stringValue || attr.value.intValue || attr.value.boolValue;
+            if (value !== undefined) {
+              acc[attr.key] = value;
+            }
+            return acc;
+          }, {} as Record<string, string | number | boolean>) || {},
+          events: span.events?.map((event) => ({
+            time: Math.floor(Number(event.timeUnixNano) / 1_000_000), // Convert nanos to milliseconds
+            name: event.name,
+            attributes: event.attributes?.reduce((acc: Record<string, string | number | boolean>, attr: OtelKeyValue) => {
+              const value = attr.value.stringValue || attr.value.intValue || attr.value.boolValue;
+              if (value !== undefined) {
+                acc[attr.key] = value;
+              }
+              return acc;
+            }, {} as Record<string, string | number | boolean>) || {},
+          })) || [],
+        })),
+      };
+
+      const metadata = getExecutionMetadata(executionData);
+      setState(prev => ({
+        ...prev,
+        selectedExecutionId: traceId,
+        execution: executionData,
+        metadata,
+        isPlaying: false,
+        currentSpanIndex: 0,
+        currentEventIndex: 0,
+        highlightedNodeId: null,
+        viewMode: 'narrative',
+      }));
+    } catch (error) {
+      console.error('[WorkflowScenariosPanel] Failed to load live trace:', error);
+    }
+  }, [liveTraces, state.canvas]);
 
   const handleSpanIndexChange = useCallback((newSpanIndex: number) => {
     setState(prev => {
@@ -1212,6 +1287,56 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 
+        {/* Trace List Button - Show when workflow has test traces */}
+        {state.workflowTemplate && state.availableExecutions.length > 0 && (
+          <button
+            onClick={() => setState(prev => ({ ...prev, showTraceSearch: true }))}
+            style={{
+              padding: '0 12px',
+              height: '28px',
+              background: theme.colors.background,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: '4px',
+              color: theme.colors.text,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: theme.fontSizes[2],
+              fontFamily: theme.fonts.body,
+            }}
+            title={`View all test traces (${state.availableExecutions.length})`}
+          >
+            <List size={14} />
+            <span>Test Traces ({state.availableExecutions.length})</span>
+          </button>
+        )}
+
+        {/* Live Trace List Button - Show when live traces are available */}
+        {state.workflowTemplate && liveTraces.length > 0 && (
+          <button
+            onClick={() => setState(prev => ({ ...prev, showLiveTraceSearch: true }))}
+            style={{
+              padding: '0 12px',
+              height: '28px',
+              background: theme.colors.background,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: '4px',
+              color: theme.colors.text,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: theme.fontSizes[2],
+              fontFamily: theme.fonts.body,
+            }}
+            title={`View live OTEL traces (${liveTraces.length})`}
+          >
+            <Radar size={14} />
+            <span>Live Traces ({liveTraces.length})</span>
+          </button>
+        )}
+
         {/* Open in Editor Button */}
         <button
           onClick={handleOpenInEditor}
@@ -1527,6 +1652,29 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                   onNodeClick={handleNodeClick}
                   showNodeDetailPanel={true}
                 />
+                {/* Test Trace Search Overlay - positioned over canvas */}
+                {state.showTraceSearch && (
+                  <TraceSearchView
+                    traces={state.availableExecutions}
+                    selectedScenarioId={state.selectedScenarioId}
+                    executionScenarioMap={state.executionScenarioMap}
+                    selectedTraceId={state.selectedExecutionId}
+                    onTraceSelect={handleExecutionSelect}
+                    onClose={() => setState(prev => ({ ...prev, showTraceSearch: false }))}
+                    theme={theme}
+                  />
+                )}
+                {/* Live Trace Search Overlay - positioned over canvas */}
+                {state.showLiveTraceSearch && (
+                  <LiveTraceSearchView
+                    traces={liveTraces}
+                    selectedScenarioId={state.selectedScenarioId}
+                    selectedTraceId={state.selectedExecutionId}
+                    onTraceSelect={handleLiveTraceSelect}
+                    onClose={() => setState(prev => ({ ...prev, showLiveTraceSearch: false }))}
+                    theme={theme}
+                  />
+                )}
               </div>
             }
             collapsibleSide="left"

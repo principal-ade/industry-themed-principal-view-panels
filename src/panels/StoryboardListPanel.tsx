@@ -11,7 +11,6 @@ import {
   type StoryboardWorkflowNodeData,
   CanvasListTreeCore,
   type CanvasListNodeData,
-  type DiscoveredCanvas,
 } from '@principal-ade/dynamic-file-tree';
 import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 import type { WorkflowTemplate, DiscoveredTestTrace, WorkflowScenario } from '@principal-ai/principal-view-core';

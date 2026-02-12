@@ -5,6 +5,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import type { DataSlice } from '../types';
 import type { WorkflowTemplate } from '@principal-ai/principal-view-core';
+import type { TraceInfo } from '../types/otel';
 
 /**
  * WorkflowScenariosPanel - OTEL Execution Visualizer
@@ -1157,7 +1158,7 @@ export const PartialNarrativeCoverage: Story = {
 export const CoLocatedExecutions: Story = {
   args: {} as never,
   render: () => {
-    // Define a simplified workflow for the complete checkout
+    // Define a complete workflow with all scenarios
     const completeCheckoutWorkflow: WorkflowTemplate = {
       version: '1.0.0',
       canvas: 'checkout-flow.otel.canvas',
@@ -1185,8 +1186,44 @@ export const CoLocatedExecutions: Story = {
           },
         },
         {
-          id: 'checkout-success',
+          id: 'insufficient-inventory',
           priority: 2,
+          description: 'Not enough inventory available',
+          condition: {
+            requires: ['inventory.insufficient'],
+          },
+          template: {
+            introduction: 'Insufficient Inventory',
+            events: {
+              'checkout.initiated': 'Started checkout',
+              'inventory.checking': 'Checking stock',
+              'inventory.insufficient': 'Out of stock - need {{inventory.shortfall}} more items',
+            },
+            summary: 'Some items are out of stock.',
+          },
+        },
+        {
+          id: 'checkout-timeout',
+          priority: 3,
+          description: 'Checkout process timed out',
+          condition: {
+            requires: ['order.timeout'],
+          },
+          template: {
+            introduction: 'Checkout Timeout',
+            events: {
+              'checkout.initiated': 'Started checkout',
+              'payment.initiated': 'Processing payment',
+              'inventory.checking': 'Checking inventory',
+              'shipping.calculating': 'Calculating shipping',
+              'order.timeout': 'Timed out after {{timeout.duration}}ms',
+            },
+            summary: 'Checkout timed out.',
+          },
+        },
+        {
+          id: 'checkout-success',
+          priority: 4,
           description: 'Successful checkout',
           condition: {
             requires: ['order.created'],
@@ -1197,6 +1234,8 @@ export const CoLocatedExecutions: Story = {
               'checkout.initiated': 'Started checkout',
               'payment.initiated': 'Processing payment',
               'payment.completed': 'Payment successful',
+              'inventory.reserved': 'Inventory reserved',
+              'shipping.calculated': 'Shipping calculated',
               'order.created': 'Order {{order.id}} created',
             },
             summary: 'Order successfully created!',
@@ -1249,18 +1288,205 @@ export const CoLocatedExecutions: Story = {
         name: 'complete-checkout.workflow.json',
         content: JSON.stringify(completeCheckoutWorkflow),
       },
-      // Workflow 1 Executions (co-located)
+      // Workflow 1 Executions (co-located) - Each with unique attributes
       {
-        path: '.principal-views/checkout-flow/complete-checkout/success.otel.json',
-        relativePath: '.principal-views/checkout-flow/complete-checkout/success.otel.json',
-        name: 'success.otel.json',
+        path: '.principal-views/checkout-flow/complete-checkout/success-1.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/success-1.otel.json',
+        name: 'success-1.otel.json',
         content: JSON.stringify(successfulCheckout),
       },
       {
-        path: '.principal-views/checkout-flow/complete-checkout/payment-declined.otel.json',
-        relativePath: '.principal-views/checkout-flow/complete-checkout/payment-declined.otel.json',
-        name: 'payment-declined.otel.json',
+        path: '.principal-views/checkout-flow/complete-checkout/success-2.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/success-2.otel.json',
+        name: 'success-2.otel.json',
+        content: JSON.stringify({
+          ...successfulCheckout,
+          metadata: { ...successfulCheckout.metadata, source: 'test:checkout-success-2' },
+          spans: [{
+            ...successfulCheckout.spans[0],
+            name: 'complete checkout process - large order',
+            events: successfulCheckout.spans[0].events.map((event, idx) => {
+              if (event.name === 'checkout.initiated') {
+                return { ...event, attributes: { ...event.attributes, 'cart.itemCount': 8, 'cart.total': 499.99 } };
+              }
+              if (event.name === 'order.created') {
+                return { ...event, attributes: { 'order.id': 'ORD-20240101-002', 'order.total': 519.98, 'customer.email': 'buyer@example.com' } };
+              }
+              return event;
+            }),
+          }],
+        }),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/success-3.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/success-3.otel.json',
+        name: 'success-3.otel.json',
+        content: JSON.stringify({
+          ...successfulCheckout,
+          metadata: { ...successfulCheckout.metadata, source: 'test:checkout-success-3' },
+          spans: [{
+            ...successfulCheckout.spans[0],
+            name: 'complete checkout process - express shipping',
+            events: successfulCheckout.spans[0].events.map((event, idx) => {
+              if (event.name === 'checkout.initiated') {
+                return { ...event, attributes: { ...event.attributes, 'cart.itemCount': 1, 'cart.total': 79.99 } };
+              }
+              if (event.name === 'shipping.calculated') {
+                return { ...event, attributes: { 'shipping.method': 'FedEx Overnight', 'shipping.cost': 24.99, 'shipping.estimatedDays': 1 } };
+              }
+              if (event.name === 'order.created') {
+                return { ...event, attributes: { 'order.id': 'ORD-20240101-003', 'order.total': 104.98, 'customer.email': 'rush@example.com' } };
+              }
+              return event;
+            }),
+          }],
+        }),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/success-4.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/success-4.otel.json',
+        name: 'success-4.otel.json',
+        content: JSON.stringify({
+          ...successfulCheckout,
+          metadata: { ...successfulCheckout.metadata, source: 'test:checkout-success-4' },
+          spans: [{
+            ...successfulCheckout.spans[0],
+            name: 'complete checkout process - international',
+            events: successfulCheckout.spans[0].events.map((event, idx) => {
+              if (event.name === 'checkout.initiated') {
+                return { ...event, attributes: { ...event.attributes, 'cart.itemCount': 5, 'cart.total': 299.95 } };
+              }
+              if (event.name === 'shipping.calculating') {
+                return { ...event, attributes: { 'shipping.destination': 'M5V 3A8', 'shipping.weight': 12.5 } };
+              }
+              if (event.name === 'shipping.calculated') {
+                return { ...event, attributes: { 'shipping.method': 'International Standard', 'shipping.cost': 45.00, 'shipping.estimatedDays': 7 } };
+              }
+              if (event.name === 'order.created') {
+                return { ...event, attributes: { 'order.id': 'ORD-20240101-004', 'order.total': 344.95, 'customer.email': 'canada@example.com' } };
+              }
+              return event;
+            }),
+          }],
+        }),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/payment-declined-1.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/payment-declined-1.otel.json',
+        name: 'payment-declined-1.otel.json',
         content: JSON.stringify(paymentDeclinedCheckout),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/payment-declined-2.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/payment-declined-2.otel.json',
+        name: 'payment-declined-2.otel.json',
+        content: JSON.stringify({
+          ...paymentDeclinedCheckout,
+          metadata: { ...paymentDeclinedCheckout.metadata, source: 'test:payment-declined-insufficient-funds' },
+          spans: [{
+            ...paymentDeclinedCheckout.spans[0],
+            name: 'checkout with insufficient funds',
+            events: paymentDeclinedCheckout.spans[0].events.map((event) => {
+              if (event.name === 'checkout.initiated') {
+                return { ...event, attributes: { ...event.attributes, 'cart.itemCount': 1, 'cart.total': 1299.99 } };
+              }
+              if (event.name === 'payment.initiated') {
+                return { ...event, attributes: { 'payment.method': 'debit', 'payment.amount': 1299.99 } };
+              }
+              if (event.name === 'payment.failed') {
+                return { ...event, attributes: { 'error.code': 'insufficient_funds', 'error.message': 'Insufficient funds in account.', 'payment.declined': true } };
+              }
+              return event;
+            }),
+          }],
+        }),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/payment-declined-3.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/payment-declined-3.otel.json',
+        name: 'payment-declined-3.otel.json',
+        content: JSON.stringify({
+          ...paymentDeclinedCheckout,
+          metadata: { ...paymentDeclinedCheckout.metadata, source: 'test:payment-declined-expired-card' },
+          spans: [{
+            ...paymentDeclinedCheckout.spans[0],
+            name: 'checkout with expired card',
+            events: paymentDeclinedCheckout.spans[0].events.map((event) => {
+              if (event.name === 'checkout.initiated') {
+                return { ...event, attributes: { ...event.attributes, 'cart.itemCount': 4, 'cart.total': 189.96 } };
+              }
+              if (event.name === 'payment.initiated') {
+                return { ...event, attributes: { 'payment.method': 'card', 'payment.amount': 189.96 } };
+              }
+              if (event.name === 'payment.failed') {
+                return { ...event, attributes: { 'error.code': 'card_expired', 'error.message': 'Your card has expired. Please use a different payment method.', 'payment.declined': true } };
+              }
+              return event;
+            }),
+          }],
+        }),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/insufficient-inventory-1.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/insufficient-inventory-1.otel.json',
+        name: 'insufficient-inventory-1.otel.json',
+        content: JSON.stringify(insufficientInventoryCheckout),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/insufficient-inventory-2.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/insufficient-inventory-2.otel.json',
+        name: 'insufficient-inventory-2.otel.json',
+        content: JSON.stringify({
+          ...insufficientInventoryCheckout,
+          metadata: { ...insufficientInventoryCheckout.metadata, source: 'test:insufficient-inventory-popular-item' },
+          spans: [{
+            ...insufficientInventoryCheckout.spans[0],
+            name: 'checkout with popular item sold out',
+            events: insufficientInventoryCheckout.spans[0].events.map((event) => {
+              if (event.name === 'checkout.initiated') {
+                return { ...event, attributes: { ...event.attributes, 'cart.itemCount': 10, 'cart.total': 599.90 } };
+              }
+              if (event.name === 'inventory.checking') {
+                return { ...event, attributes: { 'inventory.skuCount': 10 } };
+              }
+              if (event.name === 'inventory.insufficient') {
+                return { ...event, attributes: { 'inventory.shortfall': 7, 'inventory.availableCount': 3 } };
+              }
+              return event;
+            }),
+          }],
+        }),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/checkout-timeout-1.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/checkout-timeout-1.otel.json',
+        name: 'checkout-timeout-1.otel.json',
+        content: JSON.stringify(timeoutCheckout),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/checkout-timeout-2.otel.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/checkout-timeout-2.otel.json',
+        name: 'checkout-timeout-2.otel.json',
+        content: JSON.stringify({
+          ...timeoutCheckout,
+          metadata: { ...timeoutCheckout.metadata, source: 'test:checkout-timeout-shipping-api' },
+          spans: [{
+            ...timeoutCheckout.spans[0],
+            name: 'checkout timeout from shipping API',
+            events: timeoutCheckout.spans[0].events.map((event) => {
+              if (event.name === 'checkout.initiated') {
+                return { ...event, attributes: { ...event.attributes, 'cart.itemCount': 2, 'cart.total': 119.98 } };
+              }
+              if (event.name === 'shipping.calculating') {
+                return { ...event, attributes: { 'shipping.destination': '90210', 'shipping.weight': 8.3 } };
+              }
+              if (event.name === 'order.timeout') {
+                return { ...event, attributes: { 'timeout.duration': 30000, 'timeout.phase': 'shipping-rate-api' } };
+              }
+              return event;
+            }),
+          }],
+        }),
       },
       // Workflow 2: Quick Checkout
       {
@@ -1318,11 +1544,16 @@ export const CoLocatedExecutions: Story = {
         story:
           '🎯 RECOMMENDED PATTERN: Co-located executions in workflow directories.\n\n' +
           'This storyboard has TWO workflows:\n' +
-          '  1. Complete Checkout (2 executions: success.otel.json, payment-declined.otel.json)\n' +
-          '  2. Quick Checkout (1 execution: express-success.otel.json)\n\n' +
+          '  1. Complete Checkout (11 executions covering 4 scenarios)\n' +
+          '     • 4x checkout-success\n' +
+          '     • 3x payment-declined\n' +
+          '     • 2x insufficient-inventory\n' +
+          '     • 2x checkout-timeout\n' +
+          '  2. Quick Checkout (1 execution: express-success)\n\n' +
           'Each workflow ONLY shows its own co-located executions. This prevents:\n' +
           '  • Execution from Quick Checkout appearing in Complete Checkout workflow\n' +
           '  • Incorrect scenario mappings when events don\'t match the workflow template\n\n' +
+          'Click the "Traces (11)" button to see the trace search view with scenario filtering and search!\n' +
           'The directory structure creates isolated contexts for each workflow.',
       },
     },
@@ -1647,6 +1878,378 @@ export const IncompleteTemplateData_MissingEvent: Story = {
           '2. Events are conditionally emitted and weren\'t triggered\n' +
           '3. Test execution followed a different code path\n' +
           '4. Event names have changed between template and instrumentation',
+      },
+    },
+  },
+};
+
+/**
+ * Live OTEL Traces
+ *
+ * Demonstrates the Live Trace Search View with real-time OTEL traces from the telemetry slice.
+ * Shows how live traces from running services can be searched and filtered.
+ */
+export const LiveOtelTraces: Story = {
+  args: {} as never,
+  render: () => {
+    // Create live TraceInfo objects (simulating telemetry slice data)
+    const liveTraces: TraceInfo[] = [
+      // Success trace 1
+      {
+        traceId: 'a1b2c3d4e5f6g7h8',
+        spans: [
+          {
+            traceId: 'a1b2c3d4e5f6g7h8',
+            spanId: 'span001',
+            name: 'checkout.complete',
+            startTimeUnixNano: '1704067200000000000',
+            endTimeUnixNano: '1704067203500000000',
+            parentSpanId: '',
+            kind: 1,
+            status: { code: 1 },
+            attributes: [
+              { key: 'span.kind', value: { stringValue: 'internal' } },
+            ],
+            events: [
+              {
+                name: 'checkout.initiated',
+                timeUnixNano: '1704067200000000000',
+                attributes: [
+                  { key: 'cart.itemCount', value: { intValue: '3' } },
+                  { key: 'cart.total', value: { stringValue: '149.99' } },
+                ],
+              },
+              {
+                name: 'payment.completed',
+                timeUnixNano: '1704067201800000000',
+                attributes: [
+                  { key: 'payment.transactionId', value: { stringValue: 'txn_live_001' } },
+                ],
+              },
+              {
+                name: 'order.created',
+                timeUnixNano: '1704067203500000000',
+                attributes: [
+                  { key: 'order.id', value: { stringValue: 'ORD-LIVE-001' } },
+                ],
+              },
+            ],
+          },
+        ],
+        rootSpan: undefined,
+        serviceName: 'checkout-service',
+        serviceVersion: '2.3.1',
+        repositoryUrl: 'https://github.com/example/checkout',
+        commitSha: 'abc123',
+        startTime: 1704067200000,
+        endTime: 1704067203500,
+        duration: 3500,
+        spanCount: 1,
+        hasErrors: false,
+        resource: {
+          attributes: [
+            { key: 'service.name', value: { stringValue: 'checkout-service' } },
+            { key: 'service.version', value: { stringValue: '2.3.1' } },
+            { key: 'pv.scenario.id', value: { stringValue: 'checkout-success' } },
+            { key: 'pv.scenario.name', value: { stringValue: 'Checkout Success' } },
+          ],
+        },
+        matchedWorkflow: {
+          storyboardId: 'checkout-flow',
+          storyboardName: 'Checkout Flow',
+          workflowId: 'complete-checkout',
+          workflowName: 'Complete Checkout',
+          scenarioId: 'checkout-success',
+          scenarioName: 'Checkout Success',
+        },
+      },
+      // Payment declined trace
+      {
+        traceId: 'b2c3d4e5f6g7h8i9',
+        spans: [
+          {
+            traceId: 'b2c3d4e5f6g7h8i9',
+            spanId: 'span002',
+            name: 'checkout.payment-declined',
+            startTimeUnixNano: '1704067300000000000',
+            endTimeUnixNano: '1704067301500000000',
+            parentSpanId: '',
+            kind: 1,
+            status: { code: 2 },
+            attributes: [],
+            events: [
+              {
+                name: 'checkout.initiated',
+                timeUnixNano: '1704067300000000000',
+                attributes: [
+                  { key: 'cart.itemCount', value: { intValue: '2' } },
+                  { key: 'cart.total', value: { stringValue: '89.99' } },
+                ],
+              },
+              {
+                name: 'payment.failed',
+                timeUnixNano: '1704067301500000000',
+                attributes: [
+                  { key: 'error.code', value: { stringValue: 'card_declined' } },
+                  { key: 'error.message', value: { stringValue: 'Insufficient funds' } },
+                ],
+              },
+            ],
+          },
+        ],
+        rootSpan: undefined,
+        serviceName: 'payment-service',
+        serviceVersion: '1.8.2',
+        repositoryUrl: undefined,
+        commitSha: undefined,
+        startTime: 1704067300000,
+        endTime: 1704067301500,
+        duration: 1500,
+        spanCount: 1,
+        hasErrors: true,
+        resource: {
+          attributes: [
+            { key: 'service.name', value: { stringValue: 'payment-service' } },
+            { key: 'service.version', value: { stringValue: '1.8.2' } },
+            { key: 'pv.scenario.id', value: { stringValue: 'payment-declined' } },
+          ],
+        },
+        matchedWorkflow: {
+          storyboardId: 'checkout-flow',
+          storyboardName: 'Checkout Flow',
+          scenarioId: 'payment-declined',
+        },
+      },
+      // Inventory check trace
+      {
+        traceId: 'c3d4e5f6g7h8i9j0',
+        spans: [
+          {
+            traceId: 'c3d4e5f6g7h8i9j0',
+            spanId: 'span003',
+            name: 'inventory.check',
+            startTimeUnixNano: '1704067400000000000',
+            endTimeUnixNano: '1704067400800000000',
+            parentSpanId: '',
+            kind: 1,
+            status: { code: 1 },
+            attributes: [],
+            events: [
+              {
+                name: 'inventory.checking',
+                timeUnixNano: '1704067400000000000',
+                attributes: [
+                  { key: 'inventory.skuCount', value: { intValue: '5' } },
+                ],
+              },
+              {
+                name: 'inventory.reserved',
+                timeUnixNano: '1704067400800000000',
+                attributes: [
+                  { key: 'inventory.itemsReserved', value: { intValue: '5' } },
+                ],
+              },
+            ],
+          },
+        ],
+        rootSpan: undefined,
+        serviceName: 'inventory-service',
+        serviceVersion: '3.1.0',
+        repositoryUrl: undefined,
+        commitSha: undefined,
+        startTime: 1704067400000,
+        endTime: 1704067400800,
+        duration: 800,
+        spanCount: 1,
+        hasErrors: false,
+        resource: {
+          attributes: [
+            { key: 'service.name', value: { stringValue: 'inventory-service' } },
+            { key: 'service.version', value: { stringValue: '3.1.0' } },
+          ],
+        },
+      },
+      // Another success with different service
+      {
+        traceId: 'd4e5f6g7h8i9j0k1',
+        spans: [
+          {
+            traceId: 'd4e5f6g7h8i9j0k1',
+            spanId: 'span004',
+            name: 'checkout.express',
+            startTimeUnixNano: '1704067500000000000',
+            endTimeUnixNano: '1704067501200000000',
+            parentSpanId: '',
+            kind: 1,
+            status: { code: 1 },
+            attributes: [],
+            events: [
+              {
+                name: 'checkout.initiated',
+                timeUnixNano: '1704067500000000000',
+                attributes: [
+                  { key: 'cart.itemCount', value: { intValue: '1' } },
+                  { key: 'cart.total', value: { stringValue: '49.99' } },
+                ],
+              },
+              {
+                name: 'order.created',
+                timeUnixNano: '1704067501200000000',
+                attributes: [
+                  { key: 'order.id', value: { stringValue: 'ORD-LIVE-002' } },
+                ],
+              },
+            ],
+          },
+        ],
+        rootSpan: undefined,
+        serviceName: 'express-checkout-service',
+        serviceVersion: '1.0.0-beta',
+        repositoryUrl: undefined,
+        commitSha: undefined,
+        startTime: 1704067500000,
+        endTime: 1704067501200,
+        duration: 1200,
+        spanCount: 1,
+        hasErrors: false,
+        resource: {
+          attributes: [
+            { key: 'service.name', value: { stringValue: 'express-checkout-service' } },
+            { key: 'service.version', value: { stringValue: '1.0.0-beta' } },
+            { key: 'pv.scenario.id', value: { stringValue: 'checkout-success' } },
+          ],
+        },
+        matchedWorkflow: {
+          storyboardId: 'checkout-flow',
+          storyboardName: 'Checkout Flow',
+          scenarioId: 'checkout-success',
+        },
+      },
+      // Timeout trace
+      {
+        traceId: 'e5f6g7h8i9j0k1l2',
+        spans: [
+          {
+            traceId: 'e5f6g7h8i9j0k1l2',
+            spanId: 'span005',
+            name: 'checkout.timeout',
+            startTimeUnixNano: '1704067600000000000',
+            endTimeUnixNano: '1704067632000000000',
+            parentSpanId: '',
+            kind: 1,
+            status: { code: 2 },
+            attributes: [],
+            events: [
+              {
+                name: 'checkout.initiated',
+                timeUnixNano: '1704067600000000000',
+                attributes: [
+                  { key: 'cart.itemCount', value: { intValue: '4' } },
+                ],
+              },
+              {
+                name: 'order.timeout',
+                timeUnixNano: '1704067632000000000',
+                attributes: [
+                  { key: 'timeout.duration', value: { intValue: '30000' } },
+                  { key: 'timeout.phase', value: { stringValue: 'payment-gateway' } },
+                ],
+              },
+            ],
+          },
+        ],
+        rootSpan: undefined,
+        serviceName: 'checkout-service',
+        serviceVersion: '2.3.0',
+        repositoryUrl: undefined,
+        commitSha: undefined,
+        startTime: 1704067600000,
+        endTime: 1704067632000,
+        duration: 32000,
+        spanCount: 1,
+        hasErrors: true,
+        resource: {
+          attributes: [
+            { key: 'service.name', value: { stringValue: 'checkout-service' } },
+            { key: 'service.version', value: { stringValue: '2.3.0' } },
+            { key: 'pv.scenario.id', value: { stringValue: 'checkout-timeout' } },
+          ],
+        },
+        matchedWorkflow: {
+          storyboardId: 'checkout-flow',
+          storyboardName: 'Checkout Flow',
+          scenarioId: 'checkout-timeout',
+        },
+      },
+    ];
+
+    // Set up each trace's rootSpan
+    liveTraces.forEach(trace => {
+      if (trace.spans.length > 0) {
+        trace.rootSpan = trace.spans[0];
+      }
+    });
+
+    const mock = createMockProvider([
+      {
+        path: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        relativePath: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        name: 'checkout-flow.otel.canvas',
+        content: JSON.stringify(checkoutCanvas),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/complete-checkout.workflow.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/complete-checkout.workflow.json',
+        name: 'complete-checkout.workflow.json',
+        content: JSON.stringify(checkoutWorkflow),
+      },
+    ]);
+
+    // Add telemetry slice with live traces
+    const telemetrySlice: DataSlice<TraceInfo[]> = {
+      scope: 'repository',
+      name: 'telemetry',
+      data: liveTraces,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    };
+
+    mock.contextOverrides.slices.set('telemetry', telemetrySlice);
+
+    return (
+      <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
+        {(props) => (
+          <WorkflowScenariosPanel
+            {...props}
+            selectedCanvasId="checkout-flow"
+            canvasPath=".principal-views/checkout-flow/checkout-flow.otel.canvas"
+            canvasName="Checkout Flow"
+            selectedWorkflowId="checkout-flow/complete-checkout"
+            workflowPath=".principal-views/checkout-flow/complete-checkout/complete-checkout.workflow.json"
+            workflowTemplate={checkoutWorkflow}
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '🔴 **Live OTEL Traces** - Demonstrates the Live Trace Search View with real-time telemetry data.\n\n' +
+          'This story shows 5 live OTEL traces from the telemetry slice:\n' +
+          '  • 2x checkout-success (checkout-service v2.3.1, express-checkout-service v1.0.0-beta)\n' +
+          '  • 1x payment-declined (payment-service v1.8.2)\n' +
+          '  • 1x checkout-timeout (checkout-service v2.3.0)\n' +
+          '  • 1x unmatched inventory check (inventory-service v3.1.0)\n\n' +
+          'Click the "Live Traces (5)" button (with Radar icon) in the header to:\n' +
+          '  • Search traces by service name, operation, trace ID, scenario\n' +
+          '  • Filter by scenario when a scenario is selected\n' +
+          '  • See service versions, durations, and error states\n' +
+          '  • Click a trace to load it into the execution viewer\n\n' +
+          'The Live Trace Search View works with TraceInfo data from the telemetry slice,\n' +
+          'while the Test Trace Search View works with file-based test artifacts.',
       },
     },
   },
