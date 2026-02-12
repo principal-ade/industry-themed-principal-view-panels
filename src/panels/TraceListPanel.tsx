@@ -9,7 +9,7 @@ import { LibraryDiscovery } from '@principal-ai/principal-view-core';
 import type { VersionSnapshot } from '@principal-ai/principal-view-core';
 import { PanelFileSystemAdapter } from '../adapters/PanelFileSystemAdapter';
 import { StoryboardWorkflowsTreeCore } from '@principal-ade/dynamic-file-tree';
-import type { StoryboardWorkflowNodeData, WorkflowFilterMode } from '@principal-ade/dynamic-file-tree';
+import type { StoryboardWorkflowNodeData, StoryboardFilterMode } from '@principal-ade/dynamic-file-tree';
 import yaml from 'js-yaml';
 
 type TabView = 'traces' | 'configuration' | 'schematics';
@@ -39,7 +39,7 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
   const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>();
   const [activeTab, setActiveTab] = useState<TabView>('traces');
   const [selectedSchematicNodeId, setSelectedSchematicNodeId] = useState<string | null>(null);
-  const [workflowFilterMode, setWorkflowFilterMode] = useState<WorkflowFilterMode>('all');
+  const [workflowFilterMode, setWorkflowFilterMode] = useState<StoryboardFilterMode>('all');
 
   // Get traces from telemetry slice
   const telemetrySlice = context.getSlice<TraceInfo[]>('telemetry');
