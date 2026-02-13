@@ -8,7 +8,7 @@ import type { FileTree } from '@principal-ai/repository-abstraction';
 import { LibraryDiscovery } from '@principal-ai/principal-view-core';
 import type { VersionSnapshot, WorkflowTemplate } from '@principal-ai/principal-view-core';
 import { PanelFileSystemAdapter } from '../adapters/PanelFileSystemAdapter';
-import { StoryboardWorkflowsTreeCore } from '@principal-ade/dynamic-file-tree';
+import { StoryboardWorkflowsTreeCore, hasWorkflowContent } from '@principal-ade/dynamic-file-tree';
 import type { StoryboardWorkflowNodeData, StoryboardFilterMode } from '@principal-ade/dynamic-file-tree';
 import yaml from 'js-yaml';
 
@@ -340,9 +340,20 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
 
       // Emit event to open workflow scenarios panel
       if (events) {
-        // For schematic nodes, extract the full workflow template from versionSnapshot
-        let fullWorkflowTemplate = node.workflowTemplate; // Use if available (live file tree)
+        // Extract the full workflow template from various sources
+        let fullWorkflowTemplate: WorkflowTemplate | undefined;
 
+        // Check if workflow has content (live file tree structure) using type guard
+        if (hasWorkflowContent(node)) {
+          fullWorkflowTemplate = node.workflow.content; // TypeScript now knows workflow has content!
+          console.log('[TraceListPanel] Using workflow.content from live file tree:', {
+            workflowId: node.workflow.id,
+            hasScenarios: !!fullWorkflowTemplate.scenarios,
+            scenarioCount: fullWorkflowTemplate.scenarios?.length
+          });
+        }
+
+        // Fallback to version snapshot extraction (historical schematic data)
         if (!fullWorkflowTemplate && node.versionSnapshot && node.workflow) {
           // Extract from version snapshot (schematic data)
           console.log('[TraceListPanel] Extracting workflow template from versionSnapshot:', {
