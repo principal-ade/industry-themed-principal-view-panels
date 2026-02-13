@@ -345,19 +345,39 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
 
         if (!fullWorkflowTemplate && node.versionSnapshot && node.workflow) {
           // Extract from version snapshot (schematic data)
+          console.log('[TraceListPanel] Extracting workflow template from versionSnapshot:', {
+            workflowId: node.workflow.id,
+            storyboardId: node.storyboard?.id,
+            snapshotStoryboards: node.versionSnapshot.storyboards.length
+          });
+
           const storyboard = node.versionSnapshot.storyboards.find(
             sb => sb.id === node.storyboard?.id
           );
           if (storyboard) {
+            console.log('[TraceListPanel] Found storyboard, workflows:', storyboard.workflows.length);
             const workflowWithContent = storyboard.workflows.find(
               w => w.id === node.workflow!.id
             );
             // Type guard: check if workflow has content property (DiscoveredWorkflowWithContent)
             if (workflowWithContent && 'content' in workflowWithContent) {
               fullWorkflowTemplate = workflowWithContent.content as WorkflowTemplate;
+              console.log('[TraceListPanel] Extracted workflow template:', {
+                hasScenarios: !!fullWorkflowTemplate.scenarios,
+                scenarioCount: fullWorkflowTemplate.scenarios?.length
+              });
+            } else {
+              console.warn('[TraceListPanel] Workflow found but no content:', workflowWithContent);
             }
+          } else {
+            console.warn('[TraceListPanel] Storyboard not found in snapshot');
           }
         }
+
+        console.log('[TraceListPanel] Emitting openWorkflowScenarios with template:', {
+          hasTemplate: !!fullWorkflowTemplate,
+          hasScenarios: !!fullWorkflowTemplate?.scenarios
+        });
 
         events.emit({
           type: 'custom',
