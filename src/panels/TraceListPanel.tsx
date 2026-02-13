@@ -379,6 +379,16 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
           hasScenarios: !!fullWorkflowTemplate?.scenarios
         });
 
+        // Validate that we have a complete workflow template with scenarios
+        if (!fullWorkflowTemplate || !fullWorkflowTemplate.scenarios) {
+          console.error('[TraceListPanel] Cannot emit openWorkflowScenarios - missing workflow template with scenarios:', {
+            workflowId: node.workflow.id,
+            hasTemplate: !!fullWorkflowTemplate,
+            hasScenarios: !!fullWorkflowTemplate?.scenarios
+          });
+          return;
+        }
+
         events.emit({
           type: 'custom',
           source: 'trace-list-panel',
@@ -388,7 +398,7 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
             // Workflow data
             workflowId: node.workflow.id,
             workflowPath: node.workflow.path,
-            workflowTemplate: fullWorkflowTemplate,
+            workflowTemplate: fullWorkflowTemplate,  // Now guaranteed to have scenarios
             workflow: node.workflow,
             // Canvas data
             canvasId: node.canvas?.id || node.storyboard?.canvas.id,
