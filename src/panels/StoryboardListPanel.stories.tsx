@@ -737,21 +737,11 @@ export const WithNarratives: Story = {
             id: `${workflowName}-scenario-1`,
             priority: 1,
             description: `Scenario 1 for ${workflowName}`,
-            condition: { type: 'event', event: `${storyboardName}.event1` },
-            template: {
-              introduction: `This is scenario 1 for ${workflowName}`,
-              flow: ['Step 1', 'Step 2'],
-            },
           },
           {
             id: `${workflowName}-scenario-2`,
             priority: 2,
             description: `Scenario 2 for ${workflowName}`,
-            condition: { type: 'event', event: `${storyboardName}.event2` },
-            template: {
-              introduction: `This is scenario 2 for ${workflowName}`,
-              flow: ['Step A', 'Step B'],
-            },
           },
         ],
       });
@@ -903,11 +893,6 @@ export const CanvasEventsTest: Story = {
             id: `${workflowName}-scenario-1`,
             priority: 1,
             description: `Primary scenario for ${workflowName}`,
-            condition: { type: 'event', event: `${storyboardName}.${workflowName}` },
-            template: {
-              introduction: `This demonstrates ${workflowName} workflow`,
-              flow: ['Step 1', 'Step 2', 'Complete'],
-            },
           },
         ],
       });
@@ -1417,21 +1402,11 @@ export const WithCoverageIndicators: Story = {
               id: `${workflowName}-scenario-1`,
               priority: 1,
               description: `Primary scenario for ${workflowName}`,
-              condition: { type: 'event', event: `${storyboardName}.event1` },
-              template: {
-                introduction: `This is scenario 1 for ${workflowName}`,
-                flow: ['Step 1', 'Step 2'],
-              },
             },
             {
               id: `${workflowName}-scenario-2`,
               priority: 2,
               description: `Secondary scenario for ${workflowName}`,
-              condition: { type: 'event', event: `${storyboardName}.event2` },
-              template: {
-                introduction: `This is scenario 2 for ${workflowName}`,
-                flow: ['Step A', 'Step B'],
-              },
             },
           ],
         });

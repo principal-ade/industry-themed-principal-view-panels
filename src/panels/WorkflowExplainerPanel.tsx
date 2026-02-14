@@ -93,7 +93,7 @@ const Step2Components: React.FC = () => {
             <g>
               <rect x="310" y="85" width="240" height="55" fill="#1e1b4b" stroke="#6366f1" strokeWidth="1" rx="3" />
               <text x="315" y="98" fill="#c4b5fd" fontSize="9" fontWeight="600">Scenario: success (priority: 1)</text>
-              <text x="320" y="110" fill="#94a3b8" fontSize="8" fontFamily="monospace">condition: event = "order.completed"</text>
+              <text x="320" y="110" fill="#94a3b8" fontSize="8" fontFamily="monospace">events: &#123; "order.completed": &#123;&#125; &#125;</text>
               <text x="320" y="122" fill="#94a3b8" fontSize="8" fontFamily="monospace">template: "Order #&#123;order.id&#125; completed"</text>
               <text x="320" y="134" fill="#94a3b8" fontSize="8" fontFamily="monospace">steps: [4 workflow steps...]</text>
             </g>
@@ -102,7 +102,7 @@ const Step2Components: React.FC = () => {
             <g>
               <rect x="310" y="145" width="240" height="50" fill="#1e1b4b" stroke="#6366f1" strokeWidth="1" rx="3" />
               <text x="315" y="158" fill="#c4b5fd" fontSize="9" fontWeight="600">Scenario: payment-declined (priority: 2)</text>
-              <text x="320" y="170" fill="#94a3b8" fontSize="8" fontFamily="monospace">condition: event = "payment.declined"</text>
+              <text x="320" y="170" fill="#94a3b8" fontSize="8" fontFamily="monospace">events: &#123; "payment.declined": &#123;&#125; &#125;</text>
               <text x="320" y="182" fill="#94a3b8" fontSize="8" fontFamily="monospace">template: "Payment declined..."</text>
             </g>
 
@@ -110,7 +110,7 @@ const Step2Components: React.FC = () => {
             <g>
               <rect x="310" y="200" width="240" height="45" fill="#1e1b4b" stroke="#6366f1" strokeWidth="1" rx="3" />
               <text x="315" y="213" fill="#c4b5fd" fontSize="9" fontWeight="600">Scenario: error (priority: 10)</text>
-              <text x="320" y="225" fill="#94a3b8" fontSize="8" fontFamily="monospace">condition: status = "ERROR"</text>
+              <text x="320" y="225" fill="#94a3b8" fontSize="8" fontFamily="monospace">events: &#123; "error": &#123;&#125; &#125;</text>
               <text x="320" y="237" fill="#94a3b8" fontSize="8" fontFamily="monospace">template: "Error occurred..."</text>
             </g>
           </g>
@@ -171,7 +171,7 @@ const Step3Scenarios: React.FC = () => {
           <circle cx="265" cy="80" r="12" fill="#334155" stroke="#475569" strokeWidth="1.5" />
           <text x="265" y="85" textAnchor="middle" fill="#64748b" fontSize="10" fontWeight="700">1</text>
           <text x="285" y="75" fill="#64748b" fontSize="10" fontWeight="600">Success Scenario</text>
-          <text x="285" y="90" fill="#64748b" fontSize="9">condition: event = "order.completed" (no match)</text>
+          <text x="285" y="90" fill="#64748b" fontSize="9">events: &#123; "order.completed": &#123;&#125; &#125; (no match)</text>
           <text x="285" y="103" fill="#64748b" fontSize="8" fontStyle="italic">Not matched - event not found</text>
 
           {/* Payment declined - MATCHES! */}
@@ -179,7 +179,7 @@ const Step3Scenarios: React.FC = () => {
           <circle cx="265" cy="150" r="12" fill="#3b82f6" stroke="#60a5fa" strokeWidth="2" />
           <text x="265" y="155" textAnchor="middle" fill="#fff" fontSize="10" fontWeight="700">2</text>
           <text x="285" y="145" fill="#dbeafe" fontSize="10" fontWeight="600">Payment Declined Scenario</text>
-          <text x="285" y="160" fill="#93c5fd" fontSize="9">condition: event = "payment.declined" (match)</text>
+          <text x="285" y="160" fill="#93c5fd" fontSize="9">events: &#123; "payment.declined": &#123;&#125; &#125; (match)</text>
           <text x="285" y="173" fill="#34d399" fontSize="9" fontWeight="600">MATCHED! This scenario will render</text>
 
           {/* Error fallback - lower priority */}
@@ -187,7 +187,7 @@ const Step3Scenarios: React.FC = () => {
           <circle cx="265" cy="220" r="12" fill="#334155" stroke="#475569" strokeWidth="1.5" />
           <text x="265" y="225" textAnchor="middle" fill="#64748b" fontSize="9" fontWeight="700">10</text>
           <text x="285" y="215" fill="#64748b" fontSize="10" fontWeight="600">Error Fallback Scenario</text>
-          <text x="285" y="230" fill="#64748b" fontSize="9">condition: status = "ERROR" (match)</text>
+          <text x="285" y="230" fill="#64748b" fontSize="9">events: &#123; "error": &#123;&#125; &#125; (match)</text>
           <text x="285" y="243" fill="#64748b" fontSize="8" fontStyle="italic">Matches, but priority 2 wins</text>
         </g>
 
@@ -284,68 +284,43 @@ const Step5Conditions: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <svg viewBox="0 0 600 380" style={{ width: '100%', height: 'auto' }}>
-        <text x="300" y="25" textAnchor="middle" fill="#94a3b8" fontSize="14" fontWeight="700">CONDITION TYPES</text>
+        <text x="300" y="25" textAnchor="middle" fill="#94a3b8" fontSize="14" fontWeight="700">EVENT-BASED MATCHING</text>
 
-        {/* Event Condition */}
+        {/* Single Event */}
         <g>
-          <rect x="40" y="40" width="250" height="75" fill="#1e293b" stroke="#8b5cf6" strokeWidth="2" rx="4" />
-          <text x="55" y="58" fill="#c4b5fd" fontSize="11" fontWeight="700">EVENT CONDITION</text>
-          <rect x="55" y="65" width="220" height="45" fill="#1e1b4b" stroke="#6366f1" strokeWidth="1" rx="3" />
-          <text x="65" y="80" fill="#e0e7ff" fontSize="9" fontFamily="monospace">&#123;</text>
-          <text x="70" y="92" fill="#e0e7ff" fontSize="9" fontFamily="monospace">  type: "event",</text>
-          <text x="70" y="104" fill="#e0e7ff" fontSize="9" fontFamily="monospace">  event: "payment.success"</text>
-          <text x="65" y="115" fill="#e0e7ff" fontSize="9" fontFamily="monospace">&#125;</text>
+          <rect x="40" y="40" width="520" height="90" fill="#1e293b" stroke="#8b5cf6" strokeWidth="2" rx="4" />
+          <text x="55" y="58" fill="#c4b5fd" fontSize="11" fontWeight="700">SINGLE EVENT MATCHING</text>
+          <rect x="55" y="65" width="490" height="60" fill="#1e1b4b" stroke="#6366f1" strokeWidth="1" rx="3" />
+          <text x="65" y="80" fill="#e0e7ff" fontSize="9" fontFamily="monospace">template: &#123;</text>
+          <text x="70" y="95" fill="#e0e7ff" fontSize="9" fontFamily="monospace">  events: &#123;</text>
+          <text x="75" y="110" fill="#a78bfa" fontSize="9" fontFamily="monospace">    "payment.success": &#123;&#125;</text>
+          <text x="70" y="120" fill="#e0e7ff" fontSize="9" fontFamily="monospace">  &#125;</text>
+          <text x="65" y="130" fill="#e0e7ff" fontSize="9" fontFamily="monospace">&#125;</text>
         </g>
 
-        {/* Attribute Condition */}
+        {/* Multiple Events */}
         <g>
-          <rect x="310" y="40" width="250" height="75" fill="#1e293b" stroke="#f59e0b" strokeWidth="2" rx="4" />
-          <text x="325" y="58" fill="#fde68a" fontSize="11" fontWeight="700">ATTRIBUTE CONDITION</text>
-          <rect x="325" y="65" width="220" height="45" fill="#451a03" stroke="#f59e0b" strokeWidth="1" rx="3" />
-          <text x="335" y="80" fill="#fef3c7" fontSize="9" fontFamily="monospace">&#123;</text>
-          <text x="340" y="92" fill="#fef3c7" fontSize="9" fontFamily="monospace">  type: "attribute",</text>
-          <text x="340" y="104" fill="#fef3c7" fontSize="9" fontFamily="monospace">  key: "http.status", value: 200</text>
-          <text x="335" y="115" fill="#fef3c7" fontSize="9" fontFamily="monospace">&#125;</text>
-        </g>
-
-        {/* Span Condition */}
-        <g>
-          <rect x="40" y="130" width="250" height="75" fill="#1e293b" stroke="#06b6d4" strokeWidth="2" rx="4" />
-          <text x="55" y="148" fill="#a5f3fc" fontSize="11" fontWeight="700">SPAN CONDITION</text>
-          <rect x="55" y="155" width="220" height="45" fill="#083344" stroke="#06b6d4" strokeWidth="1" rx="3" />
-          <text x="65" y="170" fill="#cffafe" fontSize="9" fontFamily="monospace">&#123;</text>
-          <text x="70" y="182" fill="#cffafe" fontSize="9" fontFamily="monospace">  type: "span",</text>
-          <text x="70" y="194" fill="#cffafe" fontSize="9" fontFamily="monospace">  name: "ProcessPayment"</text>
-          <text x="65" y="205" fill="#cffafe" fontSize="9" fontFamily="monospace">&#125;</text>
-        </g>
-
-        {/* Combined Condition */}
-        <g>
-          <rect x="310" y="130" width="250" height="75" fill="#1e293b" stroke="#ec4899" strokeWidth="2" rx="4" />
-          <text x="325" y="148" fill="#fbcfe8" fontSize="11" fontWeight="700">COMBINED (AND/OR)</text>
-          <rect x="325" y="155" width="220" height="45" fill="#500724" stroke="#ec4899" strokeWidth="1" rx="3" />
-          <text x="335" y="170" fill="#fce7f3" fontSize="9" fontFamily="monospace">&#123; type: "and", conditions: [</text>
-          <text x="340" y="182" fill="#fce7f3" fontSize="9" fontFamily="monospace">  &#123;type: "event", ...&#125;,</text>
-          <text x="340" y="194" fill="#fce7f3" fontSize="9" fontFamily="monospace">  &#123;type: "attribute", ...&#125;</text>
-          <text x="335" y="205" fill="#fce7f3" fontSize="9" fontFamily="monospace">]&#125;</text>
+          <rect x="40" y="145" width="520" height="115" fill="#1e293b" stroke="#ec4899" strokeWidth="2" rx="4" />
+          <text x="55" y="163" fill="#fbcfe8" fontSize="11" fontWeight="700">MULTIPLE EVENTS (ALL REQUIRED)</text>
+          <rect x="55" y="170" width="490" height="85" fill="#500724" stroke="#ec4899" strokeWidth="1" rx="3" />
+          <text x="65" y="185" fill="#fce7f3" fontSize="9" fontFamily="monospace">template: &#123;</text>
+          <text x="70" y="200" fill="#fce7f3" fontSize="9" fontFamily="monospace">  events: &#123;</text>
+          <text x="75" y="215" fill="#f9a8d4" fontSize="9" fontFamily="monospace">    "order.created": &#123;&#125;,</text>
+          <text x="75" y="230" fill="#f9a8d4" fontSize="9" fontFamily="monospace">    "payment.processed": &#123;&#125;,</text>
+          <text x="75" y="245" fill="#f9a8d4" fontSize="9" fontFamily="monospace">    "shipping.scheduled": &#123;&#125;</text>
+          <text x="70" y="255" fill="#fce7f3" fontSize="9" fontFamily="monospace">  &#125;</text>
+          <text x="65" y="265" fill="#fce7f3" fontSize="9" fontFamily="monospace">&#125;</text>
         </g>
 
         {/* Visual Flow */}
         <g>
-          <text x="300" y="235" textAnchor="middle" fill="#94a3b8" fontSize="12" fontWeight="700">EXAMPLE: COMPLEX MATCHING</text>
+          <text x="300" y="290" textAnchor="middle" fill="#94a3b8" fontSize="12" fontWeight="700">HOW IT WORKS</text>
 
-          <rect x="40" y="250" width="520" height="115" fill="#0f172a" stroke="#475569" strokeWidth="2" rx="4" />
+          <rect x="40" y="305" width="520" height="60" fill="#0f172a" stroke="#475569" strokeWidth="2" rx="4" />
 
-          {/* Condition */}
-          <text x="55" y="268" fill="#94a3b8" fontSize="10" fontWeight="600">Scenario matches when:</text>
-          <rect x="55" y="275" width="500" height="55" fill="#1e293b" stroke="#334155" strokeWidth="1" rx="3" />
-          <text x="65" y="290" fill="#a78bfa" fontSize="9" fontFamily="monospace">type: "and"</text>
-          <text x="70" y="303" fill="#c4b5fd" fontSize="9" fontFamily="monospace">├─ event exists: "order.created"</text>
-          <text x="70" y="315" fill="#c4b5fd" fontSize="9" fontFamily="monospace">├─ event exists: "payment.processed"</text>
-          <text x="70" y="327" fill="#c4b5fd" fontSize="9" fontFamily="monospace">└─ attribute: payment.status = "success"</text>
-
-          {/* Result */}
-          <text x="55" y="350" fill="#6ee7b7" fontSize="10" fontWeight="600">All conditions must be true for this scenario to match</text>
+          <text x="55" y="323" fill="#94a3b8" fontSize="10" fontWeight="600">Scenario matches when:</text>
+          <text x="70" y="340" fill="#c4b5fd" fontSize="9" fontFamily="monospace">✓ ALL events listed in template.events are present in the execution</text>
+          <text x="70" y="355" fill="#6ee7b7" fontSize="10" fontWeight="600">The scenario with the LOWEST priority number wins</text>
         </g>
       </svg>
 
@@ -357,7 +332,7 @@ const Step5Conditions: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #475569'
       }}>
-        Conditions determine when a scenario matches. You can check for <strong style={{ color: '#8b5cf6' }}>events</strong>, <strong style={{ color: '#f59e0b' }}>attributes</strong>, <strong style={{ color: '#06b6d4' }}>spans</strong>, or combine them with <strong style={{ color: '#ec4899' }}>AND/OR</strong> logic.
+        Scenarios match based on <strong style={{ color: '#8b5cf6' }}>events present in the execution</strong>. Each scenario's <code>template.events</code> object defines which events must occur. All listed events must be present for a match.
       </div>
     </div>
   );
@@ -487,7 +462,7 @@ const Step7Workflow: React.FC = () => {
         <g>
           <rect x="470" y="130" width="110" height="60" fill="#1e293b" stroke="#ec4899" strokeWidth="2" rx="4" />
           <text x="525" y="146" textAnchor="middle" fill="#fbcfe8" fontSize="10" fontWeight="700">5. MATCH</text>
-          <text x="478" y="160" fill="#94a3b8" fontSize="8">Test conditions</text>
+          <text x="478" y="160" fill="#94a3b8" fontSize="8">Match events</text>
           <text x="478" y="170" fill="#94a3b8" fontSize="8">pick best</text>
           <text x="478" y="180" fill="#94a3b8" fontSize="8">scenario</text>
         </g>
@@ -548,7 +523,7 @@ const sections: Section[] = [
   { id: 'components', title: 'Template Components', component: Step2Components },
   { id: 'scenarios', title: 'How Scenarios Match', component: Step3Scenarios },
   { id: 'templates', title: 'Template Variables', component: Step4Templates },
-  { id: 'conditions', title: 'Condition Types', component: Step5Conditions },
+  { id: 'conditions', title: 'Event Matching', component: Step5Conditions },
   { id: 'files', title: 'File Organization', component: Step6FileStructure },
   { id: 'workflow', title: 'End-to-End Workflow', component: Step7Workflow },
 ];

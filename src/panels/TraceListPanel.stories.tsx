@@ -496,31 +496,15 @@ const mockSchematics: VersionSnapshot[] = [
               scenarios: [
                 {
                   id: 'happy-path-login',
-                  condition: {
-                    requires: ['valid-credentials'],
-                    default: false,
-                  },
                 },
                 {
                   id: 'failed-login-invalid-password',
-                  condition: {
-                    requires: ['invalid-password'],
-                    default: false,
-                  },
                 },
                 {
                   id: 'failed-login-account-locked',
-                  condition: {
-                    requires: ['account-locked'],
-                    default: false,
-                  },
                 },
                 {
                   id: 'default-error-scenario',
-                  condition: {
-                    requires: [],
-                    default: true,
-                  },
                 },
               ],
             },
@@ -539,24 +523,12 @@ const mockSchematics: VersionSnapshot[] = [
               scenarios: [
                 {
                   id: 'standard-checkout',
-                  condition: {
-                    requires: ['cart-not-empty', 'payment-method-valid'],
-                    default: false,
-                  },
                 },
                 {
                   id: 'express-checkout',
-                  condition: {
-                    requires: ['saved-payment-method', 'saved-address'],
-                    default: false,
-                  },
                 },
                 {
                   id: 'checkout-with-coupon',
-                  condition: {
-                    requires: ['valid-coupon-code'],
-                    default: false,
-                  },
                 },
               ],
             },
@@ -592,24 +564,12 @@ const mockSchematics: VersionSnapshot[] = [
               scenarios: [
                 {
                   id: 'create-product',
-                  condition: {
-                    requires: ['admin-role'],
-                    default: false,
-                  },
                 },
                 {
                   id: 'update-product',
-                  condition: {
-                    requires: ['admin-role', 'product-exists'],
-                    default: false,
-                  },
                 },
                 {
                   id: 'delete-product',
-                  condition: {
-                    requires: ['admin-role', 'product-exists', 'no-active-orders'],
-                    default: false,
-                  },
                 },
               ],
             },
@@ -651,24 +611,12 @@ const mockSchematics: VersionSnapshot[] = [
               scenarios: [
                 {
                   id: 'successful-payment',
-                  condition: {
-                    requires: ['valid-card', 'sufficient-funds'],
-                    default: false,
-                  },
                 },
                 {
                   id: 'declined-insufficient-funds',
-                  condition: {
-                    requires: ['valid-card'],
-                    default: false,
-                  },
                 },
                 {
                   id: 'declined-invalid-card',
-                  condition: {
-                    requires: [],
-                    default: true,
-                  },
                 },
               ],
             },

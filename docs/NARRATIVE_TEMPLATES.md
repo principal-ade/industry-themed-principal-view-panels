@@ -28,11 +28,10 @@ Narrative templates are JSON files with the `.narrative.json` extension.
       "id": "success",
       "priority": 1,
       "description": "Successful authentication",
-      "condition": {
-        "type": "event",
-        "event": "auth.success"
-      },
       "template": {
+        "events": {
+          "auth.success": {}
+        },
         "introduction": "User {user.email} logged in successfully",
         "flow": [
           "User provided credentials",
@@ -77,59 +76,58 @@ __narratives__/*.narrative.json
 | `id` | string | Yes | Unique scenario identifier (kebab-case) |
 | `priority` | number | Yes | Selection priority (lower = higher priority) |
 | `description` | string | Yes | What this scenario represents |
-| `condition` | object | Yes | When this scenario should be selected |
 | `template` | object | Yes | How to render this scenario |
 
-### Condition Types
+### Scenario Matching
 
-#### Event Condition
-Matches when a specific event occurs:
+Scenarios are matched based on which events are present in the execution. Each scenario's `template.events` object defines the events that must occur for that scenario to match.
 
-```json
-{
-  "type": "event",
-  "event": "auth.success"
-}
-```
+The scenario with the **lowest priority number** whose events are all present in the execution will be selected.
 
-#### Attribute Condition
-Matches when an attribute has a specific value:
+**Example:**
 
 ```json
 {
-  "type": "attribute",
-  "key": "http.status_code",
-  "value": 200
+  "id": "success",
+  "priority": 1,
+  "description": "Successful authentication",
+  "template": {
+    "events": {
+      "auth.success": {}
+    },
+    "introduction": "User logged in successfully"
+  }
 }
 ```
 
-#### Span Condition
-Matches when a span with specific name exists:
+This scenario will match if the execution contains an event named `auth.success`.
+
+**Multiple Events:**
 
 ```json
 {
-  "type": "span",
-  "name": "ProcessPayment"
+  "id": "order-completed",
+  "priority": 1,
+  "description": "Order successfully processed",
+  "template": {
+    "events": {
+      "order.created": {},
+      "payment.processed": {},
+      "inventory.reserved": {},
+      "shipping.scheduled": {}
+    },
+    "introduction": "Order completed successfully"
+  }
 }
 ```
 
-#### Combined Conditions
-Use `and` or `or` to combine conditions:
-
-```json
-{
-  "type": "and",
-  "conditions": [
-    { "type": "event", "event": "payment.processed" },
-    { "type": "attribute", "key": "payment.status", "value": "success" }
-  ]
-}
-```
+This scenario will match only if **all four events** are present in the execution.
 
 ### Template Object
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `events` | object | Yes | Map of event names to event configurations - defines which events must be present for this scenario to match |
 | `introduction` | string | No | Opening text (appears at the top, use for title/header) |
 | `flow` | array | No | Step-by-step narrative flow (array of strings or flow directives) |
 | `summary` | string | No | Closing text (appears at the bottom, use for conclusion) |
@@ -137,6 +135,8 @@ Use `and` or `or` to combine conditions:
 | `assertions` | array | No | Validation assertions |
 
 **Note**: The rendering order is: `introduction` → mode-specific content → `flow` → `summary`
+
+**Event Matching**: A scenario matches when **all** events listed in `template.events` are present in the execution. The scenario with the lowest `priority` number whose events all match will be selected.
 
 ### Template Variables
 
@@ -165,12 +165,10 @@ Use `{variable}` syntax to inject values from OTEL events:
       "id": "success",
       "priority": 1,
       "description": "Test passed successfully",
-      "condition": {
-        "type": "attribute",
-        "key": "test.status",
-        "value": "passed"
-      },
       "template": {
+        "events": {
+          "test.passed": {}
+        },
         "introduction": "✓ Graph converter test passed in {duration}ms",
         "flow": [
           "Loaded test configuration",
@@ -184,12 +182,10 @@ Use `{variable}` syntax to inject values from OTEL events:
       "id": "failure",
       "priority": 2,
       "description": "Test failed",
-      "condition": {
-        "type": "attribute",
-        "key": "test.status",
-        "value": "failed"
-      },
       "template": {
+        "events": {
+          "test.failed": {}
+        },
         "introduction": "✗ Graph converter test failed: {error.message}",
         "flow": [
           "Loaded test configuration",
@@ -221,16 +217,13 @@ Use `{variable}` syntax to inject values from OTEL events:
       "id": "order-completed",
       "priority": 1,
       "description": "Order successfully processed",
-      "condition": {
-        "type": "and",
-        "conditions": [
-          { "type": "event", "event": "order.created" },
-          { "type": "event", "event": "payment.processed" },
-          { "type": "event", "event": "inventory.reserved" },
-          { "type": "event", "event": "shipping.scheduled" }
-        ]
-      },
       "template": {
+        "events": {
+          "order.created": {},
+          "payment.processed": {},
+          "inventory.reserved": {},
+          "shipping.scheduled": {}
+        },
         "introduction": "Order #{order.id} completed for {customer.name}",
         "flow": [
           "Order placed: {order.items.count} items, total ${order.total}",
@@ -251,11 +244,10 @@ Use `{variable}` syntax to inject values from OTEL events:
       "id": "payment-declined",
       "priority": 2,
       "description": "Payment was declined",
-      "condition": {
-        "type": "event",
-        "event": "payment.declined"
-      },
       "template": {
+        "events": {
+          "payment.declined": {}
+        },
         "introduction": "Order #{order.id} failed - payment declined",
         "flow": [
           "Order placed: {order.items.count} items, total ${order.total}",
@@ -273,11 +265,10 @@ Use `{variable}` syntax to inject values from OTEL events:
       "id": "out-of-stock",
       "priority": 3,
       "description": "Items out of stock",
-      "condition": {
-        "type": "event",
-        "event": "inventory.insufficient"
-      },
       "template": {
+        "events": {
+          "inventory.insufficient": {}
+        },
         "introduction": "Order #{order.id} failed - items out of stock",
         "flow": [
           "Order placed: {order.items.count} items",
@@ -310,11 +301,10 @@ Use `{variable}` syntax to inject values from OTEL events:
       "id": "default",
       "priority": 1,
       "description": "Default timeline view",
-      "condition": {
-        "type": "span",
-        "name": "HTTPRequest"
-      },
       "template": {
+        "events": {
+          "http.request": {}
+        },
         "introduction": "{http.method} {http.url} → {http.status_code} ({duration}ms)",
         "flow": [
           "[{timestamp}] Request received: {http.method} {http.url}",
@@ -485,7 +475,7 @@ This checks for:
 - Canvas file reference exists
 - Template syntax is valid
 - Event/attribute references (when canvas includes event schemas)
-- Scenario condition logic
+- Event definitions in template match available events
 
 ## Related Documentation
 

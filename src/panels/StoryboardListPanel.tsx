@@ -273,8 +273,8 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
 
   const handleCopyCliCommand = useCallback(() => {
     const cliCommand = storyboards.length > 0
-      ? 'npx @principal-ai/principal-view-cli --help'
-      : 'npx @principal-ai/principal-view-cli init';
+      ? 'npx @principal-ai/principal-view-cli@latest --help'
+      : 'npx @principal-ai/principal-view-cli@latest init';
     navigator.clipboard.writeText(cliCommand).then(() => {
       setCliCommandCopied(true);
       setTimeout(() => setCliCommandCopied(false), 2000);
@@ -713,7 +713,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
                     }}
                   >
                     <code style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      npx @principal-ai/principal-view-cli --help
+                      npx @principal-ai/principal-view-cli@latest --help
                     </code>
                     {cliCommandCopied ? (
                       <Check size={16} style={{ color: theme.colors.success || '#22c55e', flexShrink: 0 }} />

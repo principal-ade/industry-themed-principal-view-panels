@@ -160,25 +160,25 @@ const Step3ScenarioConditions: React.FC = () => {
           {/* Scenario 1 - Not matched */}
           <rect x="275" y="80" width="270" height="40" fill="#1e293b" stroke="#475569" strokeWidth="1" rx="3" />
           <text x="285" y="95" fill="#94a3b8" fontSize="8" fontWeight="600">success:</text>
-          <text x="290" y="107" fill="#64748b" fontSize="7">condition: event = "user.created"</text>
+          <text x="290" y="107" fill="#64748b" fontSize="7">events: &#123; "user.created": &#123;&#125; &#125;</text>
           <text x="290" y="117" fill="#64748b" fontSize="7">✗ Does NOT match trace</text>
 
           {/* Scenario 2 - MATCHED! */}
           <rect x="275" y="128" width="270" height="40" fill="#064e3b" stroke="#10b981" strokeWidth="2" rx="3" />
           <text x="285" y="143" fill="#6ee7b7" fontSize="8" fontWeight="600">duplicate:</text>
-          <text x="290" y="155" fill="#a7f3d0" fontSize="7">condition: event = "user.exists"</text>
+          <text x="290" y="155" fill="#a7f3d0" fontSize="7">events: &#123; "user.exists": &#123;&#125; &#125;</text>
           <text x="290" y="165" fill="#34d399" fontSize="7" fontWeight="bold">✓ MATCHES! Use this scenario</text>
 
           {/* Scenario 3 - Not matched */}
           <rect x="275" y="176" width="270" height="40" fill="#1e293b" stroke="#475569" strokeWidth="1" rx="3" />
           <text x="285" y="191" fill="#94a3b8" fontSize="8" fontWeight="600">invalid-email:</text>
-          <text x="290" y="203" fill="#64748b" fontSize="7">condition: event = "validation.failed"</text>
+          <text x="290" y="203" fill="#64748b" fontSize="7">events: &#123; "validation.failed": &#123;&#125; &#125;</text>
           <text x="290" y="213" fill="#64748b" fontSize="7">✗ Does NOT match trace</text>
 
           {/* Scenario 4 - Not matched */}
           <rect x="275" y="224" width="270" height="40" fill="#1e293b" stroke="#475569" strokeWidth="1" rx="3" />
           <text x="285" y="239" fill="#94a3b8" fontSize="8" fontWeight="600">db-error:</text>
-          <text x="290" y="251" fill="#64748b" fontSize="7">condition: event = "database.error"</text>
+          <text x="290" y="251" fill="#64748b" fontSize="7">events: &#123; "database.error": &#123;&#125; &#125;</text>
           <text x="290" y="261" fill="#64748b" fontSize="7">✗ Does NOT match trace</text>
         </g>
 
@@ -197,7 +197,7 @@ const Step3ScenarioConditions: React.FC = () => {
         borderRadius: '6px',
         border: '1px solid #475569'
       }}>
-        <strong style={{ color: '#8b5cf6' }}>Validation:</strong> OTEL trace is matched against scenario conditions. The first matching scenario determines which workflow template to use and validates expected behavior.
+        <strong style={{ color: '#8b5cf6' }}>Validation:</strong> OTEL trace is matched against scenario events. The scenario with the lowest priority whose events are all present in the trace determines which workflow template to use and validates expected behavior.
       </div>
     </div>
   );
@@ -224,23 +224,23 @@ const Step4ExhaustiveEnumeration: React.FC = () => {
 
           {/* Scenario 1 */}
           <rect x="70" y="135" width="460" height="25" fill="#064e3b" stroke="#059669" strokeWidth="1" rx="2" />
-          <text x="80" y="148" fill="#d1fae5" fontSize="8">1. <tspan fill="#a7f3d0" fontWeight="bold">success</tspan> - condition: event("user.created") → "User registered successfully"</text>
+          <text x="80" y="148" fill="#d1fae5" fontSize="8">1. <tspan fill="#a7f3d0" fontWeight="bold">success</tspan> - events: &#123; "user.created": &#123;&#125; &#125; → "User registered successfully"</text>
 
           {/* Scenario 2 */}
           <rect x="70" y="165" width="460" height="25" fill="#064e3b" stroke="#059669" strokeWidth="1" rx="2" />
-          <text x="80" y="178" fill="#d1fae5" fontSize="8">2. <tspan fill="#a7f3d0" fontWeight="bold">duplicate</tspan> - condition: event("user.exists") → "User already exists"</text>
+          <text x="80" y="178" fill="#d1fae5" fontSize="8">2. <tspan fill="#a7f3d0" fontWeight="bold">duplicate</tspan> - events: &#123; "user.exists": &#123;&#125; &#125; → "User already exists"</text>
 
           {/* Scenario 3 */}
           <rect x="70" y="195" width="460" height="25" fill="#064e3b" stroke="#059669" strokeWidth="1" rx="2" />
-          <text x="80" y="208" fill="#d1fae5" fontSize="8">3. <tspan fill="#a7f3d0" fontWeight="bold">invalid-email</tspan> - condition: event("validation.failed") → "Invalid email format"</text>
+          <text x="80" y="208" fill="#d1fae5" fontSize="8">3. <tspan fill="#a7f3d0" fontWeight="bold">invalid-email</tspan> - events: &#123; "validation.failed": &#123;&#125; &#125; → "Invalid email format"</text>
 
           {/* Scenario 4 */}
           <rect x="70" y="225" width="460" height="25" fill="#064e3b" stroke="#059669" strokeWidth="1" rx="2" />
-          <text x="80" y="238" fill="#d1fae5" fontSize="8">4. <tspan fill="#a7f3d0" fontWeight="bold">db-error</tspan> - condition: event("database.error") → "Database unavailable"</text>
+          <text x="80" y="238" fill="#d1fae5" fontSize="8">4. <tspan fill="#a7f3d0" fontWeight="bold">db-error</tspan> - events: &#123; "database.error": &#123;&#125; &#125; → "Database unavailable"</text>
 
           {/* Scenario 5 */}
           <rect x="70" y="255" width="460" height="25" fill="#064e3b" stroke="#059669" strokeWidth="1" rx="2" />
-          <text x="80" y="268" fill="#d1fae5" fontSize="8">5. <tspan fill="#a7f3d0" fontWeight="bold">rate-limited</tspan> - condition: event("rate.exceeded") → "Too many requests"</text>
+          <text x="80" y="268" fill="#d1fae5" fontSize="8">5. <tspan fill="#a7f3d0" fontWeight="bold">rate-limited</tspan> - events: &#123; "rate.exceeded": &#123;&#125; &#125; → "Too many requests"</text>
 
           <text x="65" y="290" fill="#6ee7b7" fontSize="9" fontWeight="600">]</text>
         </g>
@@ -289,8 +289,8 @@ const Step5ValidationProcess: React.FC = () => {
           <rect x="400" y="50" width="160" height="70" fill="#1e3a8a" stroke="#3b82f6" strokeWidth="2" rx="4" />
           <text x="480" y="70" textAnchor="middle" fill="#dbeafe" fontSize="10" fontWeight="700">3. MATCH</text>
           <text x="408" y="85" fill="#93c5fd" fontSize="8">Find scenario</text>
-          <text x="408" y="97" fill="#93c5fd" fontSize="8">where condition</text>
-          <text x="408" y="109" fill="#93c5fd" fontSize="8">matches trace</text>
+          <text x="408" y="97" fill="#93c5fd" fontSize="8">whose events</text>
+          <text x="408" y="109" fill="#93c5fd" fontSize="8">match trace</text>
         </g>
 
         {/* Arrow down from step 3 */}

@@ -407,9 +407,6 @@ const checkoutWorkflow: WorkflowTemplate = {
       id: 'payment-declined',
       priority: 1,
       description: 'Payment was declined',
-      condition: {
-        requires: ['payment.failed'],
-      },
       template: {
         introduction: 'Checkout Failed - Payment Declined',
         events: {
@@ -426,9 +423,6 @@ const checkoutWorkflow: WorkflowTemplate = {
       id: 'insufficient-inventory',
       priority: 2,
       description: 'Not enough inventory available',
-      condition: {
-        requires: ['inventory.insufficient'],
-      },
       template: {
         introduction: 'Checkout Failed - Insufficient Inventory',
         events: {
@@ -445,9 +439,6 @@ const checkoutWorkflow: WorkflowTemplate = {
       id: 'checkout-timeout',
       priority: 3,
       description: 'Checkout process timed out',
-      condition: {
-        requires: ['order.timeout'],
-      },
       template: {
         introduction: 'Checkout Timeout',
         events: {
@@ -466,9 +457,6 @@ const checkoutWorkflow: WorkflowTemplate = {
       id: 'checkout-success',
       priority: 4,
       description: 'Successful checkout',
-      condition: {
-        requires: ['order.created'],
-      },
       template: {
         introduction: 'Checkout Complete',
         events: {
@@ -493,9 +481,6 @@ const checkoutWorkflow: WorkflowTemplate = {
       id: 'default',
       priority: 99,
       description: 'Default scenario',
-      condition: {
-        default: true,
-      },
       template: {
         introduction: 'Checkout Process',
         events: {
@@ -1042,9 +1027,6 @@ export const PartialNarrativeCoverage: Story = {
           id: 'payment-scenario',
           priority: 1,
           description: 'Payment processing flow',
-          condition: {
-            requires: ['payment.failed'],
-          },
           template: {
             introduction: 'Payment Failed Scenario',
             events: {
@@ -1059,9 +1041,6 @@ export const PartialNarrativeCoverage: Story = {
           id: 'inventory-scenario',
           priority: 2,
           description: 'Inventory checking flow',
-          condition: {
-            requires: ['inventory.insufficient'],
-          },
           template: {
             introduction: 'Inventory Shortage Scenario',
             events: {
@@ -1076,9 +1055,6 @@ export const PartialNarrativeCoverage: Story = {
           id: 'shipping-scenario',
           priority: 3,
           description: 'Shipping calculation flow',
-          condition: {
-            requires: ['shipping.calculated'],
-          },
           template: {
             introduction: 'Shipping Calculation Scenario',
             events: {
@@ -1172,9 +1148,6 @@ export const CoLocatedExecutions: Story = {
           id: 'payment-declined',
           priority: 1,
           description: 'Payment was declined',
-          condition: {
-            requires: ['payment.failed'],
-          },
           template: {
             introduction: 'Payment Declined',
             events: {
@@ -1189,9 +1162,6 @@ export const CoLocatedExecutions: Story = {
           id: 'insufficient-inventory',
           priority: 2,
           description: 'Not enough inventory available',
-          condition: {
-            requires: ['inventory.insufficient'],
-          },
           template: {
             introduction: 'Insufficient Inventory',
             events: {
@@ -1206,9 +1176,6 @@ export const CoLocatedExecutions: Story = {
           id: 'checkout-timeout',
           priority: 3,
           description: 'Checkout process timed out',
-          condition: {
-            requires: ['order.timeout'],
-          },
           template: {
             introduction: 'Checkout Timeout',
             events: {
@@ -1225,9 +1192,6 @@ export const CoLocatedExecutions: Story = {
           id: 'checkout-success',
           priority: 4,
           description: 'Successful checkout',
-          condition: {
-            requires: ['order.created'],
-          },
           template: {
             introduction: 'Checkout Complete',
             events: {
@@ -1257,9 +1221,6 @@ export const CoLocatedExecutions: Story = {
           id: 'express-success',
           priority: 1,
           description: 'Quick checkout success',
-          condition: {
-            requires: ['order.created'],
-          },
           template: {
             introduction: 'Express Checkout Complete',
             events: {
@@ -1647,9 +1608,6 @@ export const IncompleteTemplateData: Story = {
           id: 'payment-declined-missing-vars',
           priority: 1,
           description: 'Payment was declined',
-          condition: {
-            requires: ['payment.failed'],
-          },
           template: {
             introduction: 'Payment Declined',
             events: {
@@ -1758,9 +1716,6 @@ export const IncompleteTemplateData_MissingEvent: Story = {
           id: 'payment-declined-missing-event',
           priority: 1,
           description: 'Payment was declined (with missing intermediate event)',
-          condition: {
-            requires: ['payment.failed'],
-          },
           template: {
             introduction: 'Payment Declined Flow',
             events: {
