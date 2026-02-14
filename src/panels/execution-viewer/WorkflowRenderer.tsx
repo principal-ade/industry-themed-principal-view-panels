@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { renderWorkflow, parseTemplate, selectScenario, computeAggregates, ParsedTemplate } from '@principal-ai/principal-view-core';
+import { renderWorkflow, parseTemplate, selectScenario, computeAggregates, getRequiredEvents, ParsedTemplate } from '@principal-ai/principal-view-core';
 import type { WorkflowTemplate, OtelEvent, WorkflowScenario, ExtendedCanvas, TemplateSegment } from '@principal-ai/principal-view-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import yaml from 'js-yaml';
@@ -150,37 +150,18 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
       );
     }
 
-    // Render conditions if showOnlySummary is true
+    // Render required events if showOnlySummary is true
     if (showOnlySummary) {
-      const conditionText = [];
+      const requiredEvents = getRequiredEvents(scenario);
 
-      if (scenario.condition.default) {
-        conditionText.push('Always matches (default scenario)');
-      } else {
-        if (scenario.condition.requires && scenario.condition.requires.length > 0) {
-          conditionText.push(`Requires: ${scenario.condition.requires.join(', ')}`);
-        }
-        if (scenario.condition.excludes && scenario.condition.excludes.length > 0) {
-          conditionText.push(`Excludes: ${scenario.condition.excludes.join(', ')}`);
-        }
-        if (scenario.condition.assertions) {
-          const assertionStrs = Object.entries(scenario.condition.assertions).map(([key, assertion]) => {
-            return `${key}: ${JSON.stringify(assertion)}`;
-          });
-          if (assertionStrs.length > 0) {
-            conditionText.push(`Assertions: ${assertionStrs.join(', ')}`);
-          }
-        }
-      }
-
-      if (conditionText.length > 0) {
+      if (requiredEvents.length > 0) {
         elements.push(
-          <div key="conditions" style={{ padding: '8px 20px 12px 20px', borderBottom: `1px solid ${theme.colors.border}`, backgroundColor: theme.colors.backgroundSecondary }}>
+          <div key="required-events" style={{ padding: '8px 20px 12px 20px', borderBottom: `1px solid ${theme.colors.border}`, backgroundColor: theme.colors.backgroundSecondary }}>
             <div style={{ fontSize: theme.fontSizes[0], fontWeight: 600, color: theme.colors.textSecondary, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Conditions
+              Required Events
             </div>
             <div style={{ fontSize: theme.fontSizes[1], color: theme.colors.text, fontFamily: theme.fonts.monospace }}>
-              {conditionText.join(' | ')}
+              {requiredEvents.join(', ')}
             </div>
           </div>
         );

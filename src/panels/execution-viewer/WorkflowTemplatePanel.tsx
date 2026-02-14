@@ -47,11 +47,6 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
       eventNames.push(...Object.keys(scenario.template.events));
     }
 
-    // Get event names from condition.requires
-    if (scenario.condition.requires) {
-      eventNames.push(...scenario.condition.requires);
-    }
-
     return eventNames;
   };
 

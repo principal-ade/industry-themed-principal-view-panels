@@ -1098,10 +1098,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
         if (scenario.template.events) {
           Object.keys(scenario.template.events).forEach(e => eventNames.add(e));
         }
-        // Get events from condition.requires
-        if (scenario.condition.requires) {
-          scenario.condition.requires.forEach(e => eventNames.add(e));
-        }
       }
 
       // Find nodes that match these events
