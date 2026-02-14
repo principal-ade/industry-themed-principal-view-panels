@@ -1656,3 +1656,158 @@ export const ChangeDetectionTest: Story = {
     );
   },
 };
+
+/**
+ * Git Status Badges
+ * Shows git change indicators on canvas, workflow, and overview files
+ */
+export const WithGitStatusBadges: Story = {
+  args: {} as never,
+  render: () => {
+    const allFiles = [
+      // Modified storyboard (OTEL canvas modified)
+      ...createStoryboardFiles('authentication-flow', [
+        { name: 'login-flow', executions: 2 },
+        { name: 'logout-flow', executions: 1 },
+      ]),
+
+      // Added storyboard (new OTEL canvas, staged)
+      ...createStoryboardFiles('payment-processing', [
+        { name: 'checkout', executions: 0 },
+      ]),
+
+      // Storyboard with modified workflow
+      ...createStoryboardFiles('user-management', [
+        { name: 'create-user', executions: 1 },
+        { name: 'delete-user', executions: 0 },
+      ]),
+
+      // Static canvases (some modified, some with markdown)
+      ...createStaticCanvasFile('api-design', true),
+      ...createStaticCanvasFile('database-schema', false),
+      ...createStaticCanvasFile('new-feature', true),
+    ];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-git-status';
+    fileTree.allFiles = allFiles;
+
+    // Create git status data matching some of the files
+    const gitStatusData = {
+      repoPath: '/Users/developer/my-project',
+      branch: 'feature/add-git-badges',
+      isDirty: true,
+      hasUntracked: true,
+      hasStaged: true,
+      ahead: 3,
+      behind: 0,
+      watchingEnabled: true,
+      lastChangedAt: new Date().toISOString(),
+
+      // Modified files (M - shows blue edit icon)
+      modifiedFiles: [
+        '.principal-views/authentication-flow/authentication-flow.otel.canvas',
+        '.principal-views/api-design/api-design.md',
+      ],
+
+      // Staged/Added files (A - shows green plus icon)
+      stagedFiles: [
+        '.principal-views/payment-processing/payment-processing.otel.canvas',
+        '.principal-views/new-feature/new-feature.canvas',
+      ],
+
+      // Untracked files (?? - shows gray question mark icon)
+      untrackedFiles: [
+        '.principal-views/user-management/delete-user/delete-user.workflow.json',
+      ],
+
+      // Deleted files (D - shows red minus icon)
+      deletedFiles: [
+        '.principal-views/database-schema/database-schema.canvas',
+      ],
+
+      createdFiles: [],
+      hash: 'git-status-mock',
+    };
+
+    const mockSlices = createMockSlices(fileTree);
+
+    // Add git status slice
+    mockSlices.set('git', {
+      scope: 'repository' as const,
+      name: 'git',
+      data: gitStatusData,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+
+    return (
+      <div style={{ display: 'flex', height: '100vh', gap: 16, padding: 16 }}>
+        <div style={{ flex: 1 }}>
+          <MockPanelProvider
+            contextOverrides={{
+              slices: mockSlices,
+              getSlice: <T,>(name: string): T | undefined => {
+                return mockSlices.get(name) as T | undefined;
+              },
+            }}
+          >
+            {(props) => <StoryboardListPanel {...props} />}
+          </MockPanelProvider>
+        </div>
+
+        <div style={{
+          width: 320,
+          padding: 16,
+          background: '#1a1a1a',
+          borderRadius: 8,
+          fontSize: 13,
+          lineHeight: 1.6,
+          color: '#aaa',
+          overflowY: 'auto',
+        }}>
+          <h3 style={{ color: '#fff', marginTop: 0, fontSize: 14, marginBottom: 12 }}>Git Status Legend</h3>
+
+          <div style={{ marginBottom: 16 }}>
+            <strong style={{ color: '#fff', display: 'block', marginBottom: 8 }}>Modified (M)</strong>
+            <div style={{ color: '#3b82f6', marginBottom: 4 }}>• authentication-flow.otel.canvas</div>
+            <div style={{ color: '#3b82f6' }}>• api-design.md (Overview)</div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <strong style={{ color: '#fff', display: 'block', marginBottom: 8 }}>Added/Staged (A)</strong>
+            <div style={{ color: '#28a745', marginBottom: 4 }}>• payment-processing.otel.canvas</div>
+            <div style={{ color: '#28a745' }}>• new-feature.canvas</div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <strong style={{ color: '#fff', display: 'block', marginBottom: 8 }}>Untracked (??)</strong>
+            <div style={{ color: '#6c757d' }}>• delete-user.workflow.json</div>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <strong style={{ color: '#fff', display: 'block', marginBottom: 8 }}>Deleted (D)</strong>
+            <div style={{ color: '#dc3545' }}>• database-schema.canvas</div>
+          </div>
+
+          <div style={{ borderTop: '1px solid #333', paddingTop: 12, marginTop: 16 }}>
+            <strong style={{ color: '#fff', display: 'block', marginBottom: 8 }}>Branch Info</strong>
+            <div>Branch: feature/add-git-badges</div>
+            <div>Ahead: 3 commits</div>
+            <div>Status: Dirty</div>
+          </div>
+
+          <div style={{ borderTop: '1px solid #333', paddingTop: 12, marginTop: 16, fontSize: 12 }}>
+            <strong style={{ color: '#fff', display: 'block', marginBottom: 8 }}>Icon Reference</strong>
+            <div>📝 Edit icon = Modified</div>
+            <div>➕ Plus icon = Added</div>
+            <div>❓ Question icon = Untracked</div>
+            <div>➖ Minus icon = Deleted</div>
+          </div>
+        </div>
+      </div>
+    );
+  },
+};

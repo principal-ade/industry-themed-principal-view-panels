@@ -11,9 +11,62 @@ import {
   type StoryboardWorkflowNodeData,
   CanvasListTreeCore,
   type CanvasListNodeData,
+  type GitFileStatus,
+  type GitStatus,
 } from '@principal-ade/dynamic-file-tree';
-import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
+import type { FileTree, FileInfo, GitStatusWithFiles } from '@principal-ai/repository-abstraction';
 import type { WorkflowTemplate, DiscoveredTestTrace, WorkflowScenario } from '@principal-ai/principal-view-core';
+
+/**
+ * Helper to convert GitStatusWithFiles to GitFileStatus[] format for tree components
+ */
+function convertGitStatusToFileStatus(gitStatus: GitStatusWithFiles | null): GitFileStatus[] {
+  if (!gitStatus) return [];
+
+  const fileStatuses: GitFileStatus[] = [];
+
+  // Modified files
+  gitStatus.modifiedFiles.forEach(filePath => {
+    fileStatuses.push({
+      filePath,
+      indexStatus: ' ',
+      workingTreeStatus: 'M',
+      status: 'M' as GitStatus,
+    });
+  });
+
+  // Staged files
+  gitStatus.stagedFiles.forEach(filePath => {
+    fileStatuses.push({
+      filePath,
+      indexStatus: 'A',
+      workingTreeStatus: ' ',
+      status: 'A' as GitStatus,
+    });
+  });
+
+  // Untracked files
+  gitStatus.untrackedFiles.forEach(filePath => {
+    fileStatuses.push({
+      filePath,
+      indexStatus: '?',
+      workingTreeStatus: '?',
+      status: '??' as GitStatus,
+    });
+  });
+
+  // Deleted files
+  gitStatus.deletedFiles.forEach(filePath => {
+    fileStatuses.push({
+      filePath,
+      indexStatus: ' ',
+      workingTreeStatus: 'D',
+      status: 'D' as GitStatus,
+    });
+  });
+
+  return fileStatuses;
+}
 
 /**
  * StoryboardListPanel - A panel for displaying storyboards from the discovery system
@@ -51,6 +104,13 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
   // Get fileTree to access FileInfo metadata
   const fileTreeSlice = context.getSlice('fileTree');
   const fileTreeData = fileTreeSlice?.data as FileTree | null;
+
+  // Get git status data for showing file change badges
+  const gitSlice = context.getSlice('git');
+  const gitStatusData = useMemo(() => {
+    const gitStatus = gitSlice?.data as GitStatusWithFiles | null;
+    return convertGitStatusToFileStatus(gitStatus);
+  }, [gitSlice]);
 
   // Helper to find FileInfo for a canvas path
   const getCanvasFileInfo = useCallback((canvasPath: string): FileInfo | undefined => {
@@ -554,6 +614,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
             horizontalNodePadding="clamp(16px, 4vw, 24px)"
             verticalPadding="10px"
             workflowCoverageMap={workflowCoverageMap}
+            gitStatusData={gitStatusData}
           />
         ) : (
           <CanvasListTreeCore
@@ -564,6 +625,7 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
             defaultOpen={filteredCanvases.length <= 2}
             horizontalNodePadding="clamp(16px, 4vw, 24px)"
             verticalPadding="10px"
+            gitStatusData={gitStatusData}
           />
         )}
       </div>
