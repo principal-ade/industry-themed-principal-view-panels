@@ -14,6 +14,21 @@ import {
 } from '@principal-ai/principal-view-core';
 
 /**
+ * Represents a single workflow match for a trace
+ */
+export interface WorkflowMatch {
+  storyboardId: string;
+  storyboardName: string;
+  workflowId: string;
+  workflowName: string;
+  scenarioId: string;
+  scenarioName: string;
+  matchedEventCount: number;
+  matchedEventNames?: string[];
+  matchedNodeIds?: string[];
+}
+
+/**
  * Panel-specific TraceInfo type
  *
  * This is different from core's TraceInfo - it includes the full spans array
@@ -33,15 +48,11 @@ export interface TraceInfo {
   spanCount: number;
   hasErrors: boolean;
   resource: OtelResourceData;
-  matchedWorkflow?: {
-    storyboardId: string;
-    storyboardName: string;
-    workflowId?: string;
-    workflowName?: string;
-    scenarioId?: string;
-    scenarioName?: string;
-    matchedNodeIds?: string[];
-  };
+
+  // Multi-workflow matching (computed by matching against all workflows)
+  matchedWorkflows?: WorkflowMatch[];
+  unmatchedEventNames?: string[];
+  totalEventCount?: number;
 }
 
 /**
@@ -88,6 +99,7 @@ export function groupSpansByTrace(
     );
 
     // Extract workflow matching information from resource attributes
+    // Convert legacy single-workflow attributes to matchedWorkflows array format
     const storyboardId = getAttributeValue(resource.attributes, 'pv.storyboard.id') as string | undefined;
     const storyboardName = getAttributeValue(resource.attributes, 'pv.storyboard.name') as string | undefined;
     const workflowId = getAttributeValue(resource.attributes, 'pv.workflow.id') as string | undefined;
@@ -95,14 +107,15 @@ export function groupSpansByTrace(
     const scenarioId = getAttributeValue(resource.attributes, 'pv.scenario.id') as string | undefined;
     const scenarioName = getAttributeValue(resource.attributes, 'pv.scenario.name') as string | undefined;
 
-    const matchedWorkflow = storyboardId && storyboardName ? {
+    const matchedWorkflows = storyboardId && storyboardName && workflowId && workflowName && scenarioId && scenarioName ? [{
       storyboardId,
       storyboardName,
       workflowId,
       workflowName,
       scenarioId,
       scenarioName,
-    } : undefined;
+      matchedEventCount: 0, // Unknown from resource attributes
+    }] : undefined;
 
     // Extract version information from resource attributes
     const serviceVersion = getAttributeValue(resource.attributes, 'service.version') as string | undefined;
@@ -123,7 +136,7 @@ export function groupSpansByTrace(
       spanCount: spans.length,
       hasErrors,
       resource,
-      matchedWorkflow,
+      matchedWorkflows,
     });
   }
 

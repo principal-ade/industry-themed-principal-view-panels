@@ -55,9 +55,11 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
     const workflowSet = new Set<string>();
 
     traces.forEach(trace => {
-      // Extract workflow info from matchedWorkflow
-      if (trace.matchedWorkflow?.workflowId) {
-        workflowSet.add(trace.matchedWorkflow.workflowId);
+      // Extract workflow info from matchedWorkflows
+      if (trace.matchedWorkflows) {
+        trace.matchedWorkflows.forEach(match => {
+          workflowSet.add(match.workflowId);
+        });
       }
     });
 

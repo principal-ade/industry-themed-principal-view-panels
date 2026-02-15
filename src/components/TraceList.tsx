@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle, Search, Trash2, X } from 'lucide-react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { TraceInfo } from '../types/otel';
+import { TraceExpansion } from './TraceExpansion';
 
 export interface TraceListProps {
   traces: TraceInfo[];
@@ -45,7 +46,7 @@ export const TraceList: React.FC<TraceListProps> = ({
   // Calculate workflow matching stats
   const matchingStats = useMemo(() => {
     const withVersion = traces.filter(t => t.serviceVersion || t.commitSha);
-    const matched = traces.filter(t => t.matchedWorkflow);
+    const matched = traces.filter(t => t.matchedWorkflows && t.matchedWorkflows.length > 0);
     const versions = new Set(
       traces
         .filter(t => t.serviceVersion)
@@ -86,7 +87,7 @@ export const TraceList: React.FC<TraceListProps> = ({
       // Create a key based on: root span name, error status, workflow presence
       const rootSpanName = trace.rootSpan?.name || 'Unknown Operation';
       const hasErrors = trace.hasErrors ? 'error' : 'success';
-      const hasWorkflow = trace.matchedWorkflow ? 'matched' : 'unmatched';
+      const hasWorkflow = (trace.matchedWorkflows && trace.matchedWorkflows.length > 0) ? 'matched' : 'unmatched';
       const key = `${rootSpanName}|${hasErrors}|${hasWorkflow}`;
 
       if (!groups.has(key)) {
@@ -336,8 +337,8 @@ export const TraceList: React.FC<TraceListProps> = ({
                 {tracesToShow.map((trace, index) => {
                   const isRepresentative = index === 0;
                   return (
+            <React.Fragment key={trace.traceId}>
             <div
-              key={trace.traceId}
               onClick={() => onTraceClick?.(trace)}
               style={{
                 padding: theme.space[3],
@@ -551,7 +552,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                   minWidth: 0,
                 }}
               >
-                {trace.matchedWorkflow ? (
+                {trace.matchedWorkflows && trace.matchedWorkflows.length > 0 ? (
                   <div
                     style={{
                       display: 'flex',
@@ -570,21 +571,13 @@ export const TraceList: React.FC<TraceListProps> = ({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {trace.matchedWorkflow.storyboardName}
+                      {trace.matchedWorkflows.length} workflow{trace.matchedWorkflows.length !== 1 ? 's' : ''} matched
+                      {trace.totalEventCount && (
+                        <span style={{ color: theme.colors.textMuted }}>
+                          {' '}• {Math.round(((trace.totalEventCount - (trace.unmatchedEventNames?.length || 0)) / trace.totalEventCount) * 100)}% coverage
+                        </span>
+                      )}
                     </span>
-                    {trace.matchedWorkflow.workflowName && (
-                      <span
-                        style={{
-                          fontSize: theme.fontSizes[0],
-                          color: theme.colors.textMuted,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        → {trace.matchedWorkflow.workflowName}
-                      </span>
-                    )}
                   </div>
                 ) : (
                   <span
@@ -632,6 +625,20 @@ export const TraceList: React.FC<TraceListProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Trace Expansion - Show detailed workflow matching when trace is selected */}
+            {selectedTraceId === trace.traceId && (
+              <div
+                style={{
+                  marginTop: theme.space[2],
+                  marginLeft: !isRepresentative && isExpanded ? theme.space[3] : '0',
+                  width: !isRepresentative && isExpanded ? `calc(100% - ${theme.space[3]})` : '100%',
+                }}
+              >
+                <TraceExpansion trace={trace} theme={theme} />
+              </div>
+            )}
+            </React.Fragment>
                   );
                 })}
               </div>

@@ -1,0 +1,324 @@
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
+import { TraceExpansion } from './TraceExpansion';
+import { ThemeProvider, useTheme } from '@principal-ade/industry-theme';
+import { createTraceWithMultiWorkflowData } from '../mocks/otelMocks';
+
+const meta = {
+  title: 'Components/TraceExpansion',
+  component: TraceExpansion,
+  parameters: {
+    layout: 'padded',
+    docs: {
+      description: {
+        component:
+          'Displays detailed workflow matching information for a trace, including matched workflows, unmatched events, and coverage metrics. Shows which workflows and scenarios a trace touches, and identifies unexpected telemetry.',
+      },
+    },
+  },
+  tags: ['autodocs'],
+  decorators: [
+    (Story) => (
+      <ThemeProvider>
+        <div style={{ width: '800px', background: '#0a0a0a', padding: '24px', boxSizing: 'border-box' }}>
+          <Story />
+        </div>
+      </ThemeProvider>
+    ),
+  ],
+} satisfies Meta<typeof TraceExpansion>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+// Wrapper to use theme
+const ExpansionWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return <div style={{ width: '100%' }}>{children}</div>;
+};
+
+/**
+ * Trace with multiple workflow matches and good coverage
+ */
+export const MultipleWorkflows: Story = {
+  render: () => {
+    const { theme } = useTheme();
+
+    const trace = createTraceWithMultiWorkflowData({
+      name: 'ProcessPayment',
+      workflows: [
+        {
+          storyboardId: 'ecommerce',
+          storyboardName: 'E-commerce Platform',
+          workflowId: 'checkout-flow',
+          workflowName: 'Checkout Flow',
+          scenarioId: 'happy-path',
+          scenarioName: 'Standard successful checkout',
+          matchedEventCount: 8,
+        },
+        {
+          storyboardId: 'payment',
+          storyboardName: 'Payment Processing',
+          workflowId: 'payment-gateway',
+          workflowName: 'Payment Gateway',
+          scenarioId: 'credit-card',
+          scenarioName: 'Credit card payment processing',
+          matchedEventCount: 5,
+        },
+        {
+          storyboardId: 'analytics',
+          storyboardName: 'Analytics & Tracking',
+          workflowId: 'conversion-tracking',
+          workflowName: 'Conversion Tracking',
+          scenarioId: 'purchase-complete',
+          scenarioName: 'Purchase completion event',
+          matchedEventCount: 3,
+        },
+      ],
+      unmatchedEventNames: ['cache.hit', 'logging.debug', 'metrics.collected'],
+      totalEventCount: 19,
+    });
+
+    return (
+      <ExpansionWrapper>
+        <TraceExpansion trace={trace} theme={theme} />
+      </ExpansionWrapper>
+    );
+  },
+};
+
+/**
+ * Trace with single workflow match and perfect coverage
+ */
+export const SingleWorkflowPerfectCoverage: Story = {
+  render: () => {
+    const { theme } = useTheme();
+
+    const trace = createTraceWithMultiWorkflowData({
+      name: 'UserLogin',
+      workflows: [
+        {
+          storyboardId: 'auth',
+          storyboardName: 'Authentication System',
+          workflowId: 'login-flow',
+          workflowName: 'User Login',
+          scenarioId: 'email-login',
+          scenarioName: 'Successful login with email and password',
+          matchedEventCount: 6,
+        },
+      ],
+      unmatchedEventNames: [],
+      totalEventCount: 6,
+    });
+
+    return (
+      <ExpansionWrapper>
+        <TraceExpansion trace={trace} theme={theme} />
+      </ExpansionWrapper>
+    );
+  },
+};
+
+/**
+ * Trace with many unmatched events (low coverage)
+ */
+export const LowCoverage: Story = {
+  render: () => {
+    const { theme } = useTheme();
+
+    const trace = createTraceWithMultiWorkflowData({
+      name: 'BackgroundJob',
+      workflows: [
+        {
+          storyboardId: 'jobs',
+          storyboardName: 'Background Jobs',
+          workflowId: 'data-sync',
+          workflowName: 'Data Synchronization',
+          scenarioId: 'incremental-sync',
+          scenarioName: 'Incremental data sync',
+          matchedEventCount: 3,
+        },
+      ],
+      unmatchedEventNames: [
+        'job.started',
+        'connection.pool.acquire',
+        'connection.pool.release',
+        'cache.invalidate',
+        'cache.warm',
+        'metrics.timer.start',
+        'metrics.timer.end',
+        'logging.trace',
+        'logging.debug',
+        'internal.checkpoint',
+        'internal.state.save',
+        'performance.mark',
+      ],
+      totalEventCount: 15,
+    });
+
+    return (
+      <ExpansionWrapper>
+        <TraceExpansion trace={trace} theme={theme} />
+      </ExpansionWrapper>
+    );
+  },
+};
+
+/**
+ * Trace with no workflow matches (0% coverage)
+ */
+export const NoMatches: Story = {
+  render: () => {
+    const { theme } = useTheme();
+
+    const trace = createTraceWithMultiWorkflowData({
+      name: 'HealthCheck',
+      workflows: [],
+      unmatchedEventNames: [
+        'healthcheck.started',
+        'database.ping',
+        'redis.ping',
+        'service.status',
+        'healthcheck.complete',
+      ],
+      totalEventCount: 5,
+    });
+
+    return (
+      <ExpansionWrapper>
+        <TraceExpansion trace={trace} theme={theme} />
+      </ExpansionWrapper>
+    );
+  },
+};
+
+/**
+ * Trace with error and partial workflow match
+ */
+export const ErrorTracePartialMatch: Story = {
+  render: () => {
+    const { theme } = useTheme();
+
+    const trace = createTraceWithMultiWorkflowData({
+      name: 'CheckoutWithError',
+      workflows: [
+        {
+          storyboardId: 'ecommerce',
+          storyboardName: 'E-commerce Platform',
+          workflowId: 'checkout-flow',
+          workflowName: 'Checkout Flow',
+          scenarioId: 'payment-declined',
+          scenarioName: 'Payment declined by gateway',
+          matchedEventCount: 7,
+        },
+      ],
+      unmatchedEventNames: [
+        'error.handler.triggered',
+        'rollback.transaction',
+        'notification.send.failed',
+      ],
+      totalEventCount: 10,
+      hasError: true,
+    });
+
+    return (
+      <ExpansionWrapper>
+        <TraceExpansion trace={trace} theme={theme} />
+      </ExpansionWrapper>
+    );
+  },
+};
+
+/**
+ * Trace without workflow matching data (not yet enriched)
+ */
+export const NotEnriched: Story = {
+  render: () => {
+    const { theme } = useTheme();
+
+    const trace = createTraceWithMultiWorkflowData({
+      name: 'UnenrichedTrace',
+      workflows: undefined as any,
+      unmatchedEventNames: undefined as any,
+      totalEventCount: undefined as any,
+    });
+
+    // Remove the workflow matching fields to simulate an unenriched trace
+    delete (trace as any).matchedWorkflows;
+    delete (trace as any).unmatchedEventNames;
+    delete (trace as any).totalEventCount;
+
+    return (
+      <ExpansionWrapper>
+        <TraceExpansion trace={trace} theme={theme} />
+      </ExpansionWrapper>
+    );
+  },
+};
+
+/**
+ * Complex scenario with many workflows across different storyboards
+ */
+export const ComplexMultiStoryboard: Story = {
+  render: () => {
+    const { theme } = useTheme();
+
+    const trace = createTraceWithMultiWorkflowData({
+      name: 'ComplexOrderProcessing',
+      workflows: [
+        {
+          storyboardId: 'orders',
+          storyboardName: 'Order Management',
+          workflowId: 'order-creation',
+          workflowName: 'Order Creation',
+          scenarioId: 'new-order',
+          scenarioName: 'New order received',
+          matchedEventCount: 5,
+        },
+        {
+          storyboardId: 'inventory',
+          storyboardName: 'Inventory System',
+          workflowId: 'stock-check',
+          workflowName: 'Stock Availability',
+          scenarioId: 'items-available',
+          scenarioName: 'All items in stock',
+          matchedEventCount: 3,
+        },
+        {
+          storyboardId: 'inventory',
+          storyboardName: 'Inventory System',
+          workflowId: 'reservation',
+          workflowName: 'Inventory Reservation',
+          scenarioId: 'reserve-success',
+          scenarioName: 'Items successfully reserved',
+          matchedEventCount: 4,
+        },
+        {
+          storyboardId: 'payment',
+          storyboardName: 'Payment Processing',
+          workflowId: 'authorization',
+          workflowName: 'Payment Authorization',
+          scenarioId: 'auth-success',
+          scenarioName: 'Payment authorized',
+          matchedEventCount: 6,
+        },
+        {
+          storyboardId: 'fulfillment',
+          storyboardName: 'Order Fulfillment',
+          workflowId: 'shipping',
+          workflowName: 'Shipping Request',
+          scenarioId: 'label-generated',
+          scenarioName: 'Shipping label generated',
+          matchedEventCount: 2,
+        },
+      ],
+      unmatchedEventNames: ['audit.log', 'metrics.timer'],
+      totalEventCount: 22,
+    });
+
+    return (
+      <ExpansionWrapper>
+        <TraceExpansion trace={trace} theme={theme} />
+      </ExpansionWrapper>
+    );
+  },
+};

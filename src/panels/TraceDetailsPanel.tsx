@@ -80,7 +80,8 @@ export const TraceDetailsPanel: React.FC<TraceDetailsPanelProps> = ({
             >
               {selectedTrace.serviceName && `${selectedTrace.serviceName} • `}
               {selectedTrace.spanCount} {selectedTrace.spanCount === 1 ? 'span' : 'spans'}
-              {selectedTrace.matchedWorkflow && ` • ${selectedTrace.matchedWorkflow.storyboardName}`}
+              {selectedTrace.matchedWorkflows && selectedTrace.matchedWorkflows.length > 0 &&
+                ` • ${selectedTrace.matchedWorkflows.length} workflow${selectedTrace.matchedWorkflows.length !== 1 ? 's' : ''}`}
             </div>
           </div>
 

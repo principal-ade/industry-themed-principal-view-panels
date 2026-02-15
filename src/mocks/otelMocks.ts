@@ -4,6 +4,7 @@ import type {
   OtelSpanData,
   OtelKeyValue,
 } from '@principal-ai/principal-view-core';
+import type { TraceInfo } from '../types/otel';
 
 // Type aliases for mock code
 type OtelResourceSpans = { resourceSpans: OtelResourceSpansData[] };
@@ -429,5 +430,92 @@ export function generateRandomTraces(count: number): OtelResourceSpans {
 
   return {
     resourceSpans: Array.from(resourceSpansMap.values()),
+  };
+}
+
+/**
+ * Create a trace with multi-workflow matching data
+ *
+ * This creates a trace pre-populated with matchedWorkflows, unmatchedEventNames, and totalEventCount
+ * for testing the TraceExpansion component
+ */
+export function createTraceWithMultiWorkflowData(params: {
+  name: string;
+  workflows?: Array<{
+    storyboardId: string;
+    storyboardName: string;
+    workflowId: string;
+    workflowName: string;
+    scenarioId: string;
+    scenarioName: string;
+    matchedEventCount: number;
+  }>;
+  unmatchedEventNames?: string[];
+  totalEventCount?: number;
+  hasError?: boolean;
+}): TraceInfo {
+  const {
+    name,
+    workflows = [],
+    unmatchedEventNames = [],
+    totalEventCount = 0,
+    hasError = false,
+  } = params;
+
+  const traceId = generateTraceId();
+  const now = Date.now();
+
+  const span = createMockSpan({
+    name,
+    traceId,
+    durationMs: 234,
+    hasError,
+    attributes: {
+      'http.method': 'POST',
+      'http.route': '/api/test',
+    },
+  });
+
+  // Add some events to the span for realism
+  span.events = [
+    {
+      name: 'request.started',
+      timeUnixNano: getCurrentNanoTime(),
+      attributes: [],
+    },
+    {
+      name: 'validation.complete',
+      timeUnixNano: getCurrentNanoTime(),
+      attributes: [],
+    },
+    {
+      name: 'processing.complete',
+      timeUnixNano: getCurrentNanoTime(),
+      attributes: [],
+    },
+  ];
+
+  const resource = createMockResource('test-service', {
+    'service.version': '1.0.0',
+    'deployment.environment': 'test',
+  });
+
+  return {
+    traceId,
+    spans: [span],
+    rootSpan: span,
+    serviceName: 'test-service',
+    serviceVersion: '1.0.0',
+    repositoryUrl: 'https://github.com/test/repo',
+    commitSha: 'abc1234',
+    startTime: now,
+    endTime: now + 234,
+    duration: 234,
+    spanCount: 1,
+    hasErrors: hasError,
+    resource,
+    matchedWorkflows: workflows,
+    unmatchedEventNames,
+    totalEventCount,
   };
 }

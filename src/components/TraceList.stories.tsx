@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { TraceList } from './TraceList';
 import { ThemeProvider, useTheme } from '@principal-ade/industry-theme';
 import { groupSpansByTrace } from '../types/otel';
@@ -9,6 +9,7 @@ import {
   generateCheckoutTrace,
   generateAuthErrorTrace,
   generateComplexTrace,
+  createTraceWithMultiWorkflowData,
 } from '../mocks/otelMocks';
 
 const meta = {
@@ -259,4 +260,211 @@ const LiveUpdatingComponent = () => {
 
 export const LiveUpdating: Story = {
   render: () => <LiveUpdatingComponent />,
+};
+
+/**
+ * Multi-workflow trace expansion
+ *
+ * Shows traces with multiple workflow matches. Click on a trace to see the expansion
+ * with matched workflows, unmatched events, and coverage metrics.
+ */
+export const MultiWorkflowExpansion: Story = {
+  render: () => {
+    const { theme } = useTheme();
+    const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>();
+
+    // Create traces with multi-workflow data (memoized to prevent regeneration)
+    const traces = useMemo<TraceInfo[]>(() => [
+      createTraceWithMultiWorkflowData({
+        name: 'ProcessPayment',
+        workflows: [
+          {
+            storyboardId: 'ecommerce',
+            storyboardName: 'E-commerce Platform',
+            workflowId: 'checkout-flow',
+            workflowName: 'Checkout Flow',
+            scenarioId: 'happy-path',
+            scenarioName: 'Standard successful checkout',
+            matchedEventCount: 8,
+          },
+          {
+            storyboardId: 'payment',
+            storyboardName: 'Payment Processing',
+            workflowId: 'payment-gateway',
+            workflowName: 'Payment Gateway',
+            scenarioId: 'credit-card',
+            scenarioName: 'Credit card payment',
+            matchedEventCount: 5,
+          },
+        ],
+        unmatchedEventNames: ['cache.hit', 'logging.debug'],
+        totalEventCount: 15,
+      }),
+      createTraceWithMultiWorkflowData({
+        name: 'UserLogin',
+        workflows: [
+          {
+            storyboardId: 'auth',
+            storyboardName: 'Authentication',
+            workflowId: 'login-flow',
+            workflowName: 'User Login',
+            scenarioId: 'email-login',
+            scenarioName: 'Email and password login',
+            matchedEventCount: 6,
+          },
+        ],
+        unmatchedEventNames: [],
+        totalEventCount: 6,
+      }),
+      createTraceWithMultiWorkflowData({
+        name: 'BackgroundJob',
+        workflows: [
+          {
+            storyboardId: 'jobs',
+            storyboardName: 'Background Jobs',
+            workflowId: 'data-sync',
+            workflowName: 'Data Sync',
+            scenarioId: 'incremental',
+            scenarioName: 'Incremental sync',
+            matchedEventCount: 3,
+          },
+        ],
+        unmatchedEventNames: [
+          'job.started',
+          'cache.invalidate',
+          'metrics.timer',
+          'logging.trace',
+          'internal.checkpoint',
+        ],
+        totalEventCount: 8,
+      }),
+    ], []);
+
+    const handleTraceClick = (trace: TraceInfo) => {
+      setSelectedTraceId(trace.traceId);
+      console.log('Trace clicked:', trace);
+    };
+
+    return (
+      <div style={{ height: '100%', width: '100%', minWidth: 0 }}>
+        <TraceList
+          traces={traces}
+          theme={theme}
+          onTraceClick={handleTraceClick}
+          selectedTraceId={selectedTraceId}
+        />
+      </div>
+    );
+  },
+};
+
+/**
+ * Perfect coverage trace expansion
+ *
+ * Shows a trace where all events match workflows (100% coverage)
+ */
+export const PerfectCoverageExpansion: Story = {
+  render: () => {
+    const { theme } = useTheme();
+    const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>();
+
+    const traces = useMemo<TraceInfo[]>(() => [
+      createTraceWithMultiWorkflowData({
+        name: 'UserRegistration',
+        workflows: [
+          {
+            storyboardId: 'auth',
+            storyboardName: 'Authentication',
+            workflowId: 'registration',
+            workflowName: 'User Registration',
+            scenarioId: 'new-user',
+            scenarioName: 'New user signup',
+            matchedEventCount: 10,
+          },
+        ],
+        unmatchedEventNames: [],
+        totalEventCount: 10,
+      }),
+    ], []);
+
+    // Auto-select the trace to show expansion
+    React.useEffect(() => {
+      if (traces.length > 0 && !selectedTraceId) {
+        setSelectedTraceId(traces[0].traceId);
+      }
+    }, [traces, selectedTraceId]);
+
+    return (
+      <div style={{ height: '100%', width: '100%', minWidth: 0 }}>
+        <TraceList
+          traces={traces}
+          theme={theme}
+          onTraceClick={(trace) => setSelectedTraceId(trace.traceId)}
+          selectedTraceId={selectedTraceId}
+        />
+      </div>
+    );
+  },
+};
+
+/**
+ * Low coverage trace expansion
+ *
+ * Shows a trace with many unmatched events (unexpected telemetry)
+ */
+export const LowCoverageExpansion: Story = {
+  render: () => {
+    const { theme } = useTheme();
+    const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>();
+
+    const traces = useMemo<TraceInfo[]>(() => [
+      createTraceWithMultiWorkflowData({
+        name: 'DataMigration',
+        workflows: [
+          {
+            storyboardId: 'admin',
+            storyboardName: 'Admin Tools',
+            workflowId: 'migration',
+            workflowName: 'Data Migration',
+            scenarioId: 'batch-process',
+            scenarioName: 'Batch processing',
+            matchedEventCount: 4,
+          },
+        ],
+        unmatchedEventNames: [
+          'migration.checkpoint.1',
+          'migration.checkpoint.2',
+          'migration.checkpoint.3',
+          'db.transaction.begin',
+          'db.transaction.commit',
+          'cache.clear',
+          'index.rebuild.start',
+          'index.rebuild.complete',
+          'validation.error.skip',
+          'metrics.batch.processed',
+          'metrics.batch.failed',
+          'logging.performance',
+        ],
+        totalEventCount: 16,
+      }),
+    ], []);
+
+    // Auto-select the trace
+    React.useEffect(() => {
+      if (traces.length > 0 && !selectedTraceId) {
+        setSelectedTraceId(traces[0].traceId);
+      }
+    }, [traces, selectedTraceId]);
+
+    return (
+      <div style={{ height: '100%', width: '100%', minWidth: 0 }}>
+        <TraceList
+          traces={traces}
+          theme={theme}
+          onTraceClick={(trace) => setSelectedTraceId(trace.traceId)}
+          selectedTraceId={selectedTraceId}
+        />
+      </div>
+    );
+  },
 };
