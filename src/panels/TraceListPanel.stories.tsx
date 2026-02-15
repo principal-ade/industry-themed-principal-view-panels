@@ -16,7 +16,7 @@ const createTrace = (
   offset: number,
   duration: number,
   hasError: boolean = false,
-  matchedWorkflow?: TraceInfo['matchedWorkflow']
+  matchedWorkflows?: TraceInfo['matchedWorkflows']
 ): TraceInfo => {
   const startTime = now - offset;
   const endTime = startTime + duration;
@@ -88,17 +88,17 @@ const createTrace = (
     resource: {
       attributes: [
         { key: 'service.name', value: { stringValue: serviceName } },
-        ...(matchedWorkflow ? [
-          { key: 'pv.storyboard.id', value: { stringValue: matchedWorkflow.storyboardId } },
-          { key: 'pv.storyboard.name', value: { stringValue: matchedWorkflow.storyboardName } },
-          ...(matchedWorkflow.workflowId ? [{ key: 'pv.workflow.id', value: { stringValue: matchedWorkflow.workflowId } }] : []),
-          ...(matchedWorkflow.workflowName ? [{ key: 'pv.workflow.name', value: { stringValue: matchedWorkflow.workflowName } }] : []),
-          ...(matchedWorkflow.scenarioId ? [{ key: 'pv.scenario.id', value: { stringValue: matchedWorkflow.scenarioId } }] : []),
-          ...(matchedWorkflow.scenarioName ? [{ key: 'pv.scenario.name', value: { stringValue: matchedWorkflow.scenarioName } }] : []),
+        ...(matchedWorkflows && matchedWorkflows.length > 0 ? [
+          { key: 'pv.storyboard.id', value: { stringValue: matchedWorkflows[0].storyboardId } },
+          { key: 'pv.storyboard.name', value: { stringValue: matchedWorkflows[0].storyboardName } },
+          ...(matchedWorkflows[0].workflowId ? [{ key: 'pv.workflow.id', value: { stringValue: matchedWorkflows[0].workflowId } }] : []),
+          ...(matchedWorkflows[0].workflowName ? [{ key: 'pv.workflow.name', value: { stringValue: matchedWorkflows[0].workflowName } }] : []),
+          ...(matchedWorkflows[0].scenarioId ? [{ key: 'pv.scenario.id', value: { stringValue: matchedWorkflows[0].scenarioId } }] : []),
+          ...(matchedWorkflows[0].scenarioName ? [{ key: 'pv.scenario.name', value: { stringValue: matchedWorkflows[0].scenarioName } }] : []),
         ] : []),
       ],
     },
-    matchedWorkflow,
+    matchedWorkflows,
   };
 };
 
@@ -118,32 +118,65 @@ const mockTraces: TraceInfo[] = [
   createTrace('trace-8', 'POST /api/orders', 'order-service', 8000, 200, false),
 
   // User Login Flow with workflow matching
-  createTrace('trace-9', 'User Login Flow', 'auth-service', 9000, 800, false, {
+  createTrace('trace-9', 'User Login Flow', 'auth-service', 9000, 800, false, [{
     storyboardId: 'storyboard-1',
     storyboardName: 'E-Commerce User Journey',
     workflowId: 'workflow-1',
     workflowName: 'Authentication Workflow',
     scenarioId: 'scenario-1',
     scenarioName: 'Happy Path Login',
-  }),
-  createTrace('trace-10', 'User Login Flow', 'auth-service', 10000, 750, false, {
+    matchedEventCount: 5,
+  }]),
+  createTrace('trace-10', 'User Login Flow', 'auth-service', 10000, 750, false, [{
     storyboardId: 'storyboard-1',
     storyboardName: 'E-Commerce User Journey',
     workflowId: 'workflow-1',
     workflowName: 'Authentication Workflow',
     scenarioId: 'scenario-1',
     scenarioName: 'Happy Path Login',
-  }),
+    matchedEventCount: 5,
+  }]),
 
   // User Login Flow without workflow matching (separate group)
   createTrace('trace-11', 'User Login Flow', 'auth-service', 11000, 820, false),
+
+  // Multi-workflow match - trace that matches multiple workflows
+  createTrace('trace-12', 'Complete User Journey', 'platform-service', 12000, 1500, false, [
+    {
+      storyboardId: 'storyboard-1',
+      storyboardName: 'E-Commerce User Journey',
+      workflowId: 'workflow-1',
+      workflowName: 'Authentication Workflow',
+      scenarioId: 'scenario-1',
+      scenarioName: 'Happy Path Login',
+      matchedEventCount: 3,
+    },
+    {
+      storyboardId: 'storyboard-1',
+      storyboardName: 'E-Commerce User Journey',
+      workflowId: 'workflow-2',
+      workflowName: 'Shopping Cart Workflow',
+      scenarioId: 'scenario-2',
+      scenarioName: 'Add Items to Cart',
+      matchedEventCount: 5,
+    },
+    {
+      storyboardId: 'storyboard-1',
+      storyboardName: 'E-Commerce User Journey',
+      workflowId: 'workflow-3',
+      workflowName: 'Checkout Workflow',
+      scenarioId: 'scenario-3',
+      scenarioName: 'Complete Purchase',
+      matchedEventCount: 7,
+    },
+  ]),
 ];
 
 // Keep only error traces for the WithErrors story
 const mockTracesWithErrors = mockTraces.filter(t => t.hasErrors);
 
 // Keep only workflow-matched traces for the WithWorkflowMatching story
-const mockTracesWithWorkflow = mockTraces.filter(t => t.matchedWorkflow);
+const mockTracesWithWorkflow = mockTraces.filter(t => t.matchedWorkflows && t.matchedWorkflows.length > 0);
 
 const oldMockTraces: TraceInfo[] = [
   {
@@ -295,14 +328,15 @@ const oldMockTraces: TraceInfo[] = [
         { key: 'pv.scenario.name', value: { stringValue: 'Happy Path Login' } },
       ],
     },
-    matchedWorkflow: {
+    matchedWorkflows: [{
       storyboardId: 'storyboard-1',
       storyboardName: 'E-Commerce User Journey',
       workflowId: 'workflow-1',
       workflowName: 'Authentication Workflow',
       scenarioId: 'scenario-1',
       scenarioName: 'Happy Path Login',
-    },
+      matchedEventCount: 5,
+    }],
   },
 ];
 
@@ -389,6 +423,109 @@ export const Default: Story = {
 export const WithErrors: Story = {
   render: () => {
     const [traces, setTraces] = React.useState(mockTracesWithErrors);
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          getSlice: (name: string) => {
+            if (name === 'telemetry') {
+              return {
+                scope: 'repository' as const,
+                name: 'telemetry',
+                data: traces,
+                loading: false,
+                error: null,
+                refresh: async () => {
+                  console.log('[Mock] Refreshing telemetry slice');
+                },
+              };
+            }
+            return undefined;
+          },
+        }}
+        actionsOverrides={{
+          clearTelemetry: () => {
+            console.log('[Mock] Clearing telemetry data');
+            setTraces([]);
+          },
+        }}
+      >
+        {(props) => <TraceListPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
+ * With multi-workflow matching - shows a trace that matches multiple workflows
+ */
+export const WithMultiWorkflowMatching: Story = {
+  render: () => {
+    const multiWorkflowTraces: TraceInfo[] = [
+      // Single workflow match for comparison
+      createTrace('trace-single', 'Login Only', 'auth-service', 1000, 500, false, [{
+        storyboardId: 'storyboard-1',
+        storyboardName: 'E-Commerce User Journey',
+        workflowId: 'workflow-1',
+        workflowName: 'Authentication Workflow',
+        scenarioId: 'scenario-1',
+        scenarioName: 'Happy Path Login',
+        matchedEventCount: 5,
+      }]),
+      // Multi-workflow match - full user journey
+      createTrace('trace-multi', 'Complete User Journey', 'platform-service', 2000, 1500, false, [
+        {
+          storyboardId: 'storyboard-1',
+          storyboardName: 'E-Commerce User Journey',
+          workflowId: 'workflow-1',
+          workflowName: 'Authentication Workflow',
+          scenarioId: 'scenario-1',
+          scenarioName: 'Happy Path Login',
+          matchedEventCount: 3,
+        },
+        {
+          storyboardId: 'storyboard-1',
+          storyboardName: 'E-Commerce User Journey',
+          workflowId: 'workflow-2',
+          workflowName: 'Shopping Cart Workflow',
+          scenarioId: 'scenario-2',
+          scenarioName: 'Add Items to Cart',
+          matchedEventCount: 5,
+        },
+        {
+          storyboardId: 'storyboard-1',
+          storyboardName: 'E-Commerce User Journey',
+          workflowId: 'workflow-3',
+          workflowName: 'Checkout Workflow',
+          scenarioId: 'scenario-3',
+          scenarioName: 'Complete Purchase',
+          matchedEventCount: 7,
+        },
+      ]),
+      // Another multi-workflow match with different workflows
+      createTrace('trace-multi-2', 'Admin Operations', 'admin-service', 3000, 1200, false, [
+        {
+          storyboardId: 'storyboard-2',
+          storyboardName: 'Admin Dashboard',
+          workflowId: 'workflow-4',
+          workflowName: 'User Management',
+          scenarioId: 'scenario-4',
+          scenarioName: 'Create User',
+          matchedEventCount: 4,
+        },
+        {
+          storyboardId: 'storyboard-2',
+          storyboardName: 'Admin Dashboard',
+          workflowId: 'workflow-5',
+          workflowName: 'Permissions Management',
+          scenarioId: 'scenario-5',
+          scenarioName: 'Assign Roles',
+          matchedEventCount: 3,
+        },
+      ]),
+    ];
+
+    const [traces, setTraces] = React.useState(multiWorkflowTraces);
 
     return (
       <MockPanelProvider
@@ -634,46 +771,24 @@ const mockSchematics: VersionSnapshot[] = [
  * Mock traces with workflow matching for schematics demo
  */
 const mockTracesForSchematics: TraceInfo[] = [
-  {
-    traceId: 'trace-1',
-    spanId: 'span-1',
-    startTimeUnixNano: '1640000000000000000',
-    endTimeUnixNano: '1640000001000000000',
-    name: 'User Login',
-    kind: 'SPAN_KIND_SERVER',
-    attributes: [],
-    resource: {
-      attributes: [
-        { key: 'repository.url', value: { stringValue: 'https://github.com/example-org/ecommerce-platform' } },
-        { key: 'repository.commit', value: { stringValue: 'a1b2c3d4e5f6789012345678901234567890abcd' } },
-      ],
-    },
-    matchedWorkflow: {
-      workflowId: 'authentication-workflow',
-      workflowName: 'Authentication Workflow',
-      scenarioId: 'happy-path-login',
-    },
-  },
-  {
-    traceId: 'trace-2',
-    spanId: 'span-2',
-    startTimeUnixNano: '1640000002000000000',
-    endTimeUnixNano: '1640000003000000000',
-    name: 'Process Checkout',
-    kind: 'SPAN_KIND_SERVER',
-    attributes: [],
-    resource: {
-      attributes: [
-        { key: 'repository.url', value: { stringValue: 'https://github.com/example-org/ecommerce-platform' } },
-        { key: 'repository.commit', value: { stringValue: 'a1b2c3d4e5f6789012345678901234567890abcd' } },
-      ],
-    },
-    matchedWorkflow: {
-      workflowId: 'checkout-workflow',
-      workflowName: 'Checkout Workflow',
-      scenarioId: 'standard-checkout',
-    },
-  },
+  createTrace('trace-schematic-1', 'User Login', 'auth-service', 1000, 500, false, [{
+    storyboardId: 'ecommerce-journey',
+    storyboardName: 'E-Commerce User Journey',
+    workflowId: 'authentication-workflow',
+    workflowName: 'Authentication Workflow',
+    scenarioId: 'happy-path-login',
+    scenarioName: 'Happy Path Login',
+    matchedEventCount: 5,
+  }]),
+  createTrace('trace-schematic-2', 'Process Checkout', 'order-service', 2000, 600, false, [{
+    storyboardId: 'ecommerce-journey',
+    storyboardName: 'E-Commerce User Journey',
+    workflowId: 'checkout-workflow',
+    workflowName: 'Checkout Workflow',
+    scenarioId: 'standard-checkout',
+    scenarioName: 'Standard Checkout',
+    matchedEventCount: 8,
+  }]),
 ];
 
 export const WithSchematics: Story = {
@@ -726,26 +841,15 @@ export const SchematicsMultipleVersions: Story = {
   render: () => {
     // Mock traces only for the first version's authentication workflow
     const tracesForFirstVersion: TraceInfo[] = [
-      {
-        traceId: 'trace-auth-1',
-        spanId: 'span-auth-1',
-        startTimeUnixNano: '1640000000000000000',
-        endTimeUnixNano: '1640000001000000000',
-        name: 'User Login',
-        kind: 'SPAN_KIND_SERVER',
-        attributes: [],
-        resource: {
-          attributes: [
-            { key: 'repository.url', value: { stringValue: 'https://github.com/example-org/ecommerce-platform' } },
-            { key: 'repository.commit', value: { stringValue: 'a1b2c3d4e5f6789012345678901234567890abcd' } },
-          ],
-        },
-        matchedWorkflow: {
-          workflowId: 'authentication-workflow',
-          workflowName: 'Authentication Workflow',
-          scenarioId: 'happy-path-login',
-        },
-      },
+      createTrace('trace-auth-1', 'User Login', 'auth-service', 1000, 500, false, [{
+        storyboardId: 'ecommerce-journey',
+        storyboardName: 'E-Commerce User Journey',
+        workflowId: 'authentication-workflow',
+        workflowName: 'Authentication Workflow',
+        scenarioId: 'happy-path-login',
+        scenarioName: 'Happy Path Login',
+        matchedEventCount: 5,
+      }]),
     ];
 
     return (

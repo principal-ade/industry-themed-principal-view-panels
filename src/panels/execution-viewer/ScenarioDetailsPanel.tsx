@@ -3,6 +3,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { HelpCircle, X } from 'lucide-react';
 import yaml from 'js-yaml';
 import type { WorkflowTemplate, OtelAttributes, WorkflowScenario, ExtendedCanvas } from '@principal-ai/principal-view-core';
+import { renderWorkflow } from '@principal-ai/principal-view-core';
 import { WorkflowRenderer } from './WorkflowRenderer';
 import { convertToOtelEvents } from './workflow-converter';
 import { SourceFileList } from './SourceFileList';
@@ -212,6 +213,13 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
     if (!currentSpan || (viewMode !== 'narrative' && viewMode !== 'summary')) return [];
     return convertToOtelEvents(currentSpan, logs);
   }, [currentSpan, logs, viewMode]);
+
+  // Get scenario ID by running workflow matching
+  const scenarioId = useMemo(() => {
+    if (!workflowTemplate || otelEvents.length === 0) return 'unknown';
+    const result = renderWorkflow(workflowTemplate, otelEvents);
+    return result.scenarioId;
+  }, [workflowTemplate, otelEvents]);
 
   const handlePrevTest = () => {
     if (currentSpanIndex > 0 && onSpanIndexChange) {
@@ -527,6 +535,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
           <WorkflowRenderer
             template={workflowTemplate}
             events={otelEvents}
+            scenarioId={scenarioId}
             showMetadata={showWorkflowMetadata}
             onEventClick={onNarrativeEventClick}
             activeEventIndex={currentEventIndex}

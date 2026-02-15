@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { renderWorkflow, parseTemplate, selectScenario, computeAggregates, getRequiredEvents, ParsedTemplate } from '@principal-ai/principal-view-core';
-import type { WorkflowTemplate, OtelEvent, WorkflowScenario, ExtendedCanvas, TemplateSegment } from '@principal-ai/principal-view-core';
+import { renderWorkflow, parseTemplate, computeAggregates, getRequiredEvents, ParsedTemplate } from '@principal-ai/principal-view-core';
+import type { WorkflowTemplate, OtelEvent, ExtendedCanvas, TemplateSegment, TemplateContext } from '@principal-ai/principal-view-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import yaml from 'js-yaml';
 import { SourceFileList } from './SourceFileList';
@@ -11,6 +11,9 @@ export interface WorkflowRendererProps {
 
   /** OTEL events to render */
   events: OtelEvent[];
+
+  /** Scenario ID to use for rendering (from server-side matching) - REQUIRED */
+  scenarioId: string;
 
   /** Optional CSS class name */
   className?: string;
@@ -43,6 +46,7 @@ export interface WorkflowRendererProps {
 export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
   template,
   events,
+  scenarioId,
   className,
   style,
   showMetadata = false,
@@ -122,23 +126,31 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
     }
   }, [template, events]) as ReturnType<typeof renderWorkflow> & { hasMissingVars: boolean };
 
-  // Get the matched scenario and aggregates for rendering individual events
+  // Get the scenario (from server-side match) and aggregates for rendering
   const { scenario, aggregates } = useMemo(() => {
     const agg = computeAggregates(events);
-    const matchResult = selectScenario(template, events, agg);
-    return { scenario: matchResult.scenario as WorkflowScenario, aggregates: agg };
-  }, [template, events]);
+
+    // Look up scenario by ID (provided by server-side matching)
+    const matchedScenario = template.scenarios.find(s => s.id === scenarioId);
+
+    if (!matchedScenario) {
+      throw new Error(`Scenario with ID "${scenarioId}" not found in template`);
+    }
+
+    return { scenario: matchedScenario, aggregates: agg };
+  }, [template, events, scenarioId]);
 
   // Render narrative by rendering each event template individually
   const renderWorkflowContent = () => {
     const elements: React.ReactNode[] = [];
 
     // Build full context with aggregates
+    // Casting to TemplateContext - matches pattern used in core library's template-renderer.ts
     const fullContext = {
       ...aggregates,
       events,
       totalEvents: events.length,
-    };
+    } as unknown as TemplateContext;
 
     // Render introduction (only in summary mode)
     if (showOnlySummary && scenario.template.introduction) {
@@ -270,7 +282,7 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
               }
             }
 
-            const renderedText = parseTemplate(eventTemplate, eventContext);
+            const renderedText = parseTemplate(eventTemplate, eventContext as unknown as TemplateContext);
 
             // Make the entire event block clickable
             elements.push(

@@ -11,22 +11,11 @@ import {
   type OtelResourceSpansData,
   type OtelResourceData,
   type OtelSpanData,
+  type WorkflowMatch,
 } from '@principal-ai/principal-view-core';
 
-/**
- * Represents a single workflow match for a trace
- */
-export interface WorkflowMatch {
-  storyboardId: string;
-  storyboardName: string;
-  workflowId: string;
-  workflowName: string;
-  scenarioId: string;
-  scenarioName: string;
-  matchedEventCount: number;
-  matchedEventNames?: string[];
-  matchedNodeIds?: string[];
-}
+// Re-export WorkflowMatch from core
+export type { WorkflowMatch };
 
 /**
  * Panel-specific TraceInfo type

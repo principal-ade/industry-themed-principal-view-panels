@@ -130,7 +130,7 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
 
       // Use LibraryDiscovery to find all library.yaml files
       const discovery = new LibraryDiscovery(fsAdapter);
-      const result = await discovery.discover(fileTree, { repositoryPath });
+      const result = await discovery.discover(fileTree);
 
       console.info('[TraceListPanel] LibraryDiscovery found:', {
         libraries: result.libraries.length,

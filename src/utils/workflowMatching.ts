@@ -80,7 +80,7 @@ export function matchTraceToWorkflows(
   });
 
   const allEventNames = new Set(allEvents.map(e => e.name));
-  const matchedEventNames = new Set<string>();
+  const _matchedEventNames = new Set<string>(); // TODO: Populate when renderWorkflow returns matched event names
   const matches: WorkflowMatch[] = [];
 
   // Try matching against each workflow
