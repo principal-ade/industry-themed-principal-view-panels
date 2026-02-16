@@ -20,9 +20,7 @@ Last updated: 2026-01-25
 - Custom hooks (must start with "use")
 
 **Files affected:**
-- `src/panels/ControlTowerIntegration.stories.tsx` (~20 errors)
-- `src/panels/EventControllerPanel.stories.tsx` (~20 errors)
-- `src/panels/EventRecorderPanel.stories.tsx` (~20 errors)
+- (Previously affected story files have been deleted)
 
 **Example error:**
 ```
@@ -43,10 +41,6 @@ React Hook "useState" is called in function "render" that is neither a React fun
 - `src/panels/CanvasDetailPanel.tsx` (~6 warnings)
 - `src/panels/CanvasEditorPanel.tsx` (1 warning)
 - `src/panels/CanvasListPanel.stories.tsx` (~3 warnings)
-- `src/panels/ControlTowerIntegration.stories.tsx`
-- `src/panels/EventControllerPanel.stories.tsx`
-- `src/panels/EventRecorderPanel.stories.tsx`
-- `src/panels/EventRecordingIntegration.stories.tsx`
 - `src/panels/canvas-list/hooks/useCanvasData.ts` (3 warnings)
 - `src/panels/canvas-list/hooks/useCanvasNarrativeData.ts` (4 warnings)
 

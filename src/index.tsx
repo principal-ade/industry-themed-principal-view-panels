@@ -6,9 +6,6 @@ import type { PanelDefinition, PanelContextValue } from './types';
 import { principalViewPanelTools } from './tools';
 
 // Re-export components for direct usage
-export { EventControllerPanel } from './panels/EventControllerPanel';
-export type { EventControllerPanelProps, PlaybackState, PlaybackStatus } from './panels/EventControllerPanel';
-
 export { CanvasEditorPanel } from './panels/CanvasEditorPanel';
 export type { CanvasEditorPanelProps } from './panels/CanvasEditorPanel';
 export { WorkflowScenariosPanel } from './panels/WorkflowScenariosPanel';

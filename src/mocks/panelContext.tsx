@@ -52,7 +52,6 @@ const createMockSlice = <T,>(
   loading: false,
   error: null,
   refresh: async () => {
-    // eslint-disable-next-line no-console
     console.log(`[Mock] Refreshing slice: ${name}`);
   },
 });
@@ -169,7 +168,6 @@ export const createMockContext = (
       scope?: 'workspace' | 'repository',
       slice?: string
     ): Promise<void> => {
-      // eslint-disable-next-line no-console
       console.log('[Mock] Context refresh called', { scope, slice });
     },
   };
@@ -205,19 +203,15 @@ export const createMockActions = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): PanelActions & Record<string, any> => ({
   openFile: (filePath: string) => {
-    // eslint-disable-next-line no-console
     console.log('[Mock] Opening file:', filePath);
   },
   openGitDiff: (filePath: string, status) => {
-    // eslint-disable-next-line no-console
     console.log('[Mock] Opening git diff:', filePath, status);
   },
   navigateToPanel: (panelId: string) => {
-    // eslint-disable-next-line no-console
     console.log('[Mock] Navigating to panel:', panelId);
   },
   notifyPanels: (event) => {
-    // eslint-disable-next-line no-console
     console.log('[Mock] Notifying panels:', event);
   },
   // Default mock implementations for file operations
@@ -247,7 +241,6 @@ export const createMockEvents = (): PanelEventEmitter => {
 
   return {
     emit: (event) => {
-      // eslint-disable-next-line no-console
       console.log('[Mock] Emitting event:', event);
       const eventHandlers = handlers.get(event.type);
       if (eventHandlers) {
@@ -255,7 +248,6 @@ export const createMockEvents = (): PanelEventEmitter => {
       }
     },
     on: (type, handler) => {
-      // eslint-disable-next-line no-console
       console.log('[Mock] Subscribing to event:', type);
       if (!handlers.has(type)) {
         handlers.set(type, new Set());
@@ -264,7 +256,6 @@ export const createMockEvents = (): PanelEventEmitter => {
 
       // Return cleanup function
       return () => {
-        // eslint-disable-next-line no-console
         console.log('[Mock] Unsubscribing from event:', type);
         handlers
           .get(type)
@@ -272,7 +263,6 @@ export const createMockEvents = (): PanelEventEmitter => {
       };
     },
     off: (type, handler) => {
-      // eslint-disable-next-line no-console
       console.log('[Mock] Removing event handler:', type);
       handlers
         .get(type)

@@ -249,7 +249,6 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
       const canvasId = (node.canvas?.id) || ('storyboard' in node && (node as StoryboardWorkflowNodeData).storyboard?.canvas?.id) || 'unknown';
       setSelectedNodeId(`overview:${canvasId}`);
       if (events) {
-        console.log('[StoryboardListPanel] Opening documentation:', node.markdownPath);
         events.emit({
           type: 'file:open',
           source: 'storyboard-list-panel',

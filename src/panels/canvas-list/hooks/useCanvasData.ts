@@ -58,11 +58,8 @@ export const useCanvasData = ({
   const loadCanvases = useCallback(async () => {
     // Skip if we've already loaded this exact data
     if (fileTreeSha === lastLoadedSha.current) {
-      console.log('[useCanvasData] Skipping reload - data unchanged (SHA:', fileTreeSha, ')');
       return;
     }
-
-    console.log('[useCanvasData] Loading canvases - SHA changed:', fileTreeSha !== lastLoadedSha.current);
 
     setIsLoading(true);
     setError(null);
@@ -75,13 +72,6 @@ export const useCanvasData = ({
       }
 
       // Use new CanvasDiscovery system with FileTree (includes full FileInfo[] with lastModified)
-      console.log('[useCanvasData] Calling discovery with fileTree:', {
-        sha: fileTreeData.sha,
-        totalFiles: fileTreeData.allFiles.length,
-        totalDirs: fileTreeData.allDirectories.length,
-        sampleFiles: fileTreeData.allFiles.slice(0, 5).map(f => f.path),
-      });
-
       const result = await discovery.current.discover(fileTreeData, {
         // Include content to extract markdown paths from pv.markdown field
         includeContent: true,

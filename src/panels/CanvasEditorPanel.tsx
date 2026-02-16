@@ -221,7 +221,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         error: (error as Error).message
       }));
     }
-  }, []);
+  }, [canvasPath]);
 
   // Toggle legend overlay
   const toggleLegend = useCallback(() => {

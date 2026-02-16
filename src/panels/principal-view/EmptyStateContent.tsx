@@ -13,7 +13,7 @@ interface EmptyStateContentProps {
 export const EmptyStateContent: React.FC<EmptyStateContentProps> = ({ theme }) => {
   const [copied, setCopied] = useState(false);
 
-  const cliCommand = 'npx @principal-ai/principal-view-cli init';
+  const cliCommand = 'npx @principal-ai/principal-view-cli@latest init';
   const npmPackageUrl = 'https://www.npmjs.com/package/@principal-ai/principal-view-cli';
 
   const handleCopyCommand = useCallback(() => {

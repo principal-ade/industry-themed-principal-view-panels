@@ -80,20 +80,6 @@
       }
     },
     {
-      "id": "event-controller-panel",
-      "type": "text",
-      "text": "EventControllerPanel",
-      "x": 788,
-      "y": -169,
-      "width": 220,
-      "height": 80,
-      "pv": {
-        "nodeType": "panel",
-        "description": "Event playback controller panel",
-        "icon": "PlayCircle"
-      }
-    },
-    {
       "id": "config-loader",
       "type": "text",
       "text": "ConfigLoader",
@@ -302,28 +288,8 @@
       }
     },
     {
-      "id": "edge-ecp-pvr",
-      "fromNode": "event-controller-panel",
-      "toNode": "principal-view-react",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "pv": {
-        "edgeType": "emits"
-      }
-    },
-    {
       "id": "edge-pvg-theme",
       "fromNode": "principal-view-graph-panel",
-      "toNode": "industry-theme",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "pv": {
-        "edgeType": "consumes"
-      }
-    },
-    {
-      "id": "edge-ecp-theme",
-      "fromNode": "event-controller-panel",
       "toNode": "industry-theme",
       "fromSide": "bottom",
       "toSide": "top",

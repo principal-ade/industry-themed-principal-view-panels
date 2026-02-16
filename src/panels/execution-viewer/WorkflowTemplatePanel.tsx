@@ -5,12 +5,10 @@ import type {
   WorkflowTemplate,
   WorkflowScenario,
   DiscoveredTestTrace,
-  ExtendedCanvas,
 } from '@principal-ai/principal-view-core';
 
 interface WorkflowTemplatePanelProps {
   workflowTemplate: WorkflowTemplate;
-  canvas?: ExtendedCanvas | null;
   availableExecutions?: DiscoveredTestTrace[];
   executionScenarioMap?: Record<string, string>;
   onExecutionSelect?: (executionId: string) => void;
@@ -23,7 +21,6 @@ interface WorkflowTemplatePanelProps {
  */
 export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
   workflowTemplate,
-  canvas,
   availableExecutions = [],
   executionScenarioMap = {},
   onExecutionSelect: _onExecutionSelect,

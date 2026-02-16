@@ -43,7 +43,7 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
 
   // Get traces from telemetry slice
   const telemetrySlice = context.getSlice<TraceInfo[]>('telemetry');
-  const traces = telemetrySlice?.data || [];
+  const traces = React.useMemo(() => telemetrySlice?.data || [], [telemetrySlice?.data]);
 
   // Get schematics from schematics slice (version registry data)
   const schematicsSlice = context.getSlice<VersionSnapshot[]>('schematics');
@@ -132,12 +132,6 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
       const discovery = new LibraryDiscovery(fsAdapter);
       const result = await discovery.discover(fileTree);
 
-      console.info('[TraceListPanel] LibraryDiscovery found:', {
-        libraries: result.libraries.length,
-        services: result.allServiceNames,
-        errors: result.errors,
-      });
-
       // Set discovered services
       setDiscoveredServices(result.allServiceNames);
 
@@ -169,7 +163,6 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
             const [_serviceId, attrs] = serviceEntry;
             setSelectedLibraryPath(libraryForService.path);
             setResources(attrs as Record<string, string>);
-            console.info('[TraceListPanel] Loaded service:', serviceToLoad, 'from', libraryForService.path);
           }
         }
       } else if (result.libraries.length === 0) {
@@ -231,7 +224,6 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
         library = (yaml.load(contentStr) as typeof library) || library;
       } catch {
         // File doesn't exist yet - use defaults
-        console.info('[TraceListPanel] Creating new library.yaml at:', libraryPath);
       }
 
       // Ensure resources object exists
@@ -338,7 +330,6 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
     // Since these are historical snapshots, we don't open files but provide visual feedback
     if (node.type === 'workflow' && node.workflow) {
       setSelectedSchematicNodeId(`workflow:${node.workflow.id}`);
-      console.log('[TraceListPanel] Schematic workflow selected:', node.workflow);
 
       // Emit event to open workflow scenarios panel
       if (events) {
@@ -348,37 +339,21 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
         // Check if workflow has content (live file tree structure) using type guard
         if (hasWorkflowContent(node)) {
           fullWorkflowTemplate = node.workflow.content; // TypeScript now knows workflow has content!
-          console.log('[TraceListPanel] Using workflow.content from live file tree:', {
-            workflowId: node.workflow.id,
-            hasScenarios: !!fullWorkflowTemplate.scenarios,
-            scenarioCount: fullWorkflowTemplate.scenarios?.length
-          });
         }
 
         // Fallback to version snapshot extraction (historical schematic data)
         if (!fullWorkflowTemplate && node.versionSnapshot && node.workflow) {
           // Extract from version snapshot (schematic data)
-          console.log('[TraceListPanel] Extracting workflow template from versionSnapshot:', {
-            workflowId: node.workflow.id,
-            storyboardId: node.storyboard?.id,
-            snapshotStoryboards: node.versionSnapshot.storyboards.length
-          });
-
           const storyboard = node.versionSnapshot.storyboards.find(
             sb => sb.id === node.storyboard?.id
           );
           if (storyboard) {
-            console.log('[TraceListPanel] Found storyboard, workflows:', storyboard.workflows.length);
             const workflowWithContent = storyboard.workflows.find(
               w => w.id === node.workflow!.id
             );
             // Type guard: check if workflow has content property (DiscoveredWorkflowWithContent)
             if (workflowWithContent && 'content' in workflowWithContent) {
               fullWorkflowTemplate = workflowWithContent.content as WorkflowTemplate;
-              console.log('[TraceListPanel] Extracted workflow template:', {
-                hasScenarios: !!fullWorkflowTemplate.scenarios,
-                scenarioCount: fullWorkflowTemplate.scenarios?.length
-              });
             } else {
               console.warn('[TraceListPanel] Workflow found but no content:', workflowWithContent);
             }
@@ -386,11 +361,6 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
             console.warn('[TraceListPanel] Storyboard not found in snapshot');
           }
         }
-
-        console.log('[TraceListPanel] Emitting openWorkflowScenarios with template:', {
-          hasTemplate: !!fullWorkflowTemplate,
-          hasScenarios: !!fullWorkflowTemplate?.scenarios
-        });
 
         // Validate that we have a complete workflow template with scenarios
         if (!fullWorkflowTemplate || !fullWorkflowTemplate.scenarios) {
@@ -431,7 +401,6 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
       }
     } else if (node.type === 'storyboard' && node.storyboard) {
       setSelectedSchematicNodeId(`storyboard:${node.storyboard.id}`);
-      console.log('[TraceListPanel] Schematic storyboard selected:', node.storyboard);
     }
   };
 

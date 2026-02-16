@@ -313,7 +313,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
   // Get live OTEL traces from telemetry slice
   const telemetrySlice = context.getSlice<TraceInfo[]>('telemetry');
-  const allLiveTraces = telemetrySlice?.data || [];
+  const allLiveTraces = useMemo(() => telemetrySlice?.data || [], [telemetrySlice?.data]);
 
   // Filter live traces to only show traces matching the current workflow
   const liveTraces = useMemo(() => {
@@ -371,6 +371,14 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   const canvasFileTimestampRef = useRef<number | null>(null);
   const narrativeFileTimestampRef = useRef<number | null>(null);
 
+  // Store workflowTemplate in ref to avoid stale closures in loadCanvas
+  const workflowTemplateRef = useRef<WorkflowTemplate | null>(state.workflowTemplate);
+
+  // Keep workflowTemplate ref in sync with state
+  useEffect(() => {
+    workflowTemplateRef.current = state.workflowTemplate;
+  }, [state.workflowTemplate]);
+
   const loadCanvas = useCallback(async (canvasId: string, canvasPath: string) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -426,9 +434,9 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       eventNodeMapRef.current = buildEventToNodeMap(canvas);
 
       // Evaluate executions against workflow template to build scenario mapping
-      // Use existing workflow template from state if available
+      // Use existing workflow template from ref to avoid stale closures
       const executionScenarioMap: Record<string, string> = {};
-      const currentWorkflowTemplate = state.workflowTemplate;
+      const currentWorkflowTemplate = workflowTemplateRef.current;
       if (currentWorkflowTemplate && executionFiles.length > 0) {
         for (const execFile of executionFiles) {
           try {
@@ -543,8 +551,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   // Prop-controlled mode: Load canvas when props change
   useEffect(() => {
     if (selectedCanvasIdProp && canvasPathProp) {
-      // eslint-disable-next-line no-console
-      console.log('[CanvasDetailPanel] Loading canvas from props:', selectedCanvasIdProp, canvasPathProp);
       loadCanvas(selectedCanvasIdProp, canvasPathProp);
 
       // Update canvas name if provided
@@ -603,7 +609,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
           // Handle narrative if provided in event
           if (payload.workflowId && payload.workflowTemplate) {
-            console.log('[CanvasDetailPanel] Setting narrative from event:', payload.workflowId);
             setState(prev => ({
               ...prev,
               selectedWorkflowId: payload.workflowId || null,
@@ -656,12 +661,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
         if (canvasFile?.lastModified) {
           const currentTimestamp = canvasFile.lastModified.getTime();
           if (canvasFileTimestampRef.current && currentTimestamp !== canvasFileTimestampRef.current) {
-            console.log('[CanvasDetailPanel] Canvas file modified, reloading...', {
-              path: canvasPathProp,
-              lastLoaded: new Date(canvasFileTimestampRef.current),
-              current: new Date(currentTimestamp),
-            });
-
             // Reload the canvas
             if (selectedCanvasIdProp) {
               loadCanvas(selectedCanvasIdProp, canvasPathProp);
@@ -680,12 +679,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
         if (narrativeFile?.lastModified) {
           const currentTimestamp = narrativeFile.lastModified.getTime();
           if (narrativeFileTimestampRef.current && currentTimestamp !== narrativeFileTimestampRef.current) {
-            console.log('[CanvasDetailPanel] Narrative file modified, reloading...', {
-              path: workflowPathProp,
-              lastLoaded: new Date(narrativeFileTimestampRef.current),
-              current: new Date(currentTimestamp),
-            });
-
             // TODO: Reload workflow template
             narrativeFileTimestampRef.current = currentTimestamp;
           }
@@ -862,8 +855,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
   // Handle source click from scenario details panel (simplified signature)
   const handleScenarioSourceClick = useCallback((source: string) => {
-    console.log('[WorkflowScenariosPanel] Source clicked - opening file:', source);
-
     // Emit file:open event
     if (eventsRef.current) {
       eventsRef.current.emit({
@@ -895,8 +886,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
           const sourcePath = sources[0];
           // Remove glob patterns (* characters) to get the base path
           const cleanPath = sourcePath.replace(/\*/g, '');
-
-          console.log('[CanvasDetailPanel] Shift+click - opening source:', cleanPath);
 
           // Emit file:open event (same as git changes panel)
           // Pass relative path, not absolute - the context will resolve it
@@ -1373,7 +1362,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
             onClick={() => {
               const markdownPath = state.canvas?.pv?.markdown;
               if (markdownPath && eventsRef.current) {
-                console.log('[CanvasDetailPanel] Opening documentation:', markdownPath);
                 eventsRef.current.emit({
                   type: 'file:open',
                   source: 'canvas-detail-panel',
@@ -1592,7 +1580,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                 ) : state.workflowTemplate ? (
                   <WorkflowTemplatePanel
                     workflowTemplate={state.workflowTemplate}
-                    canvas={state.canvas}
                     availableExecutions={state.availableExecutions}
                     executionScenarioMap={state.executionScenarioMap}
                     onExecutionSelect={handleExecutionSelect}
