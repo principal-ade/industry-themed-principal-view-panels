@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { FileCode, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import type {
   WorkflowTemplate,
   WorkflowScenario,
@@ -50,37 +50,6 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
     return eventNames;
   };
 
-  // Extract source paths from canvas nodes for events in this scenario
-  const getScenarioSources = (scenario: WorkflowScenario): string[] => {
-    if (!canvas?.nodes) return [];
-
-    const eventNames = getScenarioEventNames(scenario);
-    const sources = new Set<string>();
-
-    // Look through canvas nodes to find sources for these events
-    canvas.nodes.forEach(node => {
-      // Get event name from node
-      const eventName = node.pv?.event?.name ||
-        ('metadata' in node ? (node.metadata as Record<string, unknown>)?.['pv.event'] : undefined);
-
-      if (eventName && typeof eventName === 'string' && eventNames.includes(eventName)) {
-        // Extract sources from node
-        const nodeSources = node.pv?.sources ||
-          ('metadata' in node ? (node.metadata as Record<string, unknown>)?.['pv.sources'] : undefined);
-
-        if (Array.isArray(nodeSources)) {
-          nodeSources.forEach(src => {
-            if (typeof src === 'string') {
-              sources.add(src);
-            }
-          });
-        }
-      }
-    });
-
-    return Array.from(sources).sort();
-  };
-
   return (
     <div
       style={{
@@ -123,8 +92,6 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
           const matchingExecutions = availableExecutions.filter(
             exec => executionScenarioMap[exec.id] === scenarioId
           );
-          // Get source paths for this scenario
-          const sources = getScenarioSources(scenario);
 
           return (
             <div
@@ -169,19 +136,14 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
                       <CheckCircle2 size={14} style={{ color: '#10b981', flexShrink: 0 }} />
                     )}
                   </div>
-                  {sources.length > 0 && (
+                  {scenario.description && (
                     <div style={{
                       marginTop: '6px',
-                      fontSize: theme.fontSizes[0],
-                      color: theme.colors.textTertiary || theme.colors.textSecondary,
-                      fontFamily: 'monospace',
+                      fontSize: theme.fontSizes[1],
+                      color: theme.colors.textSecondary,
+                      lineHeight: theme.lineHeights.body,
                     }}>
-                      {sources.map(source => (
-                        <div key={source} style={{ marginTop: '2px', padding: '4px 0', display: 'flex', alignItems: 'center' }}>
-                          <FileCode size={14} style={{ marginRight: '4px', flexShrink: 0 }} />
-                          {source}
-                        </div>
-                      ))}
+                      {scenario.description}
                     </div>
                   )}
                 </div>
