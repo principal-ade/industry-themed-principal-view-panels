@@ -240,11 +240,10 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
                   padding: '8px 20px 12px 20px',
                   backgroundColor: activeEventIndex === syntheticEventIndex ? theme.colors.muted : theme.colors.backgroundSecondary,
                   borderBottom: `1px solid ${theme.colors.border}`,
-                  borderLeft: activeEventIndex === syntheticEventIndex ? `4px solid ${theme.colors.warning}` : '4px solid transparent',
                   fontSize: theme.fontSizes[1],
                   lineHeight: '1.7',
                   fontWeight: 500,
-                  transition: 'background-color 0.2s ease, border-color 0.2s ease',
+                  transition: 'background-color 0.2s ease',
                   color: theme.colors.text,
                 }}
               >
@@ -314,11 +313,10 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
                     padding: '8px 20px 12px 20px',
                     backgroundColor: activeEventIndex === eventIndex ? theme.colors.muted : theme.colors.backgroundSecondary,
                     borderBottom: `1px solid ${theme.colors.border}`,
-                    borderLeft: activeEventIndex === eventIndex ? `4px solid ${theme.colors.primary}` : '4px solid transparent',
                     fontSize: theme.fontSizes[1],
                     lineHeight: '1.7',
                     fontWeight: 500,
-                    transition: 'background-color 0.2s ease, border-color 0.2s ease',
+                    transition: 'background-color 0.2s ease',
                     color: theme.colors.text,
                   }}
                 >

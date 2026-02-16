@@ -160,6 +160,13 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
     }
   }, [selectedExecutionId, spans, currentSpanIndex]);
 
+  // Reset to template tab when no executions are available
+  React.useEffect(() => {
+    if (availableExecutions.length === 0) {
+      setActiveTab('template');
+    }
+  }, [availableExecutions.length]);
+
   // Helper to get source paths for an event name
   const getEventSources = (eventName: string): string[] => {
     if (!canvas?.nodes) return [];
@@ -318,9 +325,9 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
           </div>
         )}
 
-        {/* Tab Controls */}
-        {selectedScenario && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0', marginBottom: '12px', borderBottom: `1px solid ${theme.colors.border}` }}>
+        {/* Tab Controls - only show if there are executions available */}
+        {selectedScenario && availableExecutions.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0', marginLeft: '-20px', marginRight: '-20px', borderBottom: `1px solid ${theme.colors.border}` }}>
             {/* Template Tab */}
             <button
               onClick={() => {
@@ -345,32 +352,26 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
             >
               Template
             </button>
-            {/* Story Tab - always show but disabled if no executions */}
+            {/* Story Tab */}
             <button
               onClick={() => {
-                if (availableExecutions.length > 0) {
-                  setActiveTab('story');
-                  // Auto-select first execution if none selected
-                  if (!selectedExecutionId && availableExecutions.length > 0 && onExecutionSelect) {
-                    onExecutionSelect(availableExecutions[0].id);
-                  }
+                setActiveTab('story');
+                // Auto-select first execution if none selected
+                if (!selectedExecutionId && availableExecutions.length > 0 && onExecutionSelect) {
+                  onExecutionSelect(availableExecutions[0].id);
                 }
               }}
-              disabled={availableExecutions.length === 0}
               style={{
                 flex: 1,
                 padding: '8px 16px',
                 background: activeTab === 'story' ? theme.colors.backgroundSecondary : 'transparent',
                 border: 'none',
                 borderBottom: activeTab === 'story' ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
-                color: availableExecutions.length === 0
-                  ? theme.colors.textMuted
-                  : activeTab === 'story' ? theme.colors.text : theme.colors.textSecondary,
-                cursor: availableExecutions.length === 0 ? 'not-allowed' : 'pointer',
+                color: activeTab === 'story' ? theme.colors.text : theme.colors.textSecondary,
+                cursor: 'pointer',
                 fontSize: theme.fontSizes[1],
                 fontWeight: activeTab === 'story' ? 600 : 400,
                 transition: 'all 0.2s',
-                opacity: availableExecutions.length === 0 ? 0.5 : 1,
               }}
             >
               Story
@@ -626,13 +627,12 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                         padding: '8px 20px 12px 20px',
                         backgroundColor: isActive ? theme.colors.muted : theme.colors.backgroundSecondary,
                         borderBottom: `1px solid ${theme.colors.border}`,
-                        borderLeft: isActive ? `4px solid ${theme.colors.primary}` : '4px solid transparent',
                         fontSize: theme.fontSizes[1],
                         lineHeight: '1.7',
                         fontWeight: 500,
                         color: theme.colors.text,
                         cursor: onNarrativeEventClick ? 'pointer' : 'default',
-                        transition: 'background-color 0.2s ease, border-color 0.2s ease',
+                        transition: 'background-color 0.2s ease',
                       }}
                     >
                       <div style={{

@@ -7,7 +7,7 @@ import type {
   DiscoveredTestTrace,
 } from '@principal-ai/principal-view-core';
 
-interface WorkflowTemplatePanelProps {
+interface ScenariosListProps {
   workflowTemplate: WorkflowTemplate;
   availableExecutions?: DiscoveredTestTrace[];
   executionScenarioMap?: Record<string, string>;
@@ -17,9 +17,9 @@ interface WorkflowTemplatePanelProps {
 }
 
 /**
- * Panel that displays the structure and content of a workflow template
+ * Displays a list of scenarios with their descriptions and test coverage
  */
-export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
+export const ScenariosList: React.FC<ScenariosListProps> = ({
   workflowTemplate,
   availableExecutions = [],
   executionScenarioMap = {},
@@ -56,34 +56,10 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
         background: theme.colors.background,
         color: theme.colors.text,
         fontFamily: theme.fonts.body,
+        overflow: 'auto',
       }}
     >
-      {/* Header - Fixed */}
-      <div
-        style={{
-          padding: '16px',
-          borderBottom: `1px solid ${theme.colors.border}`,
-          background: theme.colors.backgroundSecondary,
-          flexShrink: 0,
-        }}
-      >
-        {workflowTemplate.description && (
-          <p
-            style={{
-              margin: '0',
-              fontSize: theme.fontSizes[1],
-              color: theme.colors.textSecondary,
-              lineHeight: theme.lineHeights.body,
-            }}
-          >
-            {workflowTemplate.description}
-          </p>
-        )}
-      </div>
-
-      {/* Scenarios - Scrollable */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
-        {workflowTemplate.scenarios?.map((scenario, index) => {
+      {workflowTemplate.scenarios?.map((scenario, index) => {
           const scenarioId = scenario.id || String(index);
           // Find executions that match this scenario
           const matchingExecutions = availableExecutions.filter(
@@ -148,7 +124,6 @@ export const WorkflowTemplatePanel: React.FC<WorkflowTemplatePanelProps> = ({
             </div>
           );
         })}
-      </div>
     </div>
   );
 };

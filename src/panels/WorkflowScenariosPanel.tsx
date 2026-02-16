@@ -8,7 +8,7 @@ import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
 import { AnimatedResizableLayout } from '@principal-ade/panels';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/workflow-converter';
-import { Activity, X, Pencil, FileText, CheckCircle2, List, Radar } from 'lucide-react';
+import { Activity, X, CheckCircle2, List, Radar } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { TraceSearchView } from './execution-viewer/TraceSearchView';
 import { LiveTraceSearchView } from './execution-viewer/LiveTraceSearchView';
@@ -16,7 +16,7 @@ import type { TraceInfo } from '../types/otel';
 import type { OtelSpanData, OtelKeyValue } from '@principal-ai/principal-view-core';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { WorkflowExplainerPanel } from './WorkflowExplainerPanel';
-import { WorkflowTemplatePanel } from './execution-viewer/WorkflowTemplatePanel';
+import { ScenariosList } from './execution-viewer/ScenariosList';
 import { useCanvasData } from './canvas-list/hooks/useCanvasData';
 import { parseExecutionArtifact, getSpans, getExecutionMetadata, type ExecutionMetadata } from './execution-viewer/executionUtils';
 
@@ -697,31 +697,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     setState(prev => ({ ...prev, viewMode: mode }));
   }, []);
 
-  const handleOpenInEditor = useCallback(() => {
-    if (!state.canvas || !state.selectedCanvasId || !canvasPathProp) {
-      console.warn('[CanvasDetailPanel] Cannot open in editor: missing canvas path prop');
-      return;
-    }
-
-    // Emit the same event that CanvasListPanel uses to open in editor
-    if (eventsRef.current) {
-      eventsRef.current.emit({
-        type: 'custom',
-        source: 'canvas-detail-panel',
-        timestamp: Date.now(),
-        payload: {
-          action: 'selectCanvas',
-          canvasId: state.selectedCanvasId,
-          canvas: {
-            id: state.selectedCanvasId,
-            path: canvasPathProp,
-            name: state.canvasName || state.selectedCanvasId,
-          },
-        },
-      });
-    }
-  }, [state.canvas, state.selectedCanvasId, state.canvasName, canvasPathProp]);
-
   const handleExecutionSelect = useCallback(async (executionId: string) => {
     try {
       const ctx = contextRef.current;
@@ -1331,66 +1306,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
           </button>
         )}
 
-        {/* Open in Editor Button */}
-        <button
-          onClick={handleOpenInEditor}
-          disabled={!canvasPathProp}
-          style={{
-            padding: '0 12px',
-            height: '28px',
-            background: theme.colors.background,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: '4px',
-            color: theme.colors.text,
-            cursor: canvasPathProp ? 'pointer' : 'not-allowed',
-            opacity: canvasPathProp ? 1 : 0.5,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: theme.fontSizes[2],
-            fontFamily: theme.fonts.body,
-          }}
-          title={canvasPathProp ? 'Open in Canvas Editor' : 'Canvas path not available'}
-        >
-          <Pencil size={14} />
-          <span>Edit</span>
-        </button>
-
-        {/* Documentation Button - Show when canvas has markdown documentation */}
-        {state.canvas?.pv?.markdown && (
-          <button
-            onClick={() => {
-              const markdownPath = state.canvas?.pv?.markdown;
-              if (markdownPath && eventsRef.current) {
-                eventsRef.current.emit({
-                  type: 'file:open',
-                  source: 'canvas-detail-panel',
-                  timestamp: Date.now(),
-                  payload: { path: markdownPath },
-                });
-              }
-            }}
-            style={{
-              padding: '0 12px',
-              height: '28px',
-              background: theme.colors.background,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: '4px',
-              color: theme.colors.text,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: theme.fontSizes[2],
-              fontFamily: theme.fonts.body,
-            }}
-            title="View documentation"
-          >
-            <FileText size={14} />
-            <span>Docs</span>
-          </button>
-        )}
-
         {/* Playback controls removed - all events now display by default */}
       </div>
 
@@ -1472,6 +1387,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                     onBackClick={() => {
                       setState(prev => ({
                         ...prev,
+                        selectedScenarioId: null,
+                        selectedScenario: null,
                         selectedExecutionId: null,
                         execution: null,
                         metadata: null,
@@ -1578,7 +1495,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                     selectedScenario={state.selectedScenario ?? undefined}
                   />
                 ) : state.workflowTemplate ? (
-                  <WorkflowTemplatePanel
+                  <ScenariosList
                     workflowTemplate={state.workflowTemplate}
                     availableExecutions={state.availableExecutions}
                     executionScenarioMap={state.executionScenarioMap}
@@ -1642,7 +1559,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                   highlightedNodeId={state.highlightedNodeId}
                   activeNodeIds={activeNodeIds}
                   onNodeClick={handleNodeClick}
-                  showNodeDetailPanel={true}
+                  showNodeDetailPanel={false}
                 />
                 {/* Test Trace Search Overlay - positioned over canvas */}
                 {state.showTraceSearch && (

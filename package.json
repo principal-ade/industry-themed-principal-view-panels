@@ -63,7 +63,7 @@
     "react-dom": ">=19.0.0"
   },
   "dependencies": {
-    "@principal-ai/principal-view-react": "0.13.3",
+    "@principal-ai/principal-view-react": "0.13.4",
     "@xyflow/react": "^12.0.0",
     "clsx": "^2.1.1",
     "framer-motion": "^11.0.0",
