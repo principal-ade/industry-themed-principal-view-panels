@@ -513,7 +513,7 @@ export function createTraceWithMultiWorkflowData(params: {
 export function convertToRegisteredTraces(
   resourceSpans: OtelResourceSpans
 ): RegisteredTrace[] {
-  const traceMap = new Map<string, { spans: OtelSpanData[]; resource: OtelResourceData }>();
+  const traceMap = new Map<string, { spans: OtelSpanData[]; resource: OtelResourceData; scopeName?: string; scopeVersion?: string }>();
 
   // Collect all spans by trace ID
   for (const resourceSpan of resourceSpans.resourceSpans) {
@@ -523,6 +523,8 @@ export function convertToRegisteredTraces(
           traceMap.set(span.traceId, {
             spans: [],
             resource: resourceSpan.resource,
+            scopeName: scopeSpan.scope?.name,
+            scopeVersion: scopeSpan.scope?.version,
           });
         }
         traceMap.get(span.traceId)!.spans.push(span);
@@ -532,7 +534,7 @@ export function convertToRegisteredTraces(
 
   // Convert to RegisteredTrace array
   const traces: RegisteredTrace[] = [];
-  for (const [traceId, { spans, resource }] of traceMap) {
+  for (const [traceId, { spans, resource, scopeName, scopeVersion }] of traceMap) {
     const rootSpan = spans.find(s => !s.parentSpanId || s.parentSpanId === '');
     const startTime = Math.min(...spans.map(s => parseNanoTime(s.startTimeUnixNano)));
     const endTime = Math.max(...spans.map(s => parseNanoTime(s.endTimeUnixNano)));
@@ -554,11 +556,6 @@ export function convertToRegisteredTraces(
     const hasMatchInfo = storyboardId && storyboardName;
     const registryStatus: RegisteredTrace['registryStatus'] = hasMatchInfo ? 'matched' : 'unmatched';
 
-    // Get scope info from first span
-    const firstSpan = spans[0];
-    const scopeName = firstSpan.scope?.name || 'unknown';
-    const scopeVersion = firstSpan.scope?.version;
-
     traces.push({
       traceId,
       name: rootSpan?.name || 'Unknown Operation',
@@ -569,7 +566,7 @@ export function convertToRegisteredTraces(
       serviceName,
       hasErrors,
       scope: {
-        name: scopeName,
+        name: scopeName || 'unknown',
         version: scopeVersion || serviceVersion,
       },
       registryStatus,

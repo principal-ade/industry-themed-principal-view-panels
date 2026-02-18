@@ -153,7 +153,7 @@ export function matchTraceToWorkflows(
  */
 export function enrichTraceWithWorkflowMatches(
   trace: RegisteredTrace,
-  workflows: WorkflowMetadata[]
+  _workflows: WorkflowMetadata[]
 ): RegisteredTrace {
   // This function is deprecated - RegisteredTrace already has matching info from the registry
   console.warn('[workflowMatching] enrichTraceWithWorkflowMatches is deprecated. RegisteredTrace already includes matching info.');

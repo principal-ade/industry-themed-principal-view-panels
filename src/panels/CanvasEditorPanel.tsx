@@ -4,7 +4,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core';
-import { Loader, Save, X, Pencil, Copy, Check, Info, MessageSquareOff, Grid3X3, RefreshCw, Crosshair } from 'lucide-react';
+import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw } from 'lucide-react';
 import { ConfigLoader } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
@@ -228,54 +228,10 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     setState(prev => ({ ...prev, showLegend: !prev.showLegend }));
   }, []);
 
-  // Toggle tooltips
-  const toggleTooltips = useCallback(() => {
-    setState(prev => ({ ...prev, showTooltips: !prev.showTooltips }));
-  }, []);
-
   // Toggle grid lines
   const toggleGridLines = useCallback(() => {
     setState(prev => ({ ...prev, showGridLines: !prev.showGridLines }));
   }, []);
-
-  // Recenter node coordinates so the bounding box center is at (0,0)
-  // This allows saving coordinates that don't require fitView adjustment on load
-  const recenterCoordinates = useCallback(() => {
-    if (!state.canvas?.nodes || state.canvas.nodes.length === 0) return;
-
-    // Calculate bounding box of all nodes
-    let minX = Infinity, maxX = -Infinity;
-    let minY = Infinity, maxY = -Infinity;
-
-    for (const node of state.canvas.nodes) {
-      minX = Math.min(minX, node.x);
-      maxX = Math.max(maxX, node.x + node.width);
-      minY = Math.min(minY, node.y);
-      maxY = Math.max(maxY, node.y + node.height);
-    }
-
-    // Calculate center of bounding box
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-
-    // Skip if already centered (within 1px tolerance)
-    if (Math.abs(centerX) < 1 && Math.abs(centerY) < 1) return;
-
-    // Deep clone the canvas and shift all node coordinates
-    const updatedCanvas: ExtendedCanvas = JSON.parse(JSON.stringify(state.canvas));
-    if (updatedCanvas.nodes) {
-      for (const node of updatedCanvas.nodes) {
-        node.x = Math.round(node.x - centerX);
-        node.y = Math.round(node.y - centerY);
-      }
-    }
-
-    setState(prev => ({
-      ...prev,
-      canvas: updatedCanvas,
-      hasUnsavedChanges: true,
-    }));
-  }, [state.canvas]);
 
   // Copy current config path to clipboard
   const copyConfigPath = useCallback(() => {
@@ -536,75 +492,9 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
           >
             {pathCopied ? <Check size={14} /> : <Copy size={14} />}
           </button>
-
-          {/* Unsaved changes indicator */}
-          {state.isEditMode && state.hasUnsavedChanges && (
-            <span style={{
-              fontSize: theme.fontSizes[1],
-              color: theme.colors.warning || '#f59e0b',
-              fontStyle: 'italic'
-            }}>
-              Unsaved changes
-            </span>
-          )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2], flexShrink: 0 }}>
-          {/* Save/Discard buttons when there are unsaved changes */}
-          {state.isEditMode && state.hasUnsavedChanges && (
-            <>
-              <button
-                onClick={saveAllChanges}
-                disabled={state.isSaving}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.space[1],
-                  padding: `${theme.space[1]} ${theme.space[2]}`,
-                  fontSize: theme.fontSizes[1],
-                  fontFamily: theme.fonts.body,
-                  color: 'white',
-                  backgroundColor: theme.colors.primary,
-                  border: 'none',
-                  borderRadius: theme.radii[1],
-                  cursor: state.isSaving ? 'wait' : 'pointer',
-                  opacity: state.isSaving ? 0.7 : 1,
-                  transition: 'all 0.2s'
-                }}
-              >
-                {state.isSaving ? (
-                  <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                ) : (
-                  <Save size={14} />
-                )}
-                <span>Save</span>
-              </button>
-
-              <button
-                onClick={discardChanges}
-                disabled={state.isSaving}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.space[1],
-                  padding: `${theme.space[1]} ${theme.space[2]}`,
-                  fontSize: theme.fontSizes[1],
-                  fontFamily: theme.fonts.body,
-                  color: theme.colors.text,
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.radii[1],
-                  cursor: state.isSaving ? 'wait' : 'pointer',
-                  opacity: state.isSaving ? 0.7 : 1,
-                  transition: 'all 0.2s'
-                }}
-              >
-                <X size={14} />
-                <span>Discard</span>
-              </button>
-            </>
-          )}
-
           </div>
         </div>
 
@@ -633,29 +523,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
           <RefreshCw size={18} />
         </button>
 
-        {/* Tooltips Toggle Button - flush right, full height */}
-        <button
-          onClick={toggleTooltips}
-          title={state.showTooltips ? 'Disable hover tooltips' : 'Enable hover tooltips'}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 40,
-            height: 39,
-            padding: 0,
-            backgroundColor: !state.showTooltips ? theme.colors.primary : 'transparent',
-            color: !state.showTooltips ? 'white' : theme.colors.textMuted,
-            border: 'none',
-            borderLeft: `1px solid ${theme.colors.border}`,
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-            flexShrink: 0,
-          }}
-        >
-          <MessageSquareOff size={18} />
-        </button>
-
         {/* Grid Lines Toggle Button */}
         <button
           onClick={toggleGridLines}
@@ -678,31 +545,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         >
           <Grid3X3 size={18} />
         </button>
-
-        {/* Recenter Coordinates Button - only visible in edit mode */}
-        {state.isEditMode && (
-          <button
-            onClick={recenterCoordinates}
-            title="Recenter coordinates (shift all nodes so center is at origin)"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: 39,
-              padding: 0,
-              backgroundColor: 'transparent',
-              color: theme.colors.textMuted,
-              border: 'none',
-              borderLeft: `1px solid ${theme.colors.border}`,
-              cursor: 'pointer',
-              transition: 'all 0.15s',
-              flexShrink: 0,
-            }}
-          >
-            <Crosshair size={18} />
-          </button>
-        )}
 
         {/* Legend Button - flush right, full height */}
         <button
@@ -766,8 +608,95 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
               setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
             }}
             showNodeDetailPanel={true}
+            showBackground={state.showGridLines}
+            backgroundVariant="lines"
           />
         </div>
+
+        {/* Save/Discard Overlay - top right corner */}
+        {state.isEditMode && state.hasUnsavedChanges && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            height: 40,
+            display: 'flex',
+            alignItems: 'stretch',
+            backgroundColor: theme.colors.background,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: 0,
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            zIndex: 40,
+          }}>
+            {/* Unsaved changes indicator */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: theme.space[3],
+              fontSize: theme.fontSizes[1],
+              color: theme.colors.warning || '#f59e0b',
+              fontStyle: 'italic',
+              fontWeight: theme.fontWeights.medium,
+            }}>
+              Unsaved changes
+            </div>
+
+            <button
+              onClick={saveAllChanges}
+              disabled={state.isSaving}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: theme.space[1],
+                padding: `0 ${theme.space[3]}`,
+                fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
+                color: 'white',
+                backgroundColor: theme.colors.primary,
+                border: 'none',
+                borderRadius: 0,
+                cursor: state.isSaving ? 'wait' : 'pointer',
+                opacity: state.isSaving ? 0.7 : 1,
+                transition: 'all 0.2s',
+                minWidth: 80,
+              }}
+            >
+              {state.isSaving ? (
+                <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Save size={14} />
+              )}
+              <span>Save</span>
+            </button>
+
+            <button
+              onClick={discardChanges}
+              disabled={state.isSaving}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: theme.space[1],
+                padding: `0 ${theme.space[3]}`,
+                fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
+                color: theme.colors.text,
+                backgroundColor: theme.colors.backgroundSecondary,
+                border: 'none',
+                borderLeft: `1px solid ${theme.colors.border}`,
+                borderRadius: 0,
+                cursor: state.isSaving ? 'wait' : 'pointer',
+                opacity: state.isSaving ? 0.7 : 1,
+                transition: 'all 0.2s',
+                minWidth: 80,
+              }}
+            >
+              <X size={14} />
+              <span>Discard</span>
+            </button>
+          </div>
+        )}
 
         {/* Legend Bar */}
         {state.showLegend && (

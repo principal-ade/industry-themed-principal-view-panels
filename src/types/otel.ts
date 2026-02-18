@@ -6,9 +6,6 @@
  */
 
 import {
-  getAttributeValue,
-  parseNanoTime,
-  type OtelResourceSpansData,
   type OtelResourceData,
   type OtelSpanData,
   type WorkflowMatch,
