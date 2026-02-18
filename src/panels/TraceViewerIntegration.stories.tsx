@@ -5,7 +5,7 @@ import { TraceDetailsPanel } from './TraceDetailsPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { AnimatedResizableLayout } from '@principal-ade/panels';
 import { MockPanelProvider } from '../mocks/panelContext';
-import type { TraceInfo } from '../types/otel';
+import type { RegisteredTrace } from '../types/otel';
 import type { PanelEvent } from '@principal-ade/panel-framework-core';
 
 const meta = {
@@ -40,8 +40,8 @@ type Story = StoryObj<typeof meta>;
 interface PanelInnerProps {
   props: any;
   direction: 'horizontal' | 'vertical';
-  selectedTrace: TraceInfo | null;
-  setSelectedTrace: (trace: TraceInfo | null) => void;
+  selectedTrace: RegisteredTrace | null;
+  setSelectedTrace: (trace: RegisteredTrace | null) => void;
 }
 
 const PanelInner: React.FC<PanelInnerProps> = ({ props, direction, selectedTrace, setSelectedTrace }) => {
@@ -50,7 +50,7 @@ const PanelInner: React.FC<PanelInnerProps> = ({ props, direction, selectedTrace
     if (!props.events) return;
 
     const unsubscribe = props.events.on('custom', (event: PanelEvent) => {
-      const payload = event.payload as { action?: string; trace?: TraceInfo };
+      const payload = event.payload as { action?: string; trace?: RegisteredTrace };
       const { action, trace } = payload;
       if (action === 'selectTrace' && trace) {
         setSelectedTrace(trace);
@@ -76,7 +76,7 @@ const PanelInner: React.FC<PanelInnerProps> = ({ props, direction, selectedTrace
  * Integration wrapper that manages trace selection state
  */
 const TraceViewerWrapper: React.FC<{ direction: 'horizontal' | 'vertical' }> = ({ direction }) => {
-  const [selectedTrace, setSelectedTrace] = useState<TraceInfo | null>(null);
+  const [selectedTrace, setSelectedTrace] = useState<RegisteredTrace | null>(null);
 
   return (
     <MockPanelProvider>

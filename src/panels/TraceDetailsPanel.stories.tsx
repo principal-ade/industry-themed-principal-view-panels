@@ -3,8 +3,7 @@ import React from 'react';
 import { TraceDetailsPanel } from './TraceDetailsPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
-import { generateCheckoutTrace, generateComplexTrace } from '../mocks/otelMocks';
-import { groupSpansByTrace } from '../types/otel';
+import { generateCheckoutTrace, generateComplexTrace, convertToRegisteredTraces } from '../mocks/otelMocks';
 
 const meta = {
   title: 'Panels/TraceDetailsPanel',
@@ -50,7 +49,7 @@ export const Empty: Story = {
 export const WithSimpleTrace: Story = {
   render: () => {
     const checkoutTrace = generateCheckoutTrace(true);
-    const traces = groupSpansByTrace(checkoutTrace);
+    const traces = convertToRegisteredTraces(checkoutTrace);
     const selectedTrace = traces[0];
 
     return (
@@ -67,7 +66,7 @@ export const WithSimpleTrace: Story = {
 export const WithComplexTrace: Story = {
   render: () => {
     const complexTrace = generateComplexTrace(true);
-    const traces = groupSpansByTrace(complexTrace);
+    const traces = convertToRegisteredTraces(complexTrace);
     const selectedTrace = traces[0];
 
     return (

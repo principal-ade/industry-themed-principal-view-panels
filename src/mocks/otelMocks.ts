@@ -5,6 +5,7 @@ import type {
   OtelKeyValue,
   RegisteredTrace,
 } from '@principal-ai/principal-view-core';
+import { getAttributeValue, parseNanoTime } from '@principal-ai/principal-view-core';
 
 // Type aliases for mock code
 type OtelResourceSpans = { resourceSpans: OtelResourceSpansData[] };
@@ -501,4 +502,102 @@ export function createTraceWithMultiWorkflowData(params: {
       destination: primaryMatch ? 'storyboard-viewer' : 'unmatched',
     },
   };
+}
+
+/**
+ * Convert OtelResourceSpans to RegisteredTrace[] for stories
+ *
+ * This is a simple conversion helper for Storybook stories.
+ * In production, use the full TraceRegistryMatcher service.
+ */
+export function convertToRegisteredTraces(
+  resourceSpans: OtelResourceSpans
+): RegisteredTrace[] {
+  const traceMap = new Map<string, { spans: OtelSpanData[]; resource: OtelResourceData }>();
+
+  // Collect all spans by trace ID
+  for (const resourceSpan of resourceSpans.resourceSpans) {
+    for (const scopeSpan of resourceSpan.scopeSpans) {
+      for (const span of scopeSpan.spans) {
+        if (!traceMap.has(span.traceId)) {
+          traceMap.set(span.traceId, {
+            spans: [],
+            resource: resourceSpan.resource,
+          });
+        }
+        traceMap.get(span.traceId)!.spans.push(span);
+      }
+    }
+  }
+
+  // Convert to RegisteredTrace array
+  const traces: RegisteredTrace[] = [];
+  for (const [traceId, { spans, resource }] of traceMap) {
+    const rootSpan = spans.find(s => !s.parentSpanId || s.parentSpanId === '');
+    const startTime = Math.min(...spans.map(s => parseNanoTime(s.startTimeUnixNano)));
+    const endTime = Math.max(...spans.map(s => parseNanoTime(s.endTimeUnixNano)));
+    const hasErrors = spans.some(
+      s => s.status?.code === 2 || s.events?.some(e => e.name === 'exception')
+    );
+
+    const serviceName = getAttributeValue(resource.attributes, 'service.name') as string || 'unknown';
+    const serviceVersion = getAttributeValue(resource.attributes, 'service.version') as string | undefined;
+
+    // Extract workflow matching information from resource attributes
+    const storyboardId = getAttributeValue(resource.attributes, 'pv.storyboard.id') as string | undefined;
+    const storyboardName = getAttributeValue(resource.attributes, 'pv.storyboard.name') as string | undefined;
+    const workflowId = getAttributeValue(resource.attributes, 'pv.workflow.id') as string | undefined;
+    const workflowName = getAttributeValue(resource.attributes, 'pv.workflow.name') as string | undefined;
+    const scenarioId = getAttributeValue(resource.attributes, 'pv.scenario.id') as string | undefined;
+    const scenarioName = getAttributeValue(resource.attributes, 'pv.scenario.name') as string | undefined;
+
+    const hasMatchInfo = storyboardId && storyboardName;
+    const registryStatus: RegisteredTrace['registryStatus'] = hasMatchInfo ? 'matched' : 'unmatched';
+
+    // Get scope info from first span
+    const firstSpan = spans[0];
+    const scopeName = firstSpan.scope?.name || 'unknown';
+    const scopeVersion = firstSpan.scope?.version;
+
+    traces.push({
+      traceId,
+      name: rootSpan?.name || 'Unknown Operation',
+      startTime,
+      endTime,
+      duration: endTime - startTime,
+      spanCount: spans.length,
+      serviceName,
+      hasErrors,
+      scope: {
+        name: scopeName,
+        version: scopeVersion || serviceVersion,
+      },
+      registryStatus,
+      matchInfo: hasMatchInfo ? {
+        storyboardId: storyboardId!,
+        storyboardName: storyboardName!,
+        workflowId,
+        workflowName,
+        scenarioId,
+        scenarioName,
+        schemaVersion: scopeVersion || serviceVersion,
+      } : undefined,
+      spanMatches: [],
+      matchedNodesSummary: {
+        totalNodesMatched: 0,
+        matchedNodeIds: [],
+        unmatchedNodeIds: [],
+        coveragePercent: 0,
+      },
+      routing: {
+        sourceUrl: `http://${serviceName}`,
+        destination: hasMatchInfo ? 'storyboard-viewer' : 'unmatched',
+      },
+      otlpData: {
+        resourceSpans: resourceSpans.resourceSpans,
+      },
+    });
+  }
+
+  return traces;
 }

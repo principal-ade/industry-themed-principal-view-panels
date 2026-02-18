@@ -3,7 +3,7 @@ import React from 'react';
 import { TraceListPanel } from './TraceListPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
-import type { TraceInfo } from '../types/otel';
+import type { RegisteredTrace } from '../types/otel';
 import type { VersionSnapshot } from '@principal-ai/principal-view-core';
 
 // Mock trace data
@@ -16,8 +16,8 @@ const createTrace = (
   offset: number,
   duration: number,
   hasError: boolean = false,
-  matchedWorkflows?: TraceInfo['matchedWorkflows']
-): TraceInfo => {
+  matchedWorkflows?: RegisteredTrace['matchedWorkflows']
+): RegisteredTrace => {
   const startTime = now - offset;
   const endTime = startTime + duration;
 
@@ -102,7 +102,7 @@ const createTrace = (
   };
 };
 
-const mockTraces: TraceInfo[] = [
+const mockTraces: RegisteredTrace[] = [
   // Multiple GET /api/users (successful)
   createTrace('trace-1', 'GET /api/users', 'api-service', 1000, 150),
   createTrace('trace-2', 'GET /api/users', 'api-service', 2000, 180),
@@ -178,7 +178,7 @@ const mockTracesWithErrors = mockTraces.filter(t => t.hasErrors);
 // Keep only workflow-matched traces for the WithWorkflowMatching story
 const mockTracesWithWorkflow = mockTraces.filter(t => t.matchedWorkflows && t.matchedWorkflows.length > 0);
 
-const oldMockTraces: TraceInfo[] = [
+const oldMockTraces: RegisteredTrace[] = [
   {
     traceId: '1234567890abcdef1234567890abcdef',
     spans: [
@@ -461,7 +461,7 @@ export const WithErrors: Story = {
  */
 export const WithMultiWorkflowMatching: Story = {
   render: () => {
-    const multiWorkflowTraces: TraceInfo[] = [
+    const multiWorkflowTraces: RegisteredTrace[] = [
       // Single workflow match for comparison
       createTrace('trace-single', 'Login Only', 'auth-service', 1000, 500, false, [{
         storyboardId: 'storyboard-1',
@@ -770,7 +770,7 @@ const mockSchematics: VersionSnapshot[] = [
 /**
  * Mock traces with workflow matching for schematics demo
  */
-const mockTracesForSchematics: TraceInfo[] = [
+const mockTracesForSchematics: RegisteredTrace[] = [
   createTrace('trace-schematic-1', 'User Login', 'auth-service', 1000, 500, false, [{
     storyboardId: 'ecommerce-journey',
     storyboardName: 'E-Commerce User Journey',
@@ -840,7 +840,7 @@ export const WithSchematics: Story = {
 export const SchematicsMultipleVersions: Story = {
   render: () => {
     // Mock traces only for the first version's authentication workflow
-    const tracesForFirstVersion: TraceInfo[] = [
+    const tracesForFirstVersion: RegisteredTrace[] = [
       createTrace('trace-auth-1', 'User Login', 'auth-service', 1000, 500, false, [{
         storyboardId: 'ecommerce-journey',
         storyboardName: 'E-Commerce User Journey',

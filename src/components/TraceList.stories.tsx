@@ -2,14 +2,14 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useState, useMemo } from 'react';
 import { TraceList } from './TraceList';
 import { ThemeProvider, useTheme } from '@principal-ade/industry-theme';
-import { groupSpansByTrace } from '../types/otel';
-import type { TraceInfo } from '../types/otel';
+import type { RegisteredTrace } from '../types/otel';
 import {
   generateRandomTraces,
   generateCheckoutTrace,
   generateAuthErrorTrace,
   generateComplexTrace,
   createTraceWithMultiWorkflowData,
+  convertToRegisteredTraces,
 } from '../mocks/otelMocks';
 
 const meta = {
@@ -40,11 +40,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Wrapper component to use theme and handle selection
-const TraceListWrapper: React.FC<{ traces: TraceInfo[] }> = ({ traces }) => {
+const TraceListWrapper: React.FC<{ traces: RegisteredTrace[] }> = ({ traces }) => {
   const { theme } = useTheme();
   const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>();
 
-  const handleTraceClick = (trace: TraceInfo) => {
+  const handleTraceClick = (trace: RegisteredTrace) => {
     setSelectedTraceId(trace.traceId);
     console.log('Trace clicked:', trace);
   };
@@ -79,7 +79,7 @@ export const Default: Story = {
       ],
     };
 
-    const traces = groupSpansByTrace(combinedResourceSpans);
+    const traces = convertToRegisteredTraces(combinedResourceSpans);
 
     return <TraceListWrapper traces={traces} />;
   },
@@ -107,7 +107,7 @@ export const Empty: Story = {
 export const ManyTraces: Story = {
   render: () => {
     const randomTraces = generateRandomTraces(50);
-    const traces = groupSpansByTrace(randomTraces);
+    const traces = convertToRegisteredTraces(randomTraces);
 
     return <TraceListWrapper traces={traces} />;
   },
@@ -130,7 +130,7 @@ export const ErrorTraces: Story = {
       ],
     };
 
-    const traces = groupSpansByTrace(combinedResourceSpans);
+    const traces = convertToRegisteredTraces(combinedResourceSpans);
 
     return <TraceListWrapper traces={traces} />;
   },
@@ -153,7 +153,7 @@ export const ComplexTraces: Story = {
       ],
     };
 
-    const traces = groupSpansByTrace(combinedResourceSpans);
+    const traces = convertToRegisteredTraces(combinedResourceSpans);
 
     return <TraceListWrapper traces={traces} />;
   },
@@ -164,7 +164,7 @@ export const ComplexTraces: Story = {
  */
 const NoSearchComponent = () => {
   const randomTraces = generateRandomTraces(10);
-  const traces = groupSpansByTrace(randomTraces);
+  const traces = convertToRegisteredTraces(randomTraces);
   const { theme } = useTheme();
 
   return (
@@ -222,7 +222,7 @@ export const MixedMatching: Story = {
       ],
     };
 
-    const traces = groupSpansByTrace(combinedResourceSpans);
+    const traces = convertToRegisteredTraces(combinedResourceSpans);
 
     return <TraceListWrapper traces={traces} />;
   },
@@ -233,15 +233,15 @@ export const MixedMatching: Story = {
  */
 const LiveUpdatingComponent = () => {
   const { theme } = useTheme();
-  const [traces, setTraces] = useState<TraceInfo[]>([]);
+  const [traces, setTraces] = useState<RegisteredTrace[]>([]);
 
   React.useEffect(() => {
     // Add a new trace every 2 seconds
     const interval = setInterval(() => {
       const newTrace = generateRandomTraces(1);
-      const newTraceInfos = groupSpansByTrace(newTrace);
+      const newRegisteredTraces = convertToRegisteredTraces(newTrace);
 
-      setTraces((prev) => [...newTraceInfos, ...prev].slice(0, 20)); // Keep last 20
+      setTraces((prev) => [...newRegisteredTraces, ...prev].slice(0, 20)); // Keep last 20
     }, 2000);
 
     return () => clearInterval(interval);
@@ -274,7 +274,7 @@ export const MultiWorkflowExpansion: Story = {
     const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>();
 
     // Create traces with multi-workflow data (memoized to prevent regeneration)
-    const traces = useMemo<TraceInfo[]>(() => [
+    const traces = useMemo<RegisteredTrace[]>(() => [
       createTraceWithMultiWorkflowData({
         name: 'ProcessPayment',
         workflows: [
@@ -340,7 +340,7 @@ export const MultiWorkflowExpansion: Story = {
       }),
     ], []);
 
-    const handleTraceClick = (trace: TraceInfo) => {
+    const handleTraceClick = (trace: RegisteredTrace) => {
       setSelectedTraceId(trace.traceId);
       console.log('Trace clicked:', trace);
     };
@@ -368,7 +368,7 @@ export const PerfectCoverageExpansion: Story = {
     const { theme } = useTheme();
     const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>();
 
-    const traces = useMemo<TraceInfo[]>(() => [
+    const traces = useMemo<RegisteredTrace[]>(() => [
       createTraceWithMultiWorkflowData({
         name: 'UserRegistration',
         workflows: [
@@ -417,7 +417,7 @@ export const LowCoverageExpansion: Story = {
     const { theme } = useTheme();
     const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>();
 
-    const traces = useMemo<TraceInfo[]>(() => [
+    const traces = useMemo<RegisteredTrace[]>(() => [
       createTraceWithMultiWorkflowData({
         name: 'DataMigration',
         workflows: [

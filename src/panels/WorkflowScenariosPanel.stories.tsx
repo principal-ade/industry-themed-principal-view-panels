@@ -5,7 +5,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import type { DataSlice } from '../types';
 import type { WorkflowTemplate } from '@principal-ai/principal-view-core';
-import type { TraceInfo } from '../types/otel';
+import type { RegisteredTrace } from '../types/otel';
 
 /**
  * WorkflowScenariosPanel - OTEL Execution Visualizer
@@ -1783,8 +1783,8 @@ export const IncompleteTemplateData_MissingEvent: Story = {
 export const LiveOtelTraces: Story = {
   args: {} as never,
   render: () => {
-    // Create live TraceInfo objects (simulating telemetry slice data)
-    const liveTraces: TraceInfo[] = [
+    // Create live RegisteredTrace objects (simulating telemetry slice data)
+    const liveTraces: RegisteredTrace[] = [
       // Success trace 1
       {
         traceId: 'a1b2c3d4e5f6g7h8',
@@ -2097,7 +2097,7 @@ export const LiveOtelTraces: Story = {
     ]);
 
     // Add telemetry slice with live traces
-    const telemetrySlice: DataSlice<TraceInfo[]> = {
+    const telemetrySlice: DataSlice<RegisteredTrace[]> = {
       scope: 'repository',
       name: 'telemetry',
       data: liveTraces,
@@ -2139,7 +2139,7 @@ export const LiveOtelTraces: Story = {
           '  • Filter by scenario when a scenario is selected\n' +
           '  • See service versions, durations, and error states\n' +
           '  • Click a trace to load it into the execution viewer\n\n' +
-          'The Live Trace Search View works with TraceInfo data from the telemetry slice,\n' +
+          'The Live Trace Search View works with RegisteredTrace data from the telemetry slice,\n' +
           'while the Test Trace Search View works with file-based test artifacts.',
       },
     },

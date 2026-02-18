@@ -16,7 +16,6 @@ import type { RegisteredTrace } from '../types/otel';
 import { getSpansFromTrace } from '../types/otel';
 import type { OtelSpanData, OtelKeyValue } from '@principal-ai/principal-view-core';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
-import { WorkflowExplainerPanel } from './WorkflowExplainerPanel';
 import { ScenariosList } from './execution-viewer/ScenariosList';
 import { useCanvasData } from './canvas-list/hooks/useCanvasData';
 import { parseExecutionArtifact, getSpans, getExecutionMetadata, type ExecutionMetadata } from './execution-viewer/executionUtils';
@@ -1668,7 +1667,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
             >
               <X size={20} />
             </button>
-            <WorkflowExplainerPanel />
           </div>
         </div>
       )}
