@@ -52,8 +52,8 @@ export type { FileTreeEntry, PanelFileSystemAdapterOptions } from './adapters/Pa
 
 // Re-export panel-specific OTEL types
 // Note: Base OTEL types should be imported from @principal-ai/principal-view-core
-export type { TraceInfo, WorkflowMatch } from './types/otel';
-export { getServiceName, groupSpansByTrace } from './types/otel';
+export type { RegisteredTrace, WorkflowMatch } from './types/otel';
+export { getServiceName, getSpansFromTrace, getRootSpan, getResource } from './types/otel';
 
 // Re-export workflow matching utilities
 export { matchTraceToWorkflows, enrichTraceWithWorkflowMatches, calculateCoveragePercentage } from './utils/workflowMatching';

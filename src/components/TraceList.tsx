@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle, Search, Trash2, X } from 'lucide-react';
 import type { Theme } from '@principal-ade/industry-theme';
-import type { TraceInfo } from '../types/otel';
+import type { RegisteredTrace } from '../types/otel';
+import { getRootSpan } from '../types/otel';
 import { TraceExpansion } from './TraceExpansion';
 
 export interface TraceListProps {
-  traces: TraceInfo[];
+  traces: RegisteredTrace[];
   theme: Theme;
-  onTraceClick?: (trace: TraceInfo) => void;
+  onTraceClick?: (trace: RegisteredTrace) => void;
   onClearAll?: () => void;
   selectedTraceId?: string;
   showSearch?: boolean;
@@ -16,8 +17,8 @@ export interface TraceListProps {
 
 interface GroupedTrace {
   key: string;
-  traces: TraceInfo[];
-  representative: TraceInfo; // Most recent trace in the group
+  traces: RegisteredTrace[];
+  representative: RegisteredTrace; // Most recent trace in the group
   count: number;
 }
 
@@ -45,12 +46,12 @@ export const TraceList: React.FC<TraceListProps> = ({
 
   // Calculate workflow matching stats
   const matchingStats = useMemo(() => {
-    const withVersion = traces.filter(t => t.serviceVersion || t.commitSha);
-    const matched = traces.filter(t => t.matchedWorkflows && t.matchedWorkflows.length > 0);
+    const withVersion = traces.filter(t => t.scope.version || t.matchInfo?.schemaVersion);
+    const matched = traces.filter(t => t.registryStatus === 'matched');
     const versions = new Set(
       traces
-        .filter(t => t.serviceVersion)
-        .map(t => `${t.serviceName || 'unknown'}@${t.serviceVersion}`)
+        .filter(t => t.scope.version)
+        .map(t => `${t.serviceName || 'unknown'}@${t.scope.version}`)
     );
 
     return {
@@ -74,21 +75,23 @@ export const TraceList: React.FC<TraceListProps> = ({
       // Search in service name
       if (trace.serviceName?.toLowerCase().includes(query)) return true;
       // Search in root span name
-      if (trace.rootSpan?.name.toLowerCase().includes(query)) return true;
+      const rootSpan = getRootSpan(trace);
+      if (rootSpan?.name.toLowerCase().includes(query)) return true;
       return false;
     });
   }, [traces, searchQuery]);
 
   // Group traces by root span name, error status, and workflow matching
   const groupedTraces = useMemo((): GroupedTrace[] => {
-    const groups = new Map<string, TraceInfo[]>();
+    const groups = new Map<string, RegisteredTrace[]>();
 
     for (const trace of filteredTraces) {
-      // Create a key based on: root span name, error status, workflow presence
-      const rootSpanName = trace.rootSpan?.name || 'Unknown Operation';
+      // Create a key based on: root span name, error status, registry status
+      const rootSpan = getRootSpan(trace);
+      const rootSpanName = rootSpan?.name || 'Unknown Operation';
       const hasErrors = trace.hasErrors ? 'error' : 'success';
-      const hasWorkflow = (trace.matchedWorkflows && trace.matchedWorkflows.length > 0) ? 'matched' : 'unmatched';
-      const key = `${rootSpanName}|${hasErrors}|${hasWorkflow}`;
+      const registryStatus = trace.registryStatus;
+      const key = `${rootSpanName}|${hasErrors}|${registryStatus}`;
 
       if (!groups.has(key)) {
         groups.set(key, []);
@@ -406,7 +409,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {trace.rootSpan?.name || 'Unknown Operation'}
+                    {getRootSpan(trace)?.name || 'Unknown Operation'}
                   </span>
 
                   {/* Service name + Duration + Span Count */}
@@ -432,7 +435,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                         {trace.serviceName}
                       </span>
                     )}
-                    {trace.serviceVersion && (
+                    {trace.scope.version && (
                       <span
                         style={{
                           display: 'inline-block',
@@ -446,9 +449,9 @@ export const TraceList: React.FC<TraceListProps> = ({
                           whiteSpace: 'nowrap',
                           flexShrink: 0,
                         }}
-                        title={`Version: ${trace.serviceVersion}${trace.commitSha ? ` (${trace.commitSha.substring(0, 7)})` : ''}`}
+                        title={`Version: ${trace.scope.version}`}
                       >
-                        v{trace.serviceVersion}
+                        v{trace.scope.version}
                       </span>
                     )}
                     <span
@@ -552,7 +555,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                   minWidth: 0,
                 }}
               >
-                {trace.matchedWorkflows && trace.matchedWorkflows.length > 0 ? (
+                {trace.registryStatus === 'matched' && trace.matchInfo ? (
                   <div
                     style={{
                       display: 'flex',
@@ -571,10 +574,10 @@ export const TraceList: React.FC<TraceListProps> = ({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {trace.matchedWorkflows.length} workflow{trace.matchedWorkflows.length !== 1 ? 's' : ''} matched
-                      {trace.totalEventCount && (
+                      Matched: {trace.matchInfo.storyboardName || trace.matchInfo.storyboardId}
+                      {trace.matchedNodesSummary && (
                         <span style={{ color: theme.colors.textMuted }}>
-                          {' '}• {Math.round(((trace.totalEventCount - (trace.unmatchedEventNames?.length || 0)) / trace.totalEventCount) * 100)}% coverage
+                          {' '}• {Math.round(trace.matchedNodesSummary.coveragePercent)}% coverage
                         </span>
                       )}
                     </span>

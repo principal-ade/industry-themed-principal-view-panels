@@ -9,78 +9,69 @@
 
 import React, { useMemo } from 'react';
 import type { Theme } from '@principal-ade/industry-theme';
-import type { TraceInfo, WorkflowMatch } from '../types/otel';
+import type { RegisteredTrace } from '../types/otel';
 import { WorkflowScenarioTreeCore } from '@principal-ade/dynamic-file-tree';
 import type { WorkflowWithScenarios, WorkflowScenarioNodeData } from '@principal-ade/dynamic-file-tree';
 import type { DiscoveredStoryboard, WorkflowScenario } from '@principal-ai/principal-view-core';
 
 export interface TraceExpansionProps {
-  trace: TraceInfo;
+  trace: RegisteredTrace;
   theme: Theme;
   onWorkflowClick?: (workflowId: string, scenarioId: string) => void;
 }
 
 /**
- * Convert WorkflowMatch[] to WorkflowWithScenarios[] for the tree component
+ * Convert RegisteredTrace matchInfo to WorkflowWithScenarios[] for the tree component
  */
-function convertMatchesToWorkflows(matches: WorkflowMatch[]): WorkflowWithScenarios[] {
-  // Group matches by workflow ID
-  const workflowMap = new Map<string, WorkflowMatch[]>();
-  for (const match of matches) {
-    if (!workflowMap.has(match.workflowId)) {
-      workflowMap.set(match.workflowId, []);
-    }
-    workflowMap.get(match.workflowId)!.push(match);
+function convertTraceToWorkflows(trace: RegisteredTrace): WorkflowWithScenarios[] {
+  // If trace is not matched or has no matchInfo, return empty array
+  if (trace.registryStatus !== 'matched' || !trace.matchInfo) {
+    return [];
   }
 
-  // Convert to WorkflowWithScenarios format
-  const workflows: WorkflowWithScenarios[] = [];
-  for (const [workflowId, workflowMatches] of workflowMap) {
-    const firstMatch = workflowMatches[0];
+  const { matchInfo } = trace;
 
-    // Create minimal DiscoveredStoryboard
-    const storyboard: DiscoveredStoryboard = {
-      id: firstMatch.storyboardId,
-      name: firstMatch.storyboardName,
+  // Create minimal DiscoveredStoryboard
+  const storyboard: DiscoveredStoryboard = {
+    id: matchInfo.storyboardId || 'unknown',
+    name: matchInfo.storyboardId || 'Unknown Storyboard',
+    path: '',
+    basename: '',
+    canvas: {
+      id: '',
+      name: '',
       path: '',
       basename: '',
-      canvas: {
-        id: '',
-        name: '',
-        path: '',
-        basename: '',
-        type: 'otel' as const,
-        scope: 'root' as const,
-      },
-      workflows: [],
-      packageName: undefined,
-      packagePath: undefined,
-      scope: 'root',
-    };
+      type: 'otel' as const,
+      scope: 'root' as const,
+    },
+    workflows: [],
+    packageName: undefined,
+    packagePath: undefined,
+    scope: 'root',
+  };
 
-    // Create scenarios from matches
-    const scenarios: WorkflowScenario[] = workflowMatches.map(match => ({
-      id: match.scenarioId,
-      priority: 1,
-      description: match.scenarioName,
-      condition: {},
-      template: {},
-    }));
+  // Create single scenario from matchInfo
+  const scenarios: WorkflowScenario[] = matchInfo.scenarioId ? [{
+    id: matchInfo.scenarioId,
+    priority: 1,
+    description: matchInfo.scenarioId,
+    template: {},
+  }] : [];
 
-    // Create WorkflowWithScenarios (using type assertion for minimal mock data)
-    workflows.push({
-      id: workflowId,
-      name: firstMatch.workflowName,
-      path: '',
-      basename: '',
-      storyboardId: firstMatch.storyboardId,
-      packageName: undefined,
-      packagePath: undefined,
-      scope: 'root',
-      storyboard,
-      scenarios,
-    } as WorkflowWithScenarios);
-  }
+  // Create WorkflowWithScenarios
+  const workflows: WorkflowWithScenarios[] = matchInfo.workflowId ? [{
+    id: matchInfo.workflowId,
+    name: matchInfo.workflowId,
+    path: '',
+    basename: '',
+    storyboardId: matchInfo.storyboardId || 'unknown',
+    packageName: undefined,
+    packagePath: undefined,
+    scope: 'root',
+    storyboard,
+    scenarios,
+  } as WorkflowWithScenarios] : [];
 
   return workflows;
 }
@@ -94,38 +85,37 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
   theme,
   onWorkflowClick,
 }) => {
-  const matchedCount = trace.matchedWorkflows?.length || 0;
-  const unmatchedCount = trace.unmatchedEventNames?.length || 0;
+  const matchedCount = trace.registryStatus === 'matched' ? 1 : 0;
+  const unmatchedCount = trace.validationIssues?.length || 0;
 
-  // Convert matches to WorkflowWithScenarios format for tree
+  // Convert trace to WorkflowWithScenarios format for tree
   const workflows = useMemo(() => {
-    if (!trace.matchedWorkflows) return [];
-    return convertMatchesToWorkflows(trace.matchedWorkflows);
-  }, [trace.matchedWorkflows]);
+    return convertTraceToWorkflows(trace);
+  }, [trace]);
 
   // Create workflow and scenario trace counts for the tree
   const { workflowTraceCounts, scenarioTraceCounts } = useMemo(() => {
-    if (!trace.matchedWorkflows) return { workflowTraceCounts: {}, scenarioTraceCounts: {} };
+    if (trace.registryStatus !== 'matched' || !trace.matchInfo) {
+      return { workflowTraceCounts: {}, scenarioTraceCounts: {} };
+    }
 
     const scenarioCounts: Record<string, number> = {};
     const workflowCounts: Record<string, number> = {};
 
-    for (const match of trace.matchedWorkflows) {
-      const scenarioKey = `${match.workflowId}/${match.scenarioId}`;
-      scenarioCounts[scenarioKey] = match.matchedEventCount;
+    // Count matched spans (those with matchedNodeIds)
+    const matchedSpanCount = trace.spanMatches.filter(m => m.matchedNodeIds.length > 0).length;
 
-      // Aggregate workflow counts from scenarios
-      if (!workflowCounts[match.workflowId]) {
-        workflowCounts[match.workflowId] = 0;
-      }
-      workflowCounts[match.workflowId] += match.matchedEventCount;
+    if (trace.matchInfo.workflowId && trace.matchInfo.scenarioId) {
+      const scenarioKey = `${trace.matchInfo.workflowId}/${trace.matchInfo.scenarioId}`;
+      scenarioCounts[scenarioKey] = matchedSpanCount;
+      workflowCounts[trace.matchInfo.workflowId] = matchedSpanCount;
     }
 
     return { workflowTraceCounts: workflowCounts, scenarioTraceCounts: scenarioCounts };
-  }, [trace.matchedWorkflows]);
+  }, [trace.registryStatus, trace.matchInfo, trace.spanMatches]);
 
   // If no workflow matching data, show message
-  if (!trace.matchedWorkflows && !trace.totalEventCount) {
+  if (trace.registryStatus === 'unmatched' || trace.registryStatus === 'not-registered') {
     return (
       <div
         style={{
@@ -135,7 +125,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
           fontStyle: 'italic',
         }}
       >
-        Workflow matching data not available for this trace.
+        This trace is {trace.registryStatus === 'unmatched' ? 'unmatched' : 'not registered'}.
       </div>
     );
   }
@@ -193,7 +183,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
               color: theme.colors.warning || '#f59e0b',
             }}
           >
-            Unmatched Events ({unmatchedCount})
+            Validation Issues ({unmatchedCount})
           </div>
           <div
             style={{
@@ -205,9 +195,9 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
               overflowY: 'auto',
             }}
           >
-            {trace.unmatchedEventNames?.map((eventName, index) => (
+            {trace.validationIssues?.map((issue, index) => (
               <div
-                key={`${eventName}-${index}`}
+                key={`${issue.category}-${issue.message}-${index}`}
                 style={{
                   fontSize: theme.fontSizes[0],
                   color: theme.colors.text,
@@ -215,7 +205,12 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                   fontFamily: theme.fonts.monospace || 'monospace',
                 }}
               >
-                • {eventName}
+                • {issue.message}
+                {issue.suggestion && (
+                  <span style={{ color: theme.colors.textMuted, marginLeft: theme.space[2] }}>
+                    ({issue.suggestion})
+                  </span>
+                )}
               </div>
             ))}
           </div>

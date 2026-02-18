@@ -3,7 +3,8 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { TraceDetails } from '../components/TraceDetails';
-import type { TraceInfo } from '../types/otel';
+import type { RegisteredTrace } from '../types/otel';
+import { getRootSpan, getSpansFromTrace } from '../types/otel';
 
 export interface TraceDetailsPanelProps extends PanelComponentProps {
   /**
@@ -11,7 +12,7 @@ export interface TraceDetailsPanelProps extends PanelComponentProps {
    * If provided, this takes precedence over context/event-driven modes.
    * This allows the host to control panel state via props instead of events.
    */
-  selectedTrace?: TraceInfo | null;
+  selectedTrace?: RegisteredTrace | null;
 }
 
 /**
@@ -70,7 +71,7 @@ export const TraceDetailsPanel: React.FC<TraceDetailsPanelProps> = ({
                 marginBottom: theme.space[1],
               }}
             >
-              {selectedTrace.rootSpan?.name || 'Trace Details'}
+              {getRootSpan(selectedTrace)?.name || selectedTrace.name || 'Trace Details'}
             </div>
             <div
               style={{
@@ -80,14 +81,14 @@ export const TraceDetailsPanel: React.FC<TraceDetailsPanelProps> = ({
             >
               {selectedTrace.serviceName && `${selectedTrace.serviceName} • `}
               {selectedTrace.spanCount} {selectedTrace.spanCount === 1 ? 'span' : 'spans'}
-              {selectedTrace.matchedWorkflows && selectedTrace.matchedWorkflows.length > 0 &&
-                ` • ${selectedTrace.matchedWorkflows.length} workflow${selectedTrace.matchedWorkflows.length !== 1 ? 's' : ''}`}
+              {selectedTrace.registryStatus === 'matched' && selectedTrace.matchInfo &&
+                ` • Matched: ${selectedTrace.matchInfo.storyboardId}`}
             </div>
           </div>
 
           {/* Trace details */}
           <div style={{ flex: 1, minHeight: 0 }}>
-            <TraceDetails key={selectedTrace.traceId} spans={selectedTrace.spans} theme={theme} />
+            <TraceDetails key={selectedTrace.traceId} spans={getSpansFromTrace(selectedTrace)} theme={theme} />
           </div>
         </>
       ) : (

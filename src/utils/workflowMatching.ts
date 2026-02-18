@@ -1,10 +1,13 @@
 /**
  * Workflow matching utilities for multi-workflow trace analysis
+ *
+ * @deprecated These utilities are deprecated in favor of registry-based matching in RegisteredTrace
  */
 
 import { renderWorkflow, getAttributeValue } from '@principal-ai/principal-view-core';
-import type { WorkflowTemplate, OtelEvent, OtelSpanData, OtelKeyValue, OtelAttributes } from '@principal-ai/principal-view-core';
-import type { TraceInfo, WorkflowMatch } from '../types/otel';
+import type { WorkflowTemplate, OtelEvent, OtelSpanData, OtelKeyValue, OtelAttributes, WorkflowMatch } from '@principal-ai/principal-view-core';
+import type { RegisteredTrace } from '../types/otel';
+import { getSpansFromTrace } from '../types/otel';
 
 export interface WorkflowMatchingResult {
   matches: WorkflowMatch[];
@@ -61,16 +64,18 @@ export interface WorkflowMetadata {
  * 3. Tracks which events matched vs unmatched
  * 4. Returns comprehensive matching results
  *
+ * @deprecated Use registry-based matching in RegisteredTrace instead
  * @param trace - The trace to analyze
  * @param workflows - Array of workflows with metadata (from DiscoveredWorkflow)
  * @returns Matching results with matched workflows, unmatched events, and coverage metrics
  */
 export function matchTraceToWorkflows(
-  trace: TraceInfo,
+  trace: RegisteredTrace,
   workflows: WorkflowMetadata[]
 ): WorkflowMatchingResult {
   // Convert all spans to OtelEvents
-  const allEvents = trace.spans.flatMap(span => {
+  const spans = getSpansFromTrace(trace);
+  const allEvents = spans.flatMap(span => {
     try {
       return convertSpanToOtelEvents(span);
     } catch (e) {
@@ -141,36 +146,27 @@ export function matchTraceToWorkflows(
  *
  * This updates the trace object with matchedWorkflows, unmatchedEventNames, and totalEventCount
  *
+ * @deprecated Use registry-based matching in RegisteredTrace instead
  * @param trace - The trace to enrich
  * @param workflows - Array of workflows with metadata to match against
  * @returns The enriched trace
  */
 export function enrichTraceWithWorkflowMatches(
-  trace: TraceInfo,
+  trace: RegisteredTrace,
   workflows: WorkflowMetadata[]
-): TraceInfo {
-  const matchingResult = matchTraceToWorkflows(trace, workflows);
-
-  return {
-    ...trace,
-    matchedWorkflows: matchingResult.matches,
-    unmatchedEventNames: matchingResult.unmatchedEventNames,
-    totalEventCount: matchingResult.totalEventCount,
-  };
+): RegisteredTrace {
+  // This function is deprecated - RegisteredTrace already has matching info from the registry
+  console.warn('[workflowMatching] enrichTraceWithWorkflowMatches is deprecated. RegisteredTrace already includes matching info.');
+  return trace;
 }
 
 /**
  * Calculate coverage percentage for a trace
  *
+ * @deprecated Use RegisteredTrace.matchedNodesSummary.coveragePercent instead
  * @param trace - Trace with workflow matching information
  * @returns Coverage percentage (0-100)
  */
-export function calculateCoveragePercentage(trace: TraceInfo): number {
-  if (!trace.totalEventCount || trace.totalEventCount === 0) {
-    return 0;
-  }
-
-  const unmatchedCount = trace.unmatchedEventNames?.length || 0;
-  const matchedCount = trace.totalEventCount - unmatchedCount;
-  return Math.round((matchedCount / trace.totalEventCount) * 100);
+export function calculateCoveragePercentage(trace: RegisteredTrace): number {
+  return trace.matchedNodesSummary?.coveragePercent || 0;
 }

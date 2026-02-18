@@ -12,7 +12,8 @@ import { Activity, X, CheckCircle2, List, Radar } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { TraceSearchView } from './execution-viewer/TraceSearchView';
 import { LiveTraceSearchView } from './execution-viewer/LiveTraceSearchView';
-import type { TraceInfo } from '../types/otel';
+import type { RegisteredTrace } from '../types/otel';
+import { getSpansFromTrace } from '../types/otel';
 import type { OtelSpanData, OtelKeyValue } from '@principal-ai/principal-view-core';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { WorkflowExplainerPanel } from './WorkflowExplainerPanel';
@@ -312,7 +313,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   const { storyboards, testTraces } = useCanvasData({ context, actions });
 
   // Get live OTEL traces from telemetry slice
-  const telemetrySlice = context.getSlice<TraceInfo[]>('telemetry');
+  const telemetrySlice = context.getSlice<RegisteredTrace[]>('telemetry');
   const allLiveTraces = useMemo(() => telemetrySlice?.data || [], [telemetrySlice?.data]);
 
   // Filter live traces to only show traces matching the current workflow
@@ -320,7 +321,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     if (!selectedWorkflowIdProp) return allLiveTraces;
 
     return allLiveTraces.filter(trace =>
-      trace.matchedWorkflows?.some(match => match.workflowId === selectedWorkflowIdProp)
+      trace.registryStatus === 'matched' && trace.matchInfo?.workflowId === selectedWorkflowIdProp
     );
   }, [allLiveTraces, selectedWorkflowIdProp]);
 
@@ -737,7 +738,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     }
   }, [state.availableExecutions]);
 
-  // Handle live trace selection (TraceInfo from telemetry slice)
+  // Handle live trace selection (RegisteredTrace from telemetry slice)
   const handleLiveTraceSelect = useCallback((traceId: string) => {
     try {
       const trace = liveTraces.find(t => t.traceId === traceId);
@@ -746,7 +747,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
         return;
       }
 
-      // Convert TraceInfo to ExecutionData format
+      // Convert RegisteredTrace to ExecutionData format
+      const spans = getSpansFromTrace(trace);
       const executionData: ExecutionData = {
         metadata: {
           canvasName: state.canvas?.pv?.name || 'Unknown Canvas',
@@ -755,7 +757,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
           framework: 'otel',
           status: trace.hasErrors ? ('failure' as const) : ('success' as const),
         },
-        spans: trace.spans.map((span: OtelSpanData) => ({
+        spans: spans.map((span: OtelSpanData) => ({
           id: span.spanId,
           name: span.name,
           startTime: Math.floor(Number(span.startTimeUnixNano) / 1_000_000), // Convert nanos to milliseconds

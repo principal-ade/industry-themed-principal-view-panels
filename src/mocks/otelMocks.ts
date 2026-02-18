@@ -3,8 +3,8 @@ import type {
   OtelResourceData,
   OtelSpanData,
   OtelKeyValue,
+  RegisteredTrace,
 } from '@principal-ai/principal-view-core';
-import type { TraceInfo } from '../types/otel';
 
 // Type aliases for mock code
 type OtelResourceSpans = { resourceSpans: OtelResourceSpansData[] };
@@ -436,8 +436,8 @@ export function generateRandomTraces(count: number): OtelResourceSpans {
 /**
  * Create a trace with multi-workflow matching data
  *
- * This creates a trace pre-populated with matchedWorkflows, unmatchedEventNames, and totalEventCount
- * for testing the TraceExpansion component
+ * @deprecated RegisteredTrace uses different structure for matching info
+ * This creates a trace pre-populated with matching information for testing the TraceExpansion component
  */
 export function createTraceWithMultiWorkflowData(params: {
   name: string;
@@ -453,69 +453,52 @@ export function createTraceWithMultiWorkflowData(params: {
   unmatchedEventNames?: string[];
   totalEventCount?: number;
   hasError?: boolean;
-}): TraceInfo {
+}): RegisteredTrace {
   const {
     name,
     workflows = [],
-    unmatchedEventNames = [],
-    totalEventCount = 0,
     hasError = false,
   } = params;
 
   const traceId = generateTraceId();
   const now = Date.now();
 
-  const span = createMockSpan({
-    name,
-    traceId,
-    durationMs: 234,
-    hasError,
-    attributes: {
-      'http.method': 'POST',
-      'http.route': '/api/test',
-    },
-  });
-
-  // Add some events to the span for realism
-  span.events = [
-    {
-      name: 'request.started',
-      timeUnixNano: getCurrentNanoTime(),
-      attributes: [],
-    },
-    {
-      name: 'validation.complete',
-      timeUnixNano: getCurrentNanoTime(),
-      attributes: [],
-    },
-    {
-      name: 'processing.complete',
-      timeUnixNano: getCurrentNanoTime(),
-      attributes: [],
-    },
-  ];
-
-  const resource = createMockResource('test-service', {
-    'service.version': '1.0.0',
-    'deployment.environment': 'test',
-  });
+  // Use first workflow as primary match info
+  const primaryMatch = workflows[0];
 
   return {
     traceId,
-    spans: [span],
-    rootSpan: span,
-    serviceName: 'test-service',
-    serviceVersion: '1.0.0',
-    repositoryUrl: 'https://github.com/test/repo',
-    commitSha: 'abc1234',
+    name,
     startTime: now,
     endTime: now + 234,
     duration: 234,
     spanCount: 1,
+    serviceName: 'test-service',
     hasErrors: hasError,
-    resource,
-    matchedWorkflows: workflows,
-    unmatchedEventNames,
-    totalEventCount,
+    scope: {
+      name: 'test-instrumentation',
+      version: '1.0.0',
+    },
+    registryStatus: primaryMatch ? 'matched' : 'unmatched',
+    matchInfo: primaryMatch ? {
+      storyboardId: primaryMatch.storyboardId,
+      storyboardName: primaryMatch.storyboardName,
+      workflowId: primaryMatch.workflowId,
+      workflowName: primaryMatch.workflowName,
+      scenarioId: primaryMatch.scenarioId,
+      scenarioName: primaryMatch.scenarioName,
+      schemaVersion: '1.0.0',
+    } : undefined,
+    spanMatches: [],
+    matchedNodesSummary: {
+      totalNodesMatched: 0,
+      matchedNodeIds: [],
+      unmatchedNodeIds: [],
+      coveragePercent: 0,
+    },
+    routing: {
+      sourceUrl: 'http://localhost:3000',
+      destination: primaryMatch ? 'storyboard-viewer' : 'unmatched',
+    },
   };
 }

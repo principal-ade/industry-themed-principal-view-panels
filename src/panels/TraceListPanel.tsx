@@ -3,7 +3,7 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { TraceList } from '../components/TraceList';
-import type { TraceInfo } from '../types/otel';
+import type { RegisteredTrace } from '../types/otel';
 import type { FileTree } from '@principal-ai/repository-abstraction';
 import { LibraryDiscovery } from '@principal-ai/principal-view-core';
 import type { VersionSnapshot, WorkflowTemplate } from '@principal-ai/principal-view-core';
@@ -42,7 +42,7 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
   const [workflowFilterMode, setWorkflowFilterMode] = useState<StoryboardFilterMode>('all');
 
   // Get traces from telemetry slice
-  const telemetrySlice = context.getSlice<TraceInfo[]>('telemetry');
+  const telemetrySlice = context.getSlice<RegisteredTrace[]>('telemetry');
   const traces = React.useMemo(() => telemetrySlice?.data || [], [telemetrySlice?.data]);
 
   // Get schematics from schematics slice (version registry data)
@@ -55,11 +55,9 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
     const workflowSet = new Set<string>();
 
     traces.forEach(trace => {
-      // Extract workflow info from matchedWorkflows
-      if (trace.matchedWorkflows) {
-        trace.matchedWorkflows.forEach(match => {
-          workflowSet.add(match.workflowId);
-        });
+      // Extract workflow info from matchInfo
+      if (trace.matchInfo?.workflowId) {
+        workflowSet.add(trace.matchInfo.workflowId);
       }
     });
 
@@ -298,7 +296,7 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
     }
   };
 
-  const handleTraceClick = (trace: TraceInfo) => {
+  const handleTraceClick = (trace: RegisteredTrace) => {
     setSelectedTraceId(trace.traceId);
 
     // Emit trace:selected event for tab manager to handle

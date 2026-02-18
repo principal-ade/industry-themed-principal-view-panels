@@ -12,37 +12,11 @@ import {
   type OtelResourceData,
   type OtelSpanData,
   type WorkflowMatch,
+  type RegisteredTrace,
 } from '@principal-ai/principal-view-core';
 
-// Re-export WorkflowMatch from core
-export type { WorkflowMatch };
-
-/**
- * Panel-specific TraceInfo type
- *
- * This is different from core's TraceInfo - it includes the full spans array
- * for display purposes in the panels UI.
- */
-export interface TraceInfo {
-  traceId: string;
-  spans: OtelSpanData[];
-  rootSpan: OtelSpanData | undefined;
-  serviceName: string | undefined;
-  serviceVersion: string | undefined;
-  repositoryUrl: string | undefined;
-  commitSha: string | undefined;
-  startTime: number; // milliseconds
-  endTime: number; // milliseconds
-  duration: number; // milliseconds
-  spanCount: number;
-  hasErrors: boolean;
-  resource: OtelResourceData;
-
-  // Multi-workflow matching (computed by matching against all workflows)
-  matchedWorkflows?: WorkflowMatch[];
-  unmatchedEventNames?: string[];
-  totalEventCount?: number;
-}
+// Re-export core types
+export type { WorkflowMatch, RegisteredTrace };
 
 /**
  * Helper to get service name from resource
@@ -53,84 +27,37 @@ export function getServiceName(resource: OtelResourceData): string | undefined {
 }
 
 /**
- * Group spans by trace ID and compute trace-level information
- *
- * This returns the panel-specific TraceInfo type with full span data.
+ * Extract all spans from a RegisteredTrace
  */
-export function groupSpansByTrace(
-  resourceSpans: { resourceSpans: OtelResourceSpansData[] }
-): TraceInfo[] {
-  const traceMap = new Map<string, { spans: OtelSpanData[]; resource: OtelResourceData }>();
+export function getSpansFromTrace(trace: RegisteredTrace): OtelSpanData[] {
+  const spans: OtelSpanData[] = [];
 
-  // Collect all spans by trace ID
-  for (const resourceSpan of resourceSpans.resourceSpans) {
+  if (!trace.otlpData?.resourceSpans) {
+    return spans;
+  }
+
+  for (const resourceSpan of trace.otlpData.resourceSpans) {
     for (const scopeSpan of resourceSpan.scopeSpans) {
       for (const span of scopeSpan.spans) {
-        if (!traceMap.has(span.traceId)) {
-          traceMap.set(span.traceId, {
-            spans: [],
-            resource: resourceSpan.resource,
-          });
-        }
-        traceMap.get(span.traceId)!.spans.push(span);
+        spans.push(span);
       }
     }
   }
 
-  // Convert to TraceInfo array
-  const traces: TraceInfo[] = [];
-  for (const [traceId, { spans, resource }] of traceMap) {
-    const rootSpan = spans.find(s => !s.parentSpanId || s.parentSpanId === '');
-    const startTime = Math.min(...spans.map(s => parseNanoTime(s.startTimeUnixNano)));
-    const endTime = Math.max(...spans.map(s => parseNanoTime(s.endTimeUnixNano)));
-    const hasErrors = spans.some(
-      s => s.status?.code === 2 || s.events?.some(e => e.name === 'exception')
-    );
+  return spans;
+}
 
-    // Extract workflow matching information from resource attributes
-    // Convert legacy single-workflow attributes to matchedWorkflows array format
-    const storyboardId = getAttributeValue(resource.attributes, 'pv.storyboard.id') as string | undefined;
-    const storyboardName = getAttributeValue(resource.attributes, 'pv.storyboard.name') as string | undefined;
-    const workflowId = getAttributeValue(resource.attributes, 'pv.workflow.id') as string | undefined;
-    const workflowName = getAttributeValue(resource.attributes, 'pv.workflow.name') as string | undefined;
-    const scenarioId = getAttributeValue(resource.attributes, 'pv.scenario.id') as string | undefined;
-    const scenarioName = getAttributeValue(resource.attributes, 'pv.scenario.name') as string | undefined;
+/**
+ * Get root span from a RegisteredTrace
+ */
+export function getRootSpan(trace: RegisteredTrace): OtelSpanData | undefined {
+  const spans = getSpansFromTrace(trace);
+  return spans.find(s => !s.parentSpanId || s.parentSpanId === '');
+}
 
-    const matchedWorkflows = storyboardId && storyboardName && workflowId && workflowName && scenarioId && scenarioName ? [{
-      storyboardId,
-      storyboardName,
-      workflowId,
-      workflowName,
-      scenarioId,
-      scenarioName,
-      matchedEventCount: 0, // Unknown from resource attributes
-    }] : undefined;
-
-    // Extract version information from resource attributes
-    const serviceVersion = getAttributeValue(resource.attributes, 'service.version') as string | undefined;
-    const repositoryUrl = getAttributeValue(resource.attributes, 'service.repository.url') as string | undefined;
-    const commitSha = getAttributeValue(resource.attributes, 'service.commit.sha') as string | undefined;
-
-    traces.push({
-      traceId,
-      spans,
-      rootSpan,
-      serviceName: getServiceName(resource),
-      serviceVersion,
-      repositoryUrl,
-      commitSha,
-      startTime,
-      endTime,
-      duration: endTime - startTime,
-      spanCount: spans.length,
-      hasErrors,
-      resource,
-      matchedWorkflows,
-    });
-  }
-
-  // Sort by start time (most recent first)
-  traces.sort((a, b) => b.startTime - a.startTime);
-
-  return traces;
+/**
+ * Get resource from a RegisteredTrace
+ */
+export function getResource(trace: RegisteredTrace): OtelResourceData | undefined {
+  return trace.otlpData?.resourceSpans?.[0]?.resource;
 }
