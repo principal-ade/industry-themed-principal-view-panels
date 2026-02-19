@@ -474,33 +474,43 @@ export function createTraceWithMultiWorkflowData(params: {
     endTime: now + 234,
     duration: 234,
     spanCount: 1,
-    serviceName: 'test-service',
     hasErrors: hasError,
-    scope: {
-      name: 'test-instrumentation',
-      version: '1.0.0',
-    },
-    registryStatus: primaryMatch ? 'matched' : 'unmatched',
-    matchInfo: primaryMatch ? {
+    resources: [{
+      serviceIdentifier: 'http://localhost:3000',
+      serviceName: 'test-service',
+      attributes: {
+        'service.name': 'test-service',
+        'service.version': '1.0.0',
+      },
+      scopes: [{
+        scope: {
+          name: 'test-instrumentation',
+          version: '1.0.0',
+        },
+        spanIds: [traceId],
+      }],
+    }],
+    scenarioMatches: primaryMatch ? [{
       storyboardId: primaryMatch.storyboardId,
       storyboardName: primaryMatch.storyboardName,
       workflowId: primaryMatch.workflowId,
       workflowName: primaryMatch.workflowName,
       scenarioId: primaryMatch.scenarioId,
-      scenarioName: primaryMatch.scenarioName,
-      schemaVersion: '1.0.0',
-    } : undefined,
-    spanMatches: [],
-    matchedNodesSummary: {
-      totalNodesMatched: 0,
-      matchedNodeIds: [],
-      unmatchedNodeIds: [],
-      coveragePercent: 0,
-    },
-    routing: {
-      sourceUrl: 'http://localhost:3000',
-      destination: primaryMatch ? 'storyboard-viewer' : 'unmatched',
-    },
+      scopeName: 'test-instrumentation',
+      matchedSpans: [{
+        spanId: traceId,
+        spanName: name,
+        nodeId: 'node-1',
+        timestamp: now,
+        duration: 234,
+        events: [],
+        matchConfidence: 'exact',
+      }],
+      coveragePercent: 100,
+      matchType: 'full',
+    }] : [],
+    storyboardMatches: [],
+    unmatchedSpans: { spans: [] },
   };
 }
 
@@ -553,8 +563,7 @@ export function convertToRegisteredTraces(
     const scenarioId = getAttributeValue(resource.attributes, 'pv.scenario.id') as string | undefined;
     const scenarioName = getAttributeValue(resource.attributes, 'pv.scenario.name') as string | undefined;
 
-    const hasMatchInfo = storyboardId && storyboardName;
-    const registryStatus: RegisteredTrace['registryStatus'] = hasMatchInfo ? 'matched' : 'unmatched';
+    const hasMatchInfo = storyboardId && storyboardName && scenarioId;
 
     traces.push({
       traceId,
@@ -563,33 +572,43 @@ export function convertToRegisteredTraces(
       endTime,
       duration: endTime - startTime,
       spanCount: spans.length,
-      serviceName,
       hasErrors,
-      scope: {
-        name: scopeName || 'unknown',
-        version: scopeVersion || serviceVersion,
-      },
-      registryStatus,
-      matchInfo: hasMatchInfo ? {
+      resources: [{
+        serviceIdentifier: `http://${serviceName}`,
+        serviceName,
+        attributes: {
+          'service.name': serviceName,
+          'service.version': serviceVersion || 'unknown',
+        },
+        scopes: [{
+          scope: {
+            name: scopeName || 'unknown',
+            version: scopeVersion || serviceVersion || 'unknown',
+          },
+          spanIds: spans.map(s => s.spanId),
+        }],
+      }],
+      scenarioMatches: hasMatchInfo ? [{
         storyboardId: storyboardId!,
-        storyboardName: storyboardName!,
-        workflowId,
+        storyboardName,
+        workflowId: workflowId || storyboardId!, // Fallback to storyboardId if no workflow
         workflowName,
-        scenarioId,
-        scenarioName,
-        schemaVersion: scopeVersion || serviceVersion,
-      } : undefined,
-      spanMatches: [],
-      matchedNodesSummary: {
-        totalNodesMatched: 0,
-        matchedNodeIds: [],
-        unmatchedNodeIds: [],
-        coveragePercent: 0,
-      },
-      routing: {
-        sourceUrl: `http://${serviceName}`,
-        destination: hasMatchInfo ? 'storyboard-viewer' : 'unmatched',
-      },
+        scenarioId: scenarioId!,
+        scopeName: scopeName || 'unknown',
+        matchedSpans: spans.map(span => ({
+          spanId: span.spanId,
+          spanName: span.name,
+          nodeId: workflowId || 'node-1',
+          timestamp: parseNanoTime(span.startTimeUnixNano),
+          duration: parseNanoTime(span.endTimeUnixNano) - parseNanoTime(span.startTimeUnixNano),
+          events: span.events?.map(e => e.name) || [],
+          matchConfidence: 'exact' as const,
+        })),
+        coveragePercent: 100,
+        matchType: 'full' as const,
+      }] : [],
+      storyboardMatches: [],
+      unmatchedSpans: { spans: [] },
       otlpData: {
         resourceSpans: resourceSpans.resourceSpans,
       },

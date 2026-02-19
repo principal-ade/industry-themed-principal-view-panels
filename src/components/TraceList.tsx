@@ -2,8 +2,16 @@ import React, { useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle, Search, Trash2, X } from 'lucide-react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { RegisteredTrace } from '../types/otel';
-import { getRootSpan } from '../types/otel';
 import { TraceExpansion } from './TraceExpansion';
+import {
+  getServiceName,
+  getPrimaryScope,
+  getSchemaVersion,
+  isTraceMatched,
+  getMatchQuality,
+  getMatchedNodesSummary,
+  getPrimaryStoryboardId,
+} from '../utils/traceHelpers';
 
 export interface TraceListProps {
   traces: RegisteredTrace[];
@@ -44,24 +52,6 @@ export const TraceList: React.FC<TraceListProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-  // Calculate workflow matching stats
-  const matchingStats = useMemo(() => {
-    const withVersion = traces.filter(t => t.scope.version || t.matchInfo?.schemaVersion);
-    const matched = traces.filter(t => t.registryStatus === 'matched');
-    const versions = new Set(
-      traces
-        .filter(t => t.scope.version)
-        .map(t => `${t.serviceName || 'unknown'}@${t.scope.version}`)
-    );
-
-    return {
-      total: traces.length,
-      withVersion: withVersion.length,
-      matched: matched.length,
-      versions: Array.from(versions),
-    };
-  }, [traces]);
-
   // Filter traces by search query
   const filteredTraces = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -73,25 +63,24 @@ export const TraceList: React.FC<TraceListProps> = ({
       // Search in trace ID
       if (trace.traceId.toLowerCase().includes(query)) return true;
       // Search in service name
-      if (trace.serviceName?.toLowerCase().includes(query)) return true;
-      // Search in root span name
-      const rootSpan = getRootSpan(trace);
-      if (rootSpan?.name.toLowerCase().includes(query)) return true;
+      const serviceName = getServiceName(trace);
+      if (serviceName.toLowerCase().includes(query)) return true;
+      // Search in trace name
+      if (trace.name.toLowerCase().includes(query)) return true;
       return false;
     });
   }, [traces, searchQuery]);
 
-  // Group traces by root span name, error status, and workflow matching
+  // Group traces by name, error status, and workflow matching
   const groupedTraces = useMemo((): GroupedTrace[] => {
     const groups = new Map<string, RegisteredTrace[]>();
 
     for (const trace of filteredTraces) {
-      // Create a key based on: root span name, error status, registry status
-      const rootSpan = getRootSpan(trace);
-      const rootSpanName = rootSpan?.name || 'Unknown Operation';
+      // Create a key based on: trace name, error status, match quality
+      const traceName = trace.name || 'Unknown Operation';
       const hasErrors = trace.hasErrors ? 'error' : 'success';
-      const registryStatus = trace.registryStatus;
-      const key = `${rootSpanName}|${hasErrors}|${registryStatus}`;
+      const matchQuality = getMatchQuality(trace);
+      const key = `${traceName}|${hasErrors}|${matchQuality}`;
 
       if (!groups.has(key)) {
         groups.set(key, []);
@@ -166,36 +155,6 @@ export const TraceList: React.FC<TraceListProps> = ({
         boxSizing: 'border-box',
       }}
     >
-      {/* Workflow Matching Summary */}
-      {traces.length > 0 && matchingStats.matched > 0 && (
-        <div
-          style={{
-            padding: theme.space[2],
-            backgroundColor: `${theme.colors.success || '#22c55e'}15`,
-            border: `1px solid ${theme.colors.success || '#22c55e'}`,
-            borderRadius: theme.radii[2],
-            fontSize: theme.fontSizes[1],
-            color: theme.colors.text,
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.space[2],
-            flexShrink: 0,
-          }}
-        >
-          <CheckCircle size={16} color={theme.colors.success || '#22c55e'} style={{ flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: theme.fontWeights.medium }}>
-              Workflow Matching: {matchingStats.matched}/{matchingStats.total} traces matched
-            </div>
-            {matchingStats.versions.length > 0 && (
-              <div style={{ fontSize: theme.fontSizes[0], color: theme.colors.textSecondary, marginTop: '2px' }}>
-                Versions: {matchingStats.versions.join(', ')}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Search Bar with Clear All button */}
       {showSearch && traces.length > 0 && (
         <div
@@ -398,7 +357,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                     minWidth: 0,
                   }}
                 >
-                  {/* Root span name (operation) - Primary */}
+                  {/* Trace name (operation) - Primary */}
                   <span
                     style={{
                       fontSize: theme.fontSizes[2],
@@ -409,7 +368,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {getRootSpan(trace)?.name || 'Unknown Operation'}
+                    {trace.name || 'Unknown Operation'}
                   </span>
 
                   {/* Service name + Duration + Span Count */}
@@ -422,38 +381,44 @@ export const TraceList: React.FC<TraceListProps> = ({
                       minWidth: 0,
                     }}
                   >
-                    {trace.serviceName && (
-                      <span
-                        style={{
-                          color: theme.colors.textMuted,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          minWidth: 0,
-                        }}
-                      >
-                        {trace.serviceName}
-                      </span>
-                    )}
-                    {trace.scope.version && (
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          padding: '2px 6px',
-                          fontSize: theme.fontSizes[0],
-                          backgroundColor: `${theme.colors.primary}15`,
-                          color: theme.colors.primary,
-                          border: `1px solid ${theme.colors.primary}40`,
-                          borderRadius: '3px',
-                          fontWeight: theme.fontWeights.medium,
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0,
-                        }}
-                        title={`Version: ${trace.scope.version}`}
-                      >
-                        v{trace.scope.version}
-                      </span>
-                    )}
+                    {(() => {
+                      const serviceName = getServiceName(trace);
+                      return serviceName !== 'unknown' && (
+                        <span
+                          style={{
+                            color: theme.colors.textMuted,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            minWidth: 0,
+                          }}
+                        >
+                          {serviceName}
+                        </span>
+                      );
+                    })()}
+                    {(() => {
+                      const version = getSchemaVersion(trace);
+                      return version && (
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '2px 6px',
+                            fontSize: theme.fontSizes[0],
+                            backgroundColor: `${theme.colors.primary}15`,
+                            color: theme.colors.primary,
+                            border: `1px solid ${theme.colors.primary}40`,
+                            borderRadius: '3px',
+                            fontWeight: theme.fontWeights.medium,
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                          }}
+                          title={`Version: ${version}`}
+                        >
+                          v{version}
+                        </span>
+                      );
+                    })()}
                     <span
                       style={{
                         color: theme.colors.textMuted,
@@ -555,45 +520,51 @@ export const TraceList: React.FC<TraceListProps> = ({
                   minWidth: 0,
                 }}
               >
-                {trace.registryStatus === 'matched' && trace.matchInfo ? (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: theme.space[0],
-                      flex: 1,
-                      minWidth: 0,
-                    }}
-                  >
+                {(() => {
+                  const matched = isTraceMatched(trace);
+                  const storyboardId = getPrimaryStoryboardId(trace);
+                  const summary = matched ? getMatchedNodesSummary(trace) : null;
+
+                  return matched && storyboardId ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: theme.space[0],
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: theme.fontSizes[0],
+                          color: theme.colors.textSecondary,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Matched: {storyboardId}
+                        {summary && summary.coveragePercent > 0 && (
+                          <span style={{ color: theme.colors.textMuted }}>
+                            {' '}• {Math.round(summary.coveragePercent)}% coverage
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  ) : (
                     <span
                       style={{
                         fontSize: theme.fontSizes[0],
-                        color: theme.colors.textSecondary,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        color: theme.colors.textMuted,
+                        fontStyle: 'italic',
+                        flex: 1,
                       }}
                     >
-                      Matched: {trace.matchInfo.storyboardName || trace.matchInfo.storyboardId}
-                      {trace.matchedNodesSummary && (
-                        <span style={{ color: theme.colors.textMuted }}>
-                          {' '}• {Math.round(trace.matchedNodesSummary.coveragePercent)}% coverage
-                        </span>
-                      )}
+                      No workflow match
                     </span>
-                  </div>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: theme.fontSizes[0],
-                      color: theme.colors.textMuted,
-                      fontStyle: 'italic',
-                      flex: 1,
-                    }}
-                  >
-                    No workflow match
-                  </span>
-                )}
+                  );
+                })()}
                 {isRepresentative && isGrouped && (
                   <button
                     onClick={(e) => {

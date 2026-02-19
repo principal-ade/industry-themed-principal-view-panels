@@ -3,6 +3,13 @@ import { Search, X, Activity, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { RegisteredTrace } from '../../types/otel';
 import { getRootSpan } from '../../types/otel';
+import {
+  getServiceName,
+  getPrimaryScope,
+  filterTracesByScenario,
+  getMatchedScenarioIds,
+  getPrimaryScenarioId
+} from '../../utils/traceHelpers';
 
 interface LiveTraceSearchViewProps {
   traces: RegisteredTrace[];
@@ -36,9 +43,7 @@ export const LiveTraceSearchView: React.FC<LiveTraceSearchViewProps> = ({
   const scenarioFilteredTraces = useMemo(() => {
     if (!selectedScenarioId) return traces;
 
-    return traces.filter(trace =>
-      trace.registryStatus === 'matched' && trace.matchInfo?.scenarioId === selectedScenarioId
-    );
+    return filterTracesByScenario(traces, selectedScenarioId);
   }, [traces, selectedScenarioId]);
 
   // Then apply text search across all attributes
@@ -51,12 +56,15 @@ export const LiveTraceSearchView: React.FC<LiveTraceSearchViewProps> = ({
 
     return scenarioFilteredTraces.filter(trace => {
       // Build a searchable text string from all trace attributes
-      const matchInfo = trace.matchInfo ?
-        `${trace.matchInfo.scenarioId || ''} ${trace.matchInfo.scenarioName || ''} ${trace.matchInfo.workflowName || ''}` : '';
+      const serviceName = getServiceName(trace);
+      const scope = getPrimaryScope(trace);
+      const scenarioIds = getMatchedScenarioIds(trace);
+      const matchInfo = scenarioIds.join(' ');
+
       const searchableText = [
         trace.traceId,
-        trace.serviceName || '',
-        trace.scope.version || '',
+        serviceName,
+        scope?.version || '',
         getRootSpan(trace)?.name || '',
         matchInfo,
         trace.hasErrors ? 'error failed' : 'success passed',
@@ -270,7 +278,7 @@ export const LiveTraceSearchView: React.FC<LiveTraceSearchViewProps> = ({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {filteredTraces.map((trace) => {
-              const scenarioId = trace.matchInfo?.scenarioId;
+              const scenarioId = getPrimaryScenarioId(trace);
               const isSelected = trace.traceId === selectedTraceId;
 
               return (
@@ -346,22 +354,26 @@ export const LiveTraceSearchView: React.FC<LiveTraceSearchViewProps> = ({
                       flexWrap: 'wrap',
                     }}
                   >
-                    {trace.serviceName && (
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {trace.serviceName}
-                        {trace.scope.version && (
-                          <span style={{
-                            marginLeft: '4px',
-                            padding: '1px 4px',
-                            background: `${theme.colors.primary}20`,
-                            borderRadius: '2px',
-                            fontSize: theme.fontSizes[0],
-                          }}>
-                            v{trace.scope.version}
-                          </span>
-                        )}
-                      </span>
-                    )}
+                    {(() => {
+                      const serviceName = getServiceName(trace);
+                      const scope = getPrimaryScope(trace);
+                      return serviceName !== 'unknown' && (
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {serviceName}
+                          {scope?.version && (
+                            <span style={{
+                              marginLeft: '4px',
+                              padding: '1px 4px',
+                              background: `${theme.colors.primary}20`,
+                              borderRadius: '2px',
+                              fontSize: theme.fontSizes[0],
+                            }}>
+                              v{scope.version}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })()}
                     <span style={{ color: theme.colors.textMuted }}>•</span>
                     <span>{formatDuration(trace.duration)}</span>
                     <span style={{ color: theme.colors.textMuted }}>•</span>
@@ -391,7 +403,7 @@ export const LiveTraceSearchView: React.FC<LiveTraceSearchViewProps> = ({
                           fontWeight: 500,
                         }}
                       >
-                        {trace.matchInfo?.scenarioName || formatScenarioName(scenarioId)}
+                        {formatScenarioName(scenarioId)}
                       </span>
                     </div>
                   )}

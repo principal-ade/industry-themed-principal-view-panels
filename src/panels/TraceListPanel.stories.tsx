@@ -3,342 +3,281 @@ import React from 'react';
 import { TraceListPanel } from './TraceListPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
-import type { RegisteredTrace } from '../types/otel';
+import type { RegisteredTrace } from '@principal-ai/principal-view-core';
 import type { VersionSnapshot } from '@principal-ai/principal-view-core';
 
-// Mock trace data
+// Mock trace data using NEW API structure
 const now = Date.now();
 
+/**
+ * Create a trace with the new RegisteredTrace API structure
+ */
 const createTrace = (
   traceId: string,
   name: string,
   serviceName: string,
+  scopeName: string,
+  scopeVersion: string,
   offset: number,
   duration: number,
   hasError: boolean = false,
-  matchedWorkflows?: RegisteredTrace['matchedWorkflows']
+  scenarioMatch?: {
+    storyboardId: string;
+    storyboardName?: string;
+    workflowId: string;
+    workflowName?: string;
+    scenarioId: string;
+    coveragePercent?: number;
+    matchType?: 'full' | 'partial';
+  }
 ): RegisteredTrace => {
   const startTime = now - offset;
   const endTime = startTime + duration;
 
   return {
     traceId,
-    spans: [
-      {
-        traceId,
-        spanId: `span-${traceId}`,
-        name,
-        kind: 'SPAN_KIND_SERVER',
-        startTimeUnixNano: String(startTime * 1_000_000),
-        endTimeUnixNano: String(endTime * 1_000_000),
-        attributes: [
-          { key: 'http.method', value: { stringValue: 'GET' } },
-          { key: 'http.url', value: { stringValue: name } },
-        ],
-        status: hasError
-          ? { code: 'STATUS_CODE_ERROR', message: 'Request failed' }
-          : { code: 'STATUS_CODE_OK' },
-        ...(hasError && {
-          events: [
-            {
-              timeUnixNano: String((startTime + duration / 2) * 1_000_000),
-              name: 'exception',
-              attributes: [
-                { key: 'exception.type', value: { stringValue: 'Error' } },
-                { key: 'exception.message', value: { stringValue: 'Request failed' } },
-              ],
-            },
-          ],
-        }),
-      },
-    ],
-    rootSpan: {
-      traceId,
-      spanId: `span-${traceId}`,
-      name,
-      kind: 'SPAN_KIND_SERVER',
-      startTimeUnixNano: String(startTime * 1_000_000),
-      endTimeUnixNano: String(endTime * 1_000_000),
-      attributes: [
-        { key: 'http.method', value: { stringValue: 'GET' } },
-        { key: 'http.url', value: { stringValue: name } },
-      ],
-      status: hasError
-        ? { code: 'STATUS_CODE_ERROR', message: 'Request failed' }
-        : { code: 'STATUS_CODE_OK' },
-      ...(hasError && {
-        events: [
-          {
-            timeUnixNano: String((startTime + duration / 2) * 1_000_000),
-            name: 'exception',
-            attributes: [
-              { key: 'exception.type', value: { stringValue: 'Error' } },
-              { key: 'exception.message', value: { stringValue: 'Request failed' } },
-            ],
-          },
-        ],
-      }),
-    },
-    serviceName,
+    name,
     startTime,
     endTime,
     duration,
     spanCount: 1,
     hasErrors: hasError,
-    resource: {
-      attributes: [
-        { key: 'service.name', value: { stringValue: serviceName } },
-        ...(matchedWorkflows && matchedWorkflows.length > 0 ? [
-          { key: 'pv.storyboard.id', value: { stringValue: matchedWorkflows[0].storyboardId } },
-          { key: 'pv.storyboard.name', value: { stringValue: matchedWorkflows[0].storyboardName } },
-          ...(matchedWorkflows[0].workflowId ? [{ key: 'pv.workflow.id', value: { stringValue: matchedWorkflows[0].workflowId } }] : []),
-          ...(matchedWorkflows[0].workflowName ? [{ key: 'pv.workflow.name', value: { stringValue: matchedWorkflows[0].workflowName } }] : []),
-          ...(matchedWorkflows[0].scenarioId ? [{ key: 'pv.scenario.id', value: { stringValue: matchedWorkflows[0].scenarioId } }] : []),
-          ...(matchedWorkflows[0].scenarioName ? [{ key: 'pv.scenario.name', value: { stringValue: matchedWorkflows[0].scenarioName } }] : []),
-        ] : []),
-      ],
+    resources: [
+      {
+        serviceIdentifier: `http://localhost:${3000 + Math.floor(Math.random() * 1000)}`,
+        serviceName,
+        attributes: {
+          'service.name': serviceName,
+        },
+        scopes: [
+          {
+            scope: {
+              name: scopeName,
+              version: scopeVersion,
+            },
+            spanIds: [`span-${traceId}`],
+          },
+        ],
+      },
+    ],
+    scenarioMatches: scenarioMatch
+      ? [
+          {
+            storyboardId: scenarioMatch.storyboardId,
+            storyboardName: scenarioMatch.storyboardName,
+            workflowId: scenarioMatch.workflowId,
+            workflowName: scenarioMatch.workflowName,
+            scenarioId: scenarioMatch.scenarioId,
+            scopeName,
+            matchedSpans: [
+              {
+                spanId: `span-${traceId}`,
+                spanName: name,
+                nodeId: `node-${scenarioMatch.scenarioId}`,
+                timestamp: startTime,
+                duration,
+                events: ['request.started', 'response.completed'],
+                matchConfidence: 'exact' as const,
+              },
+            ],
+            coveragePercent: scenarioMatch.coveragePercent || 100,
+            matchType: scenarioMatch.matchType || 'full',
+          },
+        ]
+      : [],
+    storyboardMatches: [],
+    unmatchedSpans: {
+      spans: scenarioMatch
+        ? []
+        : [
+            {
+              spanId: `span-${traceId}`,
+              spanName: name,
+              scopeName,
+              timestamp: startTime,
+              duration,
+              reason: 'No workflow matched this span',
+            },
+          ],
     },
-    matchedWorkflows,
+  };
+};
+
+/**
+ * Create a trace with multiple scenario matches (multi-workflow)
+ */
+const createMultiWorkflowTrace = (
+  traceId: string,
+  name: string,
+  serviceName: string,
+  scopeName: string,
+  scopeVersion: string,
+  offset: number,
+  duration: number,
+  scenarios: Array<{
+    storyboardId: string;
+    storyboardName: string;
+    workflowId: string;
+    workflowName: string;
+    scenarioId: string;
+    coveragePercent: number;
+  }>
+): RegisteredTrace => {
+  const startTime = now - offset;
+  const endTime = startTime + duration;
+
+  return {
+    traceId,
+    name,
+    startTime,
+    endTime,
+    duration,
+    spanCount: scenarios.length,
+    hasErrors: false,
+    resources: [
+      {
+        serviceIdentifier: `http://localhost:${3000 + Math.floor(Math.random() * 1000)}`,
+        serviceName,
+        scopes: [
+          {
+            scope: {
+              name: scopeName,
+              version: scopeVersion,
+            },
+            spanIds: scenarios.map((_, i) => `span-${traceId}-${i}`),
+          },
+        ],
+      },
+    ],
+    scenarioMatches: scenarios.map((scenario, index) => ({
+      storyboardId: scenario.storyboardId,
+      storyboardName: scenario.storyboardName,
+      workflowId: scenario.workflowId,
+      workflowName: scenario.workflowName,
+      scenarioId: scenario.scenarioId,
+      scopeName,
+      matchedSpans: [
+        {
+          spanId: `span-${traceId}-${index}`,
+          spanName: `${name} - ${scenario.workflowName}`,
+          nodeId: `node-${scenario.scenarioId}`,
+          timestamp: startTime + (index * (duration / scenarios.length)),
+          duration: duration / scenarios.length,
+          events: ['workflow.started', 'workflow.completed'],
+          matchConfidence: 'exact' as const,
+        },
+      ],
+      coveragePercent: scenario.coveragePercent,
+      matchType: scenario.coveragePercent === 100 ? 'full' : 'partial',
+    })),
+    storyboardMatches: [],
+    unmatchedSpans: {
+      spans: [],
+    },
   };
 };
 
 const mockTraces: RegisteredTrace[] = [
-  // Multiple GET /api/users (successful)
-  createTrace('trace-1', 'GET /api/users', 'api-service', 1000, 150),
-  createTrace('trace-2', 'GET /api/users', 'api-service', 2000, 180),
-  createTrace('trace-3', 'GET /api/users', 'api-service', 3000, 160),
-  createTrace('trace-4', 'GET /api/users', 'api-service', 4500, 170),
+  // Multiple GET /api/users (successful, no workflow match)
+  createTrace('trace-1', 'GET /api/users', 'api-service', 'api-instrumentation', '1.0.0', 1000, 150),
+  createTrace('trace-2', 'GET /api/users', 'api-service', 'api-instrumentation', '1.0.0', 2000, 180),
+  createTrace('trace-3', 'GET /api/users', 'api-service', 'api-instrumentation', '1.0.0', 3000, 160),
+  createTrace('trace-4', 'GET /api/users', 'api-service', 'api-instrumentation', '1.0.0', 4500, 170),
 
-  // Multiple POST /api/orders (with errors)
-  createTrace('trace-5', 'POST /api/orders', 'order-service', 5000, 250, true),
-  createTrace('trace-6', 'POST /api/orders', 'order-service', 6000, 300, true),
-  createTrace('trace-7', 'POST /api/orders', 'order-service', 7000, 280, true),
+  // Multiple POST /api/orders (with errors, no workflow match)
+  createTrace('trace-5', 'POST /api/orders', 'order-service', 'order-instrumentation', '2.1.0', 5000, 250, true),
+  createTrace('trace-6', 'POST /api/orders', 'order-service', 'order-instrumentation', '2.1.0', 6000, 300, true),
+  createTrace('trace-7', 'POST /api/orders', 'order-service', 'order-instrumentation', '2.1.0', 7000, 280, true),
 
   // Single successful POST /api/orders (not grouped with errors)
-  createTrace('trace-8', 'POST /api/orders', 'order-service', 8000, 200, false),
+  createTrace('trace-8', 'POST /api/orders', 'order-service', 'order-instrumentation', '2.1.0', 8000, 200, false),
 
-  // User Login Flow with workflow matching
-  createTrace('trace-9', 'User Login Flow', 'auth-service', 9000, 800, false, [{
-    storyboardId: 'storyboard-1',
-    storyboardName: 'E-Commerce User Journey',
-    workflowId: 'workflow-1',
-    workflowName: 'Authentication Workflow',
-    scenarioId: 'scenario-1',
-    scenarioName: 'Happy Path Login',
-    matchedEventCount: 5,
-  }]),
-  createTrace('trace-10', 'User Login Flow', 'auth-service', 10000, 750, false, [{
-    storyboardId: 'storyboard-1',
-    storyboardName: 'E-Commerce User Journey',
-    workflowId: 'workflow-1',
-    workflowName: 'Authentication Workflow',
-    scenarioId: 'scenario-1',
-    scenarioName: 'Happy Path Login',
-    matchedEventCount: 5,
-  }]),
-
-  // User Login Flow without workflow matching (separate group)
-  createTrace('trace-11', 'User Login Flow', 'auth-service', 11000, 820, false),
-
-  // Multi-workflow match - trace that matches multiple workflows
-  createTrace('trace-12', 'Complete User Journey', 'platform-service', 12000, 1500, false, [
+  // User Login Flow with workflow matching (scenario match)
+  createTrace(
+    'trace-9',
+    'User Login Flow',
+    'auth-service',
+    'auth-instrumentation',
+    '1.2.0',
+    9000,
+    800,
+    false,
     {
       storyboardId: 'storyboard-1',
       storyboardName: 'E-Commerce User Journey',
       workflowId: 'workflow-1',
       workflowName: 'Authentication Workflow',
       scenarioId: 'scenario-1',
-      scenarioName: 'Happy Path Login',
-      matchedEventCount: 3,
-    },
+      coveragePercent: 100,
+      matchType: 'full',
+    }
+  ),
+  createTrace(
+    'trace-10',
+    'User Login Flow',
+    'auth-service',
+    'auth-instrumentation',
+    '1.2.0',
+    10000,
+    750,
+    false,
     {
       storyboardId: 'storyboard-1',
       storyboardName: 'E-Commerce User Journey',
-      workflowId: 'workflow-2',
-      workflowName: 'Shopping Cart Workflow',
-      scenarioId: 'scenario-2',
-      scenarioName: 'Add Items to Cart',
-      matchedEventCount: 5,
-    },
-    {
-      storyboardId: 'storyboard-1',
-      storyboardName: 'E-Commerce User Journey',
-      workflowId: 'workflow-3',
-      workflowName: 'Checkout Workflow',
-      scenarioId: 'scenario-3',
-      scenarioName: 'Complete Purchase',
-      matchedEventCount: 7,
-    },
-  ]),
+      workflowId: 'workflow-1',
+      workflowName: 'Authentication Workflow',
+      scenarioId: 'scenario-1',
+      coveragePercent: 85,
+      matchType: 'partial',
+    }
+  ),
+
+  // User Login Flow without workflow matching (separate group)
+  createTrace('trace-11', 'User Login Flow', 'auth-service', 'auth-instrumentation', '1.2.0', 11000, 820, false),
+
+  // Multi-workflow match - trace that matches multiple workflows
+  createMultiWorkflowTrace(
+    'trace-12',
+    'Complete User Journey',
+    'platform-service',
+    'platform-instrumentation',
+    '3.0.0',
+    12000,
+    1500,
+    [
+      {
+        storyboardId: 'storyboard-1',
+        storyboardName: 'E-Commerce User Journey',
+        workflowId: 'workflow-1',
+        workflowName: 'Authentication Workflow',
+        scenarioId: 'scenario-1',
+        coveragePercent: 100,
+      },
+      {
+        storyboardId: 'storyboard-1',
+        storyboardName: 'E-Commerce User Journey',
+        workflowId: 'workflow-2',
+        workflowName: 'Shopping Cart Workflow',
+        scenarioId: 'scenario-2',
+        coveragePercent: 95,
+      },
+      {
+        storyboardId: 'storyboard-1',
+        storyboardName: 'E-Commerce User Journey',
+        workflowId: 'workflow-3',
+        workflowName: 'Checkout Workflow',
+        scenarioId: 'scenario-3',
+        coveragePercent: 100,
+      },
+    ]
+  ),
 ];
 
 // Keep only error traces for the WithErrors story
 const mockTracesWithErrors = mockTraces.filter(t => t.hasErrors);
 
 // Keep only workflow-matched traces for the WithWorkflowMatching story
-const mockTracesWithWorkflow = mockTraces.filter(t => t.matchedWorkflows && t.matchedWorkflows.length > 0);
-
-const oldMockTraces: RegisteredTrace[] = [
-  {
-    traceId: '1234567890abcdef1234567890abcdef',
-    spans: [
-      {
-        traceId: '1234567890abcdef1234567890abcdef',
-        spanId: 'span1',
-        name: 'GET /api/users',
-        kind: 'SPAN_KIND_SERVER',
-        startTimeUnixNano: String((now - 5000) * 1_000_000),
-        endTimeUnixNano: String((now - 4800) * 1_000_000),
-        attributes: [
-          { key: 'http.method', value: { stringValue: 'GET' } },
-          { key: 'http.url', value: { stringValue: '/api/users' } },
-        ],
-        status: { code: 'STATUS_CODE_OK' },
-      },
-    ],
-    rootSpan: {
-      traceId: '1234567890abcdef1234567890abcdef',
-      spanId: 'span1',
-      name: 'GET /api/users',
-      kind: 'SPAN_KIND_SERVER',
-      startTimeUnixNano: String((now - 5000) * 1_000_000),
-      endTimeUnixNano: String((now - 4800) * 1_000_000),
-      attributes: [
-        { key: 'http.method', value: { stringValue: 'GET' } },
-        { key: 'http.url', value: { stringValue: '/api/users' } },
-      ],
-      status: { code: 'STATUS_CODE_OK' },
-    },
-    serviceName: 'api-service',
-    startTime: now - 5000,
-    endTime: now - 4800,
-    duration: 200,
-    spanCount: 1,
-    hasErrors: false,
-    resource: {
-      attributes: [
-        { key: 'service.name', value: { stringValue: 'api-service' } },
-      ],
-    },
-  },
-  {
-    traceId: 'abcdef1234567890abcdef1234567890',
-    spans: [
-      {
-        traceId: 'abcdef1234567890abcdef1234567890',
-        spanId: 'span2',
-        name: 'POST /api/orders',
-        kind: 'SPAN_KIND_SERVER',
-        startTimeUnixNano: String((now - 10000) * 1_000_000),
-        endTimeUnixNano: String((now - 9500) * 1_000_000),
-        attributes: [
-          { key: 'http.method', value: { stringValue: 'POST' } },
-          { key: 'http.url', value: { stringValue: '/api/orders' } },
-        ],
-        status: { code: 'STATUS_CODE_ERROR', message: 'Validation failed' },
-        events: [
-          {
-            timeUnixNano: String((now - 9700) * 1_000_000),
-            name: 'exception',
-            attributes: [
-              { key: 'exception.type', value: { stringValue: 'ValidationError' } },
-              { key: 'exception.message', value: { stringValue: 'Missing required field: email' } },
-            ],
-          },
-        ],
-      },
-    ],
-    rootSpan: {
-      traceId: 'abcdef1234567890abcdef1234567890',
-      spanId: 'span2',
-      name: 'POST /api/orders',
-      kind: 'SPAN_KIND_SERVER',
-      startTimeUnixNano: String((now - 10000) * 1_000_000),
-      endTimeUnixNano: String((now - 9500) * 1_000_000),
-      attributes: [
-        { key: 'http.method', value: { stringValue: 'POST' } },
-        { key: 'http.url', value: { stringValue: '/api/orders' } },
-      ],
-      status: { code: 'STATUS_CODE_ERROR', message: 'Validation failed' },
-      events: [
-        {
-          timeUnixNano: String((now - 9700) * 1_000_000),
-          name: 'exception',
-          attributes: [
-            { key: 'exception.type', value: { stringValue: 'ValidationError' } },
-            { key: 'exception.message', value: { stringValue: 'Missing required field: email' } },
-          ],
-        },
-      ],
-    },
-    serviceName: 'order-service',
-    startTime: now - 10000,
-    endTime: now - 9500,
-    duration: 500,
-    spanCount: 1,
-    hasErrors: true,
-    resource: {
-      attributes: [
-        { key: 'service.name', value: { stringValue: 'order-service' } },
-      ],
-    },
-  },
-  {
-    traceId: 'fedcba0987654321fedcba0987654321',
-    spans: [
-      {
-        traceId: 'fedcba0987654321fedcba0987654321',
-        spanId: 'span3',
-        name: 'User Login Flow',
-        kind: 'SPAN_KIND_SERVER',
-        startTimeUnixNano: String((now - 15000) * 1_000_000),
-        endTimeUnixNano: String((now - 14200) * 1_000_000),
-        attributes: [
-          { key: 'workflow.step', value: { stringValue: 'login' } },
-        ],
-        status: { code: 'STATUS_CODE_OK' },
-      },
-    ],
-    rootSpan: {
-      traceId: 'fedcba0987654321fedcba0987654321',
-      spanId: 'span3',
-      name: 'User Login Flow',
-      kind: 'SPAN_KIND_SERVER',
-      startTimeUnixNano: String((now - 15000) * 1_000_000),
-      endTimeUnixNano: String((now - 14200) * 1_000_000),
-      attributes: [
-        { key: 'workflow.step', value: { stringValue: 'login' } },
-      ],
-      status: { code: 'STATUS_CODE_OK' },
-    },
-    serviceName: 'auth-service',
-    startTime: now - 15000,
-    endTime: now - 14200,
-    duration: 800,
-    spanCount: 1,
-    hasErrors: false,
-    resource: {
-      attributes: [
-        { key: 'service.name', value: { stringValue: 'auth-service' } },
-        { key: 'pv.storyboard.id', value: { stringValue: 'storyboard-1' } },
-        { key: 'pv.storyboard.name', value: { stringValue: 'E-Commerce User Journey' } },
-        { key: 'pv.workflow.id', value: { stringValue: 'workflow-1' } },
-        { key: 'pv.workflow.name', value: { stringValue: 'Authentication Workflow' } },
-        { key: 'pv.scenario.id', value: { stringValue: 'scenario-1' } },
-        { key: 'pv.scenario.name', value: { stringValue: 'Happy Path Login' } },
-      ],
-    },
-    matchedWorkflows: [{
-      storyboardId: 'storyboard-1',
-      storyboardName: 'E-Commerce User Journey',
-      workflowId: 'workflow-1',
-      workflowName: 'Authentication Workflow',
-      scenarioId: 'scenario-1',
-      scenarioName: 'Happy Path Login',
-      matchedEventCount: 5,
-    }],
-  },
-];
+const mockTracesWithWorkflow = mockTraces.filter(t => t.scenarioMatches.length > 0);
 
 const meta = {
   title: 'Panels/TraceListPanel',
@@ -348,7 +287,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Panel for displaying OpenTelemetry traces. Shows trace metadata and emits events when traces are selected.',
+          'Panel for displaying OpenTelemetry traces with registry-based matching. Shows trace metadata, scenario matches, and emits events when traces are selected.',
       },
     },
   },
@@ -379,7 +318,15 @@ export const Empty: Story = {
 };
 
 /**
- * Default trace list panel with mock data
+ * Default trace list panel with mock data showing:
+ * - Unmatched traces (GET /api/users, POST /api/orders)
+ * - Scenario-matched traces (User Login Flow)
+ * - Multi-scenario trace (Complete User Journey)
+ *
+ * Expand traces to see the three-category matching results:
+ * Category 1: Matched Scenarios (with coverage %)
+ * Category 2: Partial Matches (workflow matched, no scenario)
+ * Category 3: Unmatched Spans
  */
 export const Default: Story = {
   render: () => {
@@ -457,72 +404,99 @@ export const WithErrors: Story = {
 };
 
 /**
- * With multi-workflow matching - shows a trace that matches multiple workflows
+ * With multi-workflow matching - shows traces that match multiple workflows
+ *
+ * Expand "Complete User Journey" to see:
+ * - 3 scenario matches (Authentication, Shopping Cart, Checkout)
+ * - Coverage percentages for each scenario
+ * - Temporal ordering of scenarios
  */
 export const WithMultiWorkflowMatching: Story = {
   render: () => {
     const multiWorkflowTraces: RegisteredTrace[] = [
       // Single workflow match for comparison
-      createTrace('trace-single', 'Login Only', 'auth-service', 1000, 500, false, [{
-        storyboardId: 'storyboard-1',
-        storyboardName: 'E-Commerce User Journey',
-        workflowId: 'workflow-1',
-        workflowName: 'Authentication Workflow',
-        scenarioId: 'scenario-1',
-        scenarioName: 'Happy Path Login',
-        matchedEventCount: 5,
-      }]),
-      // Multi-workflow match - full user journey
-      createTrace('trace-multi', 'Complete User Journey', 'platform-service', 2000, 1500, false, [
+      createTrace(
+        'trace-single',
+        'Login Only',
+        'auth-service',
+        'auth-instrumentation',
+        '1.2.0',
+        1000,
+        500,
+        false,
         {
           storyboardId: 'storyboard-1',
           storyboardName: 'E-Commerce User Journey',
           workflowId: 'workflow-1',
           workflowName: 'Authentication Workflow',
           scenarioId: 'scenario-1',
-          scenarioName: 'Happy Path Login',
-          matchedEventCount: 3,
-        },
-        {
-          storyboardId: 'storyboard-1',
-          storyboardName: 'E-Commerce User Journey',
-          workflowId: 'workflow-2',
-          workflowName: 'Shopping Cart Workflow',
-          scenarioId: 'scenario-2',
-          scenarioName: 'Add Items to Cart',
-          matchedEventCount: 5,
-        },
-        {
-          storyboardId: 'storyboard-1',
-          storyboardName: 'E-Commerce User Journey',
-          workflowId: 'workflow-3',
-          workflowName: 'Checkout Workflow',
-          scenarioId: 'scenario-3',
-          scenarioName: 'Complete Purchase',
-          matchedEventCount: 7,
-        },
-      ]),
+          coveragePercent: 100,
+        }
+      ),
+      // Multi-workflow match - full user journey
+      createMultiWorkflowTrace(
+        'trace-multi',
+        'Complete User Journey',
+        'platform-service',
+        'platform-instrumentation',
+        '3.0.0',
+        2000,
+        1500,
+        [
+          {
+            storyboardId: 'storyboard-1',
+            storyboardName: 'E-Commerce User Journey',
+            workflowId: 'workflow-1',
+            workflowName: 'Authentication Workflow',
+            scenarioId: 'scenario-1',
+            coveragePercent: 100,
+          },
+          {
+            storyboardId: 'storyboard-1',
+            storyboardName: 'E-Commerce User Journey',
+            workflowId: 'workflow-2',
+            workflowName: 'Shopping Cart Workflow',
+            scenarioId: 'scenario-2',
+            coveragePercent: 95,
+          },
+          {
+            storyboardId: 'storyboard-1',
+            storyboardName: 'E-Commerce User Journey',
+            workflowId: 'workflow-3',
+            workflowName: 'Checkout Workflow',
+            scenarioId: 'scenario-3',
+            coveragePercent: 100,
+          },
+        ]
+      ),
       // Another multi-workflow match with different workflows
-      createTrace('trace-multi-2', 'Admin Operations', 'admin-service', 3000, 1200, false, [
-        {
-          storyboardId: 'storyboard-2',
-          storyboardName: 'Admin Dashboard',
-          workflowId: 'workflow-4',
-          workflowName: 'User Management',
-          scenarioId: 'scenario-4',
-          scenarioName: 'Create User',
-          matchedEventCount: 4,
-        },
-        {
-          storyboardId: 'storyboard-2',
-          storyboardName: 'Admin Dashboard',
-          workflowId: 'workflow-5',
-          workflowName: 'Permissions Management',
-          scenarioId: 'scenario-5',
-          scenarioName: 'Assign Roles',
-          matchedEventCount: 3,
-        },
-      ]),
+      createMultiWorkflowTrace(
+        'trace-multi-2',
+        'Admin Operations',
+        'admin-service',
+        'admin-instrumentation',
+        '2.0.0',
+        3000,
+        1200,
+        [
+          {
+            storyboardId: 'storyboard-2',
+            storyboardName: 'Admin Dashboard',
+            workflowId: 'workflow-4',
+            workflowName: 'User Management',
+            scenarioId: 'scenario-4',
+            coveragePercent: 100,
+          },
+          {
+            storyboardId: 'storyboard-2',
+            storyboardName: 'Admin Dashboard',
+            workflowId: 'workflow-5',
+            workflowName: 'Permissions Management',
+            scenarioId: 'scenario-5',
+            coveragePercent: 85,
+          },
+        ]
+      ),
     ];
 
     const [traces, setTraces] = React.useState(multiWorkflowTraces);
@@ -765,32 +739,50 @@ const mockSchematics: VersionSnapshot[] = [
 ];
 
 /**
- * With schematics - shows workflows and scenarios from version registry
- */
-/**
  * Mock traces with workflow matching for schematics demo
  */
 const mockTracesForSchematics: RegisteredTrace[] = [
-  createTrace('trace-schematic-1', 'User Login', 'auth-service', 1000, 500, false, [{
-    storyboardId: 'ecommerce-journey',
-    storyboardName: 'E-Commerce User Journey',
-    workflowId: 'authentication-workflow',
-    workflowName: 'Authentication Workflow',
-    scenarioId: 'happy-path-login',
-    scenarioName: 'Happy Path Login',
-    matchedEventCount: 5,
-  }]),
-  createTrace('trace-schematic-2', 'Process Checkout', 'order-service', 2000, 600, false, [{
-    storyboardId: 'ecommerce-journey',
-    storyboardName: 'E-Commerce User Journey',
-    workflowId: 'checkout-workflow',
-    workflowName: 'Checkout Workflow',
-    scenarioId: 'standard-checkout',
-    scenarioName: 'Standard Checkout',
-    matchedEventCount: 8,
-  }]),
+  createTrace(
+    'trace-schematic-1',
+    'User Login',
+    'auth-service',
+    'auth-instrumentation',
+    '1.2.0',
+    1000,
+    500,
+    false,
+    {
+      storyboardId: 'ecommerce-journey',
+      storyboardName: 'E-Commerce User Journey',
+      workflowId: 'authentication-workflow',
+      workflowName: 'Authentication Workflow',
+      scenarioId: 'happy-path-login',
+      coveragePercent: 100,
+    }
+  ),
+  createTrace(
+    'trace-schematic-2',
+    'Process Checkout',
+    'order-service',
+    'order-instrumentation',
+    '2.1.0',
+    2000,
+    600,
+    false,
+    {
+      storyboardId: 'ecommerce-journey',
+      storyboardName: 'E-Commerce User Journey',
+      workflowId: 'checkout-workflow',
+      workflowName: 'Checkout Workflow',
+      scenarioId: 'standard-checkout',
+      coveragePercent: 100,
+    }
+  ),
 ];
 
+/**
+ * With schematics - shows workflows and scenarios from version registry
+ */
 export const WithSchematics: Story = {
   render: () => {
     return (
@@ -841,15 +833,24 @@ export const SchematicsMultipleVersions: Story = {
   render: () => {
     // Mock traces only for the first version's authentication workflow
     const tracesForFirstVersion: RegisteredTrace[] = [
-      createTrace('trace-auth-1', 'User Login', 'auth-service', 1000, 500, false, [{
-        storyboardId: 'ecommerce-journey',
-        storyboardName: 'E-Commerce User Journey',
-        workflowId: 'authentication-workflow',
-        workflowName: 'Authentication Workflow',
-        scenarioId: 'happy-path-login',
-        scenarioName: 'Happy Path Login',
-        matchedEventCount: 5,
-      }]),
+      createTrace(
+        'trace-auth-1',
+        'User Login',
+        'auth-service',
+        'auth-instrumentation',
+        '1.2.0',
+        1000,
+        500,
+        false,
+        {
+          storyboardId: 'ecommerce-journey',
+          storyboardName: 'E-Commerce User Journey',
+          workflowId: 'authentication-workflow',
+          workflowName: 'Authentication Workflow',
+          scenarioId: 'happy-path-login',
+          coveragePercent: 100,
+        }
+      ),
     ];
 
     return (

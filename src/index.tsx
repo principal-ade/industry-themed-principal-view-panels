@@ -23,10 +23,6 @@ export type { FileTreeEntry, PanelFileSystemAdapterOptions } from './adapters/Pa
 export type { RegisteredTrace, WorkflowMatch } from './types/otel';
 export { getServiceName, getSpansFromTrace, getRootSpan, getResource } from './types/otel';
 
-// Re-export workflow matching utilities
-export { matchTraceToWorkflows, enrichTraceWithWorkflowMatches, calculateCoveragePercentage } from './utils/workflowMatching';
-export type { WorkflowMatchingResult, WorkflowMetadata } from './utils/workflowMatching';
-
 // Re-export trace components
 export { TraceExpansion } from './components/TraceExpansion';
 export type { TraceExpansionProps } from './components/TraceExpansion';

@@ -11,6 +11,7 @@ import { PanelFileSystemAdapter } from '../adapters/PanelFileSystemAdapter';
 import { StoryboardWorkflowsTreeCore, hasWorkflowContent } from '@principal-ade/dynamic-file-tree';
 import type { StoryboardWorkflowNodeData, StoryboardFilterMode } from '@principal-ade/dynamic-file-tree';
 import yaml from 'js-yaml';
+import { getMatchedStoryboardIds } from '../utils/traceHelpers';
 
 type TabView = 'traces' | 'configuration' | 'schematics';
 
@@ -55,10 +56,10 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
     const workflowSet = new Set<string>();
 
     traces.forEach(trace => {
-      // Extract workflow info from matchInfo
-      if (trace.matchInfo?.workflowId) {
-        workflowSet.add(trace.matchInfo.workflowId);
-      }
+      // Extract storyboard IDs from matches
+      // Note: Using storyboardIds since workflowId is not yet in the new API
+      const storyboardIds = getMatchedStoryboardIds(trace);
+      storyboardIds.forEach(id => workflowSet.add(id));
     });
 
     return workflowSet;

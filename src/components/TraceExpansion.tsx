@@ -2,17 +2,16 @@
  * TraceExpansion - Detailed view of trace workflow matches and coverage
  *
  * Shows:
- * - WorkflowScenarioTree with matched workflows/scenarios
- * - Events that didn't match any workflow
- * - Coverage metrics
+ * - Matched scenarios with coverage metrics
+ * - Partial matches (workflow matched, no scenario)
+ * - Unmatched spans
+ * - Validation issues
  */
 
 import React, { useMemo } from 'react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { RegisteredTrace } from '../types/otel';
-import { WorkflowScenarioTreeCore } from '@principal-ade/dynamic-file-tree';
-import type { WorkflowWithScenarios, WorkflowScenarioNodeData } from '@principal-ade/dynamic-file-tree';
-import type { DiscoveredStoryboard, WorkflowScenario } from '@principal-ai/principal-view-core';
+import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 
 export interface TraceExpansionProps {
   trace: RegisteredTrace;
@@ -21,119 +20,39 @@ export interface TraceExpansionProps {
 }
 
 /**
- * Convert RegisteredTrace matchInfo to WorkflowWithScenarios[] for the tree component
- */
-function convertTraceToWorkflows(trace: RegisteredTrace): WorkflowWithScenarios[] {
-  // If trace is not matched or has no matchInfo, return empty array
-  if (trace.registryStatus !== 'matched' || !trace.matchInfo) {
-    return [];
-  }
-
-  const { matchInfo } = trace;
-
-  // Create minimal DiscoveredStoryboard
-  const storyboard: DiscoveredStoryboard = {
-    id: matchInfo.storyboardId || 'unknown',
-    name: matchInfo.storyboardId || 'Unknown Storyboard',
-    path: '',
-    basename: '',
-    canvas: {
-      id: '',
-      name: '',
-      path: '',
-      basename: '',
-      type: 'otel' as const,
-      scope: 'root' as const,
-    },
-    workflows: [],
-    packageName: undefined,
-    packagePath: undefined,
-    scope: 'root',
-  };
-
-  // Create single scenario from matchInfo
-  const scenarios: WorkflowScenario[] = matchInfo.scenarioId ? [{
-    id: matchInfo.scenarioId,
-    priority: 1,
-    description: matchInfo.scenarioId,
-    template: {},
-  }] : [];
-
-  // Create WorkflowWithScenarios
-  const workflows: WorkflowWithScenarios[] = matchInfo.workflowId ? [{
-    id: matchInfo.workflowId,
-    name: matchInfo.workflowId,
-    path: '',
-    basename: '',
-    storyboardId: matchInfo.storyboardId || 'unknown',
-    packageName: undefined,
-    packagePath: undefined,
-    scope: 'root',
-    storyboard,
-    scenarios,
-  } as WorkflowWithScenarios] : [];
-
-  return workflows;
-}
-
-/**
  * TraceExpansion component displays detailed workflow matching information
- * for a selected trace, including matched workflows, unmatched events, and coverage metrics
+ * for a selected trace as a simple categorized list
  */
 export const TraceExpansion: React.FC<TraceExpansionProps> = ({
   trace,
   theme,
   onWorkflowClick,
 }) => {
-  const matchedCount = trace.registryStatus === 'matched' ? 1 : 0;
-  const unmatchedCount = trace.validationIssues?.length || 0;
+  // Sort scenario matches by earliest span timestamp (temporal order)
+  const sortedScenarioMatches = useMemo(() => {
+    if (!trace.scenarioMatches) return [];
+    return [...trace.scenarioMatches].sort((a, b) => {
+      const aEarliest = Math.min(...a.matchedSpans.map(s => s.timestamp));
+      const bEarliest = Math.min(...b.matchedSpans.map(s => s.timestamp));
+      return aEarliest - bEarliest;
+    });
+  }, [trace.scenarioMatches]);
 
-  // Convert trace to WorkflowWithScenarios format for tree
-  const workflows = useMemo(() => {
-    return convertTraceToWorkflows(trace);
-  }, [trace]);
+  // Calculate total orphaned spans
+  const orphanedSpanCount = useMemo(() => {
+    if (!trace.storyboardMatches) return 0;
+    return trace.storyboardMatches.reduce((sum, m) => sum + m.orphanedSpans.length, 0);
+  }, [trace.storyboardMatches]);
 
-  // Create workflow and scenario trace counts for the tree
-  const { workflowTraceCounts, scenarioTraceCounts } = useMemo(() => {
-    if (trace.registryStatus !== 'matched' || !trace.matchInfo) {
-      return { workflowTraceCounts: {}, scenarioTraceCounts: {} };
-    }
+  const hasAnyMatches = (trace.scenarioMatches?.length ?? 0) > 0 ||
+                        (trace.storyboardMatches?.length ?? 0) > 0 ||
+                        (trace.unmatchedSpans?.spans?.length ?? 0) > 0;
 
-    const scenarioCounts: Record<string, number> = {};
-    const workflowCounts: Record<string, number> = {};
-
-    // Count matched spans (those with matchedNodeIds)
-    const matchedSpanCount = trace.spanMatches.filter(m => m.matchedNodeIds.length > 0).length;
-
-    if (trace.matchInfo.workflowId && trace.matchInfo.scenarioId) {
-      const scenarioKey = `${trace.matchInfo.workflowId}/${trace.matchInfo.scenarioId}`;
-      scenarioCounts[scenarioKey] = matchedSpanCount;
-      workflowCounts[trace.matchInfo.workflowId] = matchedSpanCount;
-    }
-
-    return { workflowTraceCounts: workflowCounts, scenarioTraceCounts: scenarioCounts };
-  }, [trace.registryStatus, trace.matchInfo, trace.spanMatches]);
-
-  // If no workflow matching data, show message
-  if (trace.registryStatus === 'unmatched' || trace.registryStatus === 'not-registered') {
-    return (
-      <div
-        style={{
-          padding: theme.space[3],
-          color: theme.colors.textSecondary,
-          fontSize: theme.fontSizes[1],
-          fontStyle: 'italic',
-        }}
-      >
-        This trace is {trace.registryStatus === 'unmatched' ? 'unmatched' : 'not registered'}.
-      </div>
-    );
-  }
-
-  const handleNodeClick = (node: WorkflowScenarioNodeData) => {
-    if (node.type === 'scenario' && node.scenario && node.workflow) {
-      onWorkflowClick?.(node.workflow.id, node.scenario.id);
-    }
+  const getCoverageColor = (coverage: number | undefined) => {
+    if (!coverage) return theme.colors.textMuted;
+    if (coverage === 100) return theme.colors.success || '#22c55e';
+    if (coverage >= 70) return theme.colors.warning || '#f59e0b';
+    return theme.colors.error || '#ef4444';
   };
 
   return (
@@ -141,38 +60,227 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: theme.space[2],
+        gap: theme.space[3],
         padding: theme.space[2],
         backgroundColor: theme.colors.background,
         borderRadius: theme.radii[2],
       }}
     >
-      {/* Matched Workflows Tree */}
-      {matchedCount > 0 && (
-        <div
-          style={{
-            backgroundColor: theme.colors.backgroundSecondary,
-            borderRadius: theme.radii[2],
-            overflow: 'hidden',
-            maxHeight: '300px',
-          }}
-        >
-          <WorkflowScenarioTreeCore
-            workflows={workflows}
-            theme={theme}
-            onClick={handleNodeClick}
-            defaultOpen={true}
-            workflowTraceCounts={workflowTraceCounts}
-            scenarioTraceCounts={scenarioTraceCounts}
-            horizontalNodePadding="8px"
-            verticalNodePadding="4px"
-            verticalPadding="4px"
-          />
+      {/* Category 1: Matched Scenarios */}
+      {sortedScenarioMatches.length > 0 && (
+        <div>
+          <div
+            style={{
+              fontSize: theme.fontSizes[1],
+              fontWeight: theme.fontWeights.semibold,
+              marginBottom: theme.space[2],
+              paddingLeft: theme.space[2],
+              color: theme.colors.success || '#22c55e',
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.space[1],
+            }}
+          >
+            <CheckCircle size={14} />
+            Matched Scenarios ({sortedScenarioMatches.length})
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.space[1],
+            }}
+          >
+            {sortedScenarioMatches.map((match, index) => (
+              <div
+                key={`${match.storyboardId}-${match.scenarioId}-${index}`}
+                onClick={() => onWorkflowClick?.(match.storyboardId, match.scenarioId)}
+                style={{
+                  padding: theme.space[2],
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  borderRadius: theme.radii[1],
+                  cursor: onWorkflowClick ? 'pointer' : 'default',
+                  transition: 'all 0.15s ease',
+                  border: `1px solid ${theme.colors.border || theme.colors.backgroundSecondary}`,
+                }}
+                onMouseEnter={(e) => {
+                  if (onWorkflowClick) {
+                    e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary || theme.colors.backgroundSecondary;
+                    e.currentTarget.style.borderColor = theme.colors.primary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                  e.currentTarget.style.borderColor = theme.colors.border || theme.colors.backgroundSecondary;
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: theme.space[2],
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: theme.fontSizes[1],
+                        fontWeight: theme.fontWeights.medium,
+                        color: theme.colors.text,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {match.scenarioId}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: theme.fontSizes[0],
+                        color: theme.colors.textMuted,
+                        marginTop: '2px',
+                      }}
+                    >
+                      Storyboard: {match.storyboardId}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.space[2],
+                      flexShrink: 0,
+                    }}
+                  >
+                    {match.coveragePercent !== undefined && (
+                      <span
+                        style={{
+                          fontSize: theme.fontSizes[1],
+                          fontWeight: theme.fontWeights.semibold,
+                          color: getCoverageColor(match.coveragePercent),
+                        }}
+                      >
+                        {Math.round(match.coveragePercent)}%
+                      </span>
+                    )}
+                    {match.matchType && (
+                      <span
+                        style={{
+                          fontSize: theme.fontSizes[0],
+                          padding: '2px 6px',
+                          backgroundColor: match.matchType === 'full' ? `${theme.colors.success || '#22c55e'}15` : `${theme.colors.warning || '#f59e0b'}15`,
+                          color: match.matchType === 'full' ? theme.colors.success || '#22c55e' : theme.colors.warning || '#f59e0b',
+                          borderRadius: '3px',
+                          textTransform: 'lowercase',
+                        }}
+                      >
+                        {match.matchType}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Unmatched Events Section */}
-      {unmatchedCount > 0 && (
+      {/* Category 2: Partial Matches (Workflow matched, no scenario) */}
+      {(trace.storyboardMatches?.length ?? 0) > 0 && (
+        <div>
+          <div
+            style={{
+              fontSize: theme.fontSizes[1],
+              fontWeight: theme.fontWeights.semibold,
+              marginBottom: theme.space[2],
+              paddingLeft: theme.space[2],
+              color: theme.colors.warning || '#f59e0b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.space[1],
+            }}
+          >
+            <AlertTriangle size={14} />
+            Partial Matches ({orphanedSpanCount} orphaned {orphanedSpanCount === 1 ? 'span' : 'spans'})
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.space[1],
+            }}
+          >
+            {trace.storyboardMatches?.map((match, index) => (
+              <div
+                key={`${match.storyboardId}-${index}`}
+                style={{
+                  padding: theme.space[2],
+                  backgroundColor: `${theme.colors.warning || '#f59e0b'}10`,
+                  border: `1px solid ${theme.colors.warning || '#f59e0b'}40`,
+                  borderRadius: theme.radii[1],
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: theme.fontSizes[1],
+                    fontWeight: theme.fontWeights.medium,
+                    color: theme.colors.text,
+                  }}
+                >
+                  {match.storyboardId}
+                </div>
+                <div
+                  style={{
+                    fontSize: theme.fontSizes[0],
+                    color: theme.colors.textMuted,
+                    marginTop: '2px',
+                  }}
+                >
+                  Matched workflow but no scenario • {match.orphanedSpans.length} {match.orphanedSpans.length === 1 ? 'span' : 'spans'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Category 3: Unmatched Spans */}
+      {(trace.unmatchedSpans?.spans?.length ?? 0) > 0 && (
+        <div>
+          <div
+            style={{
+              fontSize: theme.fontSizes[1],
+              fontWeight: theme.fontWeights.semibold,
+              marginBottom: theme.space[2],
+              paddingLeft: theme.space[2],
+              color: theme.colors.error || '#ef4444',
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.space[1],
+            }}
+          >
+            <XCircle size={14} />
+            Unmatched Spans ({trace.unmatchedSpans?.spans?.length ?? 0})
+          </div>
+          <div
+            style={{
+              padding: theme.space[2],
+              backgroundColor: `${theme.colors.error || '#ef4444'}10`,
+              border: `1px solid ${theme.colors.error || '#ef4444'}40`,
+              borderRadius: theme.radii[1],
+              fontSize: theme.fontSizes[0],
+              color: theme.colors.textSecondary,
+              fontStyle: 'italic',
+            }}
+          >
+            {trace.unmatchedSpans?.spans?.length ?? 0} {(trace.unmatchedSpans?.spans?.length ?? 0) === 1 ? 'span' : 'spans'} didn't match any workflow
+          </div>
+        </div>
+      )}
+
+      {/* Validation Issues */}
+      {trace.validationIssues && trace.validationIssues.length > 0 && (
         <div>
           <div
             style={{
@@ -183,7 +291,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
               color: theme.colors.warning || '#f59e0b',
             }}
           >
-            Validation Issues ({unmatchedCount})
+            Validation Issues ({trace.validationIssues.length})
           </div>
           <div
             style={{
@@ -195,7 +303,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
               overflowY: 'auto',
             }}
           >
-            {trace.validationIssues?.map((issue, index) => (
+            {trace.validationIssues.map((issue, index) => (
               <div
                 key={`${issue.category}-${issue.message}-${index}`}
                 style={{
@@ -218,7 +326,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
       )}
 
       {/* No matches message */}
-      {matchedCount === 0 && unmatchedCount === 0 && (
+      {!hasAnyMatches && (!trace.validationIssues || trace.validationIssues.length === 0) && (
         <div
           style={{
             padding: theme.space[3],

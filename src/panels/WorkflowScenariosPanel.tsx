@@ -19,6 +19,7 @@ import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventN
 import { ScenariosList } from './execution-viewer/ScenariosList';
 import { useCanvasData } from './canvas-list/hooks/useCanvasData';
 import { parseExecutionArtifact, getSpans, getExecutionMetadata, type ExecutionMetadata } from './execution-viewer/executionUtils';
+import { getServiceName, filterTracesByScenario } from '../utils/traceHelpers';
 
 // View mode type (should be exported from react package in future versions)
 export type ViewMode = 'raw' | 'narrative' | 'summary';
@@ -320,7 +321,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     if (!selectedWorkflowIdProp) return allLiveTraces;
 
     return allLiveTraces.filter(trace =>
-      trace.registryStatus === 'matched' && trace.matchInfo?.workflowId === selectedWorkflowIdProp
+      trace.scenarioMatches.some(match => match.workflowId === selectedWorkflowIdProp) ||
+      trace.storyboardMatches.some(match => match.workflowId === selectedWorkflowIdProp)
     );
   }, [allLiveTraces, selectedWorkflowIdProp]);
 
@@ -748,11 +750,12 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
       // Convert RegisteredTrace to ExecutionData format
       const spans = getSpansFromTrace(trace);
+      const serviceName = getServiceName(trace);
       const executionData: ExecutionData = {
         metadata: {
           canvasName: state.canvas?.pv?.name || 'Unknown Canvas',
           exportedAt: new Date().toISOString(),
-          source: `live:${trace.serviceName || 'unknown'}`,
+          source: `live:${serviceName}`,
           framework: 'otel',
           status: trace.hasErrors ? ('failure' as const) : ('success' as const),
         },

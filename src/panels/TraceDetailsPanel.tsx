@@ -5,6 +5,7 @@ import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { TraceDetails } from '../components/TraceDetails';
 import type { RegisteredTrace } from '../types/otel';
 import { getRootSpan, getSpansFromTrace } from '../types/otel';
+import { getServiceName, getPrimaryStoryboardId, isTraceMatched } from '../utils/traceHelpers';
 
 export interface TraceDetailsPanelProps extends PanelComponentProps {
   /**
@@ -79,10 +80,19 @@ export const TraceDetailsPanel: React.FC<TraceDetailsPanelProps> = ({
                 color: theme.colors.textMuted,
               }}
             >
-              {selectedTrace.serviceName && `${selectedTrace.serviceName} • `}
-              {selectedTrace.spanCount} {selectedTrace.spanCount === 1 ? 'span' : 'spans'}
-              {selectedTrace.registryStatus === 'matched' && selectedTrace.matchInfo &&
-                ` • Matched: ${selectedTrace.matchInfo.storyboardId}`}
+              {(() => {
+                const serviceName = getServiceName(selectedTrace);
+                const matched = isTraceMatched(selectedTrace);
+                const storyboardId = getPrimaryStoryboardId(selectedTrace);
+
+                return (
+                  <>
+                    {serviceName !== 'unknown' && `${serviceName} • `}
+                    {selectedTrace.spanCount} {selectedTrace.spanCount === 1 ? 'span' : 'spans'}
+                    {matched && storyboardId && ` • Matched: ${storyboardId}`}
+                  </>
+                );
+              })()}
             </div>
           </div>
 
