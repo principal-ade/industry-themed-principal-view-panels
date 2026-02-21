@@ -61,7 +61,7 @@ export interface CanvasEditorPanelActions extends PanelActions {
  * Typed context for CanvasEditorPanel
  */
 export interface CanvasEditorPanelContext {
-  fileTree: DataSlice<FileTree>;
+  fileTree: DataSlice<FileTree | null>;
 }
 
 /**
@@ -76,6 +76,7 @@ export type CanvasEditorPanelPropsTyped = PanelComponentProps<
  * Typed context for WorkflowScenariosPanel
  */
 export interface WorkflowScenariosPanelContext {
+  fileTree: DataSlice<FileTree | null>;
   telemetry: DataSlice<RegisteredTrace[]>;
 }
 
@@ -91,8 +92,8 @@ export type WorkflowScenariosPanelPropsTyped = PanelComponentProps<
  * Typed context for StoryboardListPanel
  */
 export interface StoryboardListPanelContext {
-  fileTree: DataSlice<FileTree>;
-  git?: DataSlice<GitStatusWithFiles>;
+  fileTree: DataSlice<FileTree | null>;
+  git?: DataSlice<GitStatusWithFiles | null>;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { PanelContextValue, PanelActions } from '@principal-ade/panel-framework-core';
+import type { PanelActions, DataSlice } from '@principal-ade/panel-framework-core';
 import type {
   DiscoveredCanvas,
   DiscoveredStoryboard,
@@ -10,8 +10,12 @@ import type {
 import type { FileTree } from '@principal-ai/repository-abstraction';
 import { useCanvasData } from './useCanvasData';
 
+interface UseCanvasWorkflowDataContext {
+  fileTree: DataSlice<FileTree | null>;
+}
+
 interface UseCanvasNarrativeDataParams {
-  context: PanelContextValue;
+  context: UseCanvasWorkflowDataContext;
   actions: PanelActions;
 }
 
@@ -53,8 +57,8 @@ export const useCanvasWorkflowData = ({
   const [workflowsError, setNarrativesError] = useState<string | null>(null);
 
   // Extract file tree data
-  const fileTreeSlice = context.getSlice('fileTree');
-  const fileTreeData = fileTreeSlice?.data as FileTree | null;
+  const fileTreeSlice = context.fileTree;
+  const fileTreeData = fileTreeSlice.data;
   const fileTreeSha = fileTreeData?.sha;
 
   // Get readFile from actions parameter

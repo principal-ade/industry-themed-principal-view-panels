@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { PanelContextValue, PanelActions } from '@principal-ade/panel-framework-core';
+import type { PanelActions, DataSlice } from '@principal-ade/panel-framework-core';
 import {
   CanvasDiscovery,
   type DiscoveredCanvas,
@@ -8,8 +8,12 @@ import {
 } from '@principal-ai/principal-view-core';
 import type { FileTree } from '@principal-ai/repository-abstraction';
 
+interface UseCanvasDataContext {
+  fileTree: DataSlice<FileTree | null>;
+}
+
 interface UseCanvasDataParams {
-  context: PanelContextValue;
+  context: UseCanvasDataContext;
   actions: PanelActions;
 }
 
@@ -42,8 +46,8 @@ export const useCanvasData = ({
   const [error, setError] = useState<string | null>(null);
 
   // Extract stable references from context to avoid unnecessary re-renders
-  const fileTreeSlice = context.getSlice('fileTree');
-  const fileTreeData = fileTreeSlice?.data as FileTree | null;
+  const fileTreeSlice = context.fileTree;
+  const fileTreeData = fileTreeSlice.data;
   const fileTreeSha = fileTreeData?.sha;
 
   // Get readFile from actions parameter
