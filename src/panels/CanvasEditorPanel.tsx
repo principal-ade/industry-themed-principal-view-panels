@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
+import type { CanvasEditorPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
@@ -8,7 +8,7 @@ import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw } from '
 import { ConfigLoader } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
-import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
+import type { FileInfo, FileTree } from '@principal-ai/repository-abstraction';
 
 interface GraphPanelState {
   canvas: ExtendedCanvas | null;
@@ -30,7 +30,7 @@ interface GraphPanelState {
 /**
  * Props for CanvasEditorPanel
  */
-export interface CanvasEditorPanelProps extends PanelComponentProps {
+export interface CanvasEditorPanelProps extends CanvasEditorPanelPropsTyped {
   /**
    * Canvas path to load (relative to repository root).
    */
@@ -101,7 +101,8 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   // Extract fileTree SHA to detect changes without breaking ref optimization
   // This allows effects to trigger when fileTree changes while keeping context as a ref
   const fileTreeSha = React.useMemo(() => {
-    const slice = context.getSlice('fileTree');
+    // Get fileTree from typed context (direct property access)
+    const slice = context.fileTree;
     const data = slice?.data as FileTree | null;
     return data?.sha || null;
   }, [context]);

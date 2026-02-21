@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
-import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
+import type { StoryboardListPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check } from 'lucide-react';
@@ -80,7 +80,7 @@ function convertGitStatusToFileStatus(gitStatus: GitStatusWithFiles | null): Git
  * Uses the new storyboard discovery system from @principal-ai/principal-view-core@0.15.1+
  * Storyboards are provided directly by the discovery system, no transformation needed.
  */
-export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
+export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   context,
   actions,
   events,
@@ -102,11 +102,12 @@ export const StoryboardListPanel: React.FC<PanelComponentProps> = ({
   const { storyboards, workflows, testTraces, isLoading, error } = useCanvasWorkflowData({ context, actions });
 
   // Get fileTree to access FileInfo metadata
-  const fileTreeSlice = context.getSlice('fileTree');
+  // Get fileTree and git from typed context (direct property access)
+  const fileTreeSlice = context.fileTree;
   const fileTreeData = fileTreeSlice?.data as FileTree | null;
 
   // Get git status data for showing file change badges
-  const gitSlice = context.getSlice('git');
+  const gitSlice = context.git;
   const gitStatusData = useMemo(() => {
     const gitStatus = gitSlice?.data as GitStatusWithFiles | null;
     return convertGitStatusToFileStatus(gitStatus);

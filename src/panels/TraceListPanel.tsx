@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
+import type { TraceListPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { TraceList } from '../components/TraceList';
 import type { RegisteredTrace } from '../types/otel';
-import type { FileTree } from '@principal-ai/repository-abstraction';
 import { LibraryDiscovery } from '@principal-ai/principal-view-core';
-import type { VersionSnapshot, WorkflowTemplate } from '@principal-ai/principal-view-core';
+import type { WorkflowTemplate } from '@principal-ai/principal-view-core';
 import { PanelFileSystemAdapter } from '../adapters/PanelFileSystemAdapter';
 import { StoryboardWorkflowsTreeCore, hasWorkflowContent } from '@principal-ade/dynamic-file-tree';
 import type { StoryboardWorkflowNodeData, StoryboardFilterMode } from '@principal-ade/dynamic-file-tree';
@@ -28,7 +27,7 @@ type TabView = 'traces' | 'configuration' | 'schematics';
  * - 'library:resources-updated' when resources are saved
  * - Custom event with 'openWorkflowScenarios' action when a workflow from version registry is clicked
  */
-export const TraceListPanel: React.FC<PanelComponentProps> = ({
+export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
   context,
   actions,
   events,
@@ -43,11 +42,12 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
   const [workflowFilterMode, setWorkflowFilterMode] = useState<StoryboardFilterMode>('all');
 
   // Get traces from telemetry slice
-  const telemetrySlice = context.getSlice<RegisteredTrace[]>('telemetry');
+  // Get telemetry and schematics from typed context (direct property access)
+  const telemetrySlice = context.telemetry;
   const traces = React.useMemo(() => telemetrySlice?.data || [], [telemetrySlice?.data]);
 
   // Get schematics from schematics slice (version registry data)
-  const schematicsSlice = context.getSlice<VersionSnapshot[]>('schematics');
+  const schematicsSlice = context.schematics;
   const versionSnapshots = schematicsSlice?.data || [];
   const schematicsLoading = schematicsSlice?.loading || false;
 
@@ -106,7 +106,7 @@ export const TraceListPanel: React.FC<PanelComponentProps> = ({
       }
 
       // Get file tree from context
-      const fileTreeSlice = context.getSlice<FileTree>('fileTree');
+      const fileTreeSlice = context.fileTree;
       const fileTree = fileTreeSlice?.data;
 
       if (!fileTree) {

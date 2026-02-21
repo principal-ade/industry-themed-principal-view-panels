@@ -5,7 +5,6 @@ import type { RegisteredTrace } from '../types/otel';
 import { TraceExpansion } from './TraceExpansion';
 import {
   getServiceName,
-  getPrimaryScope,
   getSchemaVersion,
   isTraceMatched,
   getMatchQuality,

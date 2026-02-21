@@ -30,8 +30,10 @@ export type { TraceExpansionProps } from './components/TraceExpansion';
 /**
  * Export array of panel definitions.
  * This is the required export for panel extensions.
+ * Using generic types for v0.4.2+ typed actions and context.
  */
-export const panels: PanelDefinition[] = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const panels: PanelDefinition<any, any>[] = [
   {
     metadata: {
       id: 'principal-ai.canvas-editor',
@@ -47,17 +49,14 @@ export const panels: PanelDefinition[] = [
     component: CanvasEditorPanel,
 
     // Optional: Called when this specific panel is mounted
-    onMount: async (context: PanelContextValue) => {
+    onMount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log(
         'Canvas Editor Panel mounted',
-        context.currentScope.repository?.path
+        _context.currentScope.repository?.path
       );
 
-      // Refresh file tree if available
-      if (context.hasSlice('fileTree') && !context.isSliceLoading('fileTree')) {
-        await context.refresh('repository', 'fileTree');
-      }
+      // Slice availability is enforced by panel metadata slices declaration
     },
 
     // Optional: Called when this specific panel is unmounted
@@ -85,10 +84,8 @@ export const panels: PanelDefinition[] = [
         context.currentScope.repository?.path
       );
 
-      // Refresh file tree if available
-      if (context.hasSlice('fileTree') && !context.isSliceLoading('fileTree')) {
-        await context.refresh('repository', 'fileTree');
-      }
+      // Note: This panel uses telemetry slice, not fileTree
+      // Telemetry is automatically managed by RepositoryPanelContext
     },
 
     onUnmount: async (_context: PanelContextValue) => {
@@ -108,17 +105,14 @@ export const panels: PanelDefinition[] = [
     },
     component: StoryboardListPanel,
 
-    onMount: async (context: PanelContextValue) => {
+    onMount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log(
         'Storyboard List Panel mounted',
-        context.currentScope.repository?.path
+        _context.currentScope.repository?.path
       );
 
-      // Refresh file tree if available
-      if (context.hasSlice('fileTree') && !context.isSliceLoading('fileTree')) {
-        await context.refresh('repository', 'fileTree');
-      }
+      // Slice availability is enforced by panel metadata slices declaration
     },
 
     onUnmount: async (_context: PanelContextValue) => {

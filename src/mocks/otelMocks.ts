@@ -561,7 +561,6 @@ export function convertToRegisteredTraces(
     const workflowId = getAttributeValue(resource.attributes, 'pv.workflow.id') as string | undefined;
     const workflowName = getAttributeValue(resource.attributes, 'pv.workflow.name') as string | undefined;
     const scenarioId = getAttributeValue(resource.attributes, 'pv.scenario.id') as string | undefined;
-    const scenarioName = getAttributeValue(resource.attributes, 'pv.scenario.name') as string | undefined;
 
     const hasMatchInfo = storyboardId && storyboardName && scenarioId;
 

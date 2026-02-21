@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
+import type { WorkflowScenariosPanelPropsTyped } from '../types';
 import { useTheme, type Theme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, WorkflowTemplate, WorkflowScenario, OtelAttributes } from '@principal-ai/principal-view-core';
@@ -12,14 +12,13 @@ import { Activity, X, CheckCircle2, List, Radar } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { TraceSearchView } from './execution-viewer/TraceSearchView';
 import { LiveTraceSearchView } from './execution-viewer/LiveTraceSearchView';
-import type { RegisteredTrace } from '../types/otel';
 import { getSpansFromTrace } from '../types/otel';
 import type { OtelSpanData, OtelKeyValue } from '@principal-ai/principal-view-core';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { ScenariosList } from './execution-viewer/ScenariosList';
 import { useCanvasData } from './canvas-list/hooks/useCanvasData';
 import { parseExecutionArtifact, getSpans, getExecutionMetadata, type ExecutionMetadata } from './execution-viewer/executionUtils';
-import { getServiceName, filterTracesByScenario } from '../utils/traceHelpers';
+import { getServiceName } from '../utils/traceHelpers';
 
 // View mode type (should be exported from react package in future versions)
 export type ViewMode = 'raw' | 'narrative' | 'summary';
@@ -215,7 +214,7 @@ const LoadingSkeleton: React.FC<{ theme: Theme }> = ({ theme }) => {
 /**
  * Props for WorkflowScenariosPanel
  */
-export interface WorkflowScenariosPanelProps extends PanelComponentProps {
+export interface WorkflowScenariosPanelProps extends WorkflowScenariosPanelPropsTyped {
   /**
    * Canvas ID to display (optional - can be controlled via props or events).
    */
@@ -313,7 +312,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   const { storyboards, testTraces } = useCanvasData({ context, actions });
 
   // Get live OTEL traces from telemetry slice
-  const telemetrySlice = context.getSlice<RegisteredTrace[]>('telemetry');
+  // Get telemetry from typed context (direct property access)
+  const telemetrySlice = context.telemetry;
   const allLiveTraces = useMemo(() => telemetrySlice?.data || [], [telemetrySlice?.data]);
 
   // Filter live traces to only show traces matching the current workflow
