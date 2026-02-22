@@ -147,92 +147,75 @@ const mockFileTreeEmpty: FileTree = (() => {
   return builder.build({ files: [] });
 })();
 
-// Helper to create mock slices with actions
-const createMockSlices = (fileTreeData: FileTree | null) => {
-  return new Map([
-    [
-      'fileTree',
-      {
-        scope: 'repository' as const,
-        name: 'fileTree',
-        data: fileTreeData,
-        loading: false,
-        error: null,
-        refresh: async () => {},
+// Helper to create mock fileTree slice
+const createMockFileTreeSlice = (fileTreeData: FileTree | null, loading = false) => ({
+  scope: 'repository' as const,
+  name: 'fileTree',
+  data: fileTreeData,
+  loading,
+  error: null,
+  refresh: async () => {},
+});
+
+// Helper to create mock readFile action
+const createMockReadFile = (fileTreeData: FileTree | null) => async (path: string) => {
+  console.log('[Mock readFile] Called with path:', path);
+
+  // Return proper canvas JSON for .canvas and .otel.canvas files
+  if (path.endsWith('.canvas') || path.endsWith('.otel.canvas')) {
+    const pathParts = path.split('/');
+    const canvasName = pathParts[pathParts.length - 2] || 'Mock Canvas';
+
+    // Check if this is a static .canvas file (not .otel.canvas)
+    const isStaticCanvas = path.endsWith('.canvas') && !path.endsWith('.otel.canvas');
+
+    // For static canvas files, check if markdown exists
+    const markdownPath = isStaticCanvas
+      ? `.principal-views/${canvasName}/${canvasName}.md`
+      : null;
+
+    // Check if markdown file exists in allFiles (for static canvases only)
+    const hasMarkdown = isStaticCanvas && fileTreeData?.allFiles.some(f => f.path === markdownPath);
+
+    const content = JSON.stringify({
+      pv: {
+        name: canvasName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        version: '1.0.0',
+        description: `Mock canvas for ${canvasName}`,
+        // Add markdown path for static canvases with markdown files
+        ...(hasMarkdown && { markdown: markdownPath }),
       },
-    ],
-    [
-      'actions',
-      {
-        scope: 'repository' as const,
-        name: 'actions',
-        data: {
-          readFile: async (path: string) => {
-            console.log('[Mock readFile] Called with path:', path);
+      nodes: [],
+      edges: [],
+    });
+    console.log('[Mock readFile] Returning canvas content for:', canvasName, isStaticCanvas ? '(static)' : '(otel)', hasMarkdown ? 'with markdown' : '');
+    return content;
+  }
 
-            // Return proper canvas JSON for .canvas and .otel.canvas files
-            if (path.endsWith('.canvas') || path.endsWith('.otel.canvas')) {
-              const pathParts = path.split('/');
-              const canvasName = pathParts[pathParts.length - 2] || 'Mock Canvas';
+  // Return workflow JSON for .workflow.json files
+  if (path.endsWith('.workflow.json')) {
+    const workflowName = path.split('/').slice(-2)[0] || 'Mock Workflow';
+    const content = JSON.stringify({
+      name: workflowName,
+      description: `Mock workflow for ${workflowName}`,
+      scenarios: [],
+    });
+    console.log('[Mock readFile] Returning workflow content for:', workflowName);
+    return content;
+  }
 
-              // Check if this is a static .canvas file (not .otel.canvas)
-              const isStaticCanvas = path.endsWith('.canvas') && !path.endsWith('.otel.canvas');
+  // Return execution JSON for .otel.json files
+  if (path.endsWith('.otel.json')) {
+    const content = JSON.stringify({
+      events: [],
+      metadata: { timestamp: new Date().toISOString() },
+    });
+    console.log('[Mock readFile] Returning execution content');
+    return content;
+  }
 
-              // For static canvas files, check if markdown exists
-              const markdownPath = isStaticCanvas
-                ? `.principal-views/${canvasName}/${canvasName}.md`
-                : null;
-
-              // Check if markdown file exists in allFiles (for static canvases only)
-              const hasMarkdown = isStaticCanvas && fileTreeData?.allFiles.some(f => f.path === markdownPath);
-
-              const content = JSON.stringify({
-                pv: {
-                  name: canvasName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                  version: '1.0.0',
-                  description: `Mock canvas for ${canvasName}`,
-                  // Add markdown path for static canvases with markdown files
-                  ...(hasMarkdown && { markdown: markdownPath }),
-                },
-                nodes: [],
-                edges: [],
-              });
-              console.log('[Mock readFile] Returning canvas content for:', canvasName, isStaticCanvas ? '(static)' : '(otel)', hasMarkdown ? 'with markdown' : '');
-              return content;
-            }
-
-            // Return workflow JSON for .workflow.json files
-            if (path.endsWith('.workflow.json')) {
-              const workflowName = path.split('/').slice(-2)[0] || 'Mock Workflow';
-              const content = JSON.stringify({
-                name: workflowName,
-                description: `Mock workflow for ${workflowName}`,
-                scenarios: [],
-              });
-              console.log('[Mock readFile] Returning workflow content for:', workflowName);
-              return content;
-            }
-
-            // Return execution JSON for .otel.json files
-            if (path.endsWith('.otel.json')) {
-              const content = JSON.stringify({
-                events: [],
-                metadata: { timestamp: new Date().toISOString() },
-              });
-              console.log('[Mock readFile] Returning execution content');
-              return content;
-            }
-
-            console.warn('[Mock readFile] Unknown file type:', path);
-            return '{}';
-          },
-        },
-        loading: false,
-        error: null,
-        refresh: async () => {},
-      },
-    ],
-  ]);
+  console.warn('[Mock readFile] Unknown file type:', path);
+  return '{}';
 };
 
 /**
@@ -244,15 +227,13 @@ const createMockSlices = (fileTreeData: FileTree | null) => {
 export const Default: Story = {
   args: {} as never,
   render: () => {
-    const mockSlices = createMockSlices(mockFileTreeWithCanvases);
-
     return (
       <MockPanelProvider
         contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): T | undefined => {
-            return mockSlices.get(name) as T | undefined;
-          },
+          fileTree: createMockFileTreeSlice(mockFileTreeWithCanvases),
+        }}
+        actionsOverrides={{
+          readFile: createMockReadFile(mockFileTreeWithCanvases),
         }}
       >
         {(props) => <StoryboardListPanel {...props} />}
@@ -268,8 +249,6 @@ export const Default: Story = {
 export const DebugWithFileTree: Story = {
   args: {} as never,
   render: () => {
-    const mockSlices = createMockSlices(mockFileTreeWithCanvases);
-
     const DebugContent = () => {
       const { theme } = useTheme();
 
@@ -297,10 +276,10 @@ export const DebugWithFileTree: Story = {
           <div style={{ width: '50%', height: '100%' }}>
             <MockPanelProvider
               contextOverrides={{
-                slices: mockSlices,
-                getSlice: <T,>(name: string): T | undefined => {
-                  return mockSlices.get(name) as T | undefined;
-                },
+                fileTree: createMockFileTreeSlice(mockFileTreeWithCanvases),
+              }}
+              actionsOverrides={{
+                readFile: createMockReadFile(mockFileTreeWithCanvases),
               }}
             >
               {(props) => <StoryboardListPanel {...props} />}
@@ -324,16 +303,10 @@ export const DebugWithFileTree: Story = {
 export const Loading: Story = {
   args: {} as never,
   render: () => {
-    const mockSlices = createMockSlices(null);
-    mockSlices.get('fileTree')!.loading = true;
-
     return (
       <MockPanelProvider
         contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): T | undefined => {
-            return mockSlices.get(name) as T | undefined;
-          },
+          fileTree: createMockFileTreeSlice(null, true),
         }}
       >
         {(props) => <StoryboardListPanel {...props} />}
@@ -348,15 +321,13 @@ export const Loading: Story = {
 export const Empty: Story = {
   args: {} as never,
   render: () => {
-    const mockSlices = createMockSlices(mockFileTreeEmpty);
-
     return (
       <MockPanelProvider
         contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): T | undefined => {
-            return mockSlices.get(name) as T | undefined;
-          },
+          fileTree: createMockFileTreeSlice(mockFileTreeEmpty),
+        }}
+        actionsOverrides={{
+          readFile: createMockReadFile(mockFileTreeEmpty),
         }}
       >
         {(props) => <StoryboardListPanel {...props} />}
@@ -371,15 +342,13 @@ export const Empty: Story = {
 export const WithEventHandling: Story = {
   args: {} as never,
   render: () => {
-    const mockSlices = createMockSlices(mockFileTreeWithCanvases);
-
     return (
       <MockPanelProvider
         contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): T | undefined => {
-            return mockSlices.get(name) as T | undefined;
-          },
+          fileTree: createMockFileTreeSlice(mockFileTreeWithCanvases),
+        }}
+        actionsOverrides={{
+          readFile: createMockReadFile(mockFileTreeWithCanvases),
         }}
       >
         {(props) => (
@@ -424,15 +393,13 @@ export const SingleCanvas: Story = {
     fileTree.sha = 'mock-sha-single';
     fileTree.allFiles = allFiles;
 
-    const mockSlices = createMockSlices(fileTree);
-
     return (
       <MockPanelProvider
         contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): T | undefined => {
-            return mockSlices.get(name) as T | undefined;
-          },
+          fileTree: createMockFileTreeSlice(fileTree),
+        }}
+        actionsOverrides={{
+          readFile: createMockReadFile(fileTree),
         }}
       >
         {(props) => <StoryboardListPanel {...props} />}
@@ -458,15 +425,13 @@ export const ManyCanvases: Story = {
     fileTree.sha = 'mock-sha-many';
     fileTree.allFiles = manyStoryboards;
 
-    const mockSlices = createMockSlices(fileTree);
-
     return (
       <MockPanelProvider
         contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): T | undefined => {
-            return mockSlices.get(name) as T | undefined;
-          },
+          fileTree: createMockFileTreeSlice(fileTree),
+        }}
+        actionsOverrides={{
+          readFile: createMockReadFile(fileTree),
         }}
       >
         {(props) => <StoryboardListPanel {...props} />}
@@ -603,15 +568,13 @@ export const MonorepoWithPackages: Story = {
     fileTree.sha = 'mock-sha-monorepo';
     fileTree.allFiles = allFiles;
 
-    const mockSlices = createMockSlices(fileTree);
-
     return (
       <MockPanelProvider
         contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): T | undefined => {
-            return mockSlices.get(name) as T | undefined;
-          },
+          fileTree: createMockFileTreeSlice(fileTree),
+        }}
+        actionsOverrides={{
+          readFile: createMockReadFile(fileTree),
         }}
       >
         {(props) => (
@@ -689,21 +652,6 @@ export const WithNarratives: Story = {
 
     const mockFileTreeWithNarratives = fileTree;
 
-    // Create mock slices
-    const mockSlices = new Map([
-      [
-        'fileTree',
-        {
-          scope: 'repository' as const,
-          name: 'fileTree',
-          data: mockFileTreeWithNarratives,
-          loading: false,
-          error: null,
-          refresh: async () => {},
-        },
-      ],
-    ]);
-
     // Create custom readFile that returns workflow templates or canvas content
     const mockReadFile = async (path: string) => {
       console.log('[Mock] readFile:', path);
@@ -750,12 +698,7 @@ export const WithNarratives: Story = {
     return (
       <MockPanelProvider
         contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): T | undefined => {
-            const slice = mockSlices.get(name) as T | undefined;
-            console.log('[Story] getSlice:', name, slice ? 'found' : 'not found');
-            return slice;
-          },
+          fileTree: createMockFileTreeSlice(mockFileTreeWithNarratives),
         }}
         actionsOverrides={{
           readFile: mockReadFile,
@@ -844,21 +787,6 @@ export const CanvasEventsTest: Story = {
     fileTree.allFiles = allFiles;
 
     const mockFileTreeWithNarratives = fileTree;
-
-    // Create mock slices
-    const mockSlices = new Map([
-      [
-        'fileTree',
-        {
-          scope: 'repository' as const,
-          name: 'fileTree',
-          data: mockFileTreeWithNarratives,
-          loading: false,
-          error: null,
-          refresh: async () => {},
-        },
-      ],
-    ]);
 
     // Create custom readFile that returns workflow templates or canvas content
     const mockReadFile = async (path: string) => {
@@ -952,10 +880,7 @@ export const CanvasEventsTest: Story = {
         <div style={{ flex: 1 }}>
           <MockPanelProvider
             contextOverrides={{
-              slices: mockSlices,
-              getSlice: <T,>(name: string) => {
-                return mockSlices.get(name) as T | undefined;
-              },
+              fileTree: createMockFileTreeSlice(mockFileTreeWithNarratives),
             }}
             actionsOverrides={{
               readFile: mockReadFile,
@@ -1120,15 +1045,13 @@ export const StoryboardsWithoutWorkflows: Story = {
     fileTree.sha = 'mock-sha-no-workflows';
     fileTree.allFiles = allFiles;
 
-    const mockSlices = createMockSlices(fileTree);
-
     return (
       <MockPanelProvider
         contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): T | undefined => {
-            return mockSlices.get(name) as T | undefined;
-          },
+          fileTree: createMockFileTreeSlice(fileTree),
+        }}
+        actionsOverrides={{
+          readFile: createMockReadFile(fileTree),
         }}
       >
         {(props) => (
@@ -1203,21 +1126,6 @@ export const WithMarkdownDocumentation: Story = {
     fileTree.sha = 'mock-sha-markdown';
     fileTree.allFiles = allFiles;
 
-    // Custom mock slices with readFile that includes markdown paths
-    const mockSlices = new Map([
-      [
-        'fileTree',
-        {
-          scope: 'repository' as const,
-          name: 'fileTree',
-          data: fileTree,
-          loading: false,
-          error: null,
-          refresh: async () => {},
-        },
-      ],
-    ]);
-
     // Custom readFile that returns canvas JSON with pv.markdown for some canvases
     const mockReadFile = async (path: string) => {
       console.log('[Mock readFile] Called with path:', path);
@@ -1273,10 +1181,7 @@ export const WithMarkdownDocumentation: Story = {
     return (
       <MockPanelProvider
         contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): T | undefined => {
-            return mockSlices.get(name) as T | undefined;
-          },
+          fileTree: createMockFileTreeSlice(fileTree),
         }}
         actionsOverrides={{
           readFile: mockReadFile,
@@ -1356,21 +1261,6 @@ export const WithCoverageIndicators: Story = {
     fileTree.sha = 'mock-sha-coverage';
     fileTree.allFiles = allFiles;
 
-    // Create mock slices with custom readFile that returns workflow templates with scenarios
-    const mockSlices = new Map([
-      [
-        'fileTree',
-        {
-          scope: 'repository' as const,
-          name: 'fileTree',
-          data: fileTree,
-          loading: false,
-          error: null,
-          refresh: async () => {},
-        },
-      ],
-    ]);
-
     // Custom readFile that returns workflow templates with 2 scenarios each
     const mockReadFile = async (path: string) => {
       // Return canvas content for .otel.canvas files
@@ -1428,10 +1318,7 @@ export const WithCoverageIndicators: Story = {
     return (
       <MockPanelProvider
         contextOverrides={{
-          slices: mockSlices,
-          getSlice: <T,>(name: string): T | undefined => {
-            return mockSlices.get(name) as T | undefined;
-          },
+          fileTree: createMockFileTreeSlice(fileTree),
         }}
         actionsOverrides={{
           readFile: mockReadFile,
@@ -1499,8 +1386,6 @@ export const ChangeDetectionTest: Story = {
     fileTree.sha = sha;
     fileTree.allFiles = mockFiles;
 
-    const mockSlices = createMockSlices(fileTree);
-
     // Custom events that log activity
     const mockEvents = {
       emit: (event: PanelEvent<unknown>) => {
@@ -1519,10 +1404,10 @@ export const ChangeDetectionTest: Story = {
         <div style={{ flex: 1 }}>
           <MockPanelProvider
             contextOverrides={{
-              slices: mockSlices,
-              getSlice: <T,>(name: string) => {
-                return mockSlices.get(name) as T | undefined;
-              },
+              fileTree: createMockFileTreeSlice(fileTree),
+            }}
+            actionsOverrides={{
+              readFile: createMockReadFile(fileTree),
             }}
             eventsOverride={mockEvents}
           >
@@ -1731,27 +1616,23 @@ export const WithGitStatusBadges: Story = {
       hash: 'git-status-mock',
     };
 
-    const mockSlices = createMockSlices(fileTree);
-
-    // Add git status slice
-    mockSlices.set('git', {
-      scope: 'repository' as const,
-      name: 'git',
-      data: gitStatusData,
-      loading: false,
-      error: null,
-      refresh: async () => {},
-    });
-
     return (
       <div style={{ display: 'flex', height: '100vh', gap: 16, padding: 16 }}>
         <div style={{ flex: 1 }}>
           <MockPanelProvider
             contextOverrides={{
-              slices: mockSlices,
-              getSlice: <T,>(name: string): T | undefined => {
-                return mockSlices.get(name) as T | undefined;
+              fileTree: createMockFileTreeSlice(fileTree),
+              git: {
+                scope: 'repository' as const,
+                name: 'git',
+                data: gitStatusData,
+                loading: false,
+                error: null,
+                refresh: async () => {},
               },
+            }}
+            actionsOverrides={{
+              readFile: createMockReadFile(fileTree),
             }}
           >
             {(props) => <StoryboardListPanel {...props} />}

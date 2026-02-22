@@ -335,20 +335,15 @@ export const Default: Story = {
     return (
       <MockPanelProvider
         contextOverrides={{
-          getSlice: (name: string) => {
-            if (name === 'telemetry') {
-              return {
-                scope: 'repository' as const,
-                name: 'telemetry',
-                data: traces,
-                loading: false,
-                error: null,
-                refresh: async () => {
-                  console.log('[Mock] Refreshing telemetry slice');
-                },
-              };
-            }
-            return undefined;
+          telemetry: {
+            scope: 'repository' as const,
+            name: 'telemetry',
+            data: traces,
+            loading: false,
+            error: null,
+            refresh: async () => {
+              console.log('[Mock] Refreshing telemetry slice');
+            },
           },
         }}
         actionsOverrides={{
@@ -374,20 +369,15 @@ export const WithErrors: Story = {
     return (
       <MockPanelProvider
         contextOverrides={{
-          getSlice: (name: string) => {
-            if (name === 'telemetry') {
-              return {
-                scope: 'repository' as const,
-                name: 'telemetry',
-                data: traces,
-                loading: false,
-                error: null,
-                refresh: async () => {
-                  console.log('[Mock] Refreshing telemetry slice');
-                },
-              };
-            }
-            return undefined;
+          telemetry: {
+            scope: 'repository' as const,
+            name: 'telemetry',
+            data: traces,
+            loading: false,
+            error: null,
+            refresh: async () => {
+              console.log('[Mock] Refreshing telemetry slice');
+            },
           },
         }}
         actionsOverrides={{
@@ -504,20 +494,15 @@ export const WithMultiWorkflowMatching: Story = {
     return (
       <MockPanelProvider
         contextOverrides={{
-          getSlice: (name: string) => {
-            if (name === 'telemetry') {
-              return {
-                scope: 'repository' as const,
-                name: 'telemetry',
-                data: traces,
-                loading: false,
-                error: null,
-                refresh: async () => {
-                  console.log('[Mock] Refreshing telemetry slice');
-                },
-              };
-            }
-            return undefined;
+          telemetry: {
+            scope: 'repository' as const,
+            name: 'telemetry',
+            data: traces,
+            loading: false,
+            error: null,
+            refresh: async () => {
+              console.log('[Mock] Refreshing telemetry slice');
+            },
           },
         }}
         actionsOverrides={{
@@ -543,20 +528,15 @@ export const WithWorkflowMatching: Story = {
     return (
       <MockPanelProvider
         contextOverrides={{
-          getSlice: (name: string) => {
-            if (name === 'telemetry') {
-              return {
-                scope: 'repository' as const,
-                name: 'telemetry',
-                data: traces,
-                loading: false,
-                error: null,
-                refresh: async () => {
-                  console.log('[Mock] Refreshing telemetry slice');
-                },
-              };
-            }
-            return undefined;
+          telemetry: {
+            scope: 'repository' as const,
+            name: 'telemetry',
+            data: traces,
+            loading: false,
+            error: null,
+            refresh: async () => {
+              console.log('[Mock] Refreshing telemetry slice');
+            },
           },
         }}
         actionsOverrides={{
@@ -788,28 +768,21 @@ export const WithSchematics: Story = {
     return (
       <MockPanelProvider
         contextOverrides={{
-          getSlice: (name: string) => {
-            if (name === 'schematics') {
-              return {
-                scope: 'repository' as const,
-                name: 'schematics',
-                data: mockSchematics,
-                loading: false,
-                error: null,
-                refresh: async () => {},
-              };
-            }
-            if (name === 'telemetry') {
-              return {
-                scope: 'repository' as const,
-                name: 'telemetry',
-                data: mockTracesForSchematics,
-                loading: false,
-                error: null,
-                refresh: async () => {},
-              };
-            }
-            return undefined;
+          schematics: {
+            scope: 'repository' as const,
+            name: 'schematics',
+            data: mockSchematics,
+            loading: false,
+            error: null,
+            refresh: async () => {},
+          },
+          telemetry: {
+            scope: 'repository' as const,
+            name: 'telemetry',
+            data: mockTracesForSchematics,
+            loading: false,
+            error: null,
+            refresh: async () => {},
           },
         }}
       >
@@ -856,32 +829,25 @@ export const SchematicsMultipleVersions: Story = {
     return (
       <MockPanelProvider
         contextOverrides={{
-          getSlice: (name: string) => {
-            if (name === 'schematics') {
-              return {
-                scope: 'repository' as const,
-                name: 'schematics',
-                data: mockSchematics,
-                loading: false,
-                error: null,
-                refresh: async () => {
-                  console.log('[Mock] Refreshing schematics slice');
-                },
-              };
-            }
-            if (name === 'telemetry') {
-              return {
-                scope: 'repository' as const,
-                name: 'telemetry',
-                data: tracesForFirstVersion,
-                loading: false,
-                error: null,
-                refresh: async () => {
-                  console.log('[Mock] Refreshing telemetry slice');
-                },
-              };
-            }
-            return undefined;
+          schematics: {
+            scope: 'repository' as const,
+            name: 'schematics',
+            data: mockSchematics,
+            loading: false,
+            error: null,
+            refresh: async () => {
+              console.log('[Mock] Refreshing schematics slice');
+            },
+          },
+          telemetry: {
+            scope: 'repository' as const,
+            name: 'telemetry',
+            data: tracesForFirstVersion,
+            loading: false,
+            error: null,
+            refresh: async () => {
+              console.log('[Mock] Refreshing telemetry slice');
+            },
           },
         }}
       >
@@ -935,18 +901,13 @@ export const SchematicsSimpleTest: Story = {
     return (
       <MockPanelProvider
         contextOverrides={{
-          getSlice: (name: string) => {
-            if (name === 'schematics') {
-              return {
-                scope: 'repository' as const,
-                name: 'schematics',
-                data: testData,
-                loading: false,
-                error: null,
-                refresh: async () => {},
-              };
-            }
-            return undefined;
+          schematics: {
+            scope: 'repository' as const,
+            name: 'schematics',
+            data: testData,
+            loading: false,
+            error: null,
+            refresh: async () => {},
           },
         }}
       >
@@ -971,20 +932,15 @@ export const SchematicsLoading: Story = {
     return (
       <MockPanelProvider
         contextOverrides={{
-          getSlice: (name: string) => {
-            if (name === 'schematics') {
-              return {
-                scope: 'repository' as const,
-                name: 'schematics',
-                data: [],
-                loading: true,
-                error: null,
-                refresh: async () => {
-                  console.log('[Mock] Refreshing schematics slice');
-                },
-              };
-            }
-            return undefined;
+          schematics: {
+            scope: 'repository' as const,
+            name: 'schematics',
+            data: [],
+            loading: true,
+            error: null,
+            refresh: async () => {
+              console.log('[Mock] Refreshing schematics slice');
+            },
           },
         }}
       >

@@ -808,20 +808,17 @@ const createMockProvider = (files: Array<{ path: string; relativePath: string; n
     allDirectories,
     sha: 'mock-sha-' + Date.now(),
   };
-  const mockSlices = new Map<string, DataSlice>();
-  mockSlices.set('fileTree', {
-    scope: 'repository',
-    name: 'fileTree',
-    data: fileTreeData,
-    loading: false,
-    error: null,
-    refresh: async () => {},
-  });
 
   return {
     contextOverrides: {
-      slices: mockSlices,
-      getSlice: <T,>(name: string) => mockSlices.get(name) as DataSlice<T> | undefined,
+      fileTree: {
+        scope: 'repository' as const,
+        name: 'fileTree',
+        data: fileTreeData,
+        loading: false,
+        error: null,
+        refresh: async () => {},
+      },
       repositoryPath: '/mock/repository',
     },
     actionsOverrides: {
@@ -2096,20 +2093,21 @@ export const LiveOtelTraces: Story = {
       },
     ]);
 
-    // Add telemetry slice with live traces
-    const telemetrySlice: DataSlice<RegisteredTrace[]> = {
-      scope: 'repository',
-      name: 'telemetry',
-      data: liveTraces,
-      loading: false,
-      error: null,
-      refresh: async () => {},
+    // Add telemetry slice with live traces as typed property
+    const contextOverrides = {
+      ...mock.contextOverrides,
+      telemetry: {
+        scope: 'repository' as const,
+        name: 'telemetry',
+        data: liveTraces,
+        loading: false,
+        error: null,
+        refresh: async () => {},
+      },
     };
 
-    mock.contextOverrides.slices.set('telemetry', telemetrySlice);
-
     return (
-      <MockPanelProvider contextOverrides={mock.contextOverrides} actionsOverrides={mock.actionsOverrides}>
+      <MockPanelProvider contextOverrides={contextOverrides} actionsOverrides={mock.actionsOverrides}>
         {(props) => (
           <WorkflowScenariosPanel
             {...props}
