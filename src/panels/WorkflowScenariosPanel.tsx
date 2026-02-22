@@ -4,7 +4,7 @@ import { useTheme, type Theme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, WorkflowTemplate, WorkflowScenario, OtelAttributes } from '@principal-ai/principal-view-core';
 import { renderWorkflow, type ExecutionData, type DiscoveredTestTrace, type DiscoveredWorkflow } from '@principal-ai/principal-view-core';
-import type { FileTree, FileInfo } from '@principal-ai/repository-abstraction';
+import type { FileInfo } from '@principal-ai/repository-abstraction';
 import { AnimatedResizableLayout } from '@principal-ade/panels';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/workflow-converter';
@@ -389,16 +389,16 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       const acts = actionsRef.current;
 
       // Check if fileTree slice is available
-      if (!ctx.hasSlice('fileTree')) {
+      const fileTreeSlice = ctx.fileTree;
+      if (!fileTreeSlice) {
         throw new Error('File tree data not available');
       }
 
-      if (ctx.isSliceLoading('fileTree')) {
+      if (fileTreeSlice.loading) {
         return;
       }
 
-      const fileTreeSlice = ctx.getSlice('fileTree');
-      const fileTreeData = fileTreeSlice?.data as FileTree | null;
+      const fileTreeData = fileTreeSlice.data;
 
       if (!fileTreeData?.allFiles) {
         // Keep loading state true while waiting for file tree data
@@ -648,10 +648,10 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     const handleWorkspaceChange = (_event: unknown) => {
       // Get current file tree to check timestamps
       const ctx = contextRef.current;
-      if (!ctx.hasSlice('fileTree')) return;
+      const fileTreeSlice = ctx.fileTree;
+      if (!fileTreeSlice) return;
 
-      const fileTreeSlice = ctx.getSlice('fileTree');
-      const fileTreeData = fileTreeSlice?.data as FileTree | null;
+      const fileTreeData = fileTreeSlice.data;
       if (!fileTreeData?.allFiles) return;
 
       // Check canvas file timestamp

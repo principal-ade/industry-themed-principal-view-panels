@@ -58,10 +58,11 @@ const createMockSlice = <T,>(
 
 /**
  * Mock Panel Context for Storybook
+ * Supports both typed slice properties (new pattern) and dynamic slice access (legacy)
  */
-export const createMockContext = (
-  overrides?: Partial<PanelContextValue>
-): PanelContextValue => {
+export const createMockContext = <T extends PanelContextValue = PanelContextValue>(
+  overrides?: Partial<T>
+): T => {
   // Create mock data slices
   const mockSlices = new Map<string, DataSlice>([
     ['git', createMockSlice('git', mockGitStatusData)],
@@ -121,9 +122,19 @@ export const createMockContext = (
     ],
   ]);
 
-  const defaultContext: PanelContextValue = {
+  // Create typed slice properties for direct access (new pattern)
+  const fileTreeSlice = mockSlices.get('fileTree')!;
+  const gitSlice = mockSlices.get('git')!;
+  const markdownSlice = mockSlices.get('markdown')!;
+  const packagesSlice = mockSlices.get('packages')!;
+  const qualitySlice = mockSlices.get('quality')!;
+  const telemetrySlice = createMockSlice('telemetry', []);
+
+  // Build context with both typed slice properties and legacy dynamic access
+  // Use type intersection to support panel-specific typed contexts
+  const defaultContext = {
     currentScope: {
-      type: 'repository',
+      type: 'repository' as const,
       workspace: {
         name: 'my-workspace',
         path: '/Users/developer/my-workspace',
@@ -133,6 +144,14 @@ export const createMockContext = (
         path: '/Users/developer/my-project',
       },
     },
+    // Typed slice properties (new pattern - direct access)
+    fileTree: fileTreeSlice,
+    git: gitSlice,
+    markdown: markdownSlice,
+    packages: packagesSlice,
+    quality: qualitySlice,
+    telemetry: telemetrySlice,
+    // Legacy dynamic slice access (for backwards compatibility)
     slices: mockSlices,
     getSlice: <T,>(name: string): DataSlice<T> | undefined => {
       return mockSlices.get(name) as DataSlice<T> | undefined;
@@ -188,7 +207,7 @@ export const createMockContext = (
     };
   }
 
-  return merged;
+  return merged as unknown as T;
 };
 
 /**

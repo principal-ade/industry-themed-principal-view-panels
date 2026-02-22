@@ -8,7 +8,7 @@ import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw } from '
 import { ConfigLoader } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
-import type { FileInfo, FileTree } from '@principal-ai/repository-abstraction';
+import type { FileInfo } from '@principal-ai/repository-abstraction';
 
 interface GraphPanelState {
   canvas: ExtendedCanvas | null;
@@ -103,8 +103,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   const fileTreeSha = React.useMemo(() => {
     // Get fileTree from typed context (direct property access)
     const slice = context.fileTree;
-    const data = slice?.data as FileTree | null;
-    return data?.sha || null;
+    return slice?.data?.sha || null;
   }, [context]);
 
   // Track "copied" feedback for copy path button
@@ -183,9 +182,9 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       let library: ComponentLibrary | null = null;
 
       // Check if fileTree slice is available for library loading
-      if (ctx.hasSlice('fileTree') && !ctx.isSliceLoading('fileTree')) {
-        const fileTreeSlice = ctx.getSlice('fileTree');
-        const fileTreeData = fileTreeSlice?.data as { allFiles?: Array<{ path?: string; relativePath?: string; name?: string }> } | null;
+      const fileTreeSlice = ctx.fileTree;
+      if (fileTreeSlice && !fileTreeSlice.loading) {
+        const fileTreeData = fileTreeSlice.data;
 
         if (fileTreeData?.allFiles) {
           const libraryPath = ConfigLoader.findLibraryPath(fileTreeData.allFiles);
@@ -349,10 +348,10 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
       // Get current file tree to check timestamps
       const ctx = contextRef.current;
-      if (!ctx.hasSlice('fileTree')) return;
+      const fileTreeSlice = ctx.fileTree;
+      if (!fileTreeSlice) return;
 
-      const fileTreeSlice = ctx.getSlice('fileTree');
-      const fileTreeData = fileTreeSlice?.data as FileTree | null;
+      const fileTreeData = fileTreeSlice.data;
       if (!fileTreeData?.allFiles) return;
 
       // Check canvas file timestamp
@@ -389,8 +388,8 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
     // Get fresh fileTree data using ref (always up-to-date)
     const ctx = contextRef.current;
-    const slice = ctx.getSlice('fileTree');
-    const data = slice?.data as FileTree | null;
+    const slice = ctx.fileTree;
+    const data = slice?.data;
     if (!data?.allFiles) return;
 
     // Find canvas file and check timestamp
