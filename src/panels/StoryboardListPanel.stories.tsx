@@ -1543,6 +1543,207 @@ export const ChangeDetectionTest: Story = {
 };
 
 /**
+ * Git Status Filtering Test
+ * Demonstrates that the panel only re-renders when relevant files change.
+ * Unrelated git changes (src/, package.json, etc.) should NOT trigger re-renders.
+ */
+export const GitStatusFiltering: Story = {
+  args: {} as never,
+  render: () => {
+    const [renderCount, setRenderCount] = useState(0);
+    const [gitStatus, setGitStatus] = useState({
+      repoPath: '/test',
+      branch: 'main',
+      isDirty: false,
+      hasUntracked: false,
+      hasStaged: false,
+      ahead: 0,
+      behind: 0,
+      watchingEnabled: true,
+      modifiedFiles: [] as string[],
+      untrackedFiles: [] as string[],
+      stagedFiles: [] as string[],
+      deletedFiles: [] as string[],
+      createdFiles: [] as string[],
+      hash: 'initial',
+    });
+
+    const allFiles = [
+      ...createStoryboardFiles('authentication-flow', [
+        { name: 'login-flow', executions: 1 },
+      ]),
+    ];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-filtering';
+    fileTree.allFiles = allFiles;
+
+    // Increment render count when git status changes
+    React.useEffect(() => {
+      setRenderCount(c => c + 1);
+    }, [gitStatus]);
+
+    const addUnrelatedChange = () => {
+      setGitStatus(prev => ({
+        ...prev,
+        modifiedFiles: [...prev.modifiedFiles, `src/file-${Date.now()}.ts`],
+        hash: `hash-${Date.now()}`,
+      }));
+    };
+
+    const addRelevantChange = () => {
+      setGitStatus(prev => ({
+        ...prev,
+        modifiedFiles: [...prev.modifiedFiles, '.principal-views/authentication-flow/authentication-flow.otel.canvas'],
+        hash: `hash-${Date.now()}`,
+      }));
+    };
+
+    const clearChanges = () => {
+      setGitStatus(prev => ({
+        ...prev,
+        modifiedFiles: [],
+        untrackedFiles: [],
+        stagedFiles: [],
+        deletedFiles: [],
+        hash: `hash-${Date.now()}`,
+      }));
+    };
+
+    return (
+      <div style={{ display: 'flex', height: '100vh', gap: 16, padding: 16 }}>
+        <div style={{ flex: 1 }}>
+          <MockPanelProvider
+            contextOverrides={{
+              fileTree: createMockFileTreeSlice(fileTree),
+              git: {
+                scope: 'repository' as const,
+                name: 'git',
+                data: gitStatus,
+                loading: false,
+                error: null,
+                refresh: async () => {},
+              },
+            }}
+            actionsOverrides={{
+              readFile: createMockReadFile(fileTree),
+            }}
+          >
+            {(props) => <StoryboardListPanel {...props} />}
+          </MockPanelProvider>
+        </div>
+
+        <div style={{
+          width: 360,
+          padding: 16,
+          background: '#1a1a1a',
+          borderRadius: 8,
+          fontSize: 13,
+          lineHeight: 1.6,
+          color: '#aaa',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+        }}>
+          <div>
+            <h3 style={{ color: '#fff', marginTop: 0, fontSize: 14, marginBottom: 8 }}>
+              Git Status Filtering Test
+            </h3>
+            <p style={{ margin: 0, fontSize: 12 }}>
+              Tests that unrelated git changes don't cause panel re-renders.
+              The panel uses <code>filterRelevantGitChanges()</code> to only
+              respond to changes in <code>.principal-views/</code> files.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <button
+              onClick={addUnrelatedChange}
+              style={{
+                background: '#6b7280',
+                color: 'white',
+                border: 'none',
+                padding: '10px 14px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+              }}
+            >
+              Add Unrelated Change (src/*.ts)
+            </button>
+            <button
+              onClick={addRelevantChange}
+              style={{
+                background: '#2563eb',
+                color: 'white',
+                border: 'none',
+                padding: '10px 14px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+              }}
+            >
+              Add Relevant Change (.principal-views/*)
+            </button>
+            <button
+              onClick={clearChanges}
+              style={{
+                background: '#374151',
+                color: 'white',
+                border: 'none',
+                padding: '10px 14px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+              }}
+            >
+              Clear All Changes
+            </button>
+          </div>
+
+          <div style={{
+            padding: 12,
+            background: '#0a0a0a',
+            borderRadius: 6,
+            border: '1px solid #333',
+          }}>
+            <div style={{ color: '#fff', fontWeight: 'bold', marginBottom: 8 }}>
+              State Monitor
+            </div>
+            <div>Git hash: {gitStatus.hash}</div>
+            <div>Modified files: {gitStatus.modifiedFiles.length}</div>
+            <div style={{ marginTop: 8, fontSize: 11, maxHeight: 100, overflow: 'auto' }}>
+              {gitStatus.modifiedFiles.map((f, i) => (
+                <div key={i} style={{ color: f.includes('.principal-views') ? '#22c55e' : '#6b7280' }}>
+                  {f}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{
+            padding: 12,
+            background: gitStatus.modifiedFiles.some(f => f.includes('.principal-views')) ? '#166534' : '#1f2937',
+            borderRadius: 6,
+            border: `1px solid ${gitStatus.modifiedFiles.some(f => f.includes('.principal-views')) ? '#22c55e' : '#374151'}`,
+          }}>
+            <div style={{ color: '#fff', fontWeight: 'bold' }}>
+              Panel Should Show Badges: {gitStatus.modifiedFiles.some(f => f.includes('.principal-views')) ? '✓ YES' : '✗ NO'}
+            </div>
+            <div style={{ fontSize: 11, marginTop: 4 }}>
+              {gitStatus.modifiedFiles.some(f => f.includes('.principal-views'))
+                ? 'Relevant changes detected - badges will appear'
+                : 'Only unrelated changes - no badges shown'}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  },
+};
+
+/**
  * Git Status Badges
  * Shows git change indicators on canvas, workflow, and overview files
  */

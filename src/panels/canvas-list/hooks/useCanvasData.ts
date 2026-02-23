@@ -24,6 +24,8 @@ interface UseCanvasDataReturn {
   isLoading: boolean;
   error: string | null;
   refreshCanvases: () => Promise<void>;
+  /** Discovery instance for filtering git status to relevant paths */
+  discovery: CanvasDiscovery;
 }
 
 // Stable empty arrays to prevent unnecessary re-renders
@@ -65,7 +67,11 @@ export const useCanvasData = ({
       return;
     }
 
-    setIsLoading(true);
+    // Only show loading on initial load, not on subsequent updates
+    const isInitialLoad = lastLoadedSha.current === undefined;
+    if (isInitialLoad) {
+      setIsLoading(true);
+    }
     setError(null);
 
     try {
@@ -131,5 +137,6 @@ export const useCanvasData = ({
     isLoading,
     error,
     refreshCanvases,
+    discovery: discovery.current,
   };
 };

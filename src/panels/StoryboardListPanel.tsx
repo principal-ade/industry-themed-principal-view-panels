@@ -99,7 +99,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   // Load storyboard data from discovery system
   // Storyboards come directly from the discovery system (no transformation needed)
   // Also load full workflow templates for sending complete data when workflows are clicked
-  const { storyboards, workflows, testTraces, isLoading, error } = useCanvasWorkflowData({ context, actions });
+  const { storyboards, workflows, testTraces, isLoading, error, discovery } = useCanvasWorkflowData({ context, actions });
 
   // Get fileTree to access FileInfo metadata
   // Get fileTree and git from typed context (direct property access)
@@ -107,18 +107,29 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   const fileTreeData = fileTreeSlice?.data as FileTree | null;
 
   // Get git status data for showing file change badges
+  // Only include git status for files relevant to canvas discovery to avoid unnecessary re-renders
   const gitSlice = context.git;
   const gitStatusData = useMemo(() => {
     const gitStatus = gitSlice?.data as GitStatusWithFiles | null;
-    return convertGitStatusToFileStatus(gitStatus);
-  }, [gitSlice]);
+    if (!gitStatus || !fileTreeData) {
+      return [];
+    }
+    // Filter to only relevant files using discovery instance
+    const filteredGitStatus = discovery.filterRelevantGitChanges(fileTreeData, gitStatus);
+    if (!filteredGitStatus) {
+      return [];
+    }
+    return convertGitStatusToFileStatus(filteredGitStatus);
+  }, [gitSlice?.data, fileTreeData, discovery]);
 
   // Helper to find FileInfo for a canvas path
+  // Uses allFiles array reference - only changes when file tree content changes
+  const allFiles = fileTreeData?.allFiles;
   const getCanvasFileInfo = useCallback((canvasPath: string): FileInfo | undefined => {
-    return fileTreeData?.allFiles.find(f =>
+    return allFiles?.find(f =>
       f.path === canvasPath || f.relativePath === canvasPath
     );
-  }, [fileTreeData]);
+  }, [allFiles]);
 
   // Helper to extract workflow folder name from a test trace path
   // E.g., ".principal-views/authentication-flow/successful-login/execution-1.otel.json" → "successful-login"

@@ -27,6 +27,8 @@ interface UseCanvasNarrativeDataReturn {
   isLoading: boolean;
   error: string | null;
   refreshData: () => Promise<void>;
+  /** Discovery instance for filtering git status to relevant paths */
+  discovery: import('@principal-ai/principal-view-core').CanvasDiscovery;
 }
 
 // Stable empty array to prevent unnecessary re-renders
@@ -47,7 +49,8 @@ export const useCanvasWorkflowData = ({
     testTraces,
     isLoading: canvasesLoading,
     error: canvasesError,
-    refreshCanvases
+    refreshCanvases,
+    discovery,
   } = useCanvasData({ context, actions });
 
   const [workflows, setNarratives] = useState<Array<{ file: DiscoveredWorkflow; template: WorkflowTemplate }>>(
@@ -73,7 +76,11 @@ export const useCanvasWorkflowData = ({
       return;
     }
 
-    setNarrativesLoading(true);
+    // Only show loading on initial load, not on subsequent updates
+    const isInitialLoad = lastLoadedNarrativeSha.current === undefined;
+    if (isInitialLoad) {
+      setNarrativesLoading(true);
+    }
     setNarrativesError(null);
 
     try {
@@ -160,5 +167,6 @@ export const useCanvasWorkflowData = ({
     isLoading,
     error,
     refreshData,
+    discovery,
   };
 };
