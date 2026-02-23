@@ -26,11 +26,14 @@ export interface TraceExpansionProps {
 // Unified span item for sorting
 interface SpanItem {
   type: 'matched' | 'orphaned' | 'unmatched';
+  spanId: string;
+  parentSpanId?: string;
   spanName: string;
   timestamp: number;
   target?: string; // scenarioId, workflowId, or undefined
   storyboardId?: string;
   scenarioId?: string;
+  depth: number;
 }
 
 export const TraceExpansion: React.FC<TraceExpansionProps> = ({
@@ -39,15 +42,17 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
   onWorkflowClick,
   onSpanClick,
 }) => {
-  // Collect all spans and sort by timestamp
+  // Collect all spans and sort by timestamp, calculating depth from parent relationships
   const sortedSpans = useMemo(() => {
-    const spans: SpanItem[] = [];
+    const spans: Omit<SpanItem, 'depth'>[] = [];
 
     // Add matched spans (green)
     trace.scenarioMatches?.forEach(match => {
       match.matchedSpans.forEach(span => {
         spans.push({
           type: 'matched',
+          spanId: span.spanId,
+          parentSpanId: span.parentSpanId,
           spanName: span.spanName,
           timestamp: span.timestamp,
           target: match.scenarioId,
@@ -62,6 +67,8 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
       match.orphanedSpans.forEach(span => {
         spans.push({
           type: 'orphaned',
+          spanId: span.spanId,
+          parentSpanId: span.parentSpanId,
           spanName: span.spanName,
           timestamp: span.timestamp,
           target: match.workflowName || match.workflowId,
@@ -73,13 +80,37 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
     trace.unmatchedSpans?.spans?.forEach(span => {
       spans.push({
         type: 'unmatched',
+        spanId: span.spanId,
+        parentSpanId: span.parentSpanId,
         spanName: span.spanName,
         timestamp: span.timestamp,
       });
     });
 
-    // Sort by timestamp
-    return spans.sort((a, b) => a.timestamp - b.timestamp);
+    // Build a map for depth calculation
+    const spanMap = new Map(spans.map(s => [s.spanId, s]));
+
+    // Calculate depth for each span
+    const getDepth = (spanId: string, visited = new Set<string>()): number => {
+      if (visited.has(spanId)) return 0; // Prevent cycles
+      visited.add(spanId);
+
+      const span = spanMap.get(spanId);
+      if (!span || !span.parentSpanId) return 0;
+
+      const parent = spanMap.get(span.parentSpanId);
+      if (!parent) return 0; // Parent not in our list
+
+      return 1 + getDepth(span.parentSpanId, visited);
+    };
+
+    // Add depth to each span and sort by timestamp
+    const spansWithDepth: SpanItem[] = spans.map(span => ({
+      ...span,
+      depth: getDepth(span.spanId),
+    }));
+
+    return spansWithDepth.sort((a, b) => a.timestamp - b.timestamp);
   }, [trace.scenarioMatches, trace.storyboardMatches, trace.unmatchedSpans]);
 
   const hasAnyMatches = sortedSpans.length > 0;
@@ -90,14 +121,17 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: theme.space[2],
-        padding: theme.space[3],
+        paddingTop: theme.space[3],
+        paddingRight: theme.space[3],
+        paddingBottom: theme.space[3],
+        paddingLeft: theme.space[1],
         backgroundColor: theme.colors.background,
         borderRadius: theme.radii[2],
       }}
     >
       {/* All spans sorted by timestamp */}
       {sortedSpans.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space[2] }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space[3] }}>
           {sortedSpans.map((span, index) => {
             const isMatched = span.type === 'matched';
             const hasTarget = span.target !== undefined;
@@ -116,7 +150,6 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                 style={{
                   fontSize: theme.fontSizes[2],
                   color,
-                  paddingLeft: theme.space[2],
                   display: 'flex',
                   alignItems: 'center',
                   gap: theme.space[1],
@@ -132,10 +165,28 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                   e.currentTarget.style.opacity = '1';
                 }}
               >
+                {/* Depth indicator blocks */}
+                {span.depth > 0 && (
+                  <span style={{ display: 'flex', gap: '2px', marginRight: '4px', alignSelf: 'stretch' }}>
+                    {Array.from({ length: span.depth }).map((_, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          width: '8px',
+                          height: '100%',
+                          minHeight: '1em',
+                          backgroundColor: color,
+                          opacity: 0.3,
+                          borderRadius: '1px',
+                        }}
+                      />
+                    ))}
+                  </span>
+                )}
                 <span>{span.spanName}</span>
                 {hasTarget && (
                   <>
-                    <span style={{ color: theme.colors.textMuted }}>→</span>
+                    <span style={{ color: theme.colors.textMuted }}>-</span>
                     <span style={{ color: theme.colors.textSecondary }}>{span.target}</span>
                   </>
                 )}

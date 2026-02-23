@@ -802,6 +802,135 @@ export const WithOrphanedSpans: Story = {
 };
 
 /**
+ * With span hierarchy - demonstrates indentation based on parent-child relationships
+ *
+ * Expand "User Checkout Flow" to see:
+ * - Root span at depth 0
+ * - Child spans indented by depth level
+ * - Mix of matched and unmatched spans at different levels
+ */
+export const WithSpanHierarchy: Story = {
+  render: () => {
+    const hierarchyTrace: RegisteredTrace = {
+      traceId: 'trace-hierarchy',
+      name: 'User Checkout Flow',
+      startTime: now - 1000,
+      endTime: now - 200,
+      duration: 800,
+      spanCount: 5,
+      hasErrors: false,
+      resources: [
+        {
+          serviceIdentifier: 'http://localhost:3000',
+          serviceName: 'checkout-service',
+          attributes: { 'service.name': 'checkout-service' },
+          scopes: [
+            {
+              scope: { name: 'checkout-instrumentation', version: '1.0.0' },
+              spanIds: ['span-root', 'span-validate', 'span-payment', 'span-charge', 'span-confirm'],
+            },
+          ],
+        },
+      ],
+      scenarioMatches: [
+        {
+          storyboardId: 'storyboard-checkout',
+          storyboardName: 'E-Commerce Checkout',
+          workflowId: 'workflow-checkout',
+          workflowName: 'Checkout Workflow',
+          scenarioId: 'scenario-success',
+          scopeName: 'checkout-instrumentation',
+          matchedSpans: [
+            {
+              spanId: 'span-root',
+              spanName: 'POST /checkout',
+              nodeId: 'node-checkout',
+              timestamp: now - 1000,
+              duration: 800,
+              events: ['checkout.started'],
+              matchConfidence: 'exact' as const,
+            },
+            {
+              spanId: 'span-validate',
+              parentSpanId: 'span-root',
+              spanName: 'Validate Cart',
+              nodeId: 'node-validate',
+              timestamp: now - 950,
+              duration: 100,
+              events: ['cart.validated'],
+              matchConfidence: 'exact' as const,
+            },
+            {
+              spanId: 'span-payment',
+              parentSpanId: 'span-root',
+              spanName: 'Process Payment',
+              nodeId: 'node-payment',
+              timestamp: now - 800,
+              duration: 400,
+              events: ['payment.started'],
+              matchConfidence: 'exact' as const,
+            },
+            {
+              spanId: 'span-charge',
+              parentSpanId: 'span-payment',
+              spanName: 'Charge Card',
+              nodeId: 'node-charge',
+              timestamp: now - 700,
+              duration: 200,
+              events: ['card.charged'],
+              matchConfidence: 'exact' as const,
+            },
+          ],
+          coveragePercent: 100,
+          matchType: 'full' as const,
+        },
+      ],
+      storyboardMatches: [],
+      unmatchedSpans: {
+        spans: [
+          {
+            spanId: 'span-confirm',
+            parentSpanId: 'span-root',
+            spanName: 'Send Confirmation Email',
+            scopeName: 'checkout-instrumentation',
+            timestamp: now - 300,
+            duration: 100,
+            reason: 'No workflow matched this span',
+          },
+        ],
+      },
+    };
+
+    const [traces, setTraces] = React.useState([hierarchyTrace]);
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          telemetry: {
+            scope: 'repository' as const,
+            name: 'telemetry',
+            data: traces,
+            loading: false,
+            error: null,
+            refresh: async () => {
+              console.log('[Mock] Refreshing telemetry slice');
+            },
+          },
+        }}
+        actionsOverrides={{
+          clearTelemetry: () => {
+            console.log('[Mock] Clearing telemetry data');
+            setTraces([]);
+          },
+        }}
+      >
+        {(props) => <TraceListPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
  * With multi-workflow matching - shows traces that match multiple workflows
  *
  * Expand "Complete User Journey" to see:
