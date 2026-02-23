@@ -321,8 +321,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     if (!selectedWorkflowIdProp) return allLiveTraces;
 
     return allLiveTraces.filter(trace =>
-      trace.scenarioMatches.some(match => match.workflowId === selectedWorkflowIdProp) ||
-      trace.storyboardMatches.some(match => match.workflowId === selectedWorkflowIdProp)
+      trace.scenarioMatches?.some(match => match.workflowId === selectedWorkflowIdProp) ||
+      trace.storyboardMatches?.some(match => match.workflowId === selectedWorkflowIdProp)
     );
   }, [allLiveTraces, selectedWorkflowIdProp]);
 

@@ -1771,312 +1771,224 @@ export const IncompleteTemplateData_MissingEvent: Story = {
   },
 };
 
+// ============================================================================
+// Helper: Create proper RegisteredTrace objects
+// ============================================================================
+
 /**
- * Live OTEL Traces
- *
- * Demonstrates the Live Trace Search View with real-time OTEL traces from the telemetry slice.
- * Shows how live traces from running services can be searched and filtered.
+ * Creates a proper RegisteredTrace with scenarioMatches (fully matched trace)
  */
-export const LiveOtelTraces: Story = {
+const createMatchedTrace = (
+  traceId: string,
+  name: string,
+  storyboardId: string,
+  workflowId: string,
+  scenarioId: string,
+  spans: Array<{
+    spanId: string;
+    spanName: string;
+    timestamp: number;
+    duration: number;
+    nodeId: string;
+    events: string[];
+  }>,
+  options?: {
+    hasErrors?: boolean;
+    storyboardName?: string;
+    workflowName?: string;
+  }
+): RegisteredTrace => ({
+  traceId,
+  name,
+  startTime: spans[0]?.timestamp || Date.now(),
+  endTime: (spans[0]?.timestamp || Date.now()) + (spans[0]?.duration || 1000),
+  duration: spans.reduce((sum, s) => sum + s.duration, 0),
+  spanCount: spans.length,
+  hasErrors: options?.hasErrors || false,
+  resources: [{
+    serviceIdentifier: 'checkout-service',
+    serviceName: 'checkout-service',
+    scopes: [{
+      scope: { name: 'checkout-instrumentation', version: '1.0.0' },
+      spanIds: spans.map(s => s.spanId),
+    }],
+  }],
+  scenarioMatches: [{
+    storyboardId,
+    storyboardName: options?.storyboardName || storyboardId,
+    workflowId,
+    workflowName: options?.workflowName || workflowId,
+    scenarioId,
+    scopeName: 'checkout-instrumentation',
+    matchedSpans: spans.map(s => ({
+      spanId: s.spanId,
+      spanName: s.spanName,
+      nodeId: s.nodeId,
+      timestamp: s.timestamp,
+      duration: s.duration,
+      events: s.events,
+    })),
+    coveragePercent: 100,
+    matchType: 'full' as const,
+  }],
+  storyboardMatches: [],
+  unmatchedSpans: { spans: [] },
+});
+
+/**
+ * Creates a RegisteredTrace with storyboardMatches (orphaned - workflow matched, no scenario)
+ */
+const createOrphanedTrace = (
+  traceId: string,
+  name: string,
+  storyboardId: string,
+  workflowId: string,
+  spans: Array<{
+    spanId: string;
+    spanName: string;
+    timestamp: number;
+    duration: number;
+    nodeId: string;
+    observedEvents: string[];
+    reason: string;
+  }>,
+  options?: {
+    hasErrors?: boolean;
+    storyboardName?: string;
+    workflowName?: string;
+  }
+): RegisteredTrace => ({
+  traceId,
+  name,
+  startTime: spans[0]?.timestamp || Date.now(),
+  endTime: (spans[0]?.timestamp || Date.now()) + (spans[0]?.duration || 1000),
+  duration: spans.reduce((sum, s) => sum + s.duration, 0),
+  spanCount: spans.length,
+  hasErrors: options?.hasErrors || false,
+  resources: [{
+    serviceIdentifier: 'checkout-service',
+    serviceName: 'checkout-service',
+    scopes: [{
+      scope: { name: 'checkout-instrumentation', version: '1.0.0' },
+      spanIds: spans.map(s => s.spanId),
+    }],
+  }],
+  scenarioMatches: [],
+  storyboardMatches: [{
+    storyboardId,
+    storyboardName: options?.storyboardName || storyboardId,
+    workflowId,
+    workflowName: options?.workflowName || workflowId,
+    scopeName: 'checkout-instrumentation',
+    orphanedSpans: spans.map(s => ({
+      spanId: s.spanId,
+      spanName: s.spanName,
+      nodeId: s.nodeId,
+      timestamp: s.timestamp,
+      duration: s.duration,
+      reason: s.reason,
+      observedEvents: s.observedEvents,
+    })),
+  }],
+  unmatchedSpans: { spans: [] },
+});
+
+/**
+ * Creates a RegisteredTrace with unmatchedSpans (no workflow match)
+ */
+const createUnmatchedTrace = (
+  traceId: string,
+  name: string,
+  spans: Array<{
+    spanId: string;
+    spanName: string;
+    timestamp: number;
+    duration: number;
+    reason: string;
+  }>,
+  options?: {
+    hasErrors?: boolean;
+  }
+): RegisteredTrace => ({
+  traceId,
+  name,
+  startTime: spans[0]?.timestamp || Date.now(),
+  endTime: (spans[0]?.timestamp || Date.now()) + (spans[0]?.duration || 1000),
+  duration: spans.reduce((sum, s) => sum + s.duration, 0),
+  spanCount: spans.length,
+  hasErrors: options?.hasErrors || false,
+  resources: [{
+    serviceIdentifier: 'unknown-service',
+    serviceName: 'unknown-service',
+    scopes: [{
+      scope: { name: 'generic-instrumentation', version: '1.0.0' },
+      spanIds: spans.map(s => s.spanId),
+    }],
+  }],
+  scenarioMatches: [],
+  storyboardMatches: [],
+  unmatchedSpans: {
+    spans: spans.map(s => ({
+      spanId: s.spanId,
+      spanName: s.spanName,
+      scopeName: 'generic-instrumentation',
+      timestamp: s.timestamp,
+      duration: s.duration,
+      reason: s.reason,
+    })),
+  },
+});
+
+/**
+ * Live OTEL Traces - Matched Scenarios
+ *
+ * Traces where both workflow AND scenario matched (green spans in TraceExpansion).
+ * Clicking these spans opens WorkflowScenariosPanel.
+ */
+export const LiveOtelTraces_MatchedScenario: Story = {
   args: {} as never,
   render: () => {
-    // Create live RegisteredTrace objects (simulating telemetry slice data)
-    const liveTraces: RegisteredTrace[] = [
-      // Success trace 1
-      {
-        traceId: 'a1b2c3d4e5f6g7h8',
-        spans: [
-          {
-            traceId: 'a1b2c3d4e5f6g7h8',
-            spanId: 'span001',
-            name: 'checkout.complete',
-            startTimeUnixNano: '1704067200000000000',
-            endTimeUnixNano: '1704067203500000000',
-            parentSpanId: '',
-            kind: 1,
-            status: { code: 1 },
-            attributes: [
-              { key: 'span.kind', value: { stringValue: 'internal' } },
-            ],
-            events: [
-              {
-                name: 'checkout.initiated',
-                timeUnixNano: '1704067200000000000',
-                attributes: [
-                  { key: 'cart.itemCount', value: { intValue: '3' } },
-                  { key: 'cart.total', value: { stringValue: '149.99' } },
-                ],
-              },
-              {
-                name: 'payment.completed',
-                timeUnixNano: '1704067201800000000',
-                attributes: [
-                  { key: 'payment.transactionId', value: { stringValue: 'txn_live_001' } },
-                ],
-              },
-              {
-                name: 'order.created',
-                timeUnixNano: '1704067203500000000',
-                attributes: [
-                  { key: 'order.id', value: { stringValue: 'ORD-LIVE-001' } },
-                ],
-              },
-            ],
-          },
-        ],
-        rootSpan: undefined,
-        serviceName: 'checkout-service',
-        serviceVersion: '2.3.1',
-        repositoryUrl: 'https://github.com/example/checkout',
-        commitSha: 'abc123',
-        startTime: 1704067200000,
-        endTime: 1704067203500,
-        duration: 3500,
-        spanCount: 1,
-        hasErrors: false,
-        resource: {
-          attributes: [
-            { key: 'service.name', value: { stringValue: 'checkout-service' } },
-            { key: 'service.version', value: { stringValue: '2.3.1' } },
-            { key: 'pv.scenario.id', value: { stringValue: 'checkout-success' } },
-            { key: 'pv.scenario.name', value: { stringValue: 'Checkout Success' } },
-          ],
-        },
-        matchedWorkflow: {
-          storyboardId: 'checkout-flow',
-          storyboardName: 'Checkout Flow',
-          workflowId: 'complete-checkout',
-          workflowName: 'Complete Checkout',
-          scenarioId: 'checkout-success',
-          scenarioName: 'Checkout Success',
-        },
-      },
-      // Payment declined trace
-      {
-        traceId: 'b2c3d4e5f6g7h8i9',
-        spans: [
-          {
-            traceId: 'b2c3d4e5f6g7h8i9',
-            spanId: 'span002',
-            name: 'checkout.payment-declined',
-            startTimeUnixNano: '1704067300000000000',
-            endTimeUnixNano: '1704067301500000000',
-            parentSpanId: '',
-            kind: 1,
-            status: { code: 2 },
-            attributes: [],
-            events: [
-              {
-                name: 'checkout.initiated',
-                timeUnixNano: '1704067300000000000',
-                attributes: [
-                  { key: 'cart.itemCount', value: { intValue: '2' } },
-                  { key: 'cart.total', value: { stringValue: '89.99' } },
-                ],
-              },
-              {
-                name: 'payment.failed',
-                timeUnixNano: '1704067301500000000',
-                attributes: [
-                  { key: 'error.code', value: { stringValue: 'card_declined' } },
-                  { key: 'error.message', value: { stringValue: 'Insufficient funds' } },
-                ],
-              },
-            ],
-          },
-        ],
-        rootSpan: undefined,
-        serviceName: 'payment-service',
-        serviceVersion: '1.8.2',
-        repositoryUrl: undefined,
-        commitSha: undefined,
-        startTime: 1704067300000,
-        endTime: 1704067301500,
-        duration: 1500,
-        spanCount: 1,
-        hasErrors: true,
-        resource: {
-          attributes: [
-            { key: 'service.name', value: { stringValue: 'payment-service' } },
-            { key: 'service.version', value: { stringValue: '1.8.2' } },
-            { key: 'pv.scenario.id', value: { stringValue: 'payment-declined' } },
-          ],
-        },
-        matchedWorkflow: {
-          storyboardId: 'checkout-flow',
-          storyboardName: 'Checkout Flow',
-          scenarioId: 'payment-declined',
-        },
-      },
-      // Inventory check trace
-      {
-        traceId: 'c3d4e5f6g7h8i9j0',
-        spans: [
-          {
-            traceId: 'c3d4e5f6g7h8i9j0',
-            spanId: 'span003',
-            name: 'inventory.check',
-            startTimeUnixNano: '1704067400000000000',
-            endTimeUnixNano: '1704067400800000000',
-            parentSpanId: '',
-            kind: 1,
-            status: { code: 1 },
-            attributes: [],
-            events: [
-              {
-                name: 'inventory.checking',
-                timeUnixNano: '1704067400000000000',
-                attributes: [
-                  { key: 'inventory.skuCount', value: { intValue: '5' } },
-                ],
-              },
-              {
-                name: 'inventory.reserved',
-                timeUnixNano: '1704067400800000000',
-                attributes: [
-                  { key: 'inventory.itemsReserved', value: { intValue: '5' } },
-                ],
-              },
-            ],
-          },
-        ],
-        rootSpan: undefined,
-        serviceName: 'inventory-service',
-        serviceVersion: '3.1.0',
-        repositoryUrl: undefined,
-        commitSha: undefined,
-        startTime: 1704067400000,
-        endTime: 1704067400800,
-        duration: 800,
-        spanCount: 1,
-        hasErrors: false,
-        resource: {
-          attributes: [
-            { key: 'service.name', value: { stringValue: 'inventory-service' } },
-            { key: 'service.version', value: { stringValue: '3.1.0' } },
-          ],
-        },
-      },
-      // Another success with different service
-      {
-        traceId: 'd4e5f6g7h8i9j0k1',
-        spans: [
-          {
-            traceId: 'd4e5f6g7h8i9j0k1',
-            spanId: 'span004',
-            name: 'checkout.express',
-            startTimeUnixNano: '1704067500000000000',
-            endTimeUnixNano: '1704067501200000000',
-            parentSpanId: '',
-            kind: 1,
-            status: { code: 1 },
-            attributes: [],
-            events: [
-              {
-                name: 'checkout.initiated',
-                timeUnixNano: '1704067500000000000',
-                attributes: [
-                  { key: 'cart.itemCount', value: { intValue: '1' } },
-                  { key: 'cart.total', value: { stringValue: '49.99' } },
-                ],
-              },
-              {
-                name: 'order.created',
-                timeUnixNano: '1704067501200000000',
-                attributes: [
-                  { key: 'order.id', value: { stringValue: 'ORD-LIVE-002' } },
-                ],
-              },
-            ],
-          },
-        ],
-        rootSpan: undefined,
-        serviceName: 'express-checkout-service',
-        serviceVersion: '1.0.0-beta',
-        repositoryUrl: undefined,
-        commitSha: undefined,
-        startTime: 1704067500000,
-        endTime: 1704067501200,
-        duration: 1200,
-        spanCount: 1,
-        hasErrors: false,
-        resource: {
-          attributes: [
-            { key: 'service.name', value: { stringValue: 'express-checkout-service' } },
-            { key: 'service.version', value: { stringValue: '1.0.0-beta' } },
-            { key: 'pv.scenario.id', value: { stringValue: 'checkout-success' } },
-          ],
-        },
-        matchedWorkflow: {
-          storyboardId: 'checkout-flow',
-          storyboardName: 'Checkout Flow',
-          scenarioId: 'checkout-success',
-        },
-      },
-      // Timeout trace
-      {
-        traceId: 'e5f6g7h8i9j0k1l2',
-        spans: [
-          {
-            traceId: 'e5f6g7h8i9j0k1l2',
-            spanId: 'span005',
-            name: 'checkout.timeout',
-            startTimeUnixNano: '1704067600000000000',
-            endTimeUnixNano: '1704067632000000000',
-            parentSpanId: '',
-            kind: 1,
-            status: { code: 2 },
-            attributes: [],
-            events: [
-              {
-                name: 'checkout.initiated',
-                timeUnixNano: '1704067600000000000',
-                attributes: [
-                  { key: 'cart.itemCount', value: { intValue: '4' } },
-                ],
-              },
-              {
-                name: 'order.timeout',
-                timeUnixNano: '1704067632000000000',
-                attributes: [
-                  { key: 'timeout.duration', value: { intValue: '30000' } },
-                  { key: 'timeout.phase', value: { stringValue: 'payment-gateway' } },
-                ],
-              },
-            ],
-          },
-        ],
-        rootSpan: undefined,
-        serviceName: 'checkout-service',
-        serviceVersion: '2.3.0',
-        repositoryUrl: undefined,
-        commitSha: undefined,
-        startTime: 1704067600000,
-        endTime: 1704067632000,
-        duration: 32000,
-        spanCount: 1,
-        hasErrors: true,
-        resource: {
-          attributes: [
-            { key: 'service.name', value: { stringValue: 'checkout-service' } },
-            { key: 'service.version', value: { stringValue: '2.3.0' } },
-            { key: 'pv.scenario.id', value: { stringValue: 'checkout-timeout' } },
-          ],
-        },
-        matchedWorkflow: {
-          storyboardId: 'checkout-flow',
-          storyboardName: 'Checkout Flow',
-          scenarioId: 'checkout-timeout',
-        },
-      },
-    ];
+    const baseTime = Date.now();
 
-    // Set up each trace's rootSpan
-    liveTraces.forEach(trace => {
-      if (trace.spans.length > 0) {
-        trace.rootSpan = trace.spans[0];
-      }
-    });
+    const liveTraces: RegisteredTrace[] = [
+      createMatchedTrace(
+        'trace-matched-success-001',
+        'POST /checkout - Success',
+        'checkout-flow',
+        'complete-checkout',
+        'checkout-success',
+        [
+          { spanId: 'span-001', spanName: 'checkout.initiated', timestamp: baseTime, duration: 100, nodeId: 'checkout-initiated', events: ['checkout.initiated'] },
+          { spanId: 'span-002', spanName: 'payment.completed', timestamp: baseTime + 100, duration: 1500, nodeId: 'payment-completed', events: ['payment.completed'] },
+          { spanId: 'span-003', spanName: 'order.created', timestamp: baseTime + 1600, duration: 200, nodeId: 'order-created', events: ['order.created'] },
+        ],
+        { storyboardName: 'Checkout Flow', workflowName: 'Complete Checkout' }
+      ),
+      createMatchedTrace(
+        'trace-matched-declined-001',
+        'POST /checkout - Payment Declined',
+        'checkout-flow',
+        'complete-checkout',
+        'payment-declined',
+        [
+          { spanId: 'span-004', spanName: 'checkout.initiated', timestamp: baseTime - 5000, duration: 100, nodeId: 'checkout-initiated', events: ['checkout.initiated'] },
+          { spanId: 'span-005', spanName: 'payment.failed', timestamp: baseTime - 4900, duration: 800, nodeId: 'payment-failed', events: ['payment.failed'] },
+        ],
+        { hasErrors: true, storyboardName: 'Checkout Flow', workflowName: 'Complete Checkout' }
+      ),
+      createMatchedTrace(
+        'trace-matched-timeout-001',
+        'POST /checkout - Timeout',
+        'checkout-flow',
+        'complete-checkout',
+        'checkout-timeout',
+        [
+          { spanId: 'span-006', spanName: 'checkout.initiated', timestamp: baseTime - 35000, duration: 100, nodeId: 'checkout-initiated', events: ['checkout.initiated'] },
+          { spanId: 'span-007', spanName: 'order.timeout', timestamp: baseTime - 34900, duration: 30000, nodeId: 'order-timeout', events: ['order.timeout'] },
+        ],
+        { hasErrors: true, storyboardName: 'Checkout Flow', workflowName: 'Complete Checkout' }
+      ),
+    ];
 
     const mock = createMockProvider([
       {
@@ -2093,7 +2005,6 @@ export const LiveOtelTraces: Story = {
       },
     ]);
 
-    // Add telemetry slice with live traces as typed property
     const contextOverrides = {
       ...mock.contextOverrides,
       telemetry: {
@@ -2126,19 +2037,227 @@ export const LiveOtelTraces: Story = {
     docs: {
       description: {
         story:
-          '🔴 **Live OTEL Traces** - Demonstrates the Live Trace Search View with real-time telemetry data.\n\n' +
-          'This story shows 5 live OTEL traces from the telemetry slice:\n' +
-          '  • 2x checkout-success (checkout-service v2.3.1, express-checkout-service v1.0.0-beta)\n' +
-          '  • 1x payment-declined (payment-service v1.8.2)\n' +
-          '  • 1x checkout-timeout (checkout-service v2.3.0)\n' +
-          '  • 1x unmatched inventory check (inventory-service v3.1.0)\n\n' +
-          'Click the "Live Traces (5)" button (with Radar icon) in the header to:\n' +
-          '  • Search traces by service name, operation, trace ID, scenario\n' +
-          '  • Filter by scenario when a scenario is selected\n' +
-          '  • See service versions, durations, and error states\n' +
-          '  • Click a trace to load it into the execution viewer\n\n' +
-          'The Live Trace Search View works with RegisteredTrace data from the telemetry slice,\n' +
-          'while the Test Trace Search View works with file-based test artifacts.',
+          '✅ **Matched Scenario Traces** - Traces where workflow AND scenario matched.\n\n' +
+          'These traces have `scenarioMatches` populated and appear as **GREEN** spans in TraceExpansion.\n\n' +
+          '**Traces:**\n' +
+          '  • checkout-success - Full checkout completed\n' +
+          '  • payment-declined - Payment error scenario\n' +
+          '  • checkout-timeout - Timeout error scenario\n\n' +
+          '**Behavior:** Clicking green spans opens WorkflowScenariosPanel with the matched scenario.',
+      },
+    },
+  },
+};
+
+/**
+ * Live OTEL Traces - Orphaned Spans
+ *
+ * Traces where workflow matched but events don't match any scenario (orange spans in TraceExpansion).
+ * Clicking these spans still opens WorkflowScenariosPanel (workflow context available).
+ */
+export const LiveOtelTraces_OrphanedSpans: Story = {
+  args: {} as never,
+  render: () => {
+    const baseTime = Date.now();
+
+    const liveTraces: RegisteredTrace[] = [
+      createOrphanedTrace(
+        'trace-orphaned-001',
+        'POST /checkout - Unknown Flow',
+        'checkout-flow',
+        'complete-checkout',
+        [
+          { spanId: 'span-001', spanName: 'checkout.initiated', timestamp: baseTime - 10000, duration: 100, nodeId: 'checkout-initiated', observedEvents: ['checkout.initiated'], reason: 'Events do not match any defined scenario' },
+          { spanId: 'span-002', spanName: 'custom.validation', timestamp: baseTime - 9900, duration: 500, nodeId: 'custom-node', observedEvents: ['custom.validation'], reason: 'Event not in workflow template' },
+        ],
+        { storyboardName: 'Checkout Flow', workflowName: 'Complete Checkout' }
+      ),
+      createOrphanedTrace(
+        'trace-orphaned-002',
+        'POST /checkout - Partial Match',
+        'checkout-flow',
+        'complete-checkout',
+        [
+          { spanId: 'span-003', spanName: 'checkout.initiated', timestamp: baseTime - 15000, duration: 100, nodeId: 'checkout-initiated', observedEvents: ['checkout.initiated'], reason: 'Missing required events for scenario match' },
+          { spanId: 'span-004', spanName: 'inventory.checking', timestamp: baseTime - 14900, duration: 300, nodeId: 'inventory-checking', observedEvents: ['inventory.checking'], reason: 'No scenario contains this event combination' },
+          { spanId: 'span-005', spanName: 'shipping.calculating', timestamp: baseTime - 14600, duration: 400, nodeId: 'shipping-calculating', observedEvents: ['shipping.calculating'], reason: 'Incomplete event sequence' },
+        ],
+        { storyboardName: 'Checkout Flow', workflowName: 'Complete Checkout' }
+      ),
+      createOrphanedTrace(
+        'trace-orphaned-003',
+        'POST /checkout - New Event Type',
+        'checkout-flow',
+        'complete-checkout',
+        [
+          { spanId: 'span-006', spanName: 'checkout.initiated', timestamp: baseTime - 20000, duration: 100, nodeId: 'checkout-initiated', observedEvents: ['checkout.initiated'], reason: 'Workflow matched but scenario not found' },
+          { spanId: 'span-007', spanName: 'fraud.detection', timestamp: baseTime - 19900, duration: 2000, nodeId: 'fraud-check', observedEvents: ['fraud.detection'], reason: 'New event not in any scenario template' },
+        ],
+        { storyboardName: 'Checkout Flow', workflowName: 'Complete Checkout' }
+      ),
+    ];
+
+    const mock = createMockProvider([
+      {
+        path: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        relativePath: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        name: 'checkout-flow.otel.canvas',
+        content: JSON.stringify(checkoutCanvas),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/complete-checkout.workflow.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/complete-checkout.workflow.json',
+        name: 'complete-checkout.workflow.json',
+        content: JSON.stringify(checkoutWorkflow),
+      },
+    ]);
+
+    const contextOverrides = {
+      ...mock.contextOverrides,
+      telemetry: {
+        scope: 'repository' as const,
+        name: 'telemetry',
+        data: liveTraces,
+        loading: false,
+        error: null,
+        refresh: async () => {},
+      },
+    };
+
+    return (
+      <MockPanelProvider contextOverrides={contextOverrides} actionsOverrides={mock.actionsOverrides}>
+        {(props) => (
+          <WorkflowScenariosPanel
+            {...props}
+            selectedCanvasId="checkout-flow"
+            canvasPath=".principal-views/checkout-flow/checkout-flow.otel.canvas"
+            canvasName="Checkout Flow"
+            selectedWorkflowId="checkout-flow/complete-checkout"
+            workflowPath=".principal-views/checkout-flow/complete-checkout/complete-checkout.workflow.json"
+            workflowTemplate={checkoutWorkflow}
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '⚠️ **Orphaned Span Traces** - Workflow matched but events don\'t match any scenario.\n\n' +
+          'These traces have `storyboardMatches` populated and appear as **ORANGE** spans in TraceExpansion.\n\n' +
+          '**Traces:**\n' +
+          '  • Unknown Flow - Custom validation event not in template\n' +
+          '  • Partial Match - Some events matched but incomplete sequence\n' +
+          '  • New Event Type - Fraud detection event not defined in scenarios\n\n' +
+          '**Behavior:** Clicking orange orphaned spans still opens WorkflowScenariosPanel\n' +
+          '(workflow context is available even without a scenario match).',
+      },
+    },
+  },
+};
+
+/**
+ * Live OTEL Traces - Unmatched Spans
+ *
+ * Traces where no workflow matched at all (orange spans in TraceExpansion).
+ * Clicking these spans opens TraceDetailsPanel (no workflow context available).
+ */
+export const LiveOtelTraces_UnmatchedSpans: Story = {
+  args: {} as never,
+  render: () => {
+    const baseTime = Date.now();
+
+    const liveTraces: RegisteredTrace[] = [
+      createUnmatchedTrace(
+        'trace-unmatched-001',
+        'GET /health - Health Check',
+        [
+          { spanId: 'span-001', spanName: 'health.check', timestamp: baseTime - 20000, duration: 50, reason: 'No workflow registered for this span pattern' },
+        ]
+      ),
+      createUnmatchedTrace(
+        'trace-unmatched-002',
+        'SELECT * FROM users',
+        [
+          { spanId: 'span-002', spanName: 'db.query', timestamp: baseTime - 25000, duration: 120, reason: 'Database spans not covered by any workflow' },
+          { spanId: 'span-003', spanName: 'db.connect', timestamp: baseTime - 25120, duration: 30, reason: 'Database spans not covered by any workflow' },
+        ]
+      ),
+      createUnmatchedTrace(
+        'trace-unmatched-003',
+        'GET /api/metrics',
+        [
+          { spanId: 'span-004', spanName: 'metrics.collect', timestamp: baseTime - 30000, duration: 200, reason: 'Metrics endpoint not defined in any storyboard' },
+          { spanId: 'span-005', spanName: 'metrics.format', timestamp: baseTime - 29800, duration: 50, reason: 'Metrics endpoint not defined in any storyboard' },
+        ]
+      ),
+      createUnmatchedTrace(
+        'trace-unmatched-004',
+        'PATCH /api/cache/invalidate',
+        [
+          { spanId: 'span-006', spanName: 'cache.invalidate', timestamp: baseTime - 40000, duration: 80, reason: 'Cache operations not in any workflow' },
+        ],
+        { hasErrors: true }
+      ),
+    ];
+
+    const mock = createMockProvider([
+      {
+        path: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        relativePath: '.principal-views/checkout-flow/checkout-flow.otel.canvas',
+        name: 'checkout-flow.otel.canvas',
+        content: JSON.stringify(checkoutCanvas),
+      },
+      {
+        path: '.principal-views/checkout-flow/complete-checkout/complete-checkout.workflow.json',
+        relativePath: '.principal-views/checkout-flow/complete-checkout/complete-checkout.workflow.json',
+        name: 'complete-checkout.workflow.json',
+        content: JSON.stringify(checkoutWorkflow),
+      },
+    ]);
+
+    const contextOverrides = {
+      ...mock.contextOverrides,
+      telemetry: {
+        scope: 'repository' as const,
+        name: 'telemetry',
+        data: liveTraces,
+        loading: false,
+        error: null,
+        refresh: async () => {},
+      },
+    };
+
+    return (
+      <MockPanelProvider contextOverrides={contextOverrides} actionsOverrides={mock.actionsOverrides}>
+        {(props) => (
+          <WorkflowScenariosPanel
+            {...props}
+            selectedCanvasId="checkout-flow"
+            canvasPath=".principal-views/checkout-flow/checkout-flow.otel.canvas"
+            canvasName="Checkout Flow"
+            selectedWorkflowId="checkout-flow/complete-checkout"
+            workflowPath=".principal-views/checkout-flow/complete-checkout/complete-checkout.workflow.json"
+            workflowTemplate={checkoutWorkflow}
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '❌ **Unmatched Span Traces** - No workflow matched at all.\n\n' +
+          'These traces have `unmatchedSpans` populated and appear as **ORANGE** spans in TraceExpansion.\n\n' +
+          '**Traces:**\n' +
+          '  • Health Check - No workflow for health endpoints\n' +
+          '  • Database query - DB operations not covered\n' +
+          '  • Metrics endpoint - Metrics not defined in storyboards\n' +
+          '  • Cache invalidation - Cache ops with error\n\n' +
+          '**Behavior:** Clicking orange unmatched spans opens TraceDetailsPanel\n' +
+          '(no workflow context available, so we show raw trace details instead).',
       },
     },
   },
