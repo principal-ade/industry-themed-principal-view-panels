@@ -355,6 +355,85 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
     }
   };
 
+  // Handle workflow click from trace expansion (matched spans)
+  const handleWorkflowClick = (trace: RegisteredTrace, storyboardId: string, scenarioId: string) => {
+    if (!events) return;
+
+    // Find the workflow data from version snapshots
+    let fullWorkflowTemplate: WorkflowTemplate | undefined;
+    let workflowId: string | undefined;
+    let workflowPath: string | undefined;
+    let canvasId: string | undefined;
+    let canvasPath: string | undefined;
+    let canvasName: string | undefined;
+    let storyboardName: string | undefined;
+
+    // Look through version snapshots to find the matching storyboard/scenario
+    for (const snapshot of versionSnapshots) {
+      const storyboard = snapshot.storyboards.find(sb => sb.id === storyboardId);
+      if (storyboard) {
+        storyboardName = storyboard.name;
+        canvasId = storyboard.canvas.id;
+        canvasPath = storyboard.canvas.path;
+        canvasName = storyboard.canvas.name;
+
+        // Find the workflow that contains this scenario
+        for (const workflow of storyboard.workflows) {
+          if ('content' in workflow && workflow.content) {
+            const content = workflow.content as WorkflowTemplate;
+            if (content.scenarios) {
+              const hasScenario = content.scenarios.some(
+                (s: { id?: string }) => s.id === scenarioId
+              );
+              if (hasScenario) {
+                fullWorkflowTemplate = content;
+                workflowId = workflow.id;
+                workflowPath = workflow.path;
+                break;
+              }
+            }
+          }
+        }
+        if (fullWorkflowTemplate) break;
+      }
+    }
+
+    // Also check the trace's scenarioMatches for workflow info
+    if (!workflowId) {
+      const match = trace.scenarioMatches?.find(m => m.scenarioId === scenarioId);
+      if (match) {
+        workflowId = match.workflowId;
+        storyboardName = match.storyboardName;
+      }
+    }
+
+    // Emit the event (even if we don't have the full template, let the consumer handle it)
+    events.emit({
+      type: 'custom',
+      source: 'trace-list-panel',
+      timestamp: Date.now(),
+      payload: {
+        action: 'openWorkflowScenarios',
+        // Workflow data
+        workflowId: workflowId || storyboardId,
+        workflowPath,
+        workflowTemplate: fullWorkflowTemplate,
+        // Canvas data
+        canvasId,
+        canvasPath,
+        canvasName,
+        // Storyboard data
+        storyboardId,
+        storyboardName,
+        // Scenario data
+        scenarioId,
+        // Trace data (for context)
+        trace,
+        traceId: trace.traceId,
+      },
+    });
+  };
+
   const handleSchematicNodeClick = (node: StoryboardWorkflowNodeData) => {
     // Handle clicks on schematics (version registry data)
     // Since these are historical snapshots, we don't open files but provide visual feedback
@@ -542,6 +621,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
             theme={theme}
             onTraceClick={handleTraceClick}
             onTraceSelect={handleTraceSelect}
+            onWorkflowClick={handleWorkflowClick}
             onClearAll={handleClearAll}
             expandedTraceIds={expandedTraceIds}
             emptyMessage={traces.length === 0 ? 'No traces received yet. Waiting for telemetry data...' : undefined}
