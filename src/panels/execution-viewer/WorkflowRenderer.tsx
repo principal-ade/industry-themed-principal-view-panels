@@ -38,6 +38,9 @@ export interface WorkflowRendererProps {
 
   /** Callback when a source path is clicked */
   onSourceClick?: (source: string) => void;
+
+  /** Show source file paths (default: true) */
+  showSources?: boolean;
 }
 
 /**
@@ -55,6 +58,7 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
   showOnlySummary = false,
   canvas,
   onSourceClick,
+  showSources = true,
 }) => {
   const { theme } = useTheme();
 
@@ -248,7 +252,7 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
                 }}
               >
                 {renderFormattedText(renderedText)}
-                <SourceFileList sources={getEventSources(templateEventName)} onSourceClick={onSourceClick} />
+                {showSources && <SourceFileList sources={getEventSources(templateEventName)} onSourceClick={onSourceClick} />}
               </div>
             </div>
           );
@@ -322,7 +326,7 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
                 >
                   {renderFormattedText(renderedText)}
                   {/* Show source paths for this event */}
-                  <SourceFileList sources={getEventSources(event.name)} onSourceClick={onSourceClick} />
+                  {showSources && <SourceFileList sources={getEventSources(event.name)} onSourceClick={onSourceClick} />}
                 </div>
               </div>
             );

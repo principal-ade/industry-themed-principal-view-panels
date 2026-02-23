@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { HelpCircle, X } from 'lucide-react';
+import { X, FileCode } from 'lucide-react';
 import yaml from 'js-yaml';
 import type { WorkflowTemplate, OtelAttributes, WorkflowScenario, ExtendedCanvas } from '@principal-ai/principal-view-core';
 import { renderWorkflow } from '@principal-ai/principal-view-core';
@@ -91,6 +91,10 @@ export interface ScenarioDetailsPanelProps {
   // Selected scenario for preview mode (when no execution is selected)
   selectedScenario?: WorkflowScenario;
 
+  // Override scenario ID (use this instead of computing from events)
+  // Useful when user explicitly selects a scenario from the list
+  overrideScenarioId?: string;
+
   // Canvas for looking up source paths
   canvas?: ExtendedCanvas | null;
 
@@ -146,12 +150,13 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
   onBackClick,
   scenarioName,
   selectedScenario,
+  overrideScenarioId,
   canvas,
   onSourceClick,
 }) => {
   const { theme } = useTheme();
-  const [showHelp, setShowHelp] = useState(false);
   const [activeTab, setActiveTab] = useState<'template' | 'story'>('template');
+  const [showSources, setShowSources] = useState(false);
 
   // Auto-switch to story tab when execution is selected
   React.useEffect(() => {
@@ -160,12 +165,12 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
     }
   }, [selectedExecutionId, spans, currentSpanIndex]);
 
-  // Reset to template tab when no executions are available
+  // Reset to template tab when no executions are available AND no live trace is selected
   React.useEffect(() => {
-    if (availableExecutions.length === 0) {
+    if (availableExecutions.length === 0 && !selectedExecutionId) {
       setActiveTab('template');
     }
-  }, [availableExecutions.length]);
+  }, [availableExecutions.length, selectedExecutionId]);
 
   // Helper to get source paths for an event name
   const getEventSources = (eventName: string): string[] => {
@@ -221,12 +226,15 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
     return convertToOtelEvents(currentSpan, logs);
   }, [currentSpan, logs, viewMode]);
 
-  // Get scenario ID by running workflow matching
+  // Get scenario ID - use override if provided, otherwise compute from events
   const scenarioId = useMemo(() => {
+    // If explicitly selected scenario, use that
+    if (overrideScenarioId) return overrideScenarioId;
+    // Otherwise compute from workflow matching
     if (!workflowTemplate || otelEvents.length === 0) return 'unknown';
     const result = renderWorkflow(workflowTemplate, otelEvents);
     return result.scenarioId;
-  }, [workflowTemplate, otelEvents]);
+  }, [workflowTemplate, otelEvents, overrideScenarioId]);
 
   const handlePrevTest = () => {
     if (currentSpanIndex > 0 && onSpanIndexChange) {
@@ -298,10 +306,10 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
             <h2 style={{ margin: 0, fontSize: theme.fontSizes[4], fontWeight: 600, color: theme.colors.text }}>
               {scenarioName}
             </h2>
-            {/* Close Button - Icon only */}
-            {showBackButton && onBackClick && (
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* Sources Toggle Button */}
               <button
-                onClick={onBackClick}
+                onClick={() => setShowSources(!showSources)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -310,18 +318,40 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                   background: 'transparent',
                   border: 'none',
                   borderRadius: '4px',
-                  color: theme.colors.text,
+                  color: showSources ? theme.colors.accent : theme.colors.text,
                   cursor: 'pointer',
-                  opacity: 0.7,
-                  marginLeft: 'auto',
+                  opacity: showSources ? 1 : 0.5,
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
-                title="Back to scenario mapping"
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = showSources ? '1' : '0.5')}
+                title={showSources ? 'Hide source files' : 'Show source files'}
               >
-                <X size={18} />
+                <FileCode size={18} />
               </button>
-            )}
+              {/* Close Button - Icon only */}
+              {showBackButton && onBackClick && (
+                <button
+                  onClick={onBackClick}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '4px',
+                    color: theme.colors.text,
+                    cursor: 'pointer',
+                    opacity: 0.7,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+                  title="Back to scenario mapping"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -400,7 +430,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                 ← Prev
               </button>
               <div style={{ fontSize: theme.fontSizes[1], fontWeight: 'bold' }}>
-                Test {currentSpanIndex + 1} of {spans.length}
+                Span {currentSpanIndex + 1} of {spans.length}
               </div>
               <button
                 onClick={handleNextTest}
@@ -419,31 +449,6 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                 Next →
               </button>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ fontSize: theme.fontSizes[1], color: theme.colors.textMuted }}>
-                <span style={{ color: '#4ade80' }}>All Passed ✓</span>
-              </div>
-              <button
-                onClick={() => setShowHelp(true)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: theme.colors.textMuted,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = theme.colors.text;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = theme.colors.textMuted;
-                }}
-              >
-                <HelpCircle size={20} />
-              </button>
-            </div>
           </div>
         )}
 
@@ -454,74 +459,6 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
         )}
       </div>
 
-      {/* Help Modal */}
-      {showHelp && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-          }}
-          onClick={() => setShowHelp(false)}
-        >
-          <div
-            style={{
-              backgroundColor: theme.colors.background,
-              color: theme.colors.text,
-              padding: '24px',
-              borderRadius: '8px',
-              maxWidth: '600px',
-              border: `1px solid ${theme.colors.border}`,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontWeight: 'bold', fontSize: theme.fontSizes[4], marginBottom: '16px' }}>
-              How to Read This Panel
-            </div>
-            <div style={{ fontSize: theme.fontSizes[1], marginBottom: '16px', lineHeight: '1.6' }}>
-              <p style={{ marginBottom: '12px' }}>
-                <strong>Timeline shows both events and logs:</strong>
-              </p>
-              <ul style={{ marginLeft: '20px', marginBottom: '16px' }}>
-                <li style={{ marginBottom: '8px' }}>
-                  <span style={{ color: '#f59e0b' }}>🟧 Events</span> - Structured lifecycle points
-                </li>
-                <li style={{ marginBottom: '8px' }}>
-                  <span style={{ color: '#4ade80' }}>● Logs</span> - Standalone log records (color = severity)
-                </li>
-                <li style={{ marginBottom: '8px' }}>
-                  <span style={{ color: '#60a5fa' }}>Blue = Test file</span>
-                </li>
-                <li>
-                  <span style={{ color: '#4ade80' }}>Green → Code under test</span>
-                </li>
-              </ul>
-            </div>
-            <button
-              onClick={() => setShowHelp(false)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: theme.colors.primary,
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: theme.fontSizes[1],
-                fontWeight: 500,
-              }}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Scrollable Content */}
       <div
@@ -543,6 +480,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
             showOnlySummary={viewMode === 'summary'}
             canvas={canvas}
             onSourceClick={onSourceClick}
+            showSources={showSources}
           />
         ) : activeTab === 'story' && !currentSpan && availableExecutions.length === 0 ? (
           <div
@@ -641,7 +579,7 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
                         {highlightTemplateVariables(String(template))}
                       </div>
                       {/* Show source paths for this event */}
-                      <SourceFileList sources={getEventSources(eventName)} onSourceClick={onSourceClick} />
+                      {showSources && <SourceFileList sources={getEventSources(eventName)} onSourceClick={onSourceClick} />}
                     </div>
                   );
                 })}

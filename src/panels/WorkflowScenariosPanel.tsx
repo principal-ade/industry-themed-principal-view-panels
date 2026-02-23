@@ -8,11 +8,11 @@ import type { FileInfo } from '@principal-ai/repository-abstraction';
 import { AnimatedResizableLayout } from '@principal-ade/panels';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/workflow-converter';
-import { Activity, X, CheckCircle2, List, Radar } from 'lucide-react';
+import { Activity, X, CheckCircle2, List, Radar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { TraceSearchView } from './execution-viewer/TraceSearchView';
 import { LiveTraceSearchView } from './execution-viewer/LiveTraceSearchView';
-import { getSpansFromTrace } from '../types/otel';
+import { getSpansFromTrace, type RegisteredTrace } from '../types/otel';
 import type { OtelSpanData, OtelKeyValue } from '@principal-ai/principal-view-core';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { ScenariosList } from './execution-viewer/ScenariosList';
@@ -297,6 +297,7 @@ interface WorkflowScenariosPanelState {
   selectedScenario: WorkflowScenario | null;
   showTraceSearch: boolean;
   showLiveTraceSearch: boolean;
+  selectedTrace: RegisteredTrace | null; // Original trace with match info
 }
 
 /**
@@ -367,6 +368,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     selectedScenario: null,
     showTraceSearch: false,
     showLiveTraceSearch: false,
+    selectedTrace: null,
   });
 
   // Store context and actions in refs
@@ -641,39 +643,37 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
             })),
           };
 
-          // Find the span index and event index for highlighting if highlightedSpanIdProp is provided
+          // Find the span index for the highlighted span if provided
           let highlightSpanIndex = 0;
-          let highlightEventIndex = 0;
-          let highlightedNodeId: string | null = null;
 
           if (highlightedSpanIdProp) {
             // Find the span that matches the highlighted span ID
             const spanIndex = executionData.spans.findIndex(s => s.id === highlightedSpanIdProp);
             if (spanIndex >= 0) {
               highlightSpanIndex = spanIndex;
-              // Get first event of that span for node highlighting
-              const span = executionData.spans[spanIndex];
-              if (span.events && span.events.length > 0) {
-                const firstEvent = span.events[0];
-                highlightedNodeId = mapEventToNodeId(
-                  { name: firstEvent.name, time: firstEvent.time, attributes: firstEvent.attributes as OtelAttributes },
-                  state.canvas
-                );
-              }
             }
           }
 
           const metadata = getExecutionMetadata(executionData);
+
+          // Get scenario ID from trace's scenarioMatches
+          const scenarioId = trace.scenarioMatches?.[0]?.scenarioId;
+
           setState(prev => ({
             ...prev,
             selectedExecutionId: selectedTraceIdProp,
             execution: executionData,
             metadata,
+            selectedTrace: trace, // Store original trace for match info
             isPlaying: false,
             currentSpanIndex: highlightSpanIndex,
-            currentEventIndex: highlightEventIndex,
-            highlightedNodeId,
+            currentEventIndex: -1, // No event selected initially
+            highlightedNodeId: null, // No node highlighted initially
             viewMode: 'narrative',
+            // Add scenario mapping for live traces so scenarioName is displayed
+            executionScenarioMap: scenarioId
+              ? { ...prev.executionScenarioMap, [selectedTraceIdProp]: scenarioId }
+              : prev.executionScenarioMap,
           }));
         }
       }
@@ -887,16 +887,25 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       };
 
       const metadata = getExecutionMetadata(executionData);
+
+      // Get scenario ID from trace's scenarioMatches
+      const scenarioId = trace.scenarioMatches?.[0]?.scenarioId;
+
       setState(prev => ({
         ...prev,
         selectedExecutionId: traceId,
         execution: executionData,
         metadata,
+        selectedTrace: trace, // Store original trace for match info
         isPlaying: false,
         currentSpanIndex: 0,
         currentEventIndex: 0,
         highlightedNodeId: null,
         viewMode: 'narrative',
+        // Add scenario mapping for live traces so scenarioName is displayed
+        executionScenarioMap: scenarioId
+          ? { ...prev.executionScenarioMap, [traceId]: scenarioId }
+          : prev.executionScenarioMap,
       }));
     } catch (error) {
       console.error('[WorkflowScenariosPanel] Failed to load live trace:', error);
@@ -904,19 +913,12 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   }, [liveTraces, state.canvas]);
 
   const handleSpanIndexChange = useCallback((newSpanIndex: number) => {
-    setState(prev => {
-      const spans = prev.execution ? getSpans(prev.execution) : [];
-      const newSpan = spans[newSpanIndex];
-      const newEvent = newSpan?.events?.[0]; // Start at first event of new span
-      const highlightedNodeId = newEvent ? mapEventToNodeId({ ...newEvent, attributes: newEvent.attributes as OtelAttributes }, prev.canvas) : null;
-
-      return {
-        ...prev,
-        currentSpanIndex: newSpanIndex,
-        currentEventIndex: 0,
-        highlightedNodeId,
-      };
-    });
+    setState(prev => ({
+      ...prev,
+      currentSpanIndex: newSpanIndex,
+      currentEventIndex: -1, // No event selected - user must click to highlight
+      // Don't change highlightedNodeId - let user control node focus separately
+    }));
   }, []);
 
   // Handle narrative event click - highlight corresponding canvas node
@@ -1069,6 +1071,55 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       viewMode: 'narrative', // Default to workflow view when showing a scenario
     }));
   }, []);
+
+  // Helper to get match info for the current span
+  const getCurrentSpanMatchInfo = useMemo(() => {
+    if (!state.selectedTrace || !state.execution) return null;
+
+    const spans = getSpans(state.execution);
+    const currentSpan = spans[state.currentSpanIndex];
+    if (!currentSpan) return null;
+
+    const spanId = currentSpan.id;
+
+    // Check scenarioMatches for full or partial match
+    for (const match of state.selectedTrace.scenarioMatches || []) {
+      const matchedSpan = match.matchedSpans?.find(ms => ms.spanId === spanId);
+      if (matchedSpan) {
+        return {
+          type: match.matchType as 'full' | 'partial',
+          scenarioId: match.scenarioId,
+          scenarioName: match.scenarioId?.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          coveragePercent: match.coveragePercent,
+          missingSteps: (match as { missingSteps?: string[] }).missingSteps,
+        };
+      }
+    }
+
+    // Check storyboardMatches for orphaned spans
+    for (const match of state.selectedTrace.storyboardMatches || []) {
+      const orphanedSpan = match.orphanedSpans?.find(os => os.spanId === spanId);
+      if (orphanedSpan) {
+        return {
+          type: 'orphaned' as const,
+          workflowId: match.workflowId,
+          workflowName: match.workflowName,
+          reason: orphanedSpan.reason,
+        };
+      }
+    }
+
+    // Check unmatchedSpans
+    const unmatchedSpan = state.selectedTrace.unmatchedSpans?.spans?.find(us => us.spanId === spanId);
+    if (unmatchedSpan) {
+      return {
+        type: 'unmatched' as const,
+        reason: unmatchedSpan.reason,
+      };
+    }
+
+    return null;
+  }, [state.selectedTrace, state.execution, state.currentSpanIndex]);
 
   // Helper to extract event name from node (handles both event.name and eventRef)
   const getNodeEventName = (node: ExtendedCanvasNode): string | null => {
@@ -1355,6 +1406,77 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
           </div>
         )}
 
+        {/* Span Navigation - Show when execution has multiple spans */}
+        {state.execution && getSpans(state.execution).length > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '16px' }}>
+            <button
+              onClick={() => handleSpanIndexChange(state.currentSpanIndex - 1)}
+              disabled={state.currentSpanIndex === 0}
+              style={{
+                padding: '4px',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                color: state.currentSpanIndex === 0 ? theme.colors.textMuted : theme.colors.text,
+                cursor: state.currentSpanIndex === 0 ? 'not-allowed' : 'pointer',
+                opacity: state.currentSpanIndex === 0 ? 0.5 : 1,
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              title="Previous span"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span style={{ fontSize: theme.fontSizes[1], fontWeight: 500, minWidth: '80px', textAlign: 'center' }}>
+              Span {state.currentSpanIndex + 1} of {getSpans(state.execution).length}
+            </span>
+            <button
+              onClick={() => handleSpanIndexChange(state.currentSpanIndex + 1)}
+              disabled={state.currentSpanIndex === getSpans(state.execution).length - 1}
+              style={{
+                padding: '4px',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                color: state.currentSpanIndex === getSpans(state.execution).length - 1 ? theme.colors.textMuted : theme.colors.text,
+                cursor: state.currentSpanIndex === getSpans(state.execution).length - 1 ? 'not-allowed' : 'pointer',
+                opacity: state.currentSpanIndex === getSpans(state.execution).length - 1 ? 0.5 : 1,
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              title="Next span"
+            >
+              <ChevronRight size={16} />
+            </button>
+            {/* Match Type Badge */}
+            {getCurrentSpanMatchInfo && (
+              <span
+                style={{
+                  marginLeft: '8px',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontSize: theme.fontSizes[0],
+                  fontWeight: 500,
+                  backgroundColor:
+                    getCurrentSpanMatchInfo.type === 'full' ? '#10b98120' :
+                    getCurrentSpanMatchInfo.type === 'partial' ? '#f59e0b20' :
+                    getCurrentSpanMatchInfo.type === 'orphaned' ? '#f9731620' :
+                    '#6b728020',
+                  color:
+                    getCurrentSpanMatchInfo.type === 'full' ? '#10b981' :
+                    getCurrentSpanMatchInfo.type === 'partial' ? '#f59e0b' :
+                    getCurrentSpanMatchInfo.type === 'orphaned' ? '#f97316' :
+                    '#6b7280',
+                }}
+              >
+                {getCurrentSpanMatchInfo.type === 'full' ? 'Matched' :
+                 getCurrentSpanMatchInfo.type === 'partial' ? 'Partial' :
+                 getCurrentSpanMatchInfo.type === 'orphaned' ? 'Orphaned' :
+                 'Unmatched'}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
@@ -1419,7 +1541,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
             theme={theme}
             leftPanel={
               <div style={{ height: '100%', overflow: 'hidden', background: '#0a0a0a' }}>
-                {state.execution ? (
+                {state.execution && (getCurrentSpanMatchInfo?.type === 'full' || state.selectedScenarioId) ? (
+                  // Full match OR user clicked on a scenario from the list - show details
                   <ScenarioDetailsPanel
                     spans={getSpans(state.execution) as TestSpan[]}
                     currentSpanIndex={state.currentSpanIndex}
@@ -1429,7 +1552,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                     viewMode={state.viewMode}
                     onViewModeChange={handleViewModeChange}
                     onNarrativeEventClick={handleNarrativeEventClick}
-                    showNavigation={getSpans(state.execution).length > 1}
+                    showNavigation={false}
                     showTestName={false}
                     canvas={state.canvas}
                     availableExecutions={state.availableExecutions}
@@ -1437,6 +1560,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                     onExecutionSelect={handleExecutionSelect}
                     onSourceClick={handleScenarioSourceClick}
                     selectedScenario={state.selectedScenario ?? undefined}
+                    overrideScenarioId={state.selectedScenarioId ?? undefined}
                     onDeselectExecution={() => {
                       setState(prev => ({
                         ...prev,
@@ -1486,17 +1610,19 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                         }));
                       }
                     }}
-                    showBackButton={!!(state.workflowTemplate && state.availableExecutions.length > 0)}
+                    showBackButton={!!(state.selectedScenarioId || (state.workflowTemplate && state.availableExecutions.length > 0))}
                     onBackClick={() => {
                       setState(prev => ({
                         ...prev,
                         selectedScenarioId: null,
                         selectedScenario: null,
-                        selectedExecutionId: null,
-                        execution: null,
-                        metadata: null,
+                        // Keep execution data if viewing a live trace - just go back to the decorated list
+                        selectedExecutionId: state.selectedScenarioId && getCurrentSpanMatchInfo?.type !== 'full' ? prev.selectedExecutionId : null,
+                        execution: state.selectedScenarioId && getCurrentSpanMatchInfo?.type !== 'full' ? prev.execution : null,
+                        metadata: state.selectedScenarioId && getCurrentSpanMatchInfo?.type !== 'full' ? prev.metadata : null,
+                        selectedTrace: state.selectedScenarioId && getCurrentSpanMatchInfo?.type !== 'full' ? prev.selectedTrace : null,
                         isPlaying: false,
-                        currentSpanIndex: 0,
+                        currentSpanIndex: prev.currentSpanIndex,
                         currentEventIndex: 0,
                         highlightedNodeId: null,
                       }));
@@ -1596,6 +1722,23 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                         : undefined
                     }
                     selectedScenario={state.selectedScenario ?? undefined}
+                    overrideScenarioId={state.selectedScenarioId ?? undefined}
+                  />
+                ) : state.execution && (getCurrentSpanMatchInfo?.type === 'partial' || getCurrentSpanMatchInfo?.type === 'orphaned') && state.workflowTemplate ? (
+                  // Partial/Orphaned match - show scenarios list with match decorations
+                  <ScenariosList
+                    workflowTemplate={state.workflowTemplate}
+                    availableExecutions={state.availableExecutions}
+                    executionScenarioMap={state.executionScenarioMap}
+                    onExecutionSelect={handleExecutionSelect}
+                    onScenarioHover={handleScenarioHover}
+                    onScenarioClick={handleScenarioClick}
+                    traceMatchInfo={state.selectedTrace?.scenarioMatches?.map(m => ({
+                      scenarioId: m.scenarioId,
+                      matchType: m.matchType as 'full' | 'partial',
+                      coveragePercent: m.coveragePercent,
+                      missingSteps: (m as { missingSteps?: string[] }).missingSteps,
+                    })) || []}
                   />
                 ) : state.workflowTemplate ? (
                   <ScenariosList

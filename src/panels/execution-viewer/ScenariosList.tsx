@@ -7,6 +7,13 @@ import type {
   DiscoveredTestTrace,
 } from '@principal-ai/principal-view-core';
 
+interface ScenarioMatchInfo {
+  scenarioId: string;
+  matchType: 'full' | 'partial';
+  coveragePercent?: number;
+  missingSteps?: string[];
+}
+
 interface ScenariosListProps {
   workflowTemplate: WorkflowTemplate;
   availableExecutions?: DiscoveredTestTrace[];
@@ -14,6 +21,8 @@ interface ScenariosListProps {
   onExecutionSelect?: (executionId: string) => void;
   onScenarioHover?: (eventNames: string[] | null) => void;
   onScenarioClick?: (scenarioId: string, scenario: WorkflowScenario) => void;
+  /** Match info from the current trace (for decorating scenarios) */
+  traceMatchInfo?: ScenarioMatchInfo[];
 }
 
 /**
@@ -26,6 +35,7 @@ export const ScenariosList: React.FC<ScenariosListProps> = ({
   onExecutionSelect: _onExecutionSelect,
   onScenarioHover,
   onScenarioClick,
+  traceMatchInfo = [],
 }) => {
   const { theme } = useTheme();
 
@@ -65,6 +75,8 @@ export const ScenariosList: React.FC<ScenariosListProps> = ({
           const matchingExecutions = availableExecutions.filter(
             exec => executionScenarioMap[exec.id] === scenarioId
           );
+          // Check if current trace has a match for this scenario
+          const traceMatch = traceMatchInfo.find(m => m.scenarioId === scenarioId);
 
           return (
             <div
@@ -84,17 +96,22 @@ export const ScenariosList: React.FC<ScenariosListProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   transition: 'background 0.2s',
-                  background: 'transparent',
+                  background: traceMatch ? (traceMatch.matchType === 'full' ? '#10b98110' : '#f59e0b10') : 'transparent',
+                  borderLeft: traceMatch ? `3px solid ${traceMatch.matchType === 'full' ? '#10b981' : '#f59e0b'}` : '3px solid transparent',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = theme.colors.backgroundSecondary;
+                  if (!traceMatch) {
+                    e.currentTarget.style.background = theme.colors.backgroundSecondary;
+                  }
                   if (onScenarioHover) {
                     const eventNames = getScenarioEventNames(scenario);
                     onScenarioHover(eventNames);
                   }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
+                  if (!traceMatch) {
+                    e.currentTarget.style.background = 'transparent';
+                  }
                   if (onScenarioHover) {
                     onScenarioHover(null);
                   }
@@ -105,8 +122,23 @@ export const ScenariosList: React.FC<ScenariosListProps> = ({
                     <h3 style={{ margin: 0, fontSize: theme.fontSizes[1], fontWeight: 600 }}>
                       {scenarioId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                     </h3>
-                    {matchingExecutions.length > 0 && (
+                    {matchingExecutions.length > 0 && !traceMatch && (
                       <CheckCircle2 size={14} style={{ color: '#10b981', flexShrink: 0 }} />
+                    )}
+                    {/* Full match badge */}
+                    {traceMatch?.matchType === 'full' && (
+                      <span
+                        style={{
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          fontWeight: 500,
+                          backgroundColor: '#10b98120',
+                          color: '#10b981',
+                        }}
+                      >
+                        Matched
+                      </span>
                     )}
                   </div>
                   {scenario.description && (
@@ -117,6 +149,27 @@ export const ScenariosList: React.FC<ScenariosListProps> = ({
                       lineHeight: theme.lineHeights.body,
                     }}>
                       {scenario.description}
+                    </div>
+                  )}
+                  {/* Partial match coverage bar - full width */}
+                  {traceMatch?.matchType === 'partial' && (
+                    <div style={{ display: 'flex', gap: '2px', marginTop: '8px' }}>
+                      {(() => {
+                        const expectedEvents = scenario.template?.events ? Object.keys(scenario.template.events) : [];
+                        const missingEvents = new Set(traceMatch.missingSteps || []);
+                        return expectedEvents.map((eventName, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              flex: 1,
+                              height: '6px',
+                              borderRadius: '2px',
+                              backgroundColor: missingEvents.has(eventName) ? '#3f3f46' : '#10b981',
+                            }}
+                            title={eventName}
+                          />
+                        ));
+                      })()}
                     </div>
                   )}
                 </div>
