@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { OtelSpanData } from '@principal-ai/principal-view-core';
 import { getSpanDuration } from '@principal-ai/principal-view-core';
@@ -120,31 +119,21 @@ export const TraceDetails: React.FC<TraceDetailsProps> = ({ spans, theme }) => {
             display: 'flex',
             alignItems: 'center',
             gap: theme.space[3],
-            padding: `${theme.space[2]}px ${theme.space[4]}px`,
-            paddingLeft: `${theme.space[4] + depth * 32}px`,
+            padding: `${theme.space[2]}px ${theme.space[3]}px`,
+            paddingLeft: `${theme.space[3] + depth * 32}px`,
             borderBottom: `1px solid ${theme.colors.border}`,
             background: theme.colors.backgroundSecondary,
             cursor: hasChildren ? 'pointer' : 'default',
           }}
           onClick={() => hasChildren && toggleSpan(span.spanId)}
         >
-          {/* Expand/Collapse Icon */}
-          <div style={{ width: 20, flexShrink: 0 }}>
-            {hasChildren ? (
-              isExpanded ? (
-                <ChevronDown size={20} color={theme.colors.textSecondary} />
-              ) : (
-                <ChevronRight size={20} color={theme.colors.textSecondary} />
-              )
-            ) : null}
-          </div>
-
+          
           {/* Span Name */}
           <span
             style={{
               flex: 1,
               fontSize: theme.fontSizes[2],
-              color: theme.colors.text,
+              color: error ? theme.colors.error : theme.colors.success,
               minWidth: 0,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -166,13 +155,7 @@ export const TraceDetails: React.FC<TraceDetailsProps> = ({ spans, theme }) => {
             {formatDuration(duration)}
           </span>
 
-          {/* Status Icon */}
-          {error ? (
-            <AlertCircle size={18} color={theme.colors.error} style={{ flexShrink: 0 }} />
-          ) : (
-            <CheckCircle size={18} color={theme.colors.success || '#22c55e'} style={{ flexShrink: 0 }} />
-          )}
-
+          
           {/* Attributes Toggle */}
           {span.attributes && span.attributes.length > 0 && (
             <button
@@ -201,7 +184,7 @@ export const TraceDetails: React.FC<TraceDetailsProps> = ({ spans, theme }) => {
           <div
             style={{
               padding: theme.space[3],
-              paddingLeft: `${theme.space[4] + depth * 32 + 52}px`,
+              paddingLeft: `${theme.space[4] + depth * 32 + 20}px`,
               background: theme.colors.background,
               borderBottom: `1px solid ${theme.colors.border}`,
             }}
