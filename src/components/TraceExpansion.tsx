@@ -147,17 +147,6 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
               <div
                 key={`${span.type}-${span.spanName}-${span.timestamp}-${index}`}
                 onClick={() => {
-                  console.log('[TraceExpansion] Span clicked:', {
-                    type: span.type,
-                    spanName: span.spanName,
-                    storyboardId: span.storyboardId,
-                    workflowId: span.workflowId,
-                    scenarioId: span.scenarioId,
-                    target: span.target,
-                    isMatchedOrOrphaned,
-                    hasOnWorkflowClick: !!onWorkflowClick,
-                    willOpenWorkflow: isMatchedOrOrphaned && !!span.storyboardId && !!onWorkflowClick,
-                  });
                   // Open workflow for matched and orphaned spans (even without scenarioId)
                   if (isMatchedOrOrphaned && span.storyboardId && onWorkflowClick) {
                     onWorkflowClick(span.storyboardId, span.workflowId || '', span.scenarioId || '');
