@@ -15,7 +15,7 @@ import type { RegisteredTrace } from '../types/otel';
 export interface TraceExpansionProps {
   trace: RegisteredTrace;
   theme: Theme;
-  onWorkflowClick?: (storyboardId: string, workflowId: string, scenarioId: string) => void;
+  onWorkflowClick?: (storyboardId: string, workflowId: string, scenarioId: string, spanId: string) => void;
   onSpanClick?: () => void;
 }
 
@@ -149,7 +149,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                 onClick={() => {
                   // Open workflow for matched and orphaned spans (even without scenarioId)
                   if (isMatchedOrOrphaned && span.storyboardId && onWorkflowClick) {
-                    onWorkflowClick(span.storyboardId, span.workflowId || '', span.scenarioId || '');
+                    onWorkflowClick(span.storyboardId, span.workflowId || '', span.scenarioId || '', span.spanId);
                   } else {
                     // Only open trace details for unmatched spans
                     onSpanClick?.();

@@ -356,7 +356,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
   };
 
   // Handle workflow click from trace expansion (matched spans)
-  const handleWorkflowClick = (trace: RegisteredTrace, storyboardId: string, workflowIdParam: string, scenarioId: string) => {
+  const handleWorkflowClick = (trace: RegisteredTrace, storyboardId: string, workflowIdParam: string, scenarioId: string, spanId: string) => {
     if (!events) return;
 
     // Find the workflow data from version snapshots
@@ -440,6 +440,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
         // Trace data (for context)
         trace,
         traceId: trace.traceId,
+        // Span data (for highlighting specific span)
+        spanId,
       },
     });
   };

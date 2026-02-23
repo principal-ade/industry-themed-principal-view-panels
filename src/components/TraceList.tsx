@@ -14,7 +14,7 @@ export interface TraceListProps {
   theme: Theme;
   onTraceClick?: (trace: RegisteredTrace) => void;
   onTraceSelect?: (trace: RegisteredTrace) => void;
-  onWorkflowClick?: (trace: RegisteredTrace, storyboardId: string, workflowId: string, scenarioId: string) => void;
+  onWorkflowClick?: (trace: RegisteredTrace, storyboardId: string, workflowId: string, scenarioId: string, spanId: string) => void;
   onClearAll?: () => void;
   expandedTraceIds?: Set<string>;
   showSearch?: boolean;
@@ -515,8 +515,8 @@ export const TraceList: React.FC<TraceListProps> = ({
                   trace={trace}
                   theme={theme}
                   onSpanClick={() => onTraceSelect?.(trace)}
-                  onWorkflowClick={(storyboardId, workflowId, scenarioId) =>
-                    onWorkflowClick?.(trace, storyboardId, workflowId, scenarioId)
+                  onWorkflowClick={(storyboardId, workflowId, scenarioId, spanId) =>
+                    onWorkflowClick?.(trace, storyboardId, workflowId, scenarioId, spanId)
                   }
                 />
               </div>

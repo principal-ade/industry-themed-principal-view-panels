@@ -256,6 +256,18 @@ export interface WorkflowScenariosPanelProps extends WorkflowScenariosPanelProps
    * Used for detecting workflow file changes and auto-reloading.
    */
   workflowFileInfo?: FileInfo | null;
+
+  /**
+   * Trace ID to auto-select (optional).
+   * When provided, automatically selects and loads this trace from the telemetry data.
+   */
+  selectedTraceId?: string | null;
+
+  /**
+   * Span ID to highlight within the selected trace (optional).
+   * When provided along with selectedTraceId, highlights this specific span.
+   */
+  highlightedSpanId?: string | null;
 }
 
 interface WorkflowScenariosPanelState {
@@ -305,6 +317,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   workflowPath: workflowPathProp,
   workflowTemplate: workflowTemplateProp,
   workflowFileInfo: workflowFileInfoProp,
+  selectedTraceId: selectedTraceIdProp,
+  highlightedSpanId: highlightedSpanIdProp,
 }) => {
   const { theme } = useTheme();
 
@@ -580,6 +594,91 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       }));
     }
   }, [selectedWorkflowIdProp, workflowTemplateProp]);
+
+  // Auto-select trace when selectedTraceId prop is provided
+  useEffect(() => {
+    if (selectedTraceIdProp && liveTraces.length > 0 && state.canvas) {
+      // Only auto-select if not already selected
+      if (state.selectedExecutionId !== selectedTraceIdProp) {
+        const trace = liveTraces.find(t => t.traceId === selectedTraceIdProp);
+        if (trace) {
+          // Convert RegisteredTrace to ExecutionData format (same as handleLiveTraceSelect)
+          const spans = getSpansFromTrace(trace);
+          const serviceName = getServiceName(trace);
+          const executionData: ExecutionData = {
+            metadata: {
+              canvasName: state.canvas?.pv?.name || 'Unknown Canvas',
+              exportedAt: new Date().toISOString(),
+              source: `live:${serviceName}`,
+              framework: 'otel',
+              status: trace.hasErrors ? ('failure' as const) : ('success' as const),
+            },
+            spans: spans.map((span: OtelSpanData) => ({
+              id: span.spanId,
+              name: span.name,
+              startTime: Math.floor(Number(span.startTimeUnixNano) / 1_000_000),
+              endTime: Math.floor(Number(span.endTimeUnixNano) / 1_000_000),
+              duration: Math.floor((Number(span.endTimeUnixNano) - Number(span.startTimeUnixNano)) / 1_000_000),
+              status: span.status?.code === 2 ? ('ERROR' as const) : ('OK' as const),
+              attributes: span.attributes?.reduce((acc: Record<string, string | number | boolean>, attr: OtelKeyValue) => {
+                const value = attr.value.stringValue || attr.value.intValue || attr.value.boolValue;
+                if (value !== undefined) {
+                  acc[attr.key] = value;
+                }
+                return acc;
+              }, {} as Record<string, string | number | boolean>) || {},
+              events: span.events?.map((event) => ({
+                time: Math.floor(Number(event.timeUnixNano) / 1_000_000),
+                name: event.name,
+                attributes: event.attributes?.reduce((acc: Record<string, string | number | boolean>, attr: OtelKeyValue) => {
+                  const value = attr.value.stringValue || attr.value.intValue || attr.value.boolValue;
+                  if (value !== undefined) {
+                    acc[attr.key] = value;
+                  }
+                  return acc;
+                }, {} as Record<string, string | number | boolean>) || {},
+              })) || [],
+            })),
+          };
+
+          // Find the span index and event index for highlighting if highlightedSpanIdProp is provided
+          let highlightSpanIndex = 0;
+          let highlightEventIndex = 0;
+          let highlightedNodeId: string | null = null;
+
+          if (highlightedSpanIdProp) {
+            // Find the span that matches the highlighted span ID
+            const spanIndex = executionData.spans.findIndex(s => s.id === highlightedSpanIdProp);
+            if (spanIndex >= 0) {
+              highlightSpanIndex = spanIndex;
+              // Get first event of that span for node highlighting
+              const span = executionData.spans[spanIndex];
+              if (span.events && span.events.length > 0) {
+                const firstEvent = span.events[0];
+                highlightedNodeId = mapEventToNodeId(
+                  { name: firstEvent.name, time: firstEvent.time, attributes: firstEvent.attributes as OtelAttributes },
+                  state.canvas
+                );
+              }
+            }
+          }
+
+          const metadata = getExecutionMetadata(executionData);
+          setState(prev => ({
+            ...prev,
+            selectedExecutionId: selectedTraceIdProp,
+            execution: executionData,
+            metadata,
+            isPlaying: false,
+            currentSpanIndex: highlightSpanIndex,
+            currentEventIndex: highlightEventIndex,
+            highlightedNodeId,
+            viewMode: 'narrative',
+          }));
+        }
+      }
+    }
+  }, [selectedTraceIdProp, highlightedSpanIdProp, liveTraces, state.canvas, state.selectedExecutionId]);
 
   // Listen for custom events to switch canvases (event-driven mode)
   useEffect(() => {
