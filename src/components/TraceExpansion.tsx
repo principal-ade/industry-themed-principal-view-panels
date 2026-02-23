@@ -11,7 +11,6 @@
 import React, { useMemo } from 'react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { RegisteredTrace } from '../types/otel';
-import { AlertTriangle } from 'lucide-react';
 
 export interface TraceExpansionProps {
   trace: RegisteredTrace;
@@ -24,31 +23,66 @@ export interface TraceExpansionProps {
  * TraceExpansion component displays detailed workflow matching information
  * for a selected trace as a simple categorized list
  */
+// Unified span item for sorting
+interface SpanItem {
+  type: 'matched' | 'orphaned' | 'unmatched';
+  spanName: string;
+  timestamp: number;
+  target?: string; // scenarioId, workflowId, or undefined
+  storyboardId?: string;
+  scenarioId?: string;
+}
+
 export const TraceExpansion: React.FC<TraceExpansionProps> = ({
   trace,
   theme,
   onWorkflowClick,
   onSpanClick,
 }) => {
-  // Sort scenario matches by earliest span timestamp (temporal order)
-  const sortedScenarioMatches = useMemo(() => {
-    if (!trace.scenarioMatches) return [];
-    return [...trace.scenarioMatches].sort((a, b) => {
-      const aEarliest = Math.min(...a.matchedSpans.map(s => s.timestamp));
-      const bEarliest = Math.min(...b.matchedSpans.map(s => s.timestamp));
-      return aEarliest - bEarliest;
+  // Collect all spans and sort by timestamp
+  const sortedSpans = useMemo(() => {
+    const spans: SpanItem[] = [];
+
+    // Add matched spans (green)
+    trace.scenarioMatches?.forEach(match => {
+      match.matchedSpans.forEach(span => {
+        spans.push({
+          type: 'matched',
+          spanName: span.spanName,
+          timestamp: span.timestamp,
+          target: match.scenarioId,
+          storyboardId: match.storyboardId,
+          scenarioId: match.scenarioId,
+        });
+      });
     });
-  }, [trace.scenarioMatches]);
 
-  // Calculate total orphaned spans
-  const orphanedSpanCount = useMemo(() => {
-    if (!trace.storyboardMatches) return 0;
-    return trace.storyboardMatches.reduce((sum, m) => sum + m.orphanedSpans.length, 0);
-  }, [trace.storyboardMatches]);
+    // Add orphaned spans (warning - workflow matched, no scenario)
+    trace.storyboardMatches?.forEach(match => {
+      match.orphanedSpans.forEach(span => {
+        spans.push({
+          type: 'orphaned',
+          spanName: span.spanName,
+          timestamp: span.timestamp,
+          target: match.workflowName || match.workflowId,
+        });
+      });
+    });
 
-  const hasAnyMatches = (trace.scenarioMatches?.length ?? 0) > 0 ||
-                        (trace.storyboardMatches?.length ?? 0) > 0 ||
-                        (trace.unmatchedSpans?.spans?.length ?? 0) > 0;
+    // Add unmatched spans (warning - no workflow matched)
+    trace.unmatchedSpans?.spans?.forEach(span => {
+      spans.push({
+        type: 'unmatched',
+        spanName: span.spanName,
+        timestamp: span.timestamp,
+      });
+    });
+
+    // Sort by timestamp
+    return spans.sort((a, b) => a.timestamp - b.timestamp);
+  }, [trace.scenarioMatches, trace.storyboardMatches, trace.unmatchedSpans]);
+
+  const hasAnyMatches = sortedSpans.length > 0;
 
   return (
     <div
@@ -61,29 +95,36 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
         borderRadius: theme.radii[2],
       }}
     >
-      {/* Matched Scenarios */}
-      {sortedScenarioMatches.length > 0 && (
+      {/* All spans sorted by timestamp */}
+      {sortedSpans.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space[2] }}>
-          {sortedScenarioMatches.map((match, index) =>
-            match.matchedSpans.map((span, spanIndex) => (
+          {sortedSpans.map((span, index) => {
+            const isMatched = span.type === 'matched';
+            const hasTarget = span.target !== undefined;
+            const color = isMatched ? theme.colors.success : theme.colors.warning;
+            const isClickable = onSpanClick || (isMatched && onWorkflowClick);
+
+            return (
               <div
-                key={`${match.storyboardId}-${match.scenarioId}-${index}-${spanIndex}`}
+                key={`${span.type}-${span.spanName}-${span.timestamp}-${index}`}
                 onClick={() => {
                   onSpanClick?.();
-                  onWorkflowClick?.(match.storyboardId, match.scenarioId);
+                  if (isMatched && span.storyboardId && span.scenarioId) {
+                    onWorkflowClick?.(span.storyboardId, span.scenarioId);
+                  }
                 }}
                 style={{
                   fontSize: theme.fontSizes[2],
-                  color: theme.colors.success,
+                  color,
                   paddingLeft: theme.space[2],
                   display: 'flex',
                   alignItems: 'center',
                   gap: theme.space[1],
-                  cursor: onSpanClick || onWorkflowClick ? 'pointer' : 'default',
+                  cursor: isClickable ? 'pointer' : 'default',
                   transition: 'opacity 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
-                  if (onSpanClick || onWorkflowClick) {
+                  if (isClickable) {
                     e.currentTarget.style.opacity = '0.7';
                   }
                 }}
@@ -92,99 +133,15 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                 }}
               >
                 <span>{span.spanName}</span>
-                <span style={{ color: theme.colors.textMuted }}>→</span>
-                <span style={{ color: theme.colors.textSecondary }}>{match.scenarioId}</span>
+                {hasTarget && (
+                  <>
+                    <span style={{ color: theme.colors.textMuted }}>→</span>
+                    <span style={{ color: theme.colors.textSecondary }}>{span.target}</span>
+                  </>
+                )}
               </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Category 2: Partial Matches (Workflow matched, no scenario) */}
-      {(trace.storyboardMatches?.length ?? 0) > 0 && (
-        <div>
-          <div
-            style={{
-              fontSize: theme.fontSizes[2],
-              fontWeight: theme.fontWeights.semibold,
-              marginBottom: theme.space[2],
-              paddingLeft: theme.space[2],
-              color: theme.colors.warning,
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.space[1],
-            }}
-          >
-            <AlertTriangle size={16} />
-            Partial Matches ({orphanedSpanCount} orphaned {orphanedSpanCount === 1 ? 'span' : 'spans'})
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.space[1],
-            }}
-          >
-            {trace.storyboardMatches?.map((match, index) => (
-              <div
-                key={`${match.storyboardId}-${index}`}
-                style={{
-                  padding: theme.space[2],
-                  backgroundColor: `${theme.colors.warning}10`,
-                  border: `1px solid ${theme.colors.warning}40`,
-                  borderRadius: theme.radii[1],
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: theme.fontSizes[2],
-                    fontWeight: theme.fontWeights.medium,
-                    color: theme.colors.text,
-                  }}
-                >
-                  {match.storyboardId}
-                </div>
-                <div
-                  style={{
-                    fontSize: theme.fontSizes[1],
-                    color: theme.colors.textMuted,
-                    marginTop: '2px',
-                  }}
-                >
-                  Matched workflow but no scenario • {match.orphanedSpans.length} {match.orphanedSpans.length === 1 ? 'span' : 'spans'}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Category 3: Unmatched Spans */}
-      {(trace.unmatchedSpans?.spans?.length ?? 0) > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space[1] }}>
-          {trace.unmatchedSpans?.spans?.map((span, index) => (
-            <div
-              key={span.spanId || index}
-              onClick={() => onSpanClick?.()}
-              style={{
-                fontSize: theme.fontSizes[2],
-                color: theme.colors.warning,
-                paddingLeft: theme.space[2],
-                cursor: onSpanClick ? 'pointer' : 'default',
-                transition: 'opacity 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                if (onSpanClick) {
-                  e.currentTarget.style.opacity = '0.7';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '1';
-              }}
-            >
-              {span.spanName}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
