@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Activity, Settings, GitBranch } from 'lucide-react';
 import type { TraceListPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
@@ -34,9 +35,28 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
 }) => {
   const { theme } = useTheme();
   const panelRef = useRef<HTMLDivElement>(null);
+  const tabBarRef = useRef<HTMLDivElement>(null);
+  const [isCompactTabs, setIsCompactTabs] = useState(false);
 
   usePanelFocusListener('trace-list', events, () => panelRef.current?.focus());
-  const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>();
+
+  // Responsive tab bar - switch to icons when width < 300px
+  useEffect(() => {
+    const tabBar = tabBarRef.current;
+    if (!tabBar) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        setIsCompactTabs(width < 300);
+      }
+    });
+
+    resizeObserver.observe(tabBar);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  const [expandedTraceIds, setExpandedTraceIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<TabView>('traces');
   const [selectedSchematicNodeId, setSelectedSchematicNodeId] = useState<string | null>(null);
   const [workflowFilterMode, setWorkflowFilterMode] = useState<StoryboardFilterMode>('all');
@@ -297,10 +317,21 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
     }
   };
 
+  // Toggle expansion only - no event emission
   const handleTraceClick = (trace: RegisteredTrace) => {
-    setSelectedTraceId(trace.traceId);
+    setExpandedTraceIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(trace.traceId)) {
+        newSet.delete(trace.traceId);
+      } else {
+        newSet.add(trace.traceId);
+      }
+      return newSet;
+    });
+  };
 
-    // Emit trace:selected event for tab manager to handle
+  // Emit trace:selected event - for trace ID click and unmatched span click
+  const handleTraceSelect = (trace: RegisteredTrace) => {
     if (events) {
       events.emit({
         type: 'trace:selected',
@@ -315,8 +346,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
   };
 
   const handleClearAll = () => {
-    // Clear selected trace
-    setSelectedTraceId(undefined);
+    // Clear expanded traces
+    setExpandedTraceIds(new Set());
 
     // Call clearTelemetry action if available
     if (actions && 'clearTelemetry' in actions && typeof actions.clearTelemetry === 'function') {
@@ -420,71 +451,99 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
     >
       {/* Tab Bar */}
       <div
+        ref={tabBarRef}
         style={{
           display: 'flex',
+          height: '40px',
+          boxSizing: 'border-box',
           borderBottom: `1px solid ${theme.colors.border}`,
           backgroundColor: theme.colors.backgroundSecondary,
         }}
       >
         <button
           onClick={() => setActiveTab('traces')}
+          title="Traces"
           style={{
-            padding: '12px 24px',
-            fontSize: '13px',
-            fontWeight: 500,
+            flex: 1,
+            height: '100%',
+            padding: isCompactTabs ? '0 8px' : '0 24px',
+            fontFamily: theme.fonts.body,
+            fontSize: theme.fontSizes[1],
+            fontWeight: theme.fontWeights.medium,
             backgroundColor: activeTab === 'traces' ? theme.colors.background : 'transparent',
             color: activeTab === 'traces' ? theme.colors.text : theme.colors.textSecondary,
             border: 'none',
-            borderBottom: activeTab === 'traces' ? `2px solid #3b82f6` : '2px solid transparent',
+            borderBottom: activeTab === 'traces' ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
             cursor: 'pointer',
             outline: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
           }}
         >
-          Traces
+          {isCompactTabs ? <Activity size={16} /> : 'Traces'}
         </button>
         <button
           onClick={() => setActiveTab('configuration')}
+          title="Configuration"
           style={{
-            padding: '12px 24px',
-            fontSize: '13px',
-            fontWeight: 500,
+            flex: 1,
+            height: '100%',
+            padding: isCompactTabs ? '0 8px' : '0 24px',
+            fontFamily: theme.fonts.body,
+            fontSize: theme.fontSizes[1],
+            fontWeight: theme.fontWeights.medium,
             backgroundColor: activeTab === 'configuration' ? theme.colors.background : 'transparent',
             color: activeTab === 'configuration' ? theme.colors.text : theme.colors.textSecondary,
             border: 'none',
-            borderBottom: activeTab === 'configuration' ? `2px solid #3b82f6` : '2px solid transparent',
+            borderBottom: activeTab === 'configuration' ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
             cursor: 'pointer',
             outline: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
           }}
         >
-          Configuration
+          {isCompactTabs ? <Settings size={16} /> : 'Configuration'}
         </button>
         <button
           onClick={() => setActiveTab('schematics')}
+          title="Schematics"
           style={{
-            padding: '12px 24px',
-            fontSize: '13px',
-            fontWeight: 500,
+            flex: 1,
+            height: '100%',
+            padding: isCompactTabs ? '0 8px' : '0 24px',
+            fontFamily: theme.fonts.body,
+            fontSize: theme.fontSizes[1],
+            fontWeight: theme.fontWeights.medium,
             backgroundColor: activeTab === 'schematics' ? theme.colors.background : 'transparent',
             color: activeTab === 'schematics' ? theme.colors.text : theme.colors.textSecondary,
             border: 'none',
-            borderBottom: activeTab === 'schematics' ? `2px solid #3b82f6` : '2px solid transparent',
+            borderBottom: activeTab === 'schematics' ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
             cursor: 'pointer',
             outline: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
           }}
         >
-          Schematics
+          {isCompactTabs ? <GitBranch size={16} /> : 'Schematics'}
         </button>
       </div>
 
       {/* Tab Content */}
       {activeTab === 'traces' ? (
-        <div style={{ flex: 1, padding: '16px', overflow: 'auto' }}>
+        <div style={{ flex: 1, overflow: 'auto' }}>
           <TraceList
             traces={traces}
             theme={theme}
             onTraceClick={handleTraceClick}
+            onTraceSelect={handleTraceSelect}
             onClearAll={handleClearAll}
-            selectedTraceId={selectedTraceId}
+            expandedTraceIds={expandedTraceIds}
             emptyMessage={traces.length === 0 ? 'No traces received yet. Waiting for telemetry data...' : undefined}
           />
         </div>
@@ -492,7 +551,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
         <div style={{ flex: 1, padding: '16px', overflow: 'auto' }}>
           {configLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-              <div style={{ fontSize: '14px', color: theme.colors.textSecondary }}>
+              <div style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes[1], color: theme.colors.textSecondary }}>
                 Loading resources...
               </div>
             </div>
@@ -500,10 +559,10 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
             <>
               {/* Header */}
               <div style={{ marginBottom: '16px' }}>
-                <h2 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600 }}>
+                <h2 style={{ margin: '0 0 8px 0', fontFamily: theme.fonts.heading, fontSize: theme.fontSizes[3], fontWeight: theme.fontWeights.semibold }}>
                   Library Resources
                 </h2>
-                <p style={{ margin: 0, fontSize: '13px', color: theme.colors.textSecondary }}>
+                <p style={{ margin: 0, fontFamily: theme.fonts.body, fontSize: theme.fontSizes[1], color: theme.colors.textSecondary }}>
                   Configure OpenTelemetry and other resources in library.yaml
                 </p>
               </div>
@@ -511,7 +570,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
               {/* Discovered Services Info */}
               {discoveredServices.length > 0 && (
                 <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: theme.colors.backgroundSecondary, borderRadius: '4px', border: `1px solid ${theme.colors.border}` }}>
-                  <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '8px' }}>
+                  <div style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes[1], fontWeight: theme.fontWeights.medium, marginBottom: '8px' }}>
                     Discovered Services ({discoveredServices.length})
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -521,10 +580,11 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                         style={{
                           display: 'inline-block',
                           padding: '4px 8px',
-                          fontSize: '12px',
-                          backgroundColor: serviceName === selectedServiceId ? '#3b82f6' : theme.colors.background,
-                          color: serviceName === selectedServiceId ? '#ffffff' : theme.colors.text,
-                          border: `1px solid ${serviceName === selectedServiceId ? '#3b82f6' : theme.colors.border}`,
+                          fontFamily: theme.fonts.body,
+                          fontSize: theme.fontSizes[0],
+                          backgroundColor: serviceName === selectedServiceId ? theme.colors.primary : theme.colors.background,
+                          color: serviceName === selectedServiceId ? theme.colors.textOnPrimary : theme.colors.text,
+                          border: `1px solid ${serviceName === selectedServiceId ? theme.colors.primary : theme.colors.border}`,
                           borderRadius: '3px',
                           cursor: 'pointer',
                         }}
@@ -534,7 +594,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                       </span>
                     ))}
                   </div>
-                  <div style={{ marginTop: '8px', fontSize: '12px', color: theme.colors.textSecondary }}>
+                  <div style={{ marginTop: '8px', fontFamily: theme.fonts.body, fontSize: theme.fontSizes[0], color: theme.colors.textSecondary }}>
                     Click a service to edit its configuration
                   </div>
                 </div>
@@ -548,7 +608,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                     style={{
                       display: 'block',
                       marginBottom: '4px',
-                      fontSize: '13px',
+                      fontFamily: theme.fonts.body,
+                      fontSize: theme.fontSizes[1],
                       color: theme.colors.textSecondary,
                     }}
                   >
@@ -561,7 +622,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                     style={{
                       width: '100%',
                       padding: '8px',
-                      fontSize: '13px',
+                      fontFamily: theme.fonts.body,
+                      fontSize: theme.fontSizes[1],
                       backgroundColor: theme.colors.backgroundSecondary,
                       color: theme.colors.text,
                       border: `1px solid ${theme.colors.border}`,
@@ -585,11 +647,12 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                   style={{
                     padding: '12px',
                     marginBottom: '16px',
-                    backgroundColor: '#ef444433',
-                    border: '1px solid #ef4444',
+                    backgroundColor: `${theme.colors.error}22`,
+                    border: `1px solid ${theme.colors.error}`,
                     borderRadius: '4px',
-                    fontSize: '13px',
-                    color: '#fca5a5',
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes[1],
+                    color: theme.colors.error,
                   }}
                 >
                   {configError}
@@ -602,11 +665,12 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                   style={{
                     padding: '12px',
                     marginBottom: '16px',
-                    backgroundColor: '#10b98133',
-                    border: '1px solid #10b981',
+                    backgroundColor: `${theme.colors.success}22`,
+                    border: `1px solid ${theme.colors.success}`,
                     borderRadius: '4px',
-                    fontSize: '13px',
-                    color: '#6ee7b7',
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes[1],
+                    color: theme.colors.success,
                   }}
                 >
                   {successMessage}
@@ -615,7 +679,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
 
               {/* OTEL Configuration */}
               <div style={{ marginBottom: '24px' }}>
-                <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: 600 }}>
+                <h3 style={{ margin: '0 0 12px 0', fontFamily: theme.fonts.heading, fontSize: theme.fontSizes[2], fontWeight: theme.fontWeights.semibold }}>
                   OpenTelemetry Configuration
                 </h3>
 
@@ -626,11 +690,12 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                       style={{
                         display: 'block',
                         marginBottom: '4px',
-                        fontSize: '13px',
+                        fontFamily: theme.fonts.body,
+                        fontSize: theme.fontSizes[1],
                         color: theme.colors.textSecondary,
                       }}
                     >
-                      Service Name <span style={{ color: '#f59e0b' }}>*</span>
+                      Service Name <span style={{ color: theme.colors.warning }}>*</span>
                     </label>
                     <input
                       id="service-name"
@@ -641,7 +706,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                       style={{
                         width: '100%',
                         padding: '8px',
-                        fontSize: '13px',
+                        fontFamily: theme.fonts.body,
+                        fontSize: theme.fontSizes[1],
                         backgroundColor: theme.colors.backgroundSecondary,
                         color: theme.colors.text,
                         border: `1px solid ${theme.colors.border}`,
@@ -650,7 +716,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                         boxSizing: 'border-box',
                       }}
                     />
-                    <div style={{ marginTop: '4px', fontSize: '12px', color: theme.colors.textSecondary }}>
+                    <div style={{ marginTop: '4px', fontFamily: theme.fonts.body, fontSize: theme.fontSizes[0], color: theme.colors.textSecondary }}>
                       Used for trace routing in dev tools
                     </div>
                   </div>
@@ -661,7 +727,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                       style={{
                         display: 'block',
                         marginBottom: '4px',
-                        fontSize: '13px',
+                        fontFamily: theme.fonts.body,
+                        fontSize: theme.fontSizes[1],
                         color: theme.colors.textSecondary,
                       }}
                     >
@@ -676,7 +743,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                       style={{
                         width: '100%',
                         padding: '8px',
-                        fontSize: '13px',
+                        fontFamily: theme.fonts.body,
+                        fontSize: theme.fontSizes[1],
                         backgroundColor: theme.colors.backgroundSecondary,
                         color: theme.colors.text,
                         border: `1px solid ${theme.colors.border}`,
@@ -693,7 +761,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                       style={{
                         display: 'block',
                         marginBottom: '4px',
-                        fontSize: '13px',
+                        fontFamily: theme.fonts.body,
+                        fontSize: theme.fontSizes[1],
                         color: theme.colors.textSecondary,
                       }}
                     >
@@ -708,7 +777,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                       style={{
                         width: '100%',
                         padding: '8px',
-                        fontSize: '13px',
+                        fontFamily: theme.fonts.body,
+                        fontSize: theme.fontSizes[1],
                         backgroundColor: theme.colors.backgroundSecondary,
                         color: theme.colors.text,
                         border: `1px solid ${theme.colors.border}`,
@@ -726,7 +796,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                 key => !['service.name', 'service.version', 'deployment.environment'].includes(key)
               ).length > 0 && (
                 <div style={{ marginBottom: '24px' }}>
-                  <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: 600 }}>
+                  <h3 style={{ margin: '0 0 12px 0', fontFamily: theme.fonts.heading, fontSize: theme.fontSizes[2], fontWeight: theme.fontWeights.semibold }}>
                     Other Resources
                   </h3>
 
@@ -740,7 +810,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                               style={{
                                 display: 'block',
                                 marginBottom: '4px',
-                                fontSize: '13px',
+                                fontFamily: theme.fonts.body,
+                                fontSize: theme.fontSizes[1],
                                 color: theme.colors.textSecondary,
                               }}
                             >
@@ -753,7 +824,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                               style={{
                                 width: '100%',
                                 padding: '8px',
-                                fontSize: '13px',
+                                fontFamily: theme.fonts.body,
+                                fontSize: theme.fontSizes[1],
                                 backgroundColor: theme.colors.backgroundSecondary,
                                 color: theme.colors.text,
                                 border: `1px solid ${theme.colors.border}`,
@@ -768,10 +840,11 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                             style={{
                               marginTop: '24px',
                               padding: '8px 12px',
-                              fontSize: '13px',
-                              backgroundColor: '#ef444433',
-                              color: '#fca5a5',
-                              border: '1px solid #ef4444',
+                              fontFamily: theme.fonts.body,
+                              fontSize: theme.fontSizes[1],
+                              backgroundColor: `${theme.colors.error}22`,
+                              color: theme.colors.error,
+                              border: `1px solid ${theme.colors.error}`,
                               borderRadius: '4px',
                               cursor: 'pointer',
                             }}
@@ -791,7 +864,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                   disabled={saving}
                   style={{
                     padding: '8px 16px',
-                    fontSize: '13px',
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes[1],
                     backgroundColor: theme.colors.backgroundSecondary,
                     color: theme.colors.text,
                     border: `1px solid ${theme.colors.border}`,
@@ -807,9 +881,10 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                   disabled={saving}
                   style={{
                     padding: '8px 16px',
-                    fontSize: '13px',
-                    backgroundColor: '#3b82f6',
-                    color: '#ffffff',
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes[1],
+                    backgroundColor: theme.colors.primary,
+                    color: theme.colors.textOnPrimary,
                     border: 'none',
                     borderRadius: '4px',
                     cursor: saving ? 'not-allowed' : 'pointer',
@@ -823,7 +898,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                   disabled={saving || configLoading}
                   style={{
                     padding: '8px 16px',
-                    fontSize: '13px',
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes[1],
                     backgroundColor: theme.colors.backgroundSecondary,
                     color: theme.colors.text,
                     border: `1px solid ${theme.colors.border}`,
@@ -842,16 +918,16 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {schematicsLoading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ fontSize: '14px', color: theme.colors.textSecondary }}>
+              <div style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes[1], color: theme.colors.textSecondary }}>
                 Loading schematics...
               </div>
             </div>
           ) : versionSnapshots.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '24px' }}>
-              <div style={{ fontSize: '14px', color: theme.colors.textSecondary }}>
+              <div style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes[1], color: theme.colors.textSecondary }}>
                 No schematics found
               </div>
-              <div style={{ fontSize: '12px', color: theme.colors.textMuted, textAlign: 'center', maxWidth: '400px' }}>
+              <div style={{ fontFamily: theme.fonts.body, fontSize: theme.fontSizes[0], color: theme.colors.textMuted, textAlign: 'center', maxWidth: '400px' }}>
                 Schematics are fetched from traces with version information (repositoryUrl + commitSha).
                 Make sure traces have version attributes and schematics are registered in the version registry.
               </div>
@@ -861,7 +937,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
               {/* Filter toggle */}
               {versionSnapshots.length > 0 && (
                 <div style={{ padding: '12px 16px', borderBottom: `1px solid ${theme.colors.border}` }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontFamily: theme.fonts.body, fontSize: theme.fontSizes[1] }}>
                     <input
                       type="checkbox"
                       checked={workflowFilterMode === 'with-traces'}

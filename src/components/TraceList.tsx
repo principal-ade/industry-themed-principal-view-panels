@@ -1,23 +1,21 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle, Search, Trash2, X } from 'lucide-react';
+import { Search, Trash2, X } from 'lucide-react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { RegisteredTrace } from '../types/otel';
 import { TraceExpansion } from './TraceExpansion';
 import {
   getServiceName,
   getSchemaVersion,
-  isTraceMatched,
   getMatchQuality,
-  getMatchedNodesSummary,
-  getPrimaryStoryboardId,
 } from '../utils/traceHelpers';
 
 export interface TraceListProps {
   traces: RegisteredTrace[];
   theme: Theme;
   onTraceClick?: (trace: RegisteredTrace) => void;
+  onTraceSelect?: (trace: RegisteredTrace) => void;
   onClearAll?: () => void;
-  selectedTraceId?: string;
+  expandedTraceIds?: Set<string>;
   showSearch?: boolean;
   emptyMessage?: string;
 }
@@ -43,8 +41,9 @@ export const TraceList: React.FC<TraceListProps> = ({
   traces,
   theme,
   onTraceClick,
+  onTraceSelect,
   onClearAll,
-  selectedTraceId,
+  expandedTraceIds,
   showSearch = true,
   emptyMessage = 'No traces available',
 }) => {
@@ -101,14 +100,14 @@ export const TraceList: React.FC<TraceListProps> = ({
     });
   }, [filteredTraces]);
 
-  // Toggle group expansion
-  const toggleGroup = (groupKey: string) => {
+  // Toggle group expansion (UI removed, but keeping logic for potential future use)
+  const _toggleGroup = (_groupKey: string) => {
     setExpandedGroups((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(groupKey)) {
-        newSet.delete(groupKey);
+      if (newSet.has(_groupKey)) {
+        newSet.delete(_groupKey);
       } else {
-        newSet.add(groupKey);
+        newSet.add(_groupKey);
       }
       return newSet;
     });
@@ -130,16 +129,10 @@ export const TraceList: React.FC<TraceListProps> = ({
     return traceId.slice(0, 12);
   };
 
-  // Track copied trace IDs
-  const [copiedTraceId, setCopiedTraceId] = useState<string | null>(null);
-
-  // Handle trace ID copy
-  const handleCopyTraceId = (traceId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent trace selection
-    navigator.clipboard.writeText(traceId).then(() => {
-      setCopiedTraceId(traceId);
-      setTimeout(() => setCopiedTraceId(null), 2000);
-    });
+  // Handle trace ID click - select trace to show details
+  const handleTraceIdClick = (trace: RegisteredTrace, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click (expansion toggle)
+    onTraceSelect?.(trace);
   };
 
   return (
@@ -150,7 +143,7 @@ export const TraceList: React.FC<TraceListProps> = ({
         height: '100%',
         width: '100%',
         minWidth: 0,
-        gap: theme.space[2],
+        gap: 0,
         boxSizing: 'border-box',
       }}
     >
@@ -159,10 +152,13 @@ export const TraceList: React.FC<TraceListProps> = ({
         <div
           style={{
             display: 'flex',
-            gap: theme.space[2],
+            gap: theme.space[1],
             flexShrink: 0,
             minWidth: 0,
             width: '100%',
+            padding: theme.space[2],
+            borderBottom: `1px solid ${theme.colors.border}`,
+            boxSizing: 'border-box',
           }}
         >
           <div
@@ -269,7 +265,7 @@ export const TraceList: React.FC<TraceListProps> = ({
           overflowX: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          gap: theme.space[2],
+          gap: theme.space[1],
         }}
       >
         {groupedTraces.length === 0 ? (
@@ -290,11 +286,11 @@ export const TraceList: React.FC<TraceListProps> = ({
         ) : (
           groupedTraces.map((group) => {
             const isExpanded = expandedGroups.has(group.key);
-            const isGrouped = group.count > 1;
+            const _isGrouped = group.count > 1; // UI removed, keeping for potential future use
             const tracesToShow = isExpanded ? group.traces : [group.representative];
 
             return (
-              <div key={group.key} style={{ display: 'flex', flexDirection: 'column', gap: theme.space[1] }}>
+              <div key={group.key} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 {tracesToShow.map((trace, index) => {
                   const isRepresentative = index === 0;
                   return (
@@ -303,14 +299,15 @@ export const TraceList: React.FC<TraceListProps> = ({
               onClick={() => onTraceClick?.(trace)}
               style={{
                 padding: theme.space[3],
-                border: `1px solid ${
-                  selectedTraceId === trace.traceId
-                    ? theme.colors.primary
-                    : theme.colors.border
-                }`,
-                borderRadius: theme.radii[2],
+                borderBottom: `1px solid ${theme.colors.border}`,
+                borderLeft: expandedTraceIds?.has(trace.traceId)
+                  ? `2px solid ${theme.colors.primary}`
+                  : '2px solid transparent',
+                borderTop: 'none',
+                borderRight: 'none',
+                borderRadius: 0,
                 background:
-                  selectedTraceId === trace.traceId
+                  expandedTraceIds?.has(trace.traceId)
                     ? `${theme.colors.primary}10`
                     : theme.colors.backgroundSecondary,
                 cursor: onTraceClick ? 'pointer' : 'default',
@@ -325,14 +322,12 @@ export const TraceList: React.FC<TraceListProps> = ({
                 opacity: !isRepresentative && isExpanded ? 0.9 : 1,
               }}
               onMouseEnter={(e) => {
-                if (onTraceClick && selectedTraceId !== trace.traceId) {
-                  e.currentTarget.style.borderColor = theme.colors.primary;
+                if (onTraceClick && !expandedTraceIds?.has(trace.traceId)) {
                   e.currentTarget.style.background = `${theme.colors.primary}05`;
                 }
               }}
               onMouseLeave={(e) => {
-                if (onTraceClick && selectedTraceId !== trace.traceId) {
-                  e.currentTarget.style.borderColor = theme.colors.border;
+                if (onTraceClick && !expandedTraceIds?.has(trace.traceId)) {
                   e.currentTarget.style.background = theme.colors.backgroundSecondary;
                 }
               }}
@@ -356,78 +351,30 @@ export const TraceList: React.FC<TraceListProps> = ({
                     minWidth: 0,
                   }}
                 >
-                  {/* Trace name (operation) - Primary */}
-                  <span
-                    style={{
-                      fontSize: theme.fontSizes[2],
-                      fontWeight: theme.fontWeights.medium,
-                      color: theme.colors.text,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {trace.name || 'Unknown Operation'}
-                  </span>
-
-                  {/* Service name + Duration + Span Count */}
+                  {/* Trace name + Duration */}
                   <div
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: theme.space[2],
-                      fontSize: theme.fontSizes[0],
                       minWidth: 0,
                     }}
                   >
-                    {(() => {
-                      const serviceName = getServiceName(trace);
-                      return serviceName !== 'unknown' && (
-                        <span
-                          style={{
-                            color: theme.colors.textMuted,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            minWidth: 0,
-                          }}
-                        >
-                          {serviceName}
-                        </span>
-                      );
-                    })()}
-                    {(() => {
-                      const version = getSchemaVersion(trace);
-                      return version && (
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '2px 6px',
-                            fontSize: theme.fontSizes[0],
-                            backgroundColor: `${theme.colors.primary}15`,
-                            color: theme.colors.primary,
-                            border: `1px solid ${theme.colors.primary}40`,
-                            borderRadius: '3px',
-                            fontWeight: theme.fontWeights.medium,
-                            whiteSpace: 'nowrap',
-                            flexShrink: 0,
-                          }}
-                          title={`Version: ${version}`}
-                        >
-                          v{version}
-                        </span>
-                      );
-                    })()}
                     <span
                       style={{
-                        color: theme.colors.textMuted,
-                        flexShrink: 0,
+                        fontSize: theme.fontSizes[2],
+                        fontWeight: theme.fontWeights.medium,
+                        color: trace.hasErrors ? theme.colors.error : theme.colors.text,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      •
+                      {trace.name || 'Unknown Operation'}
                     </span>
                     <span
                       style={{
+                        fontSize: theme.fontSizes[1],
                         color: theme.colors.textSecondary,
                         whiteSpace: 'nowrap',
                         flexShrink: 0,
@@ -435,180 +382,138 @@ export const TraceList: React.FC<TraceListProps> = ({
                     >
                       {formatDuration(trace.duration)}
                     </span>
-                    <span
-                      style={{
-                        color: theme.colors.textMuted,
-                        flexShrink: 0,
-                      }}
-                    >
-                      •
-                    </span>
-                    <span
-                      style={{
-                        color: theme.colors.textSecondary,
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {trace.spanCount} {trace.spanCount === 1 ? 'span' : 'spans'}
-                    </span>
+                  </div>
+
+                  {/* Service name + Span Count */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.space[2],
+                      fontSize: theme.fontSizes[1],
+                      minWidth: 0,
+                    }}
+                  >
+                    {(() => {
+                      const serviceName = getServiceName(trace);
+                      const version = getSchemaVersion(trace);
+                      const showBadge = serviceName !== 'unknown' || version;
+
+                      return showBadge && (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: theme.space[1],
+                            padding: '2px 8px',
+                            fontSize: theme.fontSizes[1],
+                            backgroundColor: `${theme.colors.primary}15`,
+                            color: theme.colors.primary,
+                            border: `1px solid ${theme.colors.primary}40`,
+                            borderRadius: '3px',
+                            fontWeight: theme.fontWeights.medium,
+                            overflow: 'hidden',
+                            minWidth: 0,
+                          }}
+                          title={version ? `${serviceName} v${version}` : serviceName}
+                        >
+                          {serviceName !== 'unknown' && (
+                            <span
+                              style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {serviceName}
+                            </span>
+                          )}
+                          {serviceName !== 'unknown' && version && (
+                            <span style={{ color: `${theme.colors.primary}80` }}>•</span>
+                          )}
+                          {version && (
+                            <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                              v{version}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })()}
+                    {(() => {
+                      const matchedSpanCount = trace.scenarioMatches?.reduce(
+                        (sum, match) => sum + match.matchedSpans.length,
+                        0
+                      ) ?? 0;
+                      const showFraction = matchedSpanCount > 0 && matchedSpanCount < trace.spanCount;
+
+                      return (
+                        <span
+                          style={{
+                            color: theme.colors.textSecondary,
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {showFraction
+                            ? `${matchedSpanCount}/${trace.spanCount} matched spans`
+                            : `${trace.spanCount} ${trace.spanCount === 1 ? 'span' : 'spans'}`}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
 
-                {/* Trace ID + Status Icon */}
-                <div
+                {/* Trace ID - click to show trace details */}
+                <code
+                  onClick={(e) => handleTraceIdClick(trace, e)}
+                  title={`View trace ${trace.traceId}`}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.space[2],
+                    fontSize: theme.fontSizes[1],
+                    fontFamily: theme.fonts.monospace,
+                    color: onTraceSelect ? theme.colors.primary : theme.colors.textMuted,
+                    whiteSpace: 'nowrap',
+                    cursor: onTraceSelect ? 'pointer' : 'default',
+                    padding: '2px 4px',
+                    borderRadius: theme.radii[1],
+                    transition: 'all 0.15s ease',
+                    userSelect: 'none',
                     flexShrink: 0,
                   }}
-                >
-                  <code
-                    onClick={(e) => handleCopyTraceId(trace.traceId, e)}
-                    title={copiedTraceId === trace.traceId ? 'Copied!' : trace.traceId}
-                    style={{
-                      fontSize: theme.fontSizes[0],
-                      fontFamily: theme.fonts.monospace,
-                      color: copiedTraceId === trace.traceId ? theme.colors.success || '#22c55e' : theme.colors.textMuted,
-                      whiteSpace: 'nowrap',
-                      cursor: 'pointer',
-                      padding: '2px 4px',
-                      borderRadius: theme.radii[1],
-                      transition: 'all 0.15s ease',
-                      userSelect: 'none',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (copiedTraceId !== trace.traceId) {
-                        e.currentTarget.style.background = theme.colors.backgroundSecondary;
-                        e.currentTarget.style.color = theme.colors.text;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (copiedTraceId !== trace.traceId) {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = theme.colors.textMuted;
-                      }
-                    }}
-                  >
-                    {copiedTraceId === trace.traceId ? '✓ Copied' : truncateTraceId(trace.traceId)}
-                  </code>
-                  {trace.hasErrors ? (
-                    <AlertCircle
-                      size={16}
-                      color={theme.colors.error}
-                      style={{ flexShrink: 0 }}
-                    />
-                  ) : (
-                    <CheckCircle
-                      size={16}
-                      color={theme.colors.success || '#22c55e'}
-                      style={{ flexShrink: 0 }}
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Workflow Information Row with Count Badge */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: theme.space[2],
-                  minWidth: 0,
-                }}
-              >
-                {(() => {
-                  const matched = isTraceMatched(trace);
-                  const storyboardId = getPrimaryStoryboardId(trace);
-                  const summary = matched ? getMatchedNodesSummary(trace) : null;
-
-                  return matched && storyboardId ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: theme.space[0],
-                        flex: 1,
-                        minWidth: 0,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: theme.fontSizes[0],
-                          color: theme.colors.textSecondary,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        Matched: {storyboardId}
-                        {summary && summary.coveragePercent > 0 && (
-                          <span style={{ color: theme.colors.textMuted }}>
-                            {' '}• {Math.round(summary.coveragePercent)}% coverage
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  ) : (
-                    <span
-                      style={{
-                        fontSize: theme.fontSizes[0],
-                        color: theme.colors.textMuted,
-                        fontStyle: 'italic',
-                        flex: 1,
-                      }}
-                    >
-                      No workflow match
-                    </span>
-                  );
-                })()}
-                {isRepresentative && isGrouped && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleGroup(group.key);
-                    }}
-                    style={{
-                      fontSize: theme.fontSizes[0],
-                      fontWeight: theme.fontWeights.medium,
-                      fontFamily: theme.fonts.body,
-                      color: theme.colors.textSecondary,
-                      background: `${theme.colors.primary}15`,
-                      padding: `2px ${theme.space[2]}`,
-                      borderRadius: theme.radii[2],
-                      border: `1px solid ${theme.colors.border}`,
-                      flexShrink: 0,
-                      whiteSpace: 'nowrap',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = `${theme.colors.primary}25`;
-                      e.currentTarget.style.borderColor = theme.colors.primary;
-                    }}
-                    onMouseLeave={(e) => {
+                  onMouseEnter={(e) => {
+                    if (onTraceSelect) {
                       e.currentTarget.style.background = `${theme.colors.primary}15`;
-                      e.currentTarget.style.borderColor = theme.colors.border;
-                    }}
-                  >
-                    {isExpanded ? `Hide ${group.count - 1} more` : `Show ${group.count - 1} more`}
-                  </button>
-                )}
+                      e.currentTarget.style.color = theme.colors.primary;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (onTraceSelect) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = theme.colors.primary;
+                    }
+                  }}
+                >
+                  {truncateTraceId(trace.traceId)}
+                </code>
               </div>
-            </div>
+
+              </div>
 
             {/* Trace Expansion - Show detailed workflow matching when trace is selected */}
-            {selectedTraceId === trace.traceId && (
+            {expandedTraceIds?.has(trace.traceId) && (
               <div
                 style={{
-                  marginTop: theme.space[2],
                   marginLeft: !isRepresentative && isExpanded ? theme.space[3] : '0',
                   width: !isRepresentative && isExpanded ? `calc(100% - ${theme.space[3]})` : '100%',
+                  borderLeft: `2px solid ${theme.colors.primary}`,
+                  paddingLeft: theme.space[3],
+                  borderBottom: `1px solid ${theme.colors.border}`,
                 }}
               >
-                <TraceExpansion trace={trace} theme={theme} />
+                <TraceExpansion
+                  trace={trace}
+                  theme={theme}
+                  onSpanClick={() => onTraceSelect?.(trace)}
+                />
               </div>
             )}
             </React.Fragment>

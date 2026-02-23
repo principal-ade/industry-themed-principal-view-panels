@@ -11,12 +11,13 @@
 import React, { useMemo } from 'react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { RegisteredTrace } from '../types/otel';
-import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 export interface TraceExpansionProps {
   trace: RegisteredTrace;
   theme: Theme;
   onWorkflowClick?: (workflowId: string, scenarioId: string) => void;
+  onSpanClick?: () => void;
 }
 
 /**
@@ -27,6 +28,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
   trace,
   theme,
   onWorkflowClick,
+  onSpanClick,
 }) => {
   // Sort scenario matches by earliest span timestamp (temporal order)
   const sortedScenarioMatches = useMemo(() => {
@@ -48,141 +50,53 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                         (trace.storyboardMatches?.length ?? 0) > 0 ||
                         (trace.unmatchedSpans?.spans?.length ?? 0) > 0;
 
-  const getCoverageColor = (coverage: number | undefined) => {
-    if (!coverage) return theme.colors.textMuted;
-    if (coverage === 100) return theme.colors.success || '#22c55e';
-    if (coverage >= 70) return theme.colors.warning || '#f59e0b';
-    return theme.colors.error || '#ef4444';
-  };
-
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: theme.space[3],
-        padding: theme.space[2],
+        gap: theme.space[2],
+        padding: theme.space[3],
         backgroundColor: theme.colors.background,
         borderRadius: theme.radii[2],
       }}
     >
-      {/* Category 1: Matched Scenarios */}
+      {/* Matched Scenarios */}
       {sortedScenarioMatches.length > 0 && (
-        <div>
-          <div
-            style={{
-              fontSize: theme.fontSizes[1],
-              fontWeight: theme.fontWeights.semibold,
-              marginBottom: theme.space[2],
-              paddingLeft: theme.space[2],
-              color: theme.colors.success || '#22c55e',
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.space[1],
-            }}
-          >
-            <CheckCircle size={14} />
-            Matched Scenarios ({sortedScenarioMatches.length})
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.space[1],
-            }}
-          >
-            {sortedScenarioMatches.map((match, index) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space[2] }}>
+          {sortedScenarioMatches.map((match, index) =>
+            match.matchedSpans.map((span, spanIndex) => (
               <div
-                key={`${match.storyboardId}-${match.scenarioId}-${index}`}
-                onClick={() => onWorkflowClick?.(match.storyboardId, match.scenarioId)}
+                key={`${match.storyboardId}-${match.scenarioId}-${index}-${spanIndex}`}
+                onClick={() => {
+                  onSpanClick?.();
+                  onWorkflowClick?.(match.storyboardId, match.scenarioId);
+                }}
                 style={{
-                  padding: theme.space[2],
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  borderRadius: theme.radii[1],
-                  cursor: onWorkflowClick ? 'pointer' : 'default',
-                  transition: 'all 0.15s ease',
-                  border: `1px solid ${theme.colors.border || theme.colors.backgroundSecondary}`,
+                  fontSize: theme.fontSizes[2],
+                  color: theme.colors.success,
+                  paddingLeft: theme.space[2],
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.space[1],
+                  cursor: onSpanClick || onWorkflowClick ? 'pointer' : 'default',
+                  transition: 'opacity 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
-                  if (onWorkflowClick) {
-                    e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary || theme.colors.backgroundSecondary;
-                    e.currentTarget.style.borderColor = theme.colors.primary;
+                  if (onSpanClick || onWorkflowClick) {
+                    e.currentTarget.style.opacity = '0.7';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-                  e.currentTarget.style.borderColor = theme.colors.border || theme.colors.backgroundSecondary;
+                  e.currentTarget.style.opacity = '1';
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: theme.space[2],
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: theme.fontSizes[1],
-                        fontWeight: theme.fontWeights.medium,
-                        color: theme.colors.text,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {match.scenarioId}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: theme.fontSizes[0],
-                        color: theme.colors.textMuted,
-                        marginTop: '2px',
-                      }}
-                    >
-                      Storyboard: {match.storyboardId}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.space[2],
-                      flexShrink: 0,
-                    }}
-                  >
-                    {match.coveragePercent !== undefined && (
-                      <span
-                        style={{
-                          fontSize: theme.fontSizes[1],
-                          fontWeight: theme.fontWeights.semibold,
-                          color: getCoverageColor(match.coveragePercent),
-                        }}
-                      >
-                        {Math.round(match.coveragePercent)}%
-                      </span>
-                    )}
-                    {match.matchType && (
-                      <span
-                        style={{
-                          fontSize: theme.fontSizes[0],
-                          padding: '2px 6px',
-                          backgroundColor: match.matchType === 'full' ? `${theme.colors.success || '#22c55e'}15` : `${theme.colors.warning || '#f59e0b'}15`,
-                          color: match.matchType === 'full' ? theme.colors.success || '#22c55e' : theme.colors.warning || '#f59e0b',
-                          borderRadius: '3px',
-                          textTransform: 'lowercase',
-                        }}
-                      >
-                        {match.matchType}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                <span>{span.spanName}</span>
+                <span style={{ color: theme.colors.textMuted }}>→</span>
+                <span style={{ color: theme.colors.textSecondary }}>{match.scenarioId}</span>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
       )}
 
@@ -191,17 +105,17 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
         <div>
           <div
             style={{
-              fontSize: theme.fontSizes[1],
+              fontSize: theme.fontSizes[2],
               fontWeight: theme.fontWeights.semibold,
               marginBottom: theme.space[2],
               paddingLeft: theme.space[2],
-              color: theme.colors.warning || '#f59e0b',
+              color: theme.colors.warning,
               display: 'flex',
               alignItems: 'center',
               gap: theme.space[1],
             }}
           >
-            <AlertTriangle size={14} />
+            <AlertTriangle size={16} />
             Partial Matches ({orphanedSpanCount} orphaned {orphanedSpanCount === 1 ? 'span' : 'spans'})
           </div>
           <div
@@ -216,14 +130,14 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                 key={`${match.storyboardId}-${index}`}
                 style={{
                   padding: theme.space[2],
-                  backgroundColor: `${theme.colors.warning || '#f59e0b'}10`,
-                  border: `1px solid ${theme.colors.warning || '#f59e0b'}40`,
+                  backgroundColor: `${theme.colors.warning}10`,
+                  border: `1px solid ${theme.colors.warning}40`,
                   borderRadius: theme.radii[1],
                 }}
               >
                 <div
                   style={{
-                    fontSize: theme.fontSizes[1],
+                    fontSize: theme.fontSizes[2],
                     fontWeight: theme.fontWeights.medium,
                     color: theme.colors.text,
                   }}
@@ -232,7 +146,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                 </div>
                 <div
                   style={{
-                    fontSize: theme.fontSizes[0],
+                    fontSize: theme.fontSizes[1],
                     color: theme.colors.textMuted,
                     marginTop: '2px',
                   }}
@@ -247,35 +161,30 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
 
       {/* Category 3: Unmatched Spans */}
       {(trace.unmatchedSpans?.spans?.length ?? 0) > 0 && (
-        <div>
-          <div
-            style={{
-              fontSize: theme.fontSizes[1],
-              fontWeight: theme.fontWeights.semibold,
-              marginBottom: theme.space[2],
-              paddingLeft: theme.space[2],
-              color: theme.colors.error || '#ef4444',
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.space[1],
-            }}
-          >
-            <XCircle size={14} />
-            Unmatched Spans ({trace.unmatchedSpans?.spans?.length ?? 0})
-          </div>
-          <div
-            style={{
-              padding: theme.space[2],
-              backgroundColor: `${theme.colors.error || '#ef4444'}10`,
-              border: `1px solid ${theme.colors.error || '#ef4444'}40`,
-              borderRadius: theme.radii[1],
-              fontSize: theme.fontSizes[0],
-              color: theme.colors.textSecondary,
-              fontStyle: 'italic',
-            }}
-          >
-            {trace.unmatchedSpans?.spans?.length ?? 0} {(trace.unmatchedSpans?.spans?.length ?? 0) === 1 ? 'span' : 'spans'} didn't match any workflow
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space[1] }}>
+          {trace.unmatchedSpans?.spans?.map((span, index) => (
+            <div
+              key={span.spanId || index}
+              onClick={() => onSpanClick?.()}
+              style={{
+                fontSize: theme.fontSizes[2],
+                color: theme.colors.warning,
+                paddingLeft: theme.space[2],
+                cursor: onSpanClick ? 'pointer' : 'default',
+                transition: 'opacity 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (onSpanClick) {
+                  e.currentTarget.style.opacity = '0.7';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
+              }}
+            >
+              {span.spanName}
+            </div>
+          ))}
         </div>
       )}
 

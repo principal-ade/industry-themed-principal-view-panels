@@ -104,6 +104,101 @@ const createTrace = (
 };
 
 /**
+ * Create a trace with partial span matching (some spans matched, some not)
+ */
+const createPartialMatchTrace = (
+  traceId: string,
+  name: string,
+  serviceName: string,
+  scopeName: string,
+  scopeVersion: string,
+  offset: number,
+  duration: number,
+  matchedSpanCount: number,
+  totalSpanCount: number,
+  scenarioMatch: {
+    storyboardId: string;
+    storyboardName?: string;
+    workflowId: string;
+    workflowName?: string;
+    scenarioId: string;
+  }
+): RegisteredTrace => {
+  const startTime = now - offset;
+  const endTime = startTime + duration;
+  const spanDuration = duration / totalSpanCount;
+
+  // Create matched spans
+  const matchedSpans = Array.from({ length: matchedSpanCount }, (_, i) => ({
+    spanId: `span-${traceId}-matched-${i}`,
+    spanName: `${name} - Step ${i + 1}`,
+    nodeId: `node-${scenarioMatch.scenarioId}-${i}`,
+    timestamp: startTime + (i * spanDuration),
+    duration: spanDuration,
+    events: ['request.started', 'response.completed'],
+    matchConfidence: 'exact' as const,
+  }));
+
+  // Create unmatched spans
+  const unmatchedSpans = Array.from({ length: totalSpanCount - matchedSpanCount }, (_, i) => ({
+    spanId: `span-${traceId}-unmatched-${i}`,
+    spanName: `Unmatched Operation ${i + 1}`,
+    scopeName,
+    timestamp: startTime + ((matchedSpanCount + i) * spanDuration),
+    duration: spanDuration,
+    reason: 'No scenario matched this span',
+  }));
+
+  return {
+    traceId,
+    name,
+    startTime,
+    endTime,
+    duration,
+    spanCount: totalSpanCount,
+    hasErrors: false,
+    resources: [
+      {
+        serviceIdentifier: `http://localhost:${3000 + Math.floor(Math.random() * 1000)}`,
+        serviceName,
+        attributes: {
+          'service.name': serviceName,
+        },
+        scopes: [
+          {
+            scope: {
+              name: scopeName,
+              version: scopeVersion,
+            },
+            spanIds: [
+              ...matchedSpans.map(s => s.spanId),
+              ...unmatchedSpans.map(s => s.spanId),
+            ],
+          },
+        ],
+      },
+    ],
+    scenarioMatches: [
+      {
+        storyboardId: scenarioMatch.storyboardId,
+        storyboardName: scenarioMatch.storyboardName,
+        workflowId: scenarioMatch.workflowId,
+        workflowName: scenarioMatch.workflowName,
+        scenarioId: scenarioMatch.scenarioId,
+        scopeName,
+        matchedSpans,
+        coveragePercent: Math.round((matchedSpanCount / totalSpanCount) * 100),
+        matchType: matchedSpanCount === totalSpanCount ? 'full' : 'partial',
+      },
+    ],
+    storyboardMatches: [],
+    unmatchedSpans: {
+      spans: unmatchedSpans,
+    },
+  };
+};
+
+/**
  * Create a trace with multiple scenario matches (multi-workflow)
  */
 const createMultiWorkflowTrace = (
@@ -365,6 +460,122 @@ export const Default: Story = {
 export const WithErrors: Story = {
   render: () => {
     const [traces, setTraces] = React.useState(mockTracesWithErrors);
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          telemetry: {
+            scope: 'repository' as const,
+            name: 'telemetry',
+            data: traces,
+            loading: false,
+            error: null,
+            refresh: async () => {
+              console.log('[Mock] Refreshing telemetry slice');
+            },
+          },
+        }}
+        actionsOverrides={{
+          clearTelemetry: () => {
+            console.log('[Mock] Clearing telemetry data');
+            setTraces([]);
+          },
+        }}
+      >
+        {(props) => <TraceListPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
+ * With partial span matching - traces where only some spans are matched
+ *
+ * Demonstrates the "X/Y matched spans" display in the trace list.
+ * Expand traces to see matched spans (green) and unmatched spans (orange).
+ */
+export const WithPartialSpanMatching: Story = {
+  render: () => {
+    const partialMatchTraces: RegisteredTrace[] = [
+      // 1 of 3 spans matched
+      createPartialMatchTrace(
+        'trace-partial-1',
+        'User Registration Flow',
+        'registration-service',
+        'registration-instrumentation',
+        '1.0.0',
+        1000,
+        600,
+        1, // matched
+        3, // total
+        {
+          storyboardId: 'storyboard-1',
+          storyboardName: 'User Onboarding',
+          workflowId: 'workflow-1',
+          workflowName: 'Registration Workflow',
+          scenarioId: 'scenario-1',
+        }
+      ),
+      // 2 of 5 spans matched
+      createPartialMatchTrace(
+        'trace-partial-2',
+        'Checkout Process',
+        'checkout-service',
+        'checkout-instrumentation',
+        '2.0.0',
+        2000,
+        800,
+        2, // matched
+        5, // total
+        {
+          storyboardId: 'storyboard-2',
+          storyboardName: 'E-Commerce Flow',
+          workflowId: 'workflow-2',
+          workflowName: 'Checkout Workflow',
+          scenarioId: 'scenario-2',
+        }
+      ),
+      // 3 of 4 spans matched (high coverage)
+      createPartialMatchTrace(
+        'trace-partial-3',
+        'Payment Processing',
+        'payment-service',
+        'payment-instrumentation',
+        '1.5.0',
+        3000,
+        500,
+        3, // matched
+        4, // total
+        {
+          storyboardId: 'storyboard-2',
+          storyboardName: 'E-Commerce Flow',
+          workflowId: 'workflow-3',
+          workflowName: 'Payment Workflow',
+          scenarioId: 'scenario-3',
+        }
+      ),
+      // Fully matched for comparison
+      createTrace(
+        'trace-full',
+        'Simple API Call',
+        'api-service',
+        'api-instrumentation',
+        '1.0.0',
+        4000,
+        200,
+        false,
+        {
+          storyboardId: 'storyboard-1',
+          storyboardName: 'API Operations',
+          workflowId: 'workflow-4',
+          workflowName: 'API Workflow',
+          scenarioId: 'scenario-4',
+          coveragePercent: 100,
+        }
+      ),
+    ];
+
+    const [traces, setTraces] = React.useState(partialMatchTraces);
 
     return (
       <MockPanelProvider
