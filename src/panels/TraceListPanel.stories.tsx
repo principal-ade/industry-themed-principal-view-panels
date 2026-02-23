@@ -199,6 +199,85 @@ const createPartialMatchTrace = (
 };
 
 /**
+ * Create a trace with storyboard match but no scenario match (orphaned spans)
+ * This is Category 2: workflow matched but events didn't match any scenario
+ */
+const createOrphanedSpansTrace = (
+  traceId: string,
+  name: string,
+  serviceName: string,
+  scopeName: string,
+  scopeVersion: string,
+  offset: number,
+  duration: number,
+  orphanedSpanCount: number,
+  storyboardMatch: {
+    storyboardId: string;
+    storyboardName?: string;
+    workflowId: string;
+    workflowName?: string;
+  }
+): RegisteredTrace => {
+  const startTime = now - offset;
+  const endTime = startTime + duration;
+  const spanDuration = duration / orphanedSpanCount;
+
+  // Create orphaned spans (matched workflow but no scenario)
+  const orphanedSpans = Array.from({ length: orphanedSpanCount }, (_, i) => ({
+    spanId: `span-${traceId}-orphan-${i}`,
+    spanName: `${name} - Step ${i + 1}`,
+    nodeId: `node-${storyboardMatch.workflowId}-${i}`,
+    timestamp: startTime + (i * spanDuration),
+    duration: spanDuration,
+    reason: 'Events did not match any scenario',
+    observedEvents: ['request.started', 'response.completed'],
+    expectedEvents: ['checkout.started', 'payment.processed', 'order.confirmed'],
+  }));
+
+  return {
+    traceId,
+    name,
+    startTime,
+    endTime,
+    duration,
+    spanCount: orphanedSpanCount,
+    hasErrors: false,
+    resources: [
+      {
+        serviceIdentifier: `http://localhost:${3000 + Math.floor(Math.random() * 1000)}`,
+        serviceName,
+        attributes: {
+          'service.name': serviceName,
+        },
+        scopes: [
+          {
+            scope: {
+              name: scopeName,
+              version: scopeVersion,
+            },
+            spanIds: orphanedSpans.map(s => s.spanId),
+          },
+        ],
+      },
+    ],
+    scenarioMatches: [],
+    storyboardMatches: [
+      {
+        storyboardId: storyboardMatch.storyboardId,
+        storyboardName: storyboardMatch.storyboardName,
+        workflowId: storyboardMatch.workflowId,
+        workflowName: storyboardMatch.workflowName,
+        scopeName,
+        orphanedSpans,
+      },
+    ],
+    unmatchedSpans: {
+      spans: [],
+    },
+  };
+};
+
+/**
  * Create a trace with multiple scenario matches (multi-workflow)
  */
 const createMultiWorkflowTrace = (
@@ -576,6 +655,124 @@ export const WithPartialSpanMatching: Story = {
     ];
 
     const [traces, setTraces] = React.useState(partialMatchTraces);
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          telemetry: {
+            scope: 'repository' as const,
+            name: 'telemetry',
+            data: traces,
+            loading: false,
+            error: null,
+            refresh: async () => {
+              console.log('[Mock] Refreshing telemetry slice');
+            },
+          },
+        }}
+        actionsOverrides={{
+          clearTelemetry: () => {
+            console.log('[Mock] Clearing telemetry data');
+            setTraces([]);
+          },
+        }}
+      >
+        {(props) => <TraceListPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
+ * With orphaned spans - traces where workflow matched but no scenario matched
+ *
+ * This demonstrates Category 2: Partial Matches (workflow-orphaned spans).
+ * Expand traces to see the warning section with orphaned span details.
+ */
+export const WithOrphanedSpans: Story = {
+  render: () => {
+    const orphanedSpansTraces: RegisteredTrace[] = [
+      // 1 orphaned span
+      createOrphanedSpansTrace(
+        'trace-orphan-1',
+        'API Request',
+        'api-service',
+        'api-instrumentation',
+        '1.0.0',
+        1000,
+        300,
+        1, // orphaned span count
+        {
+          storyboardId: 'storyboard-1',
+          storyboardName: 'API Operations',
+          workflowId: 'workflow-1',
+          workflowName: 'Request Handling',
+        }
+      ),
+      // 3 orphaned spans
+      createOrphanedSpansTrace(
+        'trace-orphan-2',
+        'Checkout Flow',
+        'checkout-service',
+        'checkout-instrumentation',
+        '2.0.0',
+        2000,
+        800,
+        3, // orphaned span count
+        {
+          storyboardId: 'storyboard-2',
+          storyboardName: 'E-Commerce Flow',
+          workflowId: 'workflow-2',
+          workflowName: 'Checkout Workflow',
+        }
+      ),
+      // Mixed: some matched, some orphaned
+      {
+        ...createOrphanedSpansTrace(
+          'trace-mixed-1',
+          'Payment Processing',
+          'payment-service',
+          'payment-instrumentation',
+          '1.5.0',
+          3000,
+          600,
+          2, // orphaned span count
+          {
+            storyboardId: 'storyboard-2',
+            storyboardName: 'E-Commerce Flow',
+            workflowId: 'workflow-3',
+            workflowName: 'Payment Workflow',
+          }
+        ),
+        // Add a scenario match alongside the orphaned spans
+        scenarioMatches: [
+          {
+            storyboardId: 'storyboard-2',
+            storyboardName: 'E-Commerce Flow',
+            workflowId: 'workflow-3',
+            workflowName: 'Payment Workflow',
+            scenarioId: 'scenario-success',
+            scopeName: 'payment-instrumentation',
+            matchedSpans: [
+              {
+                spanId: 'span-trace-mixed-1-matched',
+                spanName: 'Payment Processing - Verify Card',
+                nodeId: 'node-verify',
+                timestamp: now - 3000,
+                duration: 200,
+                events: ['card.verified'],
+                matchConfidence: 'exact' as const,
+              },
+            ],
+            coveragePercent: 100,
+            matchType: 'full' as const,
+          },
+        ],
+        spanCount: 3, // 1 matched + 2 orphaned
+      },
+    ];
+
+    const [traces, setTraces] = React.useState(orphanedSpansTraces);
 
     return (
       <MockPanelProvider
