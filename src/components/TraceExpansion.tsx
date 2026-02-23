@@ -72,6 +72,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
           spanName: span.spanName,
           timestamp: span.timestamp,
           target: match.workflowName || match.workflowId,
+          storyboardId: match.storyboardId,
         });
       });
     });
@@ -136,15 +137,17 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
             const isMatched = span.type === 'matched';
             const hasTarget = span.target !== undefined;
             const color = isMatched ? theme.colors.success : theme.colors.warning;
-            const isClickable = onSpanClick || (isMatched && onWorkflowClick);
+            const isMatchedOrOrphaned = span.type === 'matched' || span.type === 'orphaned';
+            const isClickable = onSpanClick || (isMatchedOrOrphaned && onWorkflowClick);
 
             return (
               <div
                 key={`${span.type}-${span.spanName}-${span.timestamp}-${index}`}
                 onClick={() => {
                   onSpanClick?.();
-                  if (isMatched && span.storyboardId && span.scenarioId) {
-                    onWorkflowClick?.(span.storyboardId, span.scenarioId);
+                  // Open workflow for matched and orphaned spans (even without scenarioId)
+                  if (isMatchedOrOrphaned && span.storyboardId && onWorkflowClick) {
+                    onWorkflowClick(span.storyboardId, span.scenarioId || '');
                   }
                 }}
                 style={{
