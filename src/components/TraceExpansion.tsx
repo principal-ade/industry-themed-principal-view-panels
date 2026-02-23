@@ -15,7 +15,7 @@ import type { RegisteredTrace } from '../types/otel';
 export interface TraceExpansionProps {
   trace: RegisteredTrace;
   theme: Theme;
-  onWorkflowClick?: (workflowId: string, scenarioId: string) => void;
+  onWorkflowClick?: (storyboardId: string, workflowId: string, scenarioId: string) => void;
   onSpanClick?: () => void;
 }
 
@@ -32,6 +32,7 @@ interface SpanItem {
   timestamp: number;
   target?: string; // scenarioId, workflowId, or undefined
   storyboardId?: string;
+  workflowId?: string;
   scenarioId?: string;
   depth: number;
 }
@@ -57,6 +58,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
           timestamp: span.timestamp,
           target: match.scenarioId,
           storyboardId: match.storyboardId,
+          workflowId: match.workflowId,
           scenarioId: match.scenarioId,
         });
       });
@@ -73,6 +75,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
           timestamp: span.timestamp,
           target: match.workflowName || match.workflowId,
           storyboardId: match.storyboardId,
+          workflowId: match.workflowId,
         });
       });
     });
@@ -148,6 +151,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                     type: span.type,
                     spanName: span.spanName,
                     storyboardId: span.storyboardId,
+                    workflowId: span.workflowId,
                     scenarioId: span.scenarioId,
                     target: span.target,
                     isMatchedOrOrphaned,
@@ -156,7 +160,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                   });
                   // Open workflow for matched and orphaned spans (even without scenarioId)
                   if (isMatchedOrOrphaned && span.storyboardId && onWorkflowClick) {
-                    onWorkflowClick(span.storyboardId, span.scenarioId || '');
+                    onWorkflowClick(span.storyboardId, span.workflowId || '', span.scenarioId || '');
                   } else {
                     // Only open trace details for unmatched spans
                     onSpanClick?.();

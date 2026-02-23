@@ -356,9 +356,10 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
   };
 
   // Handle workflow click from trace expansion (matched spans)
-  const handleWorkflowClick = (trace: RegisteredTrace, storyboardId: string, scenarioId: string) => {
+  const handleWorkflowClick = (trace: RegisteredTrace, storyboardId: string, workflowIdParam: string, scenarioId: string) => {
     console.log('[TraceListPanel] handleWorkflowClick called:', {
       storyboardId,
+      workflowIdParam,
       scenarioId,
       traceId: trace.traceId,
       hasEvents: !!events,
@@ -367,14 +368,14 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
 
     // Find the workflow data from version snapshots
     let fullWorkflowTemplate: WorkflowTemplate | undefined;
-    let workflowId: string | undefined;
+    let workflowId: string | undefined = workflowIdParam || undefined;
     let workflowPath: string | undefined;
     let canvasId: string | undefined;
     let canvasPath: string | undefined;
     let canvasName: string | undefined;
     let storyboardName: string | undefined;
 
-    // Look through version snapshots to find the matching storyboard/scenario
+    // Look through version snapshots to find the matching storyboard/workflow
     for (const snapshot of versionSnapshots) {
       const storyboard = snapshot.storyboards.find(sb => sb.id === storyboardId);
       if (storyboard) {
@@ -383,11 +384,19 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
         canvasPath = storyboard.canvas.path;
         canvasName = storyboard.canvas.name;
 
-        // Find the workflow that contains this scenario
+        // Find the workflow by ID first, then fall back to scenario search
         for (const workflow of storyboard.workflows) {
           if ('content' in workflow && workflow.content) {
             const content = workflow.content as WorkflowTemplate;
-            if (content.scenarios) {
+            // Match by workflow ID if provided
+            if (workflowIdParam && workflow.id === workflowIdParam) {
+              fullWorkflowTemplate = content;
+              workflowId = workflow.id;
+              workflowPath = workflow.path;
+              break;
+            }
+            // Fall back to matching by scenario
+            if (!workflowIdParam && content.scenarios && scenarioId) {
               const hasScenario = content.scenarios.some(
                 (s: { id?: string }) => s.id === scenarioId
               );
