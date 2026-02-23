@@ -407,25 +407,27 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
       }
     }
 
-    // Emit the event (even if we don't have the full template, let the consumer handle it)
+    // Emit the event using the same format as StoryboardListPanel
     events.emit({
       type: 'custom',
       source: 'trace-list-panel',
       timestamp: Date.now(),
       payload: {
-        action: 'openWorkflowScenarios',
-        // Workflow data
-        workflowId: workflowId || storyboardId,
-        workflowPath,
-        workflowTemplate: fullWorkflowTemplate,
+        action: 'openCanvas',
         // Canvas data
         canvasId,
         canvasPath,
-        canvasName,
+        canvas: canvasId ? { id: canvasId, path: canvasPath, name: canvasName } : undefined,
+        // Workflow data
+        workflowId: workflowId || storyboardId,
+        workflowPath,
+        workflow: fullWorkflowTemplate,
+        // Open mode - detail to show workflow scenarios
+        openMode: 'detail',
         // Storyboard data
         storyboardId,
         storyboardName,
-        // Scenario data
+        // Scenario data (for highlighting specific scenario)
         scenarioId,
         // Trace data (for context)
         trace,
