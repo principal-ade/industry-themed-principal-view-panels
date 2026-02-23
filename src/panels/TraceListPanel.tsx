@@ -357,6 +357,12 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
 
   // Handle workflow click from trace expansion (matched spans)
   const handleWorkflowClick = (trace: RegisteredTrace, storyboardId: string, scenarioId: string) => {
+    console.log('[TraceListPanel] handleWorkflowClick called:', {
+      storyboardId,
+      scenarioId,
+      traceId: trace.traceId,
+      hasEvents: !!events,
+    });
     if (!events) return;
 
     // Find the workflow data from version snapshots
@@ -408,31 +414,33 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
     }
 
     // Emit the event using the same format as StoryboardListPanel
+    const eventPayload = {
+      action: 'openCanvas',
+      // Canvas data
+      canvasId,
+      canvasPath,
+      canvas: canvasId ? { id: canvasId, path: canvasPath, name: canvasName } : undefined,
+      // Workflow data
+      workflowId: workflowId || storyboardId,
+      workflowPath,
+      workflow: fullWorkflowTemplate,
+      // Open mode - detail to show workflow scenarios
+      openMode: 'detail',
+      // Storyboard data
+      storyboardId,
+      storyboardName,
+      // Scenario data (for highlighting specific scenario)
+      scenarioId,
+      // Trace data (for context)
+      trace,
+      traceId: trace.traceId,
+    };
+    console.log('[TraceListPanel] Emitting openCanvas event:', eventPayload);
     events.emit({
       type: 'custom',
       source: 'trace-list-panel',
       timestamp: Date.now(),
-      payload: {
-        action: 'openCanvas',
-        // Canvas data
-        canvasId,
-        canvasPath,
-        canvas: canvasId ? { id: canvasId, path: canvasPath, name: canvasName } : undefined,
-        // Workflow data
-        workflowId: workflowId || storyboardId,
-        workflowPath,
-        workflow: fullWorkflowTemplate,
-        // Open mode - detail to show workflow scenarios
-        openMode: 'detail',
-        // Storyboard data
-        storyboardId,
-        storyboardName,
-        // Scenario data (for highlighting specific scenario)
-        scenarioId,
-        // Trace data (for context)
-        trace,
-        traceId: trace.traceId,
-      },
+      payload: eventPayload,
     });
   };
 
