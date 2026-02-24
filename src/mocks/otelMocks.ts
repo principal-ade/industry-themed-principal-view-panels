@@ -297,6 +297,197 @@ export function generateAuthErrorTrace(includeWorkflowMatch: boolean = false): O
 }
 
 /**
+ * Generate a multi-scope trace (single service with multiple instrumentation scopes)
+ *
+ * This simulates a real-world scenario where a service uses:
+ * - HTTP instrumentation (API spans)
+ * - Database instrumentation (DB spans)
+ * - Custom app instrumentation (business logic spans)
+ */
+export function generateMultiScopeTrace(): OtelResourceSpans {
+  const traceId = generateTraceId();
+  const baseTime = Date.now() * 1_000_000; // nanoseconds
+
+  // HTTP instrumentation scope - API calls
+  const httpRequestSpan = createMockAPISpan({
+    method: 'POST',
+    route: '/api/orders',
+    statusCode: 200,
+    durationMs: 800,
+  });
+  httpRequestSpan.traceId = traceId;
+  // Add request/response events
+  httpRequestSpan.events = [
+    {
+      timeUnixNano: (baseTime + 1_000_000).toString(),
+      name: 'request.started',
+      attributes: [
+        createAttribute('http.request.body.size', 1234),
+      ],
+    },
+    {
+      timeUnixNano: (baseTime + 790_000_000).toString(),
+      name: 'response.sent',
+      attributes: [
+        createAttribute('http.response.body.size', 567),
+      ],
+    },
+  ];
+
+  // Custom app instrumentation scope - business logic
+  const validateOrderSpan = createMockSpan({
+    name: 'validateOrder',
+    kind: 'SPAN_KIND_INTERNAL',
+    attributes: {
+      'order.items': 3,
+      'order.total': 299.99,
+    },
+    durationMs: 50,
+    traceId,
+    parentSpanId: httpRequestSpan.spanId,
+  });
+  // Add validation events
+  validateOrderSpan.events = [
+    {
+      timeUnixNano: (baseTime + 5_000_000).toString(),
+      name: 'validation.step',
+      attributes: [
+        createAttribute('step', 'check_inventory'),
+        createAttribute('result', 'passed'),
+      ],
+    },
+    {
+      timeUnixNano: (baseTime + 15_000_000).toString(),
+      name: 'validation.step',
+      attributes: [
+        createAttribute('step', 'check_pricing'),
+        createAttribute('result', 'passed'),
+      ],
+    },
+    {
+      timeUnixNano: (baseTime + 25_000_000).toString(),
+      name: 'validation.step',
+      attributes: [
+        createAttribute('step', 'check_customer_credit'),
+        createAttribute('result', 'passed'),
+      ],
+    },
+  ];
+
+  const processPaymentSpan = createMockSpan({
+    name: 'processPayment',
+    kind: 'SPAN_KIND_INTERNAL',
+    attributes: {
+      'payment.method': 'credit_card',
+      'payment.provider': 'stripe',
+    },
+    durationMs: 200,
+    traceId,
+    parentSpanId: httpRequestSpan.spanId,
+  });
+  // Add payment processing events
+  processPaymentSpan.events = [
+    {
+      timeUnixNano: (baseTime + 100_000_000).toString(),
+      name: 'payment.authorized',
+      attributes: [
+        createAttribute('authorization_code', 'AUTH_12345'),
+        createAttribute('card_last_four', '4242'),
+      ],
+    },
+    {
+      timeUnixNano: (baseTime + 180_000_000).toString(),
+      name: 'payment.captured',
+      attributes: [
+        createAttribute('capture_id', 'CAP_67890'),
+        createAttribute('amount_cents', 29999),
+      ],
+    },
+  ];
+
+  // Database instrumentation scope - DB queries
+  const dbInsertOrderSpan = createMockDBSpan({
+    operation: 'INSERT',
+    table: 'orders',
+    durationMs: 100,
+  });
+  dbInsertOrderSpan.traceId = traceId;
+  dbInsertOrderSpan.parentSpanId = validateOrderSpan.spanId;
+  // Add DB event
+  dbInsertOrderSpan.events = [
+    {
+      timeUnixNano: (baseTime + 50_000_000).toString(),
+      name: 'db.query',
+      attributes: [
+        createAttribute('db.statement', 'INSERT INTO orders (id, customer_id, total) VALUES ($1, $2, $3)'),
+        createAttribute('db.rows_affected', 1),
+      ],
+    },
+  ];
+
+  const dbInsertPaymentSpan = createMockDBSpan({
+    operation: 'INSERT',
+    table: 'payments',
+    durationMs: 80,
+  });
+  dbInsertPaymentSpan.traceId = traceId;
+  dbInsertPaymentSpan.parentSpanId = processPaymentSpan.spanId;
+
+  const dbUpdateInventorySpan = createMockDBSpan({
+    operation: 'UPDATE',
+    table: 'inventory',
+    durationMs: 60,
+  });
+  dbUpdateInventorySpan.traceId = traceId;
+  dbUpdateInventorySpan.parentSpanId = validateOrderSpan.spanId;
+  // Add inventory update event
+  dbUpdateInventorySpan.events = [
+    {
+      timeUnixNano: (baseTime + 45_000_000).toString(),
+      name: 'inventory.reserved',
+      attributes: [
+        createAttribute('sku_count', 3),
+        createAttribute('warehouse', 'US-WEST-1'),
+      ],
+    },
+  ];
+
+  return {
+    resourceSpans: [
+      {
+        resource: createMockResource('order-service', {
+          'service.version': '2.1.0',
+          'deployment.environment': 'production',
+        }),
+        scopeSpans: [
+          {
+            scope: {
+              name: '@opentelemetry/instrumentation-http',
+              version: '0.52.0',
+            },
+            spans: [httpRequestSpan],
+          },
+          {
+            scope: {
+              name: 'pkg:npm/@acme/order-service',
+              version: '2.1.0',
+            },
+            spans: [validateOrderSpan, processPaymentSpan],
+          },
+          {
+            scope: {
+              name: '@opentelemetry/instrumentation-pg',
+              version: '0.40.0',
+            },
+            spans: [dbInsertOrderSpan, dbInsertPaymentSpan, dbUpdateInventorySpan],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/**
  * Generate a complex multi-service trace
  */
 export function generateComplexTrace(includeWorkflowMatch: boolean = false): OtelResourceSpans {
@@ -523,28 +714,68 @@ export function createTraceWithMultiWorkflowData(params: {
 export function convertToRegisteredTraces(
   resourceSpans: OtelResourceSpans
 ): RegisteredTrace[] {
-  const traceMap = new Map<string, { spans: OtelSpanData[]; resource: OtelResourceData; scopeName?: string; scopeVersion?: string }>();
+  // Group all data by traceId
+  interface TraceData {
+    spans: OtelSpanData[];
+    resources: Map<string, {
+      resource: OtelResourceData;
+      scopes: Map<string, {
+        name: string;
+        version?: string;
+        spanIds: string[];
+      }>;
+    }>;
+  }
 
-  // Collect all spans by trace ID
+  const traceMap = new Map<string, TraceData>();
+
+  // Collect all spans by trace ID, preserving resource and scope info
   for (const resourceSpan of resourceSpans.resourceSpans) {
+    const serviceName = getAttributeValue(resourceSpan.resource.attributes, 'service.name') as string || 'unknown';
+
     for (const scopeSpan of resourceSpan.scopeSpans) {
+      const scopeName = scopeSpan.scope?.name || 'unknown';
+      const scopeVersion = scopeSpan.scope?.version;
+
       for (const span of scopeSpan.spans) {
         if (!traceMap.has(span.traceId)) {
           traceMap.set(span.traceId, {
             spans: [],
-            resource: resourceSpan.resource,
-            scopeName: scopeSpan.scope?.name,
-            scopeVersion: scopeSpan.scope?.version,
+            resources: new Map(),
           });
         }
-        traceMap.get(span.traceId)!.spans.push(span);
+
+        const traceData = traceMap.get(span.traceId)!;
+        traceData.spans.push(span);
+
+        // Ensure resource entry exists
+        if (!traceData.resources.has(serviceName)) {
+          traceData.resources.set(serviceName, {
+            resource: resourceSpan.resource,
+            scopes: new Map(),
+          });
+        }
+
+        const resourceData = traceData.resources.get(serviceName)!;
+
+        // Ensure scope entry exists
+        if (!resourceData.scopes.has(scopeName)) {
+          resourceData.scopes.set(scopeName, {
+            name: scopeName,
+            version: scopeVersion,
+            spanIds: [],
+          });
+        }
+
+        resourceData.scopes.get(scopeName)!.spanIds.push(span.spanId);
       }
     }
   }
 
   // Convert to RegisteredTrace array
   const traces: RegisteredTrace[] = [];
-  for (const [traceId, { spans, resource, scopeName, scopeVersion }] of traceMap) {
+  for (const [traceId, traceData] of traceMap) {
+    const { spans, resources } = traceData;
     const rootSpan = spans.find(s => !s.parentSpanId || s.parentSpanId === '');
     const startTime = Math.min(...spans.map(s => parseNanoTime(s.startTimeUnixNano)));
     const endTime = Math.max(...spans.map(s => parseNanoTime(s.endTimeUnixNano)));
@@ -552,17 +783,40 @@ export function convertToRegisteredTraces(
       s => s.status?.code === 2 || s.events?.some(e => e.name === 'exception')
     );
 
-    const serviceName = getAttributeValue(resource.attributes, 'service.name') as string || 'unknown';
-    const serviceVersion = getAttributeValue(resource.attributes, 'service.version') as string | undefined;
+    // Build resources array with proper scope info
+    const registeredResources = Array.from(resources.entries()).map(([serviceName, resourceData]) => {
+      const serviceVersion = getAttributeValue(resourceData.resource.attributes, 'service.version') as string | undefined;
+
+      return {
+        serviceIdentifier: `http://${serviceName}`,
+        serviceName,
+        attributes: {
+          'service.name': serviceName,
+          'service.version': serviceVersion || 'unknown',
+        },
+        scopes: Array.from(resourceData.scopes.values()).map(scope => ({
+          scope: {
+            name: scope.name,
+            version: scope.version || serviceVersion || 'unknown',
+          },
+          spanIds: scope.spanIds,
+        })),
+      };
+    });
+
+    // Get first resource for workflow matching info
+    const firstResource = resources.values().next().value;
+    const resource = firstResource?.resource;
 
     // Extract workflow matching information from resource attributes
-    const storyboardId = getAttributeValue(resource.attributes, 'pv.storyboard.id') as string | undefined;
-    const storyboardName = getAttributeValue(resource.attributes, 'pv.storyboard.name') as string | undefined;
-    const workflowId = getAttributeValue(resource.attributes, 'pv.workflow.id') as string | undefined;
-    const workflowName = getAttributeValue(resource.attributes, 'pv.workflow.name') as string | undefined;
-    const scenarioId = getAttributeValue(resource.attributes, 'pv.scenario.id') as string | undefined;
+    const storyboardId = resource ? getAttributeValue(resource.attributes, 'pv.storyboard.id') as string | undefined : undefined;
+    const storyboardName = resource ? getAttributeValue(resource.attributes, 'pv.storyboard.name') as string | undefined : undefined;
+    const workflowId = resource ? getAttributeValue(resource.attributes, 'pv.workflow.id') as string | undefined : undefined;
+    const workflowName = resource ? getAttributeValue(resource.attributes, 'pv.workflow.name') as string | undefined : undefined;
+    const scenarioId = resource ? getAttributeValue(resource.attributes, 'pv.scenario.id') as string | undefined : undefined;
 
     const hasMatchInfo = storyboardId && storyboardName && scenarioId;
+    const firstScopeName = registeredResources[0]?.scopes[0]?.scope.name || 'unknown';
 
     traces.push({
       traceId,
@@ -572,28 +826,14 @@ export function convertToRegisteredTraces(
       duration: endTime - startTime,
       spanCount: spans.length,
       hasErrors,
-      resources: [{
-        serviceIdentifier: `http://${serviceName}`,
-        serviceName,
-        attributes: {
-          'service.name': serviceName,
-          'service.version': serviceVersion || 'unknown',
-        },
-        scopes: [{
-          scope: {
-            name: scopeName || 'unknown',
-            version: scopeVersion || serviceVersion || 'unknown',
-          },
-          spanIds: spans.map(s => s.spanId),
-        }],
-      }],
+      resources: registeredResources,
       scenarioMatches: hasMatchInfo ? [{
         storyboardId: storyboardId!,
         storyboardName,
-        workflowId: workflowId || storyboardId!, // Fallback to storyboardId if no workflow
+        workflowId: workflowId || storyboardId!,
         workflowName,
         scenarioId: scenarioId!,
-        scopeName: scopeName || 'unknown',
+        scopeName: firstScopeName,
         matchedSpans: spans.map(span => ({
           spanId: span.spanId,
           spanName: span.name,

@@ -3,10 +3,29 @@ import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { Copy, Check } from 'lucide-react';
-import { TraceDetails } from '../components/TraceDetails';
+import { TraceDetails, type ScopeInfo } from '../components/TraceDetails';
 import type { RegisteredTrace } from '../types/otel';
 import { getRootSpan, getSpansFromTrace } from '../types/otel';
 import { getServiceName, getPrimaryStoryboardId, isTraceMatched } from '../utils/traceHelpers';
+
+/**
+ * Extract scope information from a RegisteredTrace
+ */
+function getScopesFromTrace(trace: RegisteredTrace): ScopeInfo[] {
+  const scopes: ScopeInfo[] = [];
+
+  for (const resource of trace.resources) {
+    for (const scopeData of resource.scopes) {
+      scopes.push({
+        name: scopeData.scope.name,
+        version: scopeData.scope.version,
+        spanIds: scopeData.spanIds,
+      });
+    }
+  }
+
+  return scopes;
+}
 
 export interface TraceDetailsPanelProps extends PanelComponentProps {
   /**
@@ -141,7 +160,12 @@ export const TraceDetailsPanel: React.FC<TraceDetailsPanelProps> = ({
 
           {/* Trace details */}
           <div style={{ flex: 1, minHeight: 0 }}>
-            <TraceDetails key={selectedTrace.traceId} spans={getSpansFromTrace(selectedTrace)} theme={theme} />
+            <TraceDetails
+              key={selectedTrace.traceId}
+              spans={getSpansFromTrace(selectedTrace)}
+              scopes={getScopesFromTrace(selectedTrace)}
+              theme={theme}
+            />
           </div>
         </>
       ) : (

@@ -1,11 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React from 'react';
-import { TraceDetails } from './TraceDetails';
+import { TraceDetails, type ScopeInfo } from './TraceDetails';
 import { ThemeProvider, useTheme } from '@principal-ade/industry-theme';
 import {
   generateCheckoutTrace,
   generateAuthErrorTrace,
   generateComplexTrace,
+  generateMultiScopeTrace,
 } from '../mocks/otelMocks';
 
 const meta = {
@@ -98,4 +99,36 @@ const EmptyComponent = () => {
 
 export const Empty: Story = {
   render: () => <EmptyComponent />,
+};
+
+/**
+ * Multi-scope trace grouped by instrumentation scope
+ *
+ * Shows spans organized by their instrumentation scope:
+ * - @opentelemetry/instrumentation-http (API spans)
+ * - pkg:npm/@acme/order-service (business logic)
+ * - @opentelemetry/instrumentation-pg (database spans)
+ */
+const MultiScopeTraceComponent = () => {
+  const { theme } = useTheme();
+  const trace = generateMultiScopeTrace();
+
+  // Extract spans and build scope info
+  const allSpans = trace.resourceSpans.flatMap(rs =>
+    rs.scopeSpans.flatMap(ss => ss.spans)
+  );
+
+  const scopes: ScopeInfo[] = trace.resourceSpans.flatMap(rs =>
+    rs.scopeSpans.map(ss => ({
+      name: ss.scope?.name || 'unknown',
+      version: ss.scope?.version,
+      spanIds: ss.spans.map(s => s.spanId),
+    }))
+  );
+
+  return <TraceDetails spans={allSpans} scopes={scopes} theme={theme} />;
+};
+
+export const MultiScopeTrace: Story = {
+  render: () => <MultiScopeTraceComponent />,
 };

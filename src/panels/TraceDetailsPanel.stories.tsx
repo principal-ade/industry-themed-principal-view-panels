@@ -3,7 +3,7 @@ import React from 'react';
 import { TraceDetailsPanel } from './TraceDetailsPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
-import { generateCheckoutTrace, generateComplexTrace, convertToRegisteredTraces } from '../mocks/otelMocks';
+import { generateCheckoutTrace, generateComplexTrace, generateMultiScopeTrace, convertToRegisteredTraces } from '../mocks/otelMocks';
 
 const meta = {
   title: 'Panels/TraceDetailsPanel',
@@ -67,6 +67,28 @@ export const WithComplexTrace: Story = {
   render: () => {
     const complexTrace = generateComplexTrace(true);
     const traces = convertToRegisteredTraces(complexTrace);
+    const selectedTrace = traces[0];
+
+    return (
+      <MockPanelProvider>
+        {(props) => <TraceDetailsPanel {...props} selectedTrace={selectedTrace} />}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
+ * With a multi-scope trace (single service with multiple instrumentation scopes)
+ *
+ * This demonstrates how spans are grouped by their instrumentation scope:
+ * - HTTP instrumentation (API calls)
+ * - Custom app instrumentation (business logic)
+ * - Database instrumentation (DB queries)
+ */
+export const WithMultiScopeTrace: Story = {
+  render: () => {
+    const multiScopeTrace = generateMultiScopeTrace();
+    const traces = convertToRegisteredTraces(multiScopeTrace);
     const selectedTrace = traces[0];
 
     return (
