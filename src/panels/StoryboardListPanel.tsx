@@ -379,8 +379,8 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
-          paddingLeft: 'clamp(16px, 4vw, 24px)',
-          paddingRight: 'clamp(8px, 2vw, 16px)',
+          paddingLeft: 'clamp(12px, 3vw, 16px)',
+          paddingRight: 'clamp(12px, 3vw, 16px)',
         }}
       >
         {/* Title row - always inline */}
