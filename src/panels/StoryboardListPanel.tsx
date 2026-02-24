@@ -377,184 +377,192 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
         style={{
           flexShrink: 0,
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
+          flexDirection: 'column',
+          gap: '8px',
           paddingLeft: 'clamp(16px, 4vw, 24px)',
           paddingRight: 'clamp(8px, 2vw, 16px)',
-          flexWrap: 'wrap',
         }}
       >
-        <h2
+        {/* Title row - always inline */}
+        <div
           style={{
-            margin: 0,
-            fontSize: theme.fontSizes[4],
-            color: theme.colors.text,
-          }}
-        >
-          Storyboards
-        </h2>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: storyboards.length >= 10 ? '1 1 200px' : '0 0 auto', maxWidth: storyboards.length >= 10 ? '400px' : 'none' }}>
-          {/* Canvas type toggle */}
-          <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            background: theme.colors.backgroundSecondary,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: theme.radii[2],
-            padding: '4px',
-          }}>
-            <button
-              onClick={() => setCanvasTypeFilter('otel')}
-              style={{
-                background: canvasTypeFilter === 'otel' ? theme.colors.primary : 'transparent',
-                border: 'none',
-                borderRadius: theme.radii[1],
-                padding: '6px 12px',
-                cursor: 'pointer',
-                fontSize: theme.fontSizes[1],
-                fontFamily: theme.fonts.body,
-                fontWeight: canvasTypeFilter === 'otel' ? 600 : 400,
-                color: canvasTypeFilter === 'otel' ? 'white' : theme.colors.text,
-                transition: 'all 0.2s ease',
-              }}
-              title="Runtime validated .otel.canvas files"
-            >
-              OTEL
-            </button>
-            <button
-              onClick={() => setCanvasTypeFilter('regular')}
-              style={{
-                background: canvasTypeFilter === 'regular' ? theme.colors.primary : 'transparent',
-                border: 'none',
-                borderRadius: theme.radii[1],
-                padding: '6px 12px',
-                cursor: 'pointer',
-                fontSize: theme.fontSizes[1],
-                fontFamily: theme.fonts.body,
-                fontWeight: canvasTypeFilter === 'regular' ? 600 : 400,
-                color: canvasTypeFilter === 'regular' ? 'white' : theme.colors.text,
-                transition: 'all 0.2s ease',
-              }}
-              title="Static documentation .canvas files"
-            >
-              Static
-            </button>
-          </div>
+            justifyContent: 'space-between',
+            gap: '8px',
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              fontSize: theme.fontSizes[4],
+              color: theme.colors.text,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Storyboards
+          </h2>
 
-          {/* Search input - only show if there are 10 or more storyboards */}
-          {storyboards.length >= 10 && (
-            <div
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+            {/* Refresh button */}
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing || isLoading}
               style={{
-                position: 'relative',
-                flex: 1,
-                minWidth: '150px',
+                background: theme.colors.backgroundSecondary,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radii[1],
+                padding: '6px',
+                cursor: isRefreshing ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease',
               }}
+              title="Refresh storyboards"
             >
-              <Search
-                size={16}
+              <RefreshCw
+                size={14}
                 color={theme.colors.textSecondary}
                 style={{
-                  position: 'absolute',
-                  left: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  pointerEvents: 'none',
+                  animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
                 }}
               />
-              <input
-                type="text"
-                placeholder="Search storyboards..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 32px 8px 32px',
-                  fontSize: theme.fontSizes[1],
-                  fontFamily: theme.fonts.body,
-                  border: `1px solid ${theme.colors.border}`,
-                  borderRadius: theme.radii[2],
-                  background: theme.colors.backgroundSecondary,
-                  color: theme.colors.text,
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  style={{
-                    position: 'absolute',
-                    right: '6px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'transparent',
-                    border: 'none',
-                    padding: '4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: theme.colors.textSecondary,
-                  }}
-                  aria-label="Clear search"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          )}
+            </button>
 
-          {/* Refresh button */}
+            {/* Help button */}
+            <button
+              onClick={toggleHelp}
+              style={{
+                background: showHelp ? theme.colors.primary : theme.colors.backgroundSecondary,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radii[1],
+                padding: '6px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease',
+              }}
+              title="Help & Getting Started"
+            >
+              <HelpCircle
+                size={14}
+                color={showHelp ? 'white' : theme.colors.textSecondary}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Canvas type toggle - full width, 50/50 split */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: theme.colors.backgroundSecondary,
+          border: `1px solid ${theme.colors.border}`,
+          borderRadius: theme.radii[2],
+          padding: '3px',
+        }}>
           <button
-            onClick={handleRefresh}
-            disabled={isRefreshing || isLoading}
+            onClick={() => setCanvasTypeFilter('otel')}
             style={{
-              background: theme.colors.backgroundSecondary,
-              border: `1px solid ${theme.colors.border}`,
+              flex: 1,
+              background: canvasTypeFilter === 'otel' ? theme.colors.primary : 'transparent',
+              border: 'none',
               borderRadius: theme.radii[1],
-              padding: '8px',
-              cursor: isRefreshing ? 'wait' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              fontSize: theme.fontSizes[1],
+              fontFamily: theme.fonts.body,
+              fontWeight: canvasTypeFilter === 'otel' ? 600 : 400,
+              color: canvasTypeFilter === 'otel' ? 'white' : theme.colors.text,
               transition: 'all 0.2s ease',
             }}
-            title="Refresh storyboards"
+            title="Runtime validated .otel.canvas files"
           >
-            <RefreshCw
+            OTEL
+          </button>
+          <button
+            onClick={() => setCanvasTypeFilter('regular')}
+            style={{
+              flex: 1,
+              background: canvasTypeFilter === 'regular' ? theme.colors.primary : 'transparent',
+              border: 'none',
+              borderRadius: theme.radii[1],
+              padding: '6px 12px',
+              cursor: 'pointer',
+              fontSize: theme.fontSizes[1],
+              fontFamily: theme.fonts.body,
+              fontWeight: canvasTypeFilter === 'regular' ? 600 : 400,
+              color: canvasTypeFilter === 'regular' ? 'white' : theme.colors.text,
+              transition: 'all 0.2s ease',
+            }}
+            title="Static documentation .canvas files"
+          >
+            Static
+          </button>
+        </div>
+
+        {/* Search input - only show if there are 10 or more storyboards */}
+        {storyboards.length >= 10 && (
+          <div
+            style={{
+              position: 'relative',
+            }}
+          >
+            <Search
               size={16}
               color={theme.colors.textSecondary}
               style={{
-                animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+                position: 'absolute',
+                left: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                pointerEvents: 'none',
               }}
             />
-          </button>
-
-          {/* Help button */}
-          <button
-            onClick={toggleHelp}
-            style={{
-              background: showHelp ? theme.colors.primary : theme.colors.backgroundSecondary,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.radii[1],
-              padding: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s ease',
-            }}
-            title="Help & Getting Started"
-          >
-            <HelpCircle
-              size={16}
-              color={showHelp ? 'white' : theme.colors.textSecondary}
+            <input
+              type="text"
+              placeholder="Search storyboards..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 32px 8px 32px',
+                fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radii[2],
+                background: theme.colors.backgroundSecondary,
+                color: theme.colors.text,
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
             />
-          </button>
-        </div>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: '6px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: theme.colors.textSecondary,
+                }}
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Error Message */}
