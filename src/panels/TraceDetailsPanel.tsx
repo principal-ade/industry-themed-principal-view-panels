@@ -2,11 +2,14 @@ import React, { useRef, useState } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, List, Braces } from 'lucide-react';
 import { TraceDetails, type ScopeInfo } from '../components/TraceDetails';
+import { JsonViewer } from '../components/JsonViewer';
 import type { RegisteredTrace } from '../types/otel';
 import { getRootSpan, getSpansFromTrace } from '../types/otel';
 import { getServiceName, getPrimaryStoryboardId, isTraceMatched } from '../utils/traceHelpers';
+
+type ViewMode = 'tree' | 'json';
 
 /**
  * Extract scope information from a RegisteredTrace
@@ -57,6 +60,7 @@ export const TraceDetailsPanel: React.FC<TraceDetailsPanelProps> = ({
   const { theme } = useTheme();
   const panelRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('tree');
 
   usePanelFocusListener('trace-details', events, () => panelRef.current?.focus());
 
@@ -136,36 +140,94 @@ export const TraceDetailsPanel: React.FC<TraceDetailsPanelProps> = ({
                 })()}
               </div>
             </div>
-            <button
-              onClick={handleCopyTrace}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.space[1],
-                padding: `${theme.space[1]} ${theme.space[2]}`,
-                fontSize: theme.fontSizes[1],
-                color: copied ? theme.colors.success : theme.colors.textSecondary,
-                background: 'transparent',
-                border: `1px solid ${copied ? theme.colors.success : theme.colors.border}`,
-                borderRadius: theme.radii[1],
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                flexShrink: 0,
-              }}
-            >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-              {copied ? 'Copied' : 'Copy Full Trace'}
-            </button>
+            <div style={{ display: 'flex', gap: theme.space[2], flexShrink: 0 }}>
+              <button
+                onClick={handleCopyTrace}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.space[1],
+                  padding: `${theme.space[1]} ${theme.space[2]}`,
+                  fontSize: theme.fontSizes[1],
+                  color: copied ? theme.colors.success : theme.colors.textSecondary,
+                  background: 'transparent',
+                  border: `1px solid ${copied ? theme.colors.success : theme.colors.border}`,
+                  borderRadius: theme.radii[1],
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+
+              {/* View mode toggle */}
+              <div
+                style={{
+                  display: 'flex',
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.radii[1],
+                  overflow: 'hidden',
+                }}
+              >
+                <button
+                  onClick={() => setViewMode('tree')}
+                  title="Tree view"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.space[1],
+                    padding: `${theme.space[1]} ${theme.space[2]}`,
+                    fontSize: theme.fontSizes[1],
+                    color: viewMode === 'tree' ? theme.colors.text : theme.colors.textMuted,
+                    background: viewMode === 'tree' ? theme.colors.primary + '20' : 'transparent',
+                    border: 'none',
+                    borderRight: `1px solid ${theme.colors.border}`,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <List size={14} />
+                </button>
+                <button
+                  onClick={() => setViewMode('json')}
+                  title="JSON view"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.space[1],
+                    padding: `${theme.space[1]} ${theme.space[2]}`,
+                    fontSize: theme.fontSizes[1],
+                    color: viewMode === 'json' ? theme.colors.text : theme.colors.textMuted,
+                    background: viewMode === 'json' ? theme.colors.primary + '20' : 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Braces size={14} />
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Trace details */}
           <div style={{ flex: 1, minHeight: 0 }}>
-            <TraceDetails
-              key={selectedTrace.traceId}
-              spans={getSpansFromTrace(selectedTrace)}
-              scopes={getScopesFromTrace(selectedTrace)}
-              theme={theme}
-            />
+            {viewMode === 'tree' ? (
+              <TraceDetails
+                key={selectedTrace.traceId}
+                spans={getSpansFromTrace(selectedTrace)}
+                scopes={getScopesFromTrace(selectedTrace)}
+                theme={theme}
+              />
+            ) : (
+              <JsonViewer
+                key={`${selectedTrace.traceId}-json`}
+                data={selectedTrace.otlpData || selectedTrace}
+                theme={theme}
+                initialExpandDepth={3}
+              />
+            )}
           </div>
         </>
       ) : (

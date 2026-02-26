@@ -69,7 +69,8 @@
     "clsx": "^2.1.1",
     "framer-motion": "^11.0.0",
     "js-yaml": "^4.1.1",
-    "lucide-react": "^0.552.0"
+    "lucide-react": "^0.552.0",
+    "react-json-tree": "^0.20.0"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.3",
