@@ -8,7 +8,7 @@ import type { FileInfo } from '@principal-ai/repository-abstraction';
 import { AnimatedResizableLayout } from '@principal-ade/panels';
 import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/workflow-converter';
-import { Activity, X, CheckCircle2, List, Radar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Activity, X, CheckCircle2 } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
 import { TraceSearchView } from './execution-viewer/TraceSearchView';
 import { LiveTraceSearchView } from './execution-viewer/LiveTraceSearchView';
@@ -268,6 +268,13 @@ export interface WorkflowScenariosPanelProps extends WorkflowScenariosPanelProps
    * When provided along with selectedTraceId, highlights this specific span.
    */
   highlightedSpanId?: string | null;
+
+  /**
+   * Scenario ID to auto-select (optional).
+   * When provided, overrides the auto-detection from trace.scenarioMatches[0].
+   * Useful for multi-workflow traces where each span matches a different scenario.
+   */
+  selectedScenarioIdProp?: string | null;
 }
 
 interface WorkflowScenariosPanelState {
@@ -320,6 +327,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   workflowFileInfo: workflowFileInfoProp,
   selectedTraceId: selectedTraceIdProp,
   highlightedSpanId: highlightedSpanIdProp,
+  selectedScenarioIdProp,
 }) => {
   const { theme } = useTheme();
 
@@ -581,21 +589,46 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   // Sync narrative props to state
   useEffect(() => {
     if (workflowTemplateProp && selectedWorkflowIdProp) {
-      setState(prev => ({
-        ...prev,
-        selectedWorkflowId: selectedWorkflowIdProp,
-        workflowTemplate: workflowTemplateProp,
-        viewMode: 'narrative',
-      }));
+      setState(prev => {
+        // Find matching scenario from the new workflow template
+        const matchingScenario = selectedScenarioIdProp && workflowTemplateProp
+          ? workflowTemplateProp.scenarios?.find(s => s.id === selectedScenarioIdProp)
+          : null;
+
+        // Find the span index for the highlighted span if we have execution data
+        let newSpanIndex = prev.currentSpanIndex;
+        if (highlightedSpanIdProp && prev.execution) {
+          const spans = getSpans(prev.execution);
+          const spanIndex = spans.findIndex(s => s.id === highlightedSpanIdProp);
+          if (spanIndex >= 0) {
+            newSpanIndex = spanIndex;
+          }
+        }
+
+        return {
+          ...prev,
+          selectedWorkflowId: selectedWorkflowIdProp,
+          workflowTemplate: workflowTemplateProp,
+          viewMode: 'narrative',
+          // Also sync scenario ID when workflow changes
+          selectedScenarioId: selectedScenarioIdProp || null,
+          selectedScenario: matchingScenario || null,
+          // Update span index to match the highlighted span
+          currentSpanIndex: newSpanIndex,
+          currentEventIndex: -1,
+        };
+      });
     } else if (selectedWorkflowIdProp === null && workflowTemplateProp === null) {
       // Clear narrative if explicitly set to null
       setState(prev => ({
         ...prev,
         selectedWorkflowId: null,
         workflowTemplate: null,
+        selectedScenarioId: null,
+        selectedScenario: null,
       }));
     }
-  }, [selectedWorkflowIdProp, workflowTemplateProp]);
+  }, [selectedWorkflowIdProp, workflowTemplateProp, selectedScenarioIdProp, highlightedSpanIdProp]);
 
   // Auto-select trace when selectedTraceId prop is provided
   useEffect(() => {
@@ -656,29 +689,39 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
           const metadata = getExecutionMetadata(executionData);
 
-          // Get scenario ID from trace's scenarioMatches
-          const scenarioId = trace.scenarioMatches?.[0]?.scenarioId;
+          // Get scenario ID - prefer prop, fall back to first scenario match
+          const scenarioId = selectedScenarioIdProp || trace.scenarioMatches?.[0]?.scenarioId;
 
-          setState(prev => ({
-            ...prev,
-            selectedExecutionId: selectedTraceIdProp,
-            execution: executionData,
-            metadata,
-            selectedTrace: trace, // Store original trace for match info
-            isPlaying: false,
-            currentSpanIndex: highlightSpanIndex,
-            currentEventIndex: -1, // No event selected initially
-            highlightedNodeId: null, // No node highlighted initially
-            viewMode: 'narrative',
-            // Add scenario mapping for live traces so scenarioName is displayed
-            executionScenarioMap: scenarioId
-              ? { ...prev.executionScenarioMap, [selectedTraceIdProp]: scenarioId }
-              : prev.executionScenarioMap,
-          }));
+          setState(prev => {
+            // Find the matching scenario from the workflow template
+            const matchingScenario = scenarioId && prev.workflowTemplate
+              ? prev.workflowTemplate.scenarios?.find(s => s.id === scenarioId)
+              : null;
+
+            return {
+              ...prev,
+              selectedExecutionId: selectedTraceIdProp,
+              execution: executionData,
+              metadata,
+              selectedTrace: trace, // Store original trace for match info
+              isPlaying: false,
+              currentSpanIndex: highlightSpanIndex,
+              currentEventIndex: -1, // No event selected initially
+              highlightedNodeId: null, // No node highlighted initially
+              viewMode: 'narrative',
+              // Auto-select the matched scenario
+              selectedScenarioId: scenarioId || null,
+              selectedScenario: matchingScenario || null,
+              // Add scenario mapping for live traces so scenarioName is displayed
+              executionScenarioMap: scenarioId
+                ? { ...prev.executionScenarioMap, [selectedTraceIdProp]: scenarioId }
+                : prev.executionScenarioMap,
+            };
+          });
         }
       }
     }
-  }, [selectedTraceIdProp, highlightedSpanIdProp, liveTraces, state.canvas, state.selectedExecutionId]);
+  }, [selectedTraceIdProp, highlightedSpanIdProp, selectedScenarioIdProp, liveTraces, state.canvas, state.selectedExecutionId]);
 
   // Listen for custom events to switch canvases (event-driven mode)
   useEffect(() => {
@@ -1178,7 +1221,29 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       return activeIds.size > 0 ? Array.from(activeIds) : null;
     }
 
-    // Priority 3: Currently selected execution
+    // Priority 3: Selected scenario - only show events for that specific scenario
+    if (state.selectedScenario) {
+      const scenarioEventNames = new Set<string>();
+
+      // Get events from the selected scenario's template
+      if (state.selectedScenario.template.events) {
+        Object.keys(state.selectedScenario.template.events).forEach(e => scenarioEventNames.add(e));
+      }
+
+      // Find nodes that match these events
+      const activeIds = new Set<string>();
+      for (const node of state.canvas.nodes || []) {
+        const nodeEventName = getNodeEventName(node);
+
+        if (nodeEventName && scenarioEventNames.has(nodeEventName)) {
+          activeIds.add(node.id);
+        }
+      }
+
+      return activeIds.size > 0 ? Array.from(activeIds) : null;
+    }
+
+    // Priority 4: Currently selected execution (no specific scenario selected)
     if (state.execution) {
       const spans = getSpans(state.execution);
       const allEvents: Array<{ name: string; time: number; attributes?: OtelAttributes }> = [];
@@ -1206,7 +1271,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       return activeIds.size > 0 ? Array.from(activeIds) : null;
     }
 
-    // Priority 4: Workflow template (default when loaded)
+    // Priority 5: Workflow template (default when loaded, no scenario selected)
     if (state.workflowTemplate) {
       const eventNames = new Set<string>();
 
@@ -1232,7 +1297,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     }
 
     return null;
-  }, [state.execution, state.canvas, state.hoveredExecution, state.hoveredScenarioEventNames, state.workflowTemplate]);
+  }, [state.execution, state.canvas, state.hoveredExecution, state.hoveredScenarioEventNames, state.workflowTemplate, state.selectedScenario]);
 
   // Calculate if all scenarios have test traces
   const isFullyCovered = useMemo(() => {
@@ -1373,166 +1438,35 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
         color: theme.colors.text,
       }}
     >
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '5.5px 16px',
-          borderBottom: `1px solid ${theme.colors.border}`,
-          background: theme.colors.background,
-          gap: '12px',
-          height: '40px',
-          boxSizing: 'border-box',
-        }}
-      >
-        {/* Canvas Title - Show the currently loaded canvas and narrative */}
-        {state.canvasName && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: theme.fontSizes[2], fontWeight: theme.fontWeights.medium, color: theme.colors.text, fontFamily: theme.fonts.body }}>
-              {state.canvasName}
-              {state.workflowTemplate && (
-                <>
-                  <span style={{ opacity: 0.7 }}>
-                    {' / '}
-                    {state.workflowTemplate.name || state.selectedWorkflowId}
-                  </span>
-                  {isFullyCovered && (
-                    <CheckCircle2 size={16} style={{ color: '#10b981', marginLeft: '8px', verticalAlign: 'middle', display: 'inline' }} />
-                  )}
-                </>
-              )}
-            </span>
-          </div>
-        )}
-
-        {/* Span Navigation - Show when execution has multiple spans */}
-        {state.execution && getSpans(state.execution).length > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '16px' }}>
-            <button
-              onClick={() => handleSpanIndexChange(state.currentSpanIndex - 1)}
-              disabled={state.currentSpanIndex === 0}
-              style={{
-                padding: '4px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: '4px',
-                color: state.currentSpanIndex === 0 ? theme.colors.textMuted : theme.colors.text,
-                cursor: state.currentSpanIndex === 0 ? 'not-allowed' : 'pointer',
-                opacity: state.currentSpanIndex === 0 ? 0.5 : 1,
-                display: 'flex',
-                alignItems: 'center',
-              }}
-              title="Previous span"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span style={{ fontSize: theme.fontSizes[1], fontWeight: 500, minWidth: '80px', textAlign: 'center' }}>
-              Span {state.currentSpanIndex + 1} of {getSpans(state.execution).length}
-            </span>
-            <button
-              onClick={() => handleSpanIndexChange(state.currentSpanIndex + 1)}
-              disabled={state.currentSpanIndex === getSpans(state.execution).length - 1}
-              style={{
-                padding: '4px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: '4px',
-                color: state.currentSpanIndex === getSpans(state.execution).length - 1 ? theme.colors.textMuted : theme.colors.text,
-                cursor: state.currentSpanIndex === getSpans(state.execution).length - 1 ? 'not-allowed' : 'pointer',
-                opacity: state.currentSpanIndex === getSpans(state.execution).length - 1 ? 0.5 : 1,
-                display: 'flex',
-                alignItems: 'center',
-              }}
-              title="Next span"
-            >
-              <ChevronRight size={16} />
-            </button>
-            {/* Match Type Badge */}
-            {getCurrentSpanMatchInfo && (
-              <span
-                style={{
-                  marginLeft: '8px',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  fontSize: theme.fontSizes[0],
-                  fontWeight: 500,
-                  backgroundColor:
-                    getCurrentSpanMatchInfo.type === 'full' ? '#10b98120' :
-                    getCurrentSpanMatchInfo.type === 'partial' ? '#f59e0b20' :
-                    getCurrentSpanMatchInfo.type === 'orphaned' ? '#f9731620' :
-                    '#6b728020',
-                  color:
-                    getCurrentSpanMatchInfo.type === 'full' ? '#10b981' :
-                    getCurrentSpanMatchInfo.type === 'partial' ? '#f59e0b' :
-                    getCurrentSpanMatchInfo.type === 'orphaned' ? '#f97316' :
-                    '#6b7280',
-                }}
-              >
-                {getCurrentSpanMatchInfo.type === 'full' ? 'Matched' :
-                 getCurrentSpanMatchInfo.type === 'partial' ? 'Partial' :
-                 getCurrentSpanMatchInfo.type === 'orphaned' ? 'Orphaned' :
-                 'Unmatched'}
-              </span>
+      {/* Header - Canvas and Workflow names */}
+      {state.canvasName && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '5.5px 16px',
+            borderBottom: `1px solid ${theme.colors.border}`,
+            background: theme.colors.background,
+            height: '40px',
+            boxSizing: 'border-box',
+          }}
+        >
+          <span style={{ fontSize: theme.fontSizes[2], fontWeight: theme.fontWeights.medium, color: theme.colors.text, fontFamily: theme.fonts.body }}>
+            {state.canvasName}
+            {state.workflowTemplate && (
+              <>
+                <span style={{ opacity: 0.7 }}>
+                  {' / '}
+                  {state.workflowTemplate.name || state.selectedWorkflowId}
+                </span>
+                {isFullyCovered && (
+                  <CheckCircle2 size={16} style={{ color: '#10b981', marginLeft: '8px', verticalAlign: 'middle', display: 'inline' }} />
+                )}
+              </>
             )}
-          </div>
-        )}
-
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
-
-        {/* Trace List Button - Show when workflow has test traces */}
-        {state.workflowTemplate && state.availableExecutions.length > 0 && (
-          <button
-            onClick={() => setState(prev => ({ ...prev, showTraceSearch: true }))}
-            style={{
-              padding: '0 12px',
-              height: '28px',
-              background: theme.colors.background,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: '4px',
-              color: theme.colors.text,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: theme.fontSizes[2],
-              fontFamily: theme.fonts.body,
-            }}
-            title={`View all test traces (${state.availableExecutions.length})`}
-          >
-            <List size={14} />
-            <span>Test Traces ({state.availableExecutions.length})</span>
-          </button>
-        )}
-
-        {/* Live Trace List Button - Show when live traces are available */}
-        {state.workflowTemplate && liveTraces.length > 0 && (
-          <button
-            onClick={() => setState(prev => ({ ...prev, showLiveTraceSearch: true }))}
-            style={{
-              padding: '0 12px',
-              height: '28px',
-              background: theme.colors.background,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: '4px',
-              color: theme.colors.text,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: theme.fontSizes[2],
-              fontFamily: theme.fonts.body,
-            }}
-            title={`View live OTEL traces (${liveTraces.length})`}
-          >
-            <Radar size={14} />
-            <span>Live Traces ({liveTraces.length})</span>
-          </button>
-        )}
-
-        {/* Playback controls removed - all events now display by default */}
-      </div>
+          </span>
+        </div>
+      )}
 
       {/* Main Content */}
       <div style={{ flex: 1, overflow: 'hidden' }}>

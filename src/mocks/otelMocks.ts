@@ -260,7 +260,8 @@ export function generateCheckoutTrace(includeWorkflowMatch: boolean = false): Ot
       createAttribute('pv.storyboard.id', 'payment-processing'),
       createAttribute('pv.storyboard.name', 'Payment Processing'),
       createAttribute('pv.workflow.id', 'successful-payment'),
-      createAttribute('pv.workflow.name', 'Successful Payment')
+      createAttribute('pv.workflow.name', 'Successful Payment'),
+      createAttribute('pv.scenario.id', 'checkout-scenario-1')
     );
   }
 
@@ -289,7 +290,8 @@ export function generateAuthErrorTrace(includeWorkflowMatch: boolean = false): O
       createAttribute('pv.storyboard.id', 'authentication-flow'),
       createAttribute('pv.storyboard.name', 'Authentication Flow'),
       createAttribute('pv.workflow.id', 'error-handling'),
-      createAttribute('pv.workflow.name', 'Error Handling')
+      createAttribute('pv.workflow.name', 'Error Handling'),
+      createAttribute('pv.scenario.id', 'auth-error-scenario-1')
     );
   }
 
@@ -560,7 +562,8 @@ export function generateComplexTrace(includeWorkflowMatch: boolean = false): Ote
       createAttribute('pv.storyboard.id', 'user-management'),
       createAttribute('pv.storyboard.name', 'User Management'),
       createAttribute('pv.workflow.id', 'view-profile'),
-      createAttribute('pv.workflow.name', 'View Profile')
+      createAttribute('pv.workflow.name', 'View Profile'),
+      createAttribute('pv.scenario.id', 'profile-view-scenario-1')
     );
   }
 
