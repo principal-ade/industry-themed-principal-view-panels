@@ -34,6 +34,8 @@ interface SpanItem {
   storyboardId?: string;
   workflowId?: string;
   scenarioId?: string;
+  reason?: string; // Why the span didn't match (for unmatched/orphaned)
+  scopeName?: string; // Scope name for context
   depth: number;
 }
 
@@ -76,6 +78,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
           target: match.workflowName || match.workflowId,
           storyboardId: match.storyboardId,
           workflowId: match.workflowId,
+          reason: span.reason,
         });
       });
     });
@@ -88,6 +91,8 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
         parentSpanId: span.parentSpanId,
         spanName: span.spanName,
         timestamp: span.timestamp,
+        reason: span.reason,
+        scopeName: span.scopeName,
       });
     });
 
@@ -197,6 +202,22 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                     <span style={{ color: theme.colors.textMuted }}>-</span>
                     <span style={{ color: theme.colors.textSecondary }}>{span.target}</span>
                   </>
+                )}
+                {/* Show reason for unmatched/orphaned spans */}
+                {(span.type === 'unmatched' || span.type === 'orphaned') && span.reason && (
+                  <span
+                    style={{
+                      fontSize: theme.fontSizes[1],
+                      color: span.reason.includes('No storyboards found for scope')
+                        ? theme.colors.error || '#ef4444'
+                        : theme.colors.textMuted,
+                      marginLeft: theme.space[2],
+                      fontStyle: 'italic',
+                    }}
+                    title={span.scopeName ? `Scope: ${span.scopeName}` : undefined}
+                  >
+                    ({span.reason})
+                  </span>
                 )}
               </div>
             );

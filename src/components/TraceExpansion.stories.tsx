@@ -322,3 +322,164 @@ export const ComplexMultiStoryboard: Story = {
     );
   },
 };
+
+/**
+ * Trace with scope mismatch - spans not matching due to unregistered scope
+ *
+ * This demonstrates the common debugging scenario where traces don't match
+ * workflows because the instrumentation scope isn't registered in library.yaml.
+ * The "No storyboards found for scope" reason is highlighted in red to make
+ * this actionable issue immediately visible.
+ */
+export const ScopeMismatch: Story = {
+  render: () => {
+    const { theme } = useTheme();
+
+    const now = Date.now();
+    const trace: import('../types/otel').RegisteredTrace = {
+      traceId: 'trace-scope-mismatch-001',
+      name: 'kanban.load',
+      startTime: now,
+      endTime: now + 150,
+      duration: 150,
+      spanCount: 3,
+      hasErrors: false,
+      resources: [{
+        serviceIdentifier: 'http://localhost:6006',
+        serviceName: 'industry-themed-backlogmd-kanban-panel-storybook',
+        attributes: {
+          'service.name': 'industry-themed-backlogmd-kanban-panel-storybook',
+          'service.version': '1.0.41',
+        },
+        scopes: [{
+          scope: {
+            name: '@industry-theme/backlogmd-kanban-panel',
+            version: '1.0.41',
+          },
+          spanIds: ['span-001', 'span-002', 'span-003'],
+        }],
+      }],
+      scenarioMatches: [],
+      storyboardMatches: [],
+      unmatchedSpans: {
+        spans: [
+          {
+            spanId: 'span-001',
+            spanName: 'kanban.load',
+            scopeName: '@industry-theme/backlogmd-kanban-panel',
+            timestamp: now,
+            duration: 150,
+            reason: 'No storyboards found for scope',
+          },
+          {
+            spanId: 'span-002',
+            parentSpanId: 'span-001',
+            spanName: 'kanban.fetch.tasks',
+            scopeName: '@industry-theme/backlogmd-kanban-panel',
+            timestamp: now + 10,
+            duration: 100,
+            reason: 'No storyboards found for scope',
+          },
+          {
+            spanId: 'span-003',
+            parentSpanId: 'span-001',
+            spanName: 'kanban.render',
+            scopeName: '@industry-theme/backlogmd-kanban-panel',
+            timestamp: now + 120,
+            duration: 30,
+            reason: 'No storyboards found for scope',
+          },
+        ],
+      },
+    };
+
+    return (
+      <ExpansionWrapper>
+        <TraceExpansion trace={trace} theme={theme} />
+      </ExpansionWrapper>
+    );
+  },
+};
+
+/**
+ * Trace with mixed unmatched reasons
+ *
+ * Shows different reasons for unmatched spans:
+ * - Scope mismatch (red - actionable)
+ * - No workflow spanPattern matched (muted - less critical)
+ */
+export const MixedUnmatchedReasons: Story = {
+  render: () => {
+    const { theme } = useTheme();
+
+    const now = Date.now();
+    const trace: import('../types/otel').RegisteredTrace = {
+      traceId: 'trace-mixed-reasons-001',
+      name: 'api.request',
+      startTime: now,
+      endTime: now + 200,
+      duration: 200,
+      spanCount: 4,
+      hasErrors: false,
+      resources: [{
+        serviceIdentifier: 'http://localhost:3000',
+        serviceName: 'test-service',
+        attributes: {
+          'service.name': 'test-service',
+          'service.version': '1.0.0',
+        },
+        scopes: [{
+          scope: {
+            name: 'test-instrumentation',
+            version: '1.0.0',
+          },
+          spanIds: ['span-001', 'span-002', 'span-003', 'span-004'],
+        }],
+      }],
+      scenarioMatches: [],
+      storyboardMatches: [],
+      unmatchedSpans: {
+        spans: [
+          {
+            spanId: 'span-001',
+            spanName: 'unregistered.component.render',
+            scopeName: '@unregistered/component-library',
+            timestamp: now,
+            duration: 50,
+            reason: 'No storyboards found for scope',
+          },
+          {
+            spanId: 'span-002',
+            spanName: 'http.request',
+            scopeName: '@opentelemetry/instrumentation-http',
+            timestamp: now + 50,
+            duration: 100,
+            reason: 'No workflow spanPattern matched this span',
+          },
+          {
+            spanId: 'span-003',
+            spanName: 'db.query',
+            scopeName: '@opentelemetry/instrumentation-pg',
+            timestamp: now + 60,
+            duration: 80,
+            reason: 'No workflow spanPattern matched this span',
+          },
+          {
+            spanId: 'span-004',
+            spanName: 'custom.panel.init',
+            scopeName: '@my-company/custom-panels',
+            timestamp: now + 150,
+            duration: 50,
+            reason: 'No storyboards found for scope',
+          },
+        ],
+      },
+    };
+
+    return (
+      <ExpansionWrapper>
+        <TraceExpansion trace={trace} theme={theme} />
+      </ExpansionWrapper>
+    );
+  },
+};
