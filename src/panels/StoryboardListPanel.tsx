@@ -296,7 +296,11 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
         // Look up the full workflow template from the loaded workflows
         // node.workflow only has metadata, we need the full template with scenarios
         const fullWorkflow = workflows.find(wf => wf.file.path === node.workflow?.path);
-        const workflowToSend = fullWorkflow ? fullWorkflow.template : node.workflow;
+        if (!fullWorkflow) {
+          // Template not loaded yet - don't emit incomplete data
+          console.warn('[StoryboardListPanel] Workflow template not loaded for:', node.workflow?.path);
+          return;
+        }
 
         events.emit({
           type: 'custom',
@@ -308,7 +312,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             canvas: node.storyboard.canvas,
             canvasFileInfo,
             workflowId: node.workflow.id,
-            workflow: workflowToSend, // Send full template with scenarios and description
+            workflow: fullWorkflow.template,
             workflowFileInfo,
             openMode: 'detail', // Indicates canvas detail should be opened
           },
