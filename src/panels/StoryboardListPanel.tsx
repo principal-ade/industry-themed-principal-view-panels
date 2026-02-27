@@ -634,6 +634,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             verticalPadding="10px"
             workflowCoverageMap={workflowCoverageMap}
             gitStatusData={gitStatusData}
+            enablePanelDrag
           />
         ) : (
           <CanvasListTreeCore
@@ -645,6 +646,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             horizontalNodePadding="clamp(16px, 4vw, 24px)"
             verticalPadding="10px"
             gitStatusData={gitStatusData}
+            enablePanelDrag
           />
         )}
       </div>

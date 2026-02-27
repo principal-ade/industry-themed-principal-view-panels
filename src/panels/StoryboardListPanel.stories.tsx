@@ -1747,6 +1747,217 @@ export const GitStatusFiltering: Story = {
  * Git Status Badges
  * Shows git change indicators on canvas, workflow, and overview files
  */
+/**
+ * Drag and Drop Test - Test dragging storyboard items to a terminal-like drop zone
+ * Demonstrates the cross-panel drag functionality where storyboard nodes can be
+ * dragged to insert paths into a terminal or other panels.
+ */
+export const DragAndDropTest: Story = {
+  args: {} as never,
+  render: () => {
+    const [droppedItems, setDroppedItems] = useState<Array<{ timestamp: string; dataType: string; primaryData: string; metadata?: Record<string, unknown> }>>([]);
+
+    const allFiles = [
+      ...createStoryboardFiles('authentication-flow', [
+        { name: 'login-workflow', executions: 1 },
+        { name: 'logout-workflow', executions: 0 },
+      ]),
+      ...createStoryboardFiles('payment-processing', [
+        { name: 'checkout-flow', executions: 2 },
+      ]),
+      ...createStaticCanvasFile('api-design', true),
+    ];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-drag-drop';
+    fileTree.allFiles = allFiles;
+
+    // Handle drop events (simulates terminal drop zone behavior)
+    const handleDrop = (e: React.DragEvent) => {
+      e.preventDefault();
+      const timestamp = new Date().toLocaleTimeString();
+
+      // Try to get panel data (cross-panel format)
+      const panelData = e.dataTransfer.getData('application/x-panel-data');
+      if (panelData) {
+        try {
+          const parsed = JSON.parse(panelData);
+          setDroppedItems(prev => [{
+            timestamp,
+            dataType: parsed.dataType,
+            primaryData: parsed.primaryData,
+            metadata: parsed.metadata,
+          }, ...prev].slice(0, 10));
+          return;
+        } catch {
+          // Fall through to plain text
+        }
+      }
+
+      // Fallback to plain text
+      const text = e.dataTransfer.getData('text/plain');
+      if (text) {
+        setDroppedItems(prev => [{
+          timestamp,
+          dataType: 'text/plain',
+          primaryData: text,
+        }, ...prev].slice(0, 10));
+      }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    };
+
+    return (
+      <div style={{ display: 'flex', height: '100vh', background: '#0a0a0a' }}>
+        {/* Storyboard Panel */}
+        <div style={{ flex: 1 }}>
+          <MockPanelProvider
+            contextOverrides={{
+              fileTree: createMockFileTreeSlice(fileTree),
+            }}
+            actionsOverrides={{
+              readFile: createMockReadFile(fileTree),
+            }}
+          >
+            {(props) => <StoryboardListPanel {...props} />}
+          </MockPanelProvider>
+        </div>
+
+        {/* Drop Zone (simulates terminal) */}
+        <div
+          style={{
+            width: 400,
+            background: '#1a1a1a',
+            borderLeft: '1px solid #333',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div style={{ padding: 16, borderBottom: '1px solid #333' }}>
+            <h3 style={{ margin: 0, color: '#fff', fontSize: 14 }}>
+              Terminal Drop Zone (Simulated)
+            </h3>
+            <p style={{ margin: '8px 0 0 0', color: '#888', fontSize: 12 }}>
+              Drag items from the storyboard list and drop them here to test the drag-and-drop functionality.
+            </p>
+          </div>
+
+          {/* Drop target area */}
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            style={{
+              flex: 1,
+              margin: 16,
+              padding: 16,
+              background: '#0a0a0a',
+              border: '2px dashed #3b82f6',
+              borderRadius: 8,
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
+            }}
+          >
+            <div style={{
+              textAlign: 'center',
+              padding: '20px 0',
+              color: '#3b82f6',
+              fontSize: 13,
+              borderBottom: '1px solid #333',
+              marginBottom: 12,
+            }}>
+              Drop items here to insert path
+            </div>
+
+            {/* Dropped items log */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              fontFamily: 'monospace',
+              fontSize: 11,
+              minHeight: 0,
+            }}>
+              {droppedItems.length === 0 ? (
+                <div style={{ color: '#666', textAlign: 'center', padding: 20 }}>
+                  No items dropped yet.<br/>
+                  Try dragging a Canvas, Workflow, or Overview node.
+                </div>
+              ) : (
+                droppedItems.map((item, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      marginBottom: 12,
+                      padding: 10,
+                      background: '#1a1a1a',
+                      border: '1px solid #333',
+                      borderRadius: 4,
+                    }}
+                  >
+                    <div style={{ color: '#22c55e', marginBottom: 4 }}>
+                      [{item.timestamp}] Dropped!
+                    </div>
+                    <div style={{ color: '#f59e0b', marginBottom: 2 }}>
+                      Type: {item.dataType}
+                    </div>
+                    <div style={{ color: '#fff', wordBreak: 'break-all' }}>
+                      Path: {item.primaryData}
+                    </div>
+                    {item.metadata && (
+                      <div style={{ color: '#888', marginTop: 4, fontSize: 10 }}>
+                        Metadata: {JSON.stringify(item.metadata)}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {droppedItems.length > 0 && (
+              <button
+                onClick={() => setDroppedItems([])}
+                style={{
+                  marginTop: 12,
+                  padding: '8px 12px',
+                  background: '#333',
+                  color: '#aaa',
+                  border: '1px solid #444',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                }}
+              >
+                Clear Log
+              </button>
+            )}
+          </div>
+
+          {/* Instructions */}
+          <div style={{
+            padding: 16,
+            borderTop: '1px solid #333',
+            fontSize: 11,
+            color: '#888',
+            lineHeight: 1.6,
+          }}>
+            <strong style={{ color: '#fff' }}>Draggable Items:</strong>
+            <ul style={{ margin: '8px 0 0 0', paddingLeft: 16 }}>
+              <li><span style={{ color: '#f59e0b' }}>Canvas</span> - .otel.canvas file path</li>
+              <li><span style={{ color: '#8b5cf6' }}>Workflow</span> - .workflow.json file path</li>
+              <li><span style={{ color: '#3b82f6' }}>Overview</span> - .md documentation path</li>
+              <li><span style={{ color: '#10b981' }}>Storyboard</span> - folder directory path</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  },
+};
+
 export const WithGitStatusBadges: Story = {
   args: {} as never,
   render: () => {
