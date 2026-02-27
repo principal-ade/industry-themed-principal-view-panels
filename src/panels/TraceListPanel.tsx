@@ -11,7 +11,6 @@ import { PanelFileSystemAdapter } from '../adapters/PanelFileSystemAdapter';
 import { StoryboardWorkflowsTreeCore, hasWorkflowContent } from '@principal-ade/dynamic-file-tree';
 import type { StoryboardWorkflowNodeData, StoryboardFilterMode } from '@principal-ade/dynamic-file-tree';
 import yaml from 'js-yaml';
-import { getMatchedStoryboardIds } from '../utils/traceHelpers';
 
 type TabView = 'traces' | 'configuration' | 'schematics';
 
@@ -71,15 +70,26 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
   const versionSnapshots = schematicsSlice?.data || [];
   const schematicsLoading = schematicsSlice?.loading || false;
 
+  // Get showConfigurationTab from context (defaults to false)
+  const showConfigurationTab = context.showConfigurationTab ?? false;
+
   // Build set of workflow IDs that have traces
   const traceWorkflowsSet = React.useMemo(() => {
     const workflowSet = new Set<string>();
 
     traces.forEach(trace => {
-      // Extract storyboard IDs from matches
-      // Note: Using storyboardIds since workflowId is not yet in the new API
-      const storyboardIds = getMatchedStoryboardIds(trace);
-      storyboardIds.forEach(id => workflowSet.add(id));
+      // Extract workflow IDs from scenario matches
+      trace.scenarioMatches?.forEach(match => {
+        if (match.workflowId) {
+          workflowSet.add(match.workflowId);
+        }
+      });
+      // Also check storyboard matches for workflow IDs
+      trace.storyboardMatches?.forEach(match => {
+        if (match.workflowId) {
+          workflowSet.add(match.workflowId);
+        }
+      });
     });
 
     return workflowSet;
@@ -149,7 +159,15 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
 
       // Use LibraryDiscovery to find all library.yaml files
       const discovery = new LibraryDiscovery(fsAdapter);
-      const result = await discovery.discover(fileTree);
+      let result: Awaited<ReturnType<typeof discovery.discover>>;
+
+      try {
+        result = await discovery.discover(fileTree);
+      } catch (discoveryError) {
+        // LibraryDiscovery failed (e.g., incompatible fileTree structure in Storybook)
+        console.warn('[TraceListPanel] LibraryDiscovery failed, using empty result:', discoveryError);
+        result = { allServiceNames: [], libraries: [], errors: [], scopeToServiceMap: new Map() };
+      }
 
       // Set discovered services
       setDiscoveredServices(result.allServiceNames);
@@ -352,6 +370,20 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
     // Call clearTelemetry action if available
     if (actions && 'clearTelemetry' in actions && typeof actions.clearTelemetry === 'function') {
       (actions as { clearTelemetry: () => void }).clearTelemetry();
+    }
+  };
+
+  const handleRemoveTrace = (trace: RegisteredTrace) => {
+    // Remove from expanded traces if present
+    setExpandedTraceIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(trace.traceId);
+      return newSet;
+    });
+
+    // Call removeTrace action if available
+    if (actions && 'removeTrace' in actions && typeof actions.removeTrace === 'function') {
+      (actions as { removeTrace: (traceId: string) => void }).removeTrace(trace.traceId);
     }
   };
 
@@ -561,12 +593,13 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
             fontFamily: theme.fonts.body,
             fontSize: theme.fontSizes[1],
             fontWeight: theme.fontWeights.medium,
-            backgroundColor: activeTab === 'traces' ? theme.colors.background : 'transparent',
-            color: activeTab === 'traces' ? theme.colors.text : theme.colors.textSecondary,
+            backgroundColor: 'transparent',
+            color: activeTab === 'traces' ? theme.colors.primary : theme.colors.textSecondary,
             border: 'none',
-            borderBottom: activeTab === 'traces' ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
+            boxShadow: 'none',
             cursor: 'pointer',
             outline: 'none',
+            WebkitAppearance: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -575,33 +608,36 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
         >
           {isCompactTabs ? <Activity size={16} /> : 'Traces'}
         </button>
-        <button
-          onClick={() => setActiveTab('configuration')}
-          title="Configuration"
-          style={{
-            flex: 1,
-            height: '100%',
-            padding: isCompactTabs ? '0 8px' : '0 24px',
-            fontFamily: theme.fonts.body,
-            fontSize: theme.fontSizes[1],
-            fontWeight: theme.fontWeights.medium,
-            backgroundColor: activeTab === 'configuration' ? theme.colors.background : 'transparent',
-            color: activeTab === 'configuration' ? theme.colors.text : theme.colors.textSecondary,
-            border: 'none',
-            borderBottom: activeTab === 'configuration' ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
-            cursor: 'pointer',
-            outline: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-          }}
-        >
-          {isCompactTabs ? <Settings size={16} /> : 'Configuration'}
-        </button>
+        {showConfigurationTab && (
+          <button
+            onClick={() => setActiveTab('configuration')}
+            title="Configuration"
+            style={{
+              flex: 1,
+              height: '100%',
+              padding: isCompactTabs ? '0 8px' : '0 24px',
+              fontFamily: theme.fonts.body,
+              fontSize: theme.fontSizes[1],
+              fontWeight: theme.fontWeights.medium,
+              backgroundColor: 'transparent',
+              color: activeTab === 'configuration' ? theme.colors.primary : theme.colors.textSecondary,
+              border: 'none',
+              boxShadow: 'none',
+              cursor: 'pointer',
+              outline: 'none',
+              WebkitAppearance: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            {isCompactTabs ? <Settings size={16} /> : 'Configuration'}
+          </button>
+        )}
         <button
           onClick={() => setActiveTab('schematics')}
-          title="Schematics"
+          title="Storyboards"
           style={{
             flex: 1,
             height: '100%',
@@ -609,19 +645,20 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
             fontFamily: theme.fonts.body,
             fontSize: theme.fontSizes[1],
             fontWeight: theme.fontWeights.medium,
-            backgroundColor: activeTab === 'schematics' ? theme.colors.background : 'transparent',
-            color: activeTab === 'schematics' ? theme.colors.text : theme.colors.textSecondary,
+            backgroundColor: 'transparent',
+            color: activeTab === 'schematics' ? theme.colors.primary : theme.colors.textSecondary,
             border: 'none',
-            borderBottom: activeTab === 'schematics' ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
+            boxShadow: 'none',
             cursor: 'pointer',
             outline: 'none',
+            WebkitAppearance: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '6px',
           }}
         >
-          {isCompactTabs ? <GitBranch size={16} /> : 'Schematics'}
+          {isCompactTabs ? <GitBranch size={16} /> : 'Storyboards'}
         </button>
       </div>
 
@@ -634,12 +671,13 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
             onTraceClick={handleTraceClick}
             onTraceSelect={handleTraceSelect}
             onWorkflowClick={handleWorkflowClick}
+            onRemoveTrace={handleRemoveTrace}
             onClearAll={handleClearAll}
             expandedTraceIds={expandedTraceIds}
             emptyMessage={traces.length === 0 ? 'No traces received yet. Waiting for telemetry data...' : undefined}
           />
         </div>
-      ) : activeTab === 'configuration' ? (
+      ) : activeTab === 'configuration' && showConfigurationTab ? (
         <div style={{ flex: 1, padding: '16px', overflow: 'auto' }}>
           {configLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -1026,18 +1064,39 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
             </div>
           ) : (
             <>
-              {/* Filter toggle */}
+              {/* Filter segmented control */}
               {versionSnapshots.length > 0 && (
-                <div style={{ padding: '12px 16px', borderBottom: `1px solid ${theme.colors.border}` }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontFamily: theme.fonts.body, fontSize: theme.fontSizes[1] }}>
-                    <input
-                      type="checkbox"
-                      checked={workflowFilterMode === 'with-traces'}
-                      onChange={(e) => setWorkflowFilterMode(e.target.checked ? 'with-traces' : 'all')}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span>Show only workflows with traces</span>
-                  </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    borderBottom: `1px solid ${theme.colors.border}`,
+                  }}
+                >
+                  {(['with-traces', 'all', 'without-traces'] as const).map((mode, index) => {
+                    const isSelected = workflowFilterMode === mode;
+                    const label = mode === 'all' ? 'All' : mode === 'with-traces' ? 'With Traces' : 'Without Traces';
+                    return (
+                      <button
+                        key={mode}
+                        onClick={() => setWorkflowFilterMode(mode)}
+                        style={{
+                          flex: 1,
+                          padding: '10px 12px',
+                          fontFamily: theme.fonts.body,
+                          fontSize: theme.fontSizes[1],
+                          fontWeight: isSelected ? theme.fontWeights.medium : theme.fontWeights.body,
+                          backgroundColor: isSelected ? theme.colors.primary : theme.colors.backgroundSecondary,
+                          color: isSelected ? theme.colors.textOnPrimary : theme.colors.textSecondary,
+                          border: 'none',
+                          borderRight: index < 2 ? `1px solid ${theme.colors.border}` : 'none',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.15s, color 0.15s',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 

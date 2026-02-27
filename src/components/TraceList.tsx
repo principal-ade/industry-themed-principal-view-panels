@@ -15,6 +15,7 @@ export interface TraceListProps {
   onTraceClick?: (trace: RegisteredTrace) => void;
   onTraceSelect?: (trace: RegisteredTrace) => void;
   onWorkflowClick?: (trace: RegisteredTrace, storyboardId: string, workflowId: string, scenarioId: string, spanId: string) => void;
+  onRemoveTrace?: (trace: RegisteredTrace) => void;
   onClearAll?: () => void;
   expandedTraceIds?: Set<string>;
   showSearch?: boolean;
@@ -44,6 +45,7 @@ export const TraceList: React.FC<TraceListProps> = ({
   onTraceClick,
   onTraceSelect,
   onWorkflowClick,
+  onRemoveTrace,
   onClearAll,
   expandedTraceIds,
   showSearch = true,
@@ -149,16 +151,16 @@ export const TraceList: React.FC<TraceListProps> = ({
         boxSizing: 'border-box',
       }}
     >
-      {/* Search Bar with Clear All button */}
-      {showSearch && traces.length > 0 && (
+      {/* Search Bar with Clear All button - only show when more than 5 traces */}
+      {showSearch && traces.length > 5 && (
         <div
           style={{
             display: 'flex',
-            gap: theme.space[1],
+            gap: 0,
             flexShrink: 0,
             minWidth: 0,
             width: '100%',
-            padding: theme.space[2],
+            padding: 0,
             borderBottom: `1px solid ${theme.colors.border}`,
             boxSizing: 'border-box',
           }}
@@ -192,7 +194,8 @@ export const TraceList: React.FC<TraceListProps> = ({
                 fontSize: theme.fontSizes[1],
                 fontFamily: theme.fonts.body,
                 border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.radii[2],
+                borderRight: 'none',
+                borderRadius: 0,
                 background: theme.colors.backgroundSecondary,
                 color: theme.colors.text,
                 outline: 'none',
@@ -235,7 +238,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                 color: theme.colors.error,
                 background: 'transparent',
                 border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.radii[2],
+                borderRadius: 0,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 flexShrink: 0,
@@ -267,7 +270,7 @@ export const TraceList: React.FC<TraceListProps> = ({
           overflowX: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          gap: theme.space[1],
+          gap: 0,
         }}
       >
         {groupedTraces.length === 0 ? (
@@ -277,6 +280,7 @@ export const TraceList: React.FC<TraceListProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%',
+              fontFamily: theme.fonts.body,
               color: theme.colors.textSecondary,
               fontSize: theme.fontSizes[2],
               padding: theme.space[4],
@@ -300,7 +304,7 @@ export const TraceList: React.FC<TraceListProps> = ({
             <div
               onClick={() => onTraceClick?.(trace)}
               style={{
-                padding: theme.space[3],
+                padding: `${theme.space[3]}px ${theme.space[3]}px`,
                 borderBottom: `1px solid ${theme.colors.border}`,
                 borderLeft: expandedTraceIds?.has(trace.traceId)
                   ? `2px solid ${theme.colors.primary}`
@@ -364,6 +368,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                   >
                     <span
                       style={{
+                        fontFamily: theme.fonts.body,
                         fontSize: theme.fontSizes[2],
                         fontWeight: theme.fontWeights.medium,
                         color: trace.hasErrors ? theme.colors.error : theme.colors.text,
@@ -376,6 +381,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                     </span>
                     <span
                       style={{
+                        fontFamily: theme.fonts.body,
                         fontSize: theme.fontSizes[1],
                         color: theme.colors.textSecondary,
                         whiteSpace: 'nowrap',
@@ -392,6 +398,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       gap: theme.space[2],
+                      fontFamily: theme.fonts.body,
                       fontSize: theme.fontSizes[1],
                       minWidth: 0,
                     }}
@@ -408,6 +415,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                             alignItems: 'center',
                             gap: theme.space[1],
                             padding: '2px 8px',
+                            fontFamily: theme.fonts.body,
                             fontSize: theme.fontSizes[1],
                             backgroundColor: `${theme.colors.primary}15`,
                             color: theme.colors.primary,
@@ -451,6 +459,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                       return (
                         <span
                           style={{
+                            fontFamily: theme.fonts.body,
                             color: theme.colors.textSecondary,
                             whiteSpace: 'nowrap',
                             flexShrink: 0,
@@ -465,37 +474,80 @@ export const TraceList: React.FC<TraceListProps> = ({
                   </div>
                 </div>
 
-                {/* Trace ID - click to show trace details */}
-                <code
-                  onClick={(e) => handleTraceIdClick(trace, e)}
-                  title={`View trace ${trace.traceId}`}
+                {/* Trace ID and Remove button */}
+                <div
                   style={{
-                    fontSize: theme.fontSizes[1],
-                    fontFamily: theme.fonts.monospace,
-                    color: onTraceSelect ? theme.colors.primary : theme.colors.textMuted,
-                    whiteSpace: 'nowrap',
-                    cursor: onTraceSelect ? 'pointer' : 'default',
-                    padding: '2px 4px',
-                    borderRadius: theme.radii[1],
-                    transition: 'all 0.15s ease',
-                    userSelect: 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                    gap: theme.space[1],
                     flexShrink: 0,
                   }}
-                  onMouseEnter={(e) => {
-                    if (onTraceSelect) {
-                      e.currentTarget.style.background = `${theme.colors.primary}15`;
-                      e.currentTarget.style.color = theme.colors.primary;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (onTraceSelect) {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = theme.colors.primary;
-                    }
-                  }}
                 >
-                  {truncateTraceId(trace.traceId)}
-                </code>
+                  <code
+                    onClick={(e) => handleTraceIdClick(trace, e)}
+                    title={`View trace ${trace.traceId}`}
+                    style={{
+                      fontSize: theme.fontSizes[1],
+                      fontFamily: theme.fonts.monospace,
+                      color: onTraceSelect ? theme.colors.primary : theme.colors.textMuted,
+                      whiteSpace: 'nowrap',
+                      cursor: onTraceSelect ? 'pointer' : 'default',
+                      padding: '2px 4px',
+                      borderRadius: theme.radii[1],
+                      transition: 'all 0.15s ease',
+                      userSelect: 'none',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (onTraceSelect) {
+                        e.currentTarget.style.background = `${theme.colors.primary}15`;
+                        e.currentTarget.style.color = theme.colors.primary;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (onTraceSelect) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = theme.colors.primary;
+                      }
+                    }}
+                  >
+                    {truncateTraceId(trace.traceId)}
+                  </code>
+                  {onRemoveTrace && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveTrace(trace);
+                      }}
+                      title="Remove trace"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: theme.space[1],
+                        padding: '2px 6px',
+                        fontSize: theme.fontSizes[0],
+                        fontFamily: theme.fonts.body,
+                        color: theme.colors.textSecondary,
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: theme.radii[1],
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = theme.colors.error;
+                        e.currentTarget.style.background = `${theme.colors.error}10`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = theme.colors.textSecondary;
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <X size={12} />
+                      Remove
+                    </button>
+                  )}
+                </div>
               </div>
 
               </div>

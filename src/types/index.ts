@@ -120,6 +120,8 @@ export interface TraceListPanelContext {
   schematics?: DataSlice<VersionSnapshot[]>;
   fileTree?: DataSlice<FileTree>;
   git?: DataSlice<GitStatusWithFiles>;
+  /** Whether to show the Configuration tab. Defaults to false. */
+  showConfigurationTab?: boolean;
 }
 
 /**

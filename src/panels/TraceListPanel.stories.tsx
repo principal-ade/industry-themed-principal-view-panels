@@ -525,6 +525,10 @@ export const Default: Story = {
             console.log('[Mock] Clearing telemetry data');
             setTraces([]);
           },
+          removeTrace: (traceId: string) => {
+            console.log('[Mock] Removing trace:', traceId);
+            setTraces(prev => prev.filter(t => t.traceId !== traceId));
+          },
         }}
       >
         {(props) => <TraceListPanel {...props} />}
@@ -558,6 +562,10 @@ export const WithErrors: Story = {
           clearTelemetry: () => {
             console.log('[Mock] Clearing telemetry data');
             setTraces([]);
+          },
+          removeTrace: (traceId: string) => {
+            console.log('[Mock] Removing trace:', traceId);
+            setTraces(prev => prev.filter(t => t.traceId !== traceId));
           },
         }}
       >
@@ -674,6 +682,10 @@ export const WithPartialSpanMatching: Story = {
           clearTelemetry: () => {
             console.log('[Mock] Clearing telemetry data');
             setTraces([]);
+          },
+          removeTrace: (traceId: string) => {
+            console.log('[Mock] Removing trace:', traceId);
+            setTraces(prev => prev.filter(t => t.traceId !== traceId));
           },
         }}
       >
@@ -792,6 +804,10 @@ export const WithOrphanedSpans: Story = {
           clearTelemetry: () => {
             console.log('[Mock] Clearing telemetry data');
             setTraces([]);
+          },
+          removeTrace: (traceId: string) => {
+            console.log('[Mock] Removing trace:', traceId);
+            setTraces(prev => prev.filter(t => t.traceId !== traceId));
           },
         }}
       >
@@ -922,6 +938,10 @@ export const WithSpanHierarchy: Story = {
             console.log('[Mock] Clearing telemetry data');
             setTraces([]);
           },
+          removeTrace: (traceId: string) => {
+            console.log('[Mock] Removing trace:', traceId);
+            setTraces(prev => prev.filter(t => t.traceId !== traceId));
+          },
         }}
       >
         {(props) => <TraceListPanel {...props} />}
@@ -1047,6 +1067,10 @@ export const WithMultiWorkflowMatching: Story = {
             console.log('[Mock] Clearing telemetry data');
             setTraces([]);
           },
+          removeTrace: (traceId: string) => {
+            console.log('[Mock] Removing trace:', traceId);
+            setTraces(prev => prev.filter(t => t.traceId !== traceId));
+          },
         }}
       >
         {(props) => <TraceListPanel {...props} />}
@@ -1080,6 +1104,10 @@ export const WithWorkflowMatching: Story = {
           clearTelemetry: () => {
             console.log('[Mock] Clearing telemetry data');
             setTraces([]);
+          },
+          removeTrace: (traceId: string) => {
+            console.log('[Mock] Removing trace:', traceId);
+            setTraces(prev => prev.filter(t => t.traceId !== traceId));
           },
         }}
       >

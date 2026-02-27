@@ -64,7 +64,7 @@ export const JsonViewer: React.FC<JsonViewerProps> = ({
       base0E: theme.colors.primary, // Keywords, purple
       base0F: theme.colors.error, // Deprecated, brown
     };
-  }, [theme, isDarkMode]);
+  }, [theme]);
 
   // Determine if a node should be expanded based on depth
   const shouldExpandNodeInitially = useMemo(() => {

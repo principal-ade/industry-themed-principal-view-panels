@@ -99,6 +99,10 @@ export const createMockContext = <T extends PanelContextValue = PanelContextValu
             type: 'file',
           },
         ],
+        allFiles: [
+          '/Users/developer/my-project/package.json',
+          '/Users/developer/my-project/src/index.ts',
+        ],
       }),
     ],
     [
@@ -142,6 +146,19 @@ export const createMockContext = <T extends PanelContextValue = PanelContextValu
       repository: {
         name: 'my-project',
         path: '/Users/developer/my-project',
+      },
+    },
+    // Mock adapters for file system operations
+    adapters: {
+      fileSystem: {
+        readFile: async (path: string) => {
+          console.log('[Mock] adapters.fileSystem.readFile:', path);
+          return '{}';
+        },
+        writeFile: async (path: string, content: string) => {
+          console.log('[Mock] adapters.fileSystem.writeFile:', path);
+          console.log('[Mock] Content:', content);
+        },
       },
     },
     // Typed slice properties (new pattern - direct access)
