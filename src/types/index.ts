@@ -118,8 +118,8 @@ export interface TraceListPanelActions extends PanelActions {
 export interface TraceListPanelContext {
   telemetry: DataSlice<RegisteredTrace[]>;
   schematics?: DataSlice<VersionSnapshot[]>;
-  fileTree?: DataSlice<FileTree>;
-  git?: DataSlice<GitStatusWithFiles>;
+  fileTree: DataSlice<FileTree | null>;
+  git?: DataSlice<GitStatusWithFiles | null>;
   /** Whether to show the Configuration tab. Defaults to false. */
   showConfigurationTab?: boolean;
 }
