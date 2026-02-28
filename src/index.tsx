@@ -23,6 +23,9 @@ export type { FileTreeEntry, PanelFileSystemAdapterOptions } from './adapters/Pa
 export type { RegisteredTrace, WorkflowMatch } from './types/otel';
 export { getServiceName, getSpansFromTrace, getRootSpan, getResource } from './types/otel';
 
+// Re-export event payload types for panel navigation
+export type { OpenCanvasPayload } from './types';
+
 // Re-export trace components
 export { TraceExpansion } from './components/TraceExpansion';
 export type { TraceExpansionProps } from './components/TraceExpansion';

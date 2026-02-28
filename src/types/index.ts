@@ -43,7 +43,7 @@ import type {
 } from '@principal-ade/panel-framework-core';
 
 import type { FileTree, GitStatusWithFiles } from '@principal-ai/repository-abstraction';
-import type { VersionSnapshot } from '@principal-ai/principal-view-core';
+import type { VersionSnapshot, WorkflowTemplate } from '@principal-ai/principal-view-core';
 import type { RegisteredTrace } from './otel';
 
 // ============================================================================
@@ -131,3 +131,42 @@ export type TraceListPanelPropsTyped = PanelComponentProps<
   TraceListPanelActions,
   TraceListPanelContext
 >;
+
+// ============================================================================
+// Panel Event Payloads
+// ============================================================================
+
+/**
+ * Payload for 'custom' event with action: 'openCanvas'
+ * Emitted by TraceListPanel when a matched workflow span is clicked.
+ * Used to navigate to WorkflowScenariosPanel with the appropriate context.
+ */
+export interface OpenCanvasPayload {
+  action: 'openCanvas';
+  /** Canvas ID (if available from storyboard) */
+  canvasId?: string;
+  /** Path to the .canvas file */
+  canvasPath?: string;
+  /** Canvas metadata */
+  canvas?: { id: string; path: string; name: string };
+  /** Workflow ID to display */
+  workflowId: string;
+  /** Path to the workflow file */
+  workflowPath?: string;
+  /** Full workflow template with scenarios */
+  workflow?: WorkflowTemplate;
+  /** How to open: 'detail' for WorkflowScenariosPanel, 'editor' for CanvasEditorPanel */
+  openMode: 'detail' | 'editor';
+  /** Storyboard ID containing the workflow */
+  storyboardId: string;
+  /** Storyboard display name */
+  storyboardName: string;
+  /** Scenario ID to highlight */
+  scenarioId: string;
+  /** The trace that triggered this navigation */
+  trace: RegisteredTrace;
+  /** Trace ID for context */
+  traceId: string;
+  /** Span ID to highlight in the workflow view */
+  spanId: string;
+}
