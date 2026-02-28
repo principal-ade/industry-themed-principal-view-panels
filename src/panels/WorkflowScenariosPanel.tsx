@@ -352,6 +352,9 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     );
   }, [allLiveTraces, selectedWorkflowIdProp]);
 
+  // Track whether to fit viewport to active nodes (one-shot on trace load)
+  const [shouldFitToNodes, setShouldFitToNodes] = useState(false);
+
   const [state, setState] = useState<WorkflowScenariosPanelState>({
     canvas: null,
     execution: null,
@@ -621,6 +624,9 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
           currentEventIndex: -1,
         };
       });
+
+      // Trigger fit-to-nodes when scenario/span changes (even within same trace)
+      setShouldFitToNodes(true);
     } else if (selectedWorkflowIdProp === null && workflowTemplateProp === null) {
       // Clear narrative if explicitly set to null
       setState(prev => ({
@@ -721,6 +727,9 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                 : prev.executionScenarioMap,
             };
           });
+
+          // Trigger fit-to-nodes after trace loads
+          setShouldFitToNodes(true);
         }
       }
     }
@@ -1302,6 +1311,32 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     return null;
   }, [state.execution, state.canvas, state.hoveredExecution, state.hoveredScenarioEventNames, state.workflowTemplate, state.selectedScenario]);
 
+  // Compute fitViewToNodeIds - only when shouldFitToNodes is true (one-shot on trace load)
+  const fitViewToNodeIds = useMemo(() => {
+    if (shouldFitToNodes) {
+      // If we have active nodes, fit to those
+      if (activeNodeIds && activeNodeIds.length > 0) {
+        return activeNodeIds;
+      }
+      // Otherwise fit to all canvas nodes (zoom out to show full canvas)
+      if (state.canvas?.nodes && state.canvas.nodes.length > 0) {
+        return state.canvas.nodes.map(n => n.id);
+      }
+    }
+    return undefined;
+  }, [shouldFitToNodes, activeNodeIds, state.canvas?.nodes]);
+
+  // Clear shouldFitToNodes after the fit happens (one-shot behavior)
+  useEffect(() => {
+    if (shouldFitToNodes) {
+      // Allow time for the fit animation to trigger, then reset
+      const timeoutId = setTimeout(() => {
+        setShouldFitToNodes(false);
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [shouldFitToNodes]);
+
   // Calculate if all scenarios have test traces
   const isFullyCovered = useMemo(() => {
     if (!state.workflowTemplate || !state.workflowTemplate.scenarios) return false;
@@ -1565,8 +1600,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                       }));
                     }}
                     scenarioName={
-                      state.selectedExecutionId && state.executionScenarioMap[state.selectedExecutionId]
-                        ? state.executionScenarioMap[state.selectedExecutionId]
+                      (state.selectedScenarioId || (state.selectedExecutionId && state.executionScenarioMap[state.selectedExecutionId]))
+                        ? (state.selectedScenarioId || state.executionScenarioMap[state.selectedExecutionId!])
                             .split('-')
                             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                             .join(' ')
@@ -1741,6 +1776,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                   showTooltips={true}
                   highlightedNodeId={state.highlightedNodeId}
                   activeNodeIds={activeNodeIds}
+                  fitViewToNodeIds={fitViewToNodeIds}
+                  fitViewPadding={0.15}
                   onNodeClick={handleNodeClick}
                   showNodeDetailPanel={false}
                 />

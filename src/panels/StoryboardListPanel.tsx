@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useCallback } from 'react';
 import type { StoryboardListPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
-import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check } from 'lucide-react';
+import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check, Network } from 'lucide-react';
 import { useCanvasWorkflowData } from './canvas-list/hooks/useCanvasWorkflowData';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
 import { StoryboardLoadingGraph } from './canvas-list/components/StoryboardLoadingGraph';
@@ -94,12 +94,35 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [cliCommandCopied, setCliCommandCopied] = useState(false);
-  const [canvasTypeFilter, setCanvasTypeFilter] = useState<'otel' | 'regular'>('otel');
+  const [canvasTypeFilter, setCanvasTypeFilter] = useState<'otel' | 'regular' | null>(null);
 
   // Load storyboard data from discovery system
   // Storyboards come directly from the discovery system (no transformation needed)
   // Also load full workflow templates for sending complete data when workflows are clicked
   const { storyboards, workflows, testTraces, isLoading, error, discovery } = useCanvasWorkflowData({ context, actions });
+
+  // Count storyboards by type to determine default tab
+  const { otelCount, staticCount } = useMemo(() => {
+    const otel = storyboards.filter(sb => sb.canvas.type === 'otel').length;
+    const regular = storyboards.filter(sb => sb.canvas.type === 'regular').length;
+    return { otelCount: otel, staticCount: regular };
+  }, [storyboards]);
+
+  // Auto-select the tab that has content (only once when data loads)
+  // If both have content, prefer OTEL; if neither, default to OTEL
+  const effectiveCanvasTypeFilter = useMemo(() => {
+    if (canvasTypeFilter !== null) {
+      return canvasTypeFilter;
+    }
+    // Auto-select: prefer the one with content, or OTEL if both/neither have content
+    if (otelCount > 0 && staticCount === 0) {
+      return 'otel';
+    }
+    if (staticCount > 0 && otelCount === 0) {
+      return 'regular';
+    }
+    return 'otel'; // Default to OTEL if both have content or neither has content
+  }, [canvasTypeFilter, otelCount, staticCount]);
 
   // Get fileTree to access FileInfo metadata
   // Get fileTree and git from typed context (direct property access)
@@ -224,7 +247,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     let filtered = storyboards;
 
     // Filter by canvas type (always filter to show one type)
-    filtered = filtered.filter((storyboard) => storyboard.canvas.type === canvasTypeFilter);
+    filtered = filtered.filter((storyboard) => storyboard.canvas.type === effectiveCanvasTypeFilter);
 
     // Filter by search query
     if (searchQuery.trim()) {
@@ -247,7 +270,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     }
 
     return filtered;
-  }, [storyboards, searchQuery, canvasTypeFilter]);
+  }, [storyboards, searchQuery, effectiveCanvasTypeFilter]);
 
   // Extract canvases for static canvas view (when canvasTypeFilter === 'regular')
   const filteredCanvases = useMemo(() => {
@@ -355,6 +378,13 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
       setTimeout(() => setCliCommandCopied(false), 2000);
     });
   }, [storyboards.length]);
+
+  const handleCopyInitCommand = useCallback(() => {
+    navigator.clipboard.writeText('npx @principal-ai/principal-view-cli@latest init').then(() => {
+      setCliCommandCopied(true);
+      setTimeout(() => setCliCommandCopied(false), 2000);
+    });
+  }, []);
 
   return (
     <div
@@ -468,42 +498,42 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
           padding: '3px',
         }}>
           <button
-            onClick={() => setCanvasTypeFilter('otel')}
+            onClick={() => setCanvasTypeFilter('regular')}
             style={{
               flex: 1,
-              background: canvasTypeFilter === 'otel' ? theme.colors.primary : 'transparent',
+              background: effectiveCanvasTypeFilter === 'regular' ? theme.colors.primary : 'transparent',
               border: 'none',
               borderRadius: theme.radii[1],
               padding: '6px 12px',
               cursor: 'pointer',
               fontSize: theme.fontSizes[1],
               fontFamily: theme.fonts.body,
-              fontWeight: canvasTypeFilter === 'otel' ? 600 : 400,
-              color: canvasTypeFilter === 'otel' ? 'white' : theme.colors.text,
+              fontWeight: effectiveCanvasTypeFilter === 'regular' ? 600 : 400,
+              color: effectiveCanvasTypeFilter === 'regular' ? 'white' : theme.colors.text,
+              transition: 'all 0.2s ease',
+            }}
+            title="Static architecture .canvas files"
+          >
+            Architecture
+          </button>
+          <button
+            onClick={() => setCanvasTypeFilter('otel')}
+            style={{
+              flex: 1,
+              background: effectiveCanvasTypeFilter === 'otel' ? theme.colors.primary : 'transparent',
+              border: 'none',
+              borderRadius: theme.radii[1],
+              padding: '6px 12px',
+              cursor: 'pointer',
+              fontSize: theme.fontSizes[1],
+              fontFamily: theme.fonts.body,
+              fontWeight: effectiveCanvasTypeFilter === 'otel' ? 600 : 400,
+              color: effectiveCanvasTypeFilter === 'otel' ? 'white' : theme.colors.text,
               transition: 'all 0.2s ease',
             }}
             title="Runtime validated .otel.canvas files"
           >
-            OTEL
-          </button>
-          <button
-            onClick={() => setCanvasTypeFilter('regular')}
-            style={{
-              flex: 1,
-              background: canvasTypeFilter === 'regular' ? theme.colors.primary : 'transparent',
-              border: 'none',
-              borderRadius: theme.radii[1],
-              padding: '6px 12px',
-              cursor: 'pointer',
-              fontSize: theme.fontSizes[1],
-              fontFamily: theme.fonts.body,
-              fontWeight: canvasTypeFilter === 'regular' ? 600 : 400,
-              color: canvasTypeFilter === 'regular' ? 'white' : theme.colors.text,
-              transition: 'all 0.2s ease',
-            }}
-            title="Static documentation .canvas files"
-          >
-            Static
+            OTEL Workflows
           </button>
         </div>
 
@@ -610,24 +640,154 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              color: theme.colors.textSecondary,
-              padding: '24px',
+              color: theme.colors.textMuted,
+              padding: theme.space[4],
+              fontFamily: theme.fonts.body,
             }}
           >
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: theme.fontSizes[2] }}>
-                {searchQuery
-                  ? 'No storyboards match your search'
-                  : `No ${canvasTypeFilter === 'otel' ? '.otel.canvas' : '.canvas'} files found`}
-              </p>
-              <p style={{ margin: '8px 0 0 0', fontSize: theme.fontSizes[1] }}>
-                {searchQuery
-                  ? 'Try a different search term'
-                  : `Add ${canvasTypeFilter === 'otel' ? '.otel.canvas' : '.canvas'} files to .principal-views/ to get started`}
-              </p>
-            </div>
+            {searchQuery ? (
+              <div style={{ textAlign: 'center', fontFamily: theme.fonts.body }}>
+                <Network size={56} style={{ marginBottom: theme.space[3], opacity: 0.3 }} />
+                <p style={{ margin: 0, fontSize: theme.fontSizes[2] }}>
+                  No storyboards match your search
+                </p>
+                <p style={{ margin: `${theme.space[2]}px 0 0 0`, fontSize: theme.fontSizes[1] }}>
+                  Try a different search term
+                </p>
+              </div>
+            ) : effectiveCanvasTypeFilter === 'otel' ? (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                fontFamily: theme.fonts.body,
+                maxWidth: '500px',
+                width: '90%',
+              }}>
+                <Network size={56} style={{ marginBottom: theme.space[3], opacity: 0.3 }} />
+                <span style={{
+                  fontSize: theme.fontSizes[3],
+                  fontWeight: theme.fontWeights.medium,
+                  marginBottom: theme.space[2],
+                  color: theme.colors.text,
+                }}>
+                  No OTEL Workflows found
+                </span>
+                <span style={{
+                  fontSize: theme.fontSizes[2],
+                  marginBottom: theme.space[3],
+                  lineHeight: 1.5,
+                }}>
+                  Create runtime-validated canvases that connect to your codebase with OpenTelemetry traces.
+                </span>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: theme.space[2],
+                  width: '100%',
+                }}>
+                  <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textMuted, marginTop: `${theme.space[4]}px` }}>
+                    Run this command to get started:
+                  </span>
+                  <button
+                    onClick={handleCopyInitCommand}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: theme.space[2],
+                      padding: `${theme.space[2]}px ${theme.space[3]}px`,
+                      backgroundColor: theme.colors.backgroundSecondary,
+                      color: theme.colors.text,
+                      border: `1px solid ${theme.colors.border}`,
+                      borderRadius: theme.radii[2],
+                      cursor: 'pointer',
+                      fontFamily: theme.fonts.monospace,
+                      fontSize: theme.fontSizes[1],
+                      textAlign: 'left',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <code>
+                      npx @principal-ai/principal-view-cli@latest init
+                    </code>
+                    {cliCommandCopied ? (
+                      <Check size={16} style={{ color: theme.colors.success || '#22c55e', flexShrink: 0 }} />
+                    ) : (
+                      <Copy size={16} style={{ color: theme.colors.textMuted, flexShrink: 0 }} />
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                fontFamily: theme.fonts.body,
+                maxWidth: '500px',
+                width: '90%',
+              }}>
+                <Network size={56} style={{ marginBottom: theme.space[3], opacity: 0.3 }} />
+                <span style={{
+                  fontSize: theme.fontSizes[3],
+                  fontWeight: theme.fontWeights.medium,
+                  marginBottom: theme.space[2],
+                  color: theme.colors.text,
+                }}>
+                  No Architecture Diagrams found
+                </span>
+                <span style={{
+                  fontSize: theme.fontSizes[2],
+                  marginBottom: theme.space[3],
+                  lineHeight: 1.5,
+                }}>
+                  Create architecture diagrams to document your codebase structure.
+                </span>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: theme.space[2],
+                  width: '100%',
+                }}>
+                  <span style={{ fontSize: theme.fontSizes[1], color: theme.colors.textMuted, marginTop: `${theme.space[4]}px` }}>
+                    Run this command to get started:
+                  </span>
+                  <button
+                    onClick={handleCopyInitCommand}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: theme.space[2],
+                      padding: `${theme.space[2]}px ${theme.space[3]}px`,
+                      backgroundColor: theme.colors.backgroundSecondary,
+                      color: theme.colors.text,
+                      border: `1px solid ${theme.colors.border}`,
+                      borderRadius: theme.radii[2],
+                      cursor: 'pointer',
+                      fontFamily: theme.fonts.monospace,
+                      fontSize: theme.fontSizes[1],
+                      textAlign: 'left',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <code>
+                      npx @principal-ai/principal-view-cli@latest init
+                    </code>
+                    {cliCommandCopied ? (
+                      <Check size={16} style={{ color: theme.colors.success || '#22c55e', flexShrink: 0 }} />
+                    ) : (
+                      <Copy size={16} style={{ color: theme.colors.textMuted, flexShrink: 0 }} />
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        ) : canvasTypeFilter === 'otel' ? (
+        ) : effectiveCanvasTypeFilter === 'otel' ? (
           <StoryboardWorkflowsTreeCore
             storyboards={filteredStoryboards}
             theme={theme}
