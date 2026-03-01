@@ -231,7 +231,8 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                   <span
                     style={{
                       fontSize: theme.fontSizes[1],
-                      color: span.reason.includes('No storyboards found for scope')
+                      color: span.reason.includes('not registered in any owned-scopes') ||
+                             span.reason.includes('has no storyboards')
                         ? theme.colors.error || '#ef4444'
                         : theme.colors.textMuted,
                       marginLeft: theme.space[2],
