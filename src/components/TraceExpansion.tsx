@@ -45,6 +45,22 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
   onWorkflowClick,
   onSpanClick,
 }) => {
+  // Build span index map from original OTLP data (preserves ingestion order)
+  const spanIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    let index = 0;
+
+    for (const resourceSpan of trace.otlpData?.resourceSpans || []) {
+      for (const scopeSpan of resourceSpan.scopeSpans || []) {
+        for (const span of scopeSpan.spans || []) {
+          map.set(span.spanId, index++);
+        }
+      }
+    }
+
+    return map;
+  }, [trace.otlpData]);
+
   // Collect all spans and sort by timestamp, calculating depth from parent relationships
   const sortedSpans = useMemo(() => {
     const spans: Omit<SpanItem, 'depth'>[] = [];
@@ -119,8 +135,15 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
       depth: getDepth(span.spanId),
     }));
 
-    return spansWithDepth.sort((a, b) => a.timestamp - b.timestamp);
-  }, [trace.scenarioMatches, trace.storyboardMatches, trace.unmatchedSpans]);
+    return spansWithDepth.sort((a, b) => {
+      const timeDiff = a.timestamp - b.timestamp;
+      if (timeDiff !== 0) return timeDiff;
+      // Tiebreaker: original ingestion order from OTLP data
+      const indexA = spanIndexMap.get(a.spanId) ?? Infinity;
+      const indexB = spanIndexMap.get(b.spanId) ?? Infinity;
+      return indexA - indexB;
+    });
+  }, [trace.scenarioMatches, trace.storyboardMatches, trace.unmatchedSpans, spanIndexMap]);
 
   const hasAnyMatches = sortedSpans.length > 0;
 

@@ -601,6 +601,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
           <GraphRenderer
             ref={graphRef}
             canvas={state.canvas}
+            library={state.library ?? undefined}
             width={dimensions.width}
             height={dimensions.height}
             editable={state.isEditMode}

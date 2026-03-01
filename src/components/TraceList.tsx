@@ -232,7 +232,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: theme.space[1],
-                padding: `${theme.space[1]} ${theme.space[2]}`,
+                padding: `${theme.space[1]}px ${theme.space[2]}px`,
                 fontSize: theme.fontSizes[1],
                 fontFamily: theme.fonts.body,
                 color: theme.colors.error,

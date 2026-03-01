@@ -402,6 +402,116 @@ export const ScopeMismatch: Story = {
 };
 
 /**
+ * Same timestamp ordering test
+ *
+ * Tests that spans with identical timestamps are ordered by their
+ * original ingestion order from the OTLP data, not arbitrarily.
+ * panel.lifecycle should appear before kanban.load because it comes
+ * first in the OTLP spans array.
+ */
+export const SameTimestampOrdering: Story = {
+  render: () => {
+    const { theme } = useTheme();
+
+    const timestamp = Date.now();
+    const trace: import('../types/otel').RegisteredTrace = {
+      traceId: 'trace-same-timestamp-001',
+      name: 'panel.lifecycle',
+      startTime: timestamp,
+      endTime: timestamp + 1,
+      duration: 1,
+      spanCount: 2,
+      hasErrors: false,
+      resources: [{
+        serviceIdentifier: 'http://localhost:6006',
+        serviceName: 'test-storybook',
+        attributes: {
+          'service.name': 'test-storybook',
+          'service.version': '1.0.0',
+        },
+        scopes: [{
+          scope: {
+            name: '@test/panel',
+            version: '1.0.0',
+          },
+          spanIds: ['span-lifecycle', 'span-kanban'],
+        }],
+      }],
+      scenarioMatches: [],
+      storyboardMatches: [],
+      unmatchedSpans: {
+        spans: [
+          {
+            spanId: 'span-lifecycle',
+            spanName: 'panel.lifecycle',
+            scopeName: '@test/panel',
+            timestamp, // Same timestamp
+            duration: 0,
+            reason: 'No storyboards found for scope',
+          },
+          {
+            spanId: 'span-kanban',
+            spanName: 'kanban.load',
+            scopeName: '@test/panel',
+            timestamp, // Same timestamp
+            duration: 1,
+            reason: 'No storyboards found for scope',
+          },
+        ],
+      },
+      // Include OTLP data with spans in the expected order
+      otlpData: {
+        resourceSpans: [{
+          resource: {
+            attributes: [
+              { key: 'service.name', value: { stringValue: 'test-storybook' } },
+            ],
+          },
+          scopeSpans: [{
+            scope: { name: '@test/panel', version: '1.0.0' },
+            spans: [
+              // panel.lifecycle comes FIRST in ingestion order
+              {
+                traceId: 'trace-same-timestamp-001',
+                spanId: 'span-lifecycle',
+                name: 'panel.lifecycle',
+                kind: 1,
+                startTimeUnixNano: `${timestamp}000000`,
+                endTimeUnixNano: `${timestamp}000000`,
+                attributes: [],
+                events: [],
+                status: { code: 1 },
+              },
+              // kanban.load comes SECOND
+              {
+                traceId: 'trace-same-timestamp-001',
+                spanId: 'span-kanban',
+                name: 'kanban.load',
+                kind: 1,
+                startTimeUnixNano: `${timestamp}000000`,
+                endTimeUnixNano: `${timestamp + 1}000000`,
+                attributes: [],
+                events: [],
+                status: { code: 1 },
+              },
+            ],
+          }],
+        }],
+      },
+    };
+
+    return (
+      <ExpansionWrapper>
+        <div style={{ marginBottom: '16px', color: '#888', fontSize: '12px' }}>
+          Expected order: panel.lifecycle → kanban.load (both have same timestamp, ordered by ingestion)
+        </div>
+        <TraceExpansion trace={trace} theme={theme} />
+      </ExpansionWrapper>
+    );
+  },
+};
+
+/**
  * Trace with mixed unmatched reasons
  *
  * Shows different reasons for unmatched spans:
