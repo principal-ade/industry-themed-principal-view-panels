@@ -129,20 +129,66 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
       return 1 + getDepth(span.parentSpanId, visited);
     };
 
-    // Add depth to each span and sort by timestamp
+    // Add depth to each span
     const spansWithDepth: SpanItem[] = spans.map(span => ({
       ...span,
       depth: getDepth(span.spanId),
     }));
 
-    return spansWithDepth.sort((a, b) => {
-      const timeDiff = a.timestamp - b.timestamp;
-      if (timeDiff !== 0) return timeDiff;
-      // Tiebreaker: original ingestion order from OTLP data
-      const indexA = spanIndexMap.get(a.spanId) ?? Infinity;
-      const indexB = spanIndexMap.get(b.spanId) ?? Infinity;
-      return indexA - indexB;
-    });
+    // Build hierarchical order: root spans first, then children in timestamp order
+    // This ensures parents always appear before their children
+    const buildHierarchicalOrder = (spans: SpanItem[]): SpanItem[] => {
+      const result: SpanItem[] = [];
+      const spanById = new Map(spans.map(s => [s.spanId, s]));
+      const childrenOf = new Map<string | undefined, SpanItem[]>();
+
+      // Group spans by parent
+      for (const span of spans) {
+        const parentId = span.parentSpanId;
+        if (!childrenOf.has(parentId)) {
+          childrenOf.set(parentId, []);
+        }
+        childrenOf.get(parentId)!.push(span);
+      }
+
+      // Sort each group by timestamp
+      for (const children of childrenOf.values()) {
+        children.sort((a, b) => {
+          const timeDiff = a.timestamp - b.timestamp;
+          if (timeDiff !== 0) return timeDiff;
+          const indexA = spanIndexMap.get(a.spanId) ?? Infinity;
+          const indexB = spanIndexMap.get(b.spanId) ?? Infinity;
+          return indexA - indexB;
+        });
+      }
+
+      // Recursively add spans in hierarchical order
+      const addSpanAndChildren = (span: SpanItem) => {
+        result.push(span);
+        const children = childrenOf.get(span.spanId) || [];
+        for (const child of children) {
+          addSpanAndChildren(child);
+        }
+      };
+
+      // Start with root spans (no parent or parent not in our list)
+      const rootSpans = spans.filter(s => !s.parentSpanId || !spanById.has(s.parentSpanId));
+      rootSpans.sort((a, b) => {
+        const timeDiff = a.timestamp - b.timestamp;
+        if (timeDiff !== 0) return timeDiff;
+        const indexA = spanIndexMap.get(a.spanId) ?? Infinity;
+        const indexB = spanIndexMap.get(b.spanId) ?? Infinity;
+        return indexA - indexB;
+      });
+
+      for (const root of rootSpans) {
+        addSpanAndChildren(root);
+      }
+
+      return result;
+    };
+
+    return buildHierarchicalOrder(spansWithDepth);
   }, [trace.scenarioMatches, trace.storyboardMatches, trace.unmatchedSpans, spanIndexMap]);
 
   const hasAnyMatches = sortedSpans.length > 0;
