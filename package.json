@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/principal-view-panels",
-  "version": "0.11.39",
+  "version": "0.11.40",
   "description": "Principal View Graph Panels for visualizing graph configurations from .principal-views/ folder as interactive diagrams",
   "type": "module",
   "main": "dist/panels.bundle.js",
@@ -52,12 +52,13 @@
     "build-storybook": "storybook build"
   },
   "peerDependencies": {
+    "@opentelemetry/api": "^1.8.0",
     "@principal-ade/dynamic-file-tree": "^0.1.70",
     "@principal-ade/industry-theme": "^0.1.7",
     "@principal-ade/panel-framework-core": "^0.4.2",
     "@principal-ade/utcp-panel-event": "^0.1.0",
     "@principal-ai/codebase-composition": "^0.2.43",
-    "@principal-ai/principal-view-core": "^0.24.24",
+    "@principal-ai/principal-view-core": "^0.24.36",
     "@principal-ai/repository-abstraction": "^0.5.7",
     "react": ">=19.0.0",
     "react-dom": ">=19.0.0"
@@ -76,13 +77,14 @@
     "@chromatic-com/storybook": "^4.1.3",
     "@eslint/js": "^9.32.0",
     "@opentelemetry/api": "^1.9.0",
+    "@principal-ai/storybook-addon-otel": "^0.3.22",
     "@principal-ade/dynamic-file-tree": "0.1.72",
     "@principal-ade/industry-theme": "^0.1.7",
     "@principal-ade/panel-framework-core": "^0.4.2",
     "@principal-ade/panel-layouts": "^0.3.20",
     "@principal-ade/utcp-panel-event": "^0.1.0",
     "@principal-ai/codebase-composition": "^0.2.43",
-    "@principal-ai/principal-view-core": "^0.24.30",
+    "@principal-ai/principal-view-core": "^0.24.36",
     "@principal-ai/repository-abstraction": "^0.5.7",
     "@storybook/addon-docs": "10.1.2",
     "@storybook/addon-links": "10.1.2",

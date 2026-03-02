@@ -1,0 +1,622 @@
+{
+  "nodes": [
+    {
+      "id": "panel-loading",
+      "type": "text",
+      "text": "# Panel Loading\n\nEmitted when the panel begins loading canvas and workflow data",
+      "x": 0,
+      "y": 0,
+      "width": 280,
+      "height": 120,
+      "color": "#6366f1",
+      "pv": {
+        "event": {
+          "name": "panel.loading",
+          "attributes": {
+            "panel.id": "string",
+            "canvas.id": "string",
+            "workflow.id": "string"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        },
+        "dataSchema": {
+          "panel.id": {
+            "type": "string",
+            "required": true
+          },
+          "canvas.id": {
+            "type": "string",
+            "required": false
+          },
+          "workflow.id": {
+            "type": "string",
+            "required": false
+          }
+        }
+      }
+    },
+    {
+      "id": "panel-loaded",
+      "type": "text",
+      "text": "# Panel Loaded\n\nEmitted when canvas and workflow are successfully loaded",
+      "x": 320,
+      "y": 0,
+      "width": 280,
+      "height": 120,
+      "color": "#10b981",
+      "pv": {
+        "event": {
+          "name": "panel.loaded",
+          "attributes": {
+            "panel.id": "string",
+            "canvas.name": "string",
+            "workflow.name": "string",
+            "scenario.count": "number",
+            "trace.count": "number"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        },
+        "dataSchema": {
+          "panel.id": {
+            "type": "string",
+            "required": true
+          },
+          "canvas.name": {
+            "type": "string",
+            "required": true
+          },
+          "workflow.name": {
+            "type": "string",
+            "required": false
+          },
+          "scenario.count": {
+            "type": "number",
+            "required": false
+          },
+          "trace.count": {
+            "type": "number",
+            "required": false
+          }
+        }
+      }
+    },
+    {
+      "id": "panel-error",
+      "type": "text",
+      "text": "# Panel Error\n\nEmitted when loading fails",
+      "x": 640,
+      "y": 0,
+      "width": 280,
+      "height": 120,
+      "color": "#ef4444",
+      "pv": {
+        "event": {
+          "name": "panel.error",
+          "attributes": {
+            "panel.id": "string",
+            "error.type": "string",
+            "error.message": "string"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "error"
+        },
+        "dataSchema": {
+          "panel.id": {
+            "type": "string",
+            "required": true
+          },
+          "error.type": {
+            "type": "string",
+            "required": true
+          },
+          "error.message": {
+            "type": "string",
+            "required": true
+          }
+        }
+      }
+    },
+    {
+      "id": "scenario-selected",
+      "type": "text",
+      "text": "# Scenario Selected\n\nEmitted when user selects a scenario from the list",
+      "x": 0,
+      "y": 160,
+      "width": 280,
+      "height": 120,
+      "color": "#8b5cf6",
+      "pv": {
+        "event": {
+          "name": "scenario.selected",
+          "attributes": {
+            "scenario.id": "string",
+            "scenario.name": "string",
+            "workflow.id": "string"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "interaction"
+        },
+        "dataSchema": {
+          "scenario.id": {
+            "type": "string",
+            "required": true
+          },
+          "scenario.name": {
+            "type": "string",
+            "required": false
+          },
+          "workflow.id": {
+            "type": "string",
+            "required": true
+          }
+        }
+      }
+    },
+    {
+      "id": "trace-selected",
+      "type": "text",
+      "text": "# Trace Selected\n\nEmitted when user selects a trace for viewing",
+      "x": 320,
+      "y": 160,
+      "width": 280,
+      "height": 120,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "trace.selected",
+          "attributes": {
+            "trace.id": "string",
+            "trace.source": "string",
+            "span.count": "number",
+            "scenario.id": "string"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "interaction"
+        },
+        "dataSchema": {
+          "trace.id": {
+            "type": "string",
+            "required": true
+          },
+          "trace.source": {
+            "type": "string",
+            "required": true
+          },
+          "span.count": {
+            "type": "number",
+            "required": false
+          },
+          "scenario.id": {
+            "type": "string",
+            "required": false
+          }
+        }
+      }
+    },
+    {
+      "id": "trace-loaded",
+      "type": "text",
+      "text": "# Trace Loaded\n\nEmitted when trace execution data is loaded and rendered",
+      "x": 640,
+      "y": 160,
+      "width": 280,
+      "height": 120,
+      "color": "#10b981",
+      "pv": {
+        "event": {
+          "name": "trace.loaded",
+          "attributes": {
+            "trace.id": "string",
+            "span.count": "number",
+            "event.count": "number",
+            "match.type": "string",
+            "coverage.percent": "number"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        },
+        "dataSchema": {
+          "trace.id": {
+            "type": "string",
+            "required": true
+          },
+          "span.count": {
+            "type": "number",
+            "required": true
+          },
+          "event.count": {
+            "type": "number",
+            "required": true
+          },
+          "match.type": {
+            "type": "string",
+            "required": false
+          },
+          "coverage.percent": {
+            "type": "number",
+            "required": false
+          }
+        }
+      }
+    },
+    {
+      "id": "node-clicked",
+      "type": "text",
+      "text": "# Node Clicked\n\nEmitted when user clicks a node on the canvas",
+      "x": 0,
+      "y": 320,
+      "width": 280,
+      "height": 120,
+      "color": "#ec4899",
+      "pv": {
+        "event": {
+          "name": "node.clicked",
+          "attributes": {
+            "node.id": "string",
+            "node.event": "string",
+            "modifier.shift": "boolean"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "interaction"
+        },
+        "dataSchema": {
+          "node.id": {
+            "type": "string",
+            "required": true
+          },
+          "node.event": {
+            "type": "string",
+            "required": false
+          },
+          "modifier.shift": {
+            "type": "boolean",
+            "required": false
+          }
+        }
+      }
+    },
+    {
+      "id": "event-clicked",
+      "type": "text",
+      "text": "# Event Clicked\n\nEmitted when user clicks an event in the narrative timeline",
+      "x": 320,
+      "y": 320,
+      "width": 280,
+      "height": 120,
+      "color": "#ec4899",
+      "pv": {
+        "event": {
+          "name": "event.clicked",
+          "attributes": {
+            "event.name": "string",
+            "event.index": "number",
+            "span.index": "number"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "interaction"
+        },
+        "dataSchema": {
+          "event.name": {
+            "type": "string",
+            "required": true
+          },
+          "event.index": {
+            "type": "number",
+            "required": true
+          },
+          "span.index": {
+            "type": "number",
+            "required": false
+          }
+        }
+      }
+    },
+    {
+      "id": "source-opened",
+      "type": "text",
+      "text": "# Source Opened\n\nEmitted when user opens a source file from the panel",
+      "x": 640,
+      "y": 320,
+      "width": 280,
+      "height": 120,
+      "color": "#06b6d4",
+      "pv": {
+        "event": {
+          "name": "source.opened",
+          "attributes": {
+            "source.path": "string",
+            "trigger": "string"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "navigation"
+        },
+        "dataSchema": {
+          "source.path": {
+            "type": "string",
+            "required": true
+          },
+          "trigger": {
+            "type": "string",
+            "required": false
+          }
+        }
+      }
+    },
+    {
+      "id": "playback-started",
+      "type": "text",
+      "text": "# Playback Started\n\nEmitted when trace playback begins",
+      "x": 0,
+      "y": 480,
+      "width": 280,
+      "height": 120,
+      "color": "#84cc16",
+      "pv": {
+        "event": {
+          "name": "playback.started",
+          "attributes": {
+            "trace.id": "string",
+            "span.index": "number",
+            "event.index": "number"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "interaction"
+        },
+        "dataSchema": {
+          "trace.id": {
+            "type": "string",
+            "required": true
+          },
+          "span.index": {
+            "type": "number",
+            "required": true
+          },
+          "event.index": {
+            "type": "number",
+            "required": true
+          }
+        }
+      }
+    },
+    {
+      "id": "playback-stopped",
+      "type": "text",
+      "text": "# Playback Stopped\n\nEmitted when trace playback stops",
+      "x": 320,
+      "y": 480,
+      "width": 280,
+      "height": 120,
+      "color": "#64748b",
+      "pv": {
+        "event": {
+          "name": "playback.stopped",
+          "attributes": {
+            "trace.id": "string",
+            "reason": "string",
+            "span.index": "number",
+            "event.index": "number"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "interaction"
+        },
+        "dataSchema": {
+          "trace.id": {
+            "type": "string",
+            "required": true
+          },
+          "reason": {
+            "type": "string",
+            "required": true
+          },
+          "span.index": {
+            "type": "number",
+            "required": true
+          },
+          "event.index": {
+            "type": "number",
+            "required": true
+          }
+        }
+      }
+    },
+    {
+      "id": "view-mode-changed",
+      "type": "text",
+      "text": "# View Mode Changed\n\nEmitted when user switches between view modes",
+      "x": 640,
+      "y": 480,
+      "width": 280,
+      "height": 120,
+      "color": "#8b5cf6",
+      "pv": {
+        "event": {
+          "name": "view.mode.changed",
+          "attributes": {
+            "mode.previous": "string",
+            "mode.current": "string"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "interaction"
+        },
+        "dataSchema": {
+          "mode.previous": {
+            "type": "string",
+            "required": true
+          },
+          "mode.current": {
+            "type": "string",
+            "required": true
+          }
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-loading-loaded",
+      "fromNode": "panel-loading",
+      "toNode": "panel-loaded",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-loading-error",
+      "fromNode": "panel-loading",
+      "toNode": "panel-error",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-loaded-scenario",
+      "fromNode": "panel-loaded",
+      "toNode": "scenario-selected",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-scenario-trace",
+      "fromNode": "scenario-selected",
+      "toNode": "trace-selected",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-trace-loaded",
+      "fromNode": "trace-selected",
+      "toNode": "trace-loaded",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-trace-playback",
+      "fromNode": "trace-loaded",
+      "toNode": "playback-started",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-playback-stop",
+      "fromNode": "playback-started",
+      "toNode": "playback-stopped",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-loaded-node-click",
+      "fromNode": "panel-loaded",
+      "toNode": "node-clicked",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-node-source",
+      "fromNode": "node-clicked",
+      "toNode": "source-opened",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-loaded-event-click",
+      "fromNode": "trace-loaded",
+      "toNode": "event-clicked",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-loaded-view-mode",
+      "fromNode": "trace-loaded",
+      "toNode": "view-mode-changed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "emits"
+      }
+    }
+  ],
+  "pv": {
+    "name": "Workflow Scenarios Panel",
+    "version": "1.0.0",
+    "description": "OTEL event schema for the WorkflowScenariosPanel component",
+    "markdown": ".principal-views/workflow-scenarios-panel/workflow-scenarios-panel.md"
+  }
+}

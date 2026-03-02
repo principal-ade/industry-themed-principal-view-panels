@@ -1,0 +1,68 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/workflow-scenarios-panel/workflow-scenarios-panel.otel.canvas",
+  "name": "Panel Usage",
+  "description": "User interactions with the Workflow Scenarios Panel for viewing and analyzing traces",
+  "spanPattern": "workflow-scenarios-panel.session",
+  "mode": "timeline",
+  "scenarioSelection": "first-match",
+  "status": "draft",
+  "scenarios": [
+    {
+      "id": "explore-scenario",
+      "priority": 1,
+      "description": "User loads panel and explores a scenario with its traces",
+      "template": {
+        "events": {
+          "panel.loading": "Loading panel for canvas {{canvas.id}}",
+          "panel.loaded": "Panel ready with {{scenario.count}} scenarios and {{trace.count}} traces",
+          "scenario.selected": "Selected scenario: {{scenario.name}}",
+          "trace.selected": "Viewing trace {{trace.id}} ({{trace.source}})"
+        },
+        "summary": "Explored scenario {{scenario.name}} with trace analysis"
+      }
+    },
+    {
+      "id": "trace-playback",
+      "priority": 2,
+      "description": "User plays back a trace execution",
+      "template": {
+        "events": {
+          "panel.loading": "Loading panel",
+          "panel.loaded": "Panel ready with {{scenario.count}} scenarios",
+          "trace.selected": "Selected trace {{trace.id}}",
+          "trace.loaded": "Loaded {{span.count}} spans with {{event.count}} events",
+          "playback.started": "Started playback at span {{span.index}}",
+          "playback.stopped": "Playback {{reason}} at event {{event.index}}"
+        },
+        "summary": "Played back trace with {{span.count}} spans"
+      }
+    },
+    {
+      "id": "source-navigation",
+      "priority": 3,
+      "description": "User navigates to source code from the panel",
+      "template": {
+        "events": {
+          "panel.loading": "Loading panel",
+          "panel.loaded": "Panel loaded",
+          "node.clicked": "Clicked node {{node.id}}",
+          "source.opened": "Opened source: {{source.path}}"
+        },
+        "summary": "Navigated to source {{source.path}}"
+      }
+    },
+    {
+      "id": "load-error",
+      "priority": 10,
+      "description": "Panel failed to load canvas or workflow",
+      "template": {
+        "events": {
+          "panel.loading": "Loading panel for {{canvas.id}}",
+          "panel.error": "Error: {{error.message}} ({{error.type}})"
+        },
+        "summary": "Failed to load: {{error.message}}"
+      }
+    }
+  ]
+}

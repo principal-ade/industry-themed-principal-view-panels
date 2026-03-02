@@ -1,4 +1,5 @@
 import type { Preview } from '@storybook/react-vite';
+import type { OtelExportConfig } from '@principal-ai/storybook-addon-otel';
 import '@xyflow/react/dist/style.css';
 
 // Track if MSW has been initialized
@@ -36,6 +37,15 @@ const preview: Preview = {
         order: ['Introduction', 'Panels', 'Demo', '*'],
       },
     },
+    otelExport: {
+      enabled: true,
+      endpoint: 'http://localhost:4318/v1/traces',
+      serviceName: 'industry-themed-principal-view-panels-storybook',
+      resourceAttributes: {
+        environment: 'development',
+        project: 'principal-view-panels',
+      },
+    } as OtelExportConfig,
   },
   loaders: [
     async () => {

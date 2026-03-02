@@ -30,6 +30,19 @@ export type { OpenCanvasPayload } from './types';
 export { TraceExpansion } from './components/TraceExpansion';
 export type { TraceExpansionProps } from './components/TraceExpansion';
 
+// Re-export telemetry utilities for library instrumentation
+export {
+  getTracer,
+  getActiveSpan,
+  withSpan,
+  traced,
+  tracedSync,
+  SpanStatusCode,
+  TRACER_NAME,
+  TRACER_VERSION,
+} from './telemetry';
+export type { Span, SpanOptions } from './telemetry';
+
 /**
  * Export array of panel definitions.
  * This is the required export for panel extensions.
