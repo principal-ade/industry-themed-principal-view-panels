@@ -3,6 +3,7 @@
     "name": "Principal View Panel Architecture",
     "version": "1.0.0",
     "description": "Architecture diagram of the Principal View Panel package",
+    "markdown": ".principal-views/architecture.md",
     "nodeTypes": {
       "panel": {
         "description": "UI panel component",
