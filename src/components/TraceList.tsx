@@ -4,8 +4,7 @@ import type { Theme } from '@principal-ade/industry-theme';
 import type { RegisteredTrace } from '../types/otel';
 import { TraceExpansion } from './TraceExpansion';
 import {
-  getServiceName,
-  getSchemaVersion,
+  getPrimaryScope,
   getMatchQuality,
 } from '../utils/traceHelpers';
 
@@ -64,9 +63,9 @@ export const TraceList: React.FC<TraceListProps> = ({
     return traces.filter((trace) => {
       // Search in trace ID
       if (trace.traceId.toLowerCase().includes(query)) return true;
-      // Search in service name
-      const serviceName = getServiceName(trace);
-      if (serviceName.toLowerCase().includes(query)) return true;
+      // Search in scope name
+      const scope = getPrimaryScope(trace);
+      if (scope?.name.toLowerCase().includes(query)) return true;
       // Search in trace name
       if (trace.name.toLowerCase().includes(query)) return true;
       return false;
@@ -404,11 +403,10 @@ export const TraceList: React.FC<TraceListProps> = ({
                     }}
                   >
                     {(() => {
-                      const serviceName = getServiceName(trace);
-                      const version = getSchemaVersion(trace);
-                      const showBadge = serviceName !== 'unknown' || version;
+                      const scope = getPrimaryScope(trace);
+                      if (!scope) return null;
 
-                      return showBadge && (
+                      return (
                         <span
                           style={{
                             display: 'inline-flex',
@@ -425,26 +423,24 @@ export const TraceList: React.FC<TraceListProps> = ({
                             overflow: 'hidden',
                             minWidth: 0,
                           }}
-                          title={version ? `${serviceName} v${version}` : serviceName}
+                          title={`${scope.name}@${scope.version}`}
                         >
-                          {serviceName !== 'unknown' && (
-                            <span
-                              style={{
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {serviceName}
-                            </span>
-                          )}
-                          {serviceName !== 'unknown' && version && (
-                            <span style={{ color: `${theme.colors.primary}80` }}>•</span>
-                          )}
-                          {version && (
-                            <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
-                              v{version}
-                            </span>
+                          <span
+                            style={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {scope.name}
+                          </span>
+                          {scope.version !== 'unknown' && (
+                            <>
+                              <span style={{ color: `${theme.colors.primary}80` }}>@</span>
+                              <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                {scope.version}
+                              </span>
+                            </>
                           )}
                         </span>
                       );
