@@ -38,10 +38,11 @@ export function mapEventToNodeId(
     return null;
   }
 
-  // Strategy 1: Match by event name in pv.event.name
+  // Strategy 1: Match by event name in pv.eventRef or pv.event.name
   for (const node of canvas.nodes) {
-    const pvEvent = (node.pv as PVNodeExtension | undefined)?.event;
-    if (pvEvent?.name === event.name) {
+    const nodePv = node.pv as PVNodeExtension | undefined;
+    const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
+    if (nodeEventName === event.name) {
       return node.id;
     }
   }
@@ -93,9 +94,10 @@ export function buildEventToNodeMap(
   }
 
   for (const node of canvas.nodes) {
-    const pvEvent = (node.pv as PVNodeExtension | undefined)?.event;
-    if (pvEvent?.name && !map.has(pvEvent.name)) {
-      map.set(pvEvent.name, node.id);
+    const nodePv = node.pv as PVNodeExtension | undefined;
+    const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
+    if (nodeEventName && !map.has(nodeEventName)) {
+      map.set(nodeEventName, node.id);
     }
   }
 
@@ -119,10 +121,11 @@ export function debugEventMapping(canvas: ExtendedCanvas | null): string {
 
   let eventCount = 0;
   for (const node of canvas.nodes) {
-    const pvEvent = (node.pv as PVNodeExtension | undefined)?.event;
-    if (pvEvent?.name) {
+    const nodePv = node.pv as PVNodeExtension | undefined;
+    const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
+    if (nodeEventName) {
       lines.push(`Node: ${node.id}`);
-      lines.push(`  - ${pvEvent.name}`);
+      lines.push(`  - ${nodeEventName}`);
       eventCount++;
     }
   }

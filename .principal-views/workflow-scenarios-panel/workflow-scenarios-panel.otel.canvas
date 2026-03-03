@@ -171,6 +171,47 @@
       }
     },
     {
+      "id": "scenario-hovered",
+      "type": "text",
+      "text": "# Scenario Hovered\n\nEmitted when user hovers over a scenario in the list",
+      "x": 960,
+      "y": 160,
+      "width": 280,
+      "height": 120,
+      "color": "#a855f7",
+      "pv": {
+        "event": {
+          "name": "scenario.hovered",
+          "attributes": {
+            "scenario.id": "string",
+            "scenario.name": "string",
+            "hover.state": "string"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "interaction"
+        },
+        "dataSchema": {
+          "scenario.id": {
+            "type": "string",
+            "required": true
+          },
+          "scenario.name": {
+            "type": "string",
+            "required": false
+          },
+          "hover.state": {
+            "type": "string",
+            "required": true,
+            "description": "enter or leave"
+          }
+        }
+      }
+    },
+    {
       "id": "trace-selected",
       "type": "text",
       "text": "# Trace Selected\n\nEmitted when user selects a trace for viewing",
@@ -499,6 +540,132 @@
           }
         }
       }
+    },
+    {
+      "id": "canvas-focus-changed",
+      "type": "text",
+      "text": "# Canvas Focus Changed\n\nEmitted when the set of focused/active nodes changes",
+      "x": 0,
+      "y": 640,
+      "width": 280,
+      "height": 120,
+      "color": "#0ea5e9",
+      "pv": {
+        "event": {
+          "name": "canvas.focus.changed",
+          "attributes": {
+            "focus.source": "string",
+            "focus.node.count": "number",
+            "focus.event.names": "string[]"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "ui-state"
+        },
+        "dataSchema": {
+          "focus.source": {
+            "type": "string",
+            "required": true,
+            "description": "What triggered the focus change: scenario-selected, scenario-hovered, trace-loaded, execution-hovered"
+          },
+          "focus.node.count": {
+            "type": "number",
+            "required": true
+          },
+          "focus.event.names": {
+            "type": "array",
+            "required": false,
+            "description": "Event names that are now focused"
+          }
+        }
+      }
+    },
+    {
+      "id": "viewport-fitted",
+      "type": "text",
+      "text": "# Viewport Fitted\n\nEmitted when viewport animates to fit focused nodes",
+      "x": 320,
+      "y": 640,
+      "width": 280,
+      "height": 120,
+      "color": "#0ea5e9",
+      "pv": {
+        "event": {
+          "name": "viewport.fitted",
+          "attributes": {
+            "fit.node.count": "number",
+            "fit.padding": "number",
+            "fit.trigger": "string"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "ui-state"
+        },
+        "dataSchema": {
+          "fit.node.count": {
+            "type": "number",
+            "required": true
+          },
+          "fit.padding": {
+            "type": "number",
+            "required": false,
+            "description": "Padding percentage used for fit (e.g., 0.15)"
+          },
+          "fit.trigger": {
+            "type": "string",
+            "required": true,
+            "description": "What triggered the fit: scenario-selected, trace-loaded"
+          }
+        }
+      }
+    },
+    {
+      "id": "node-highlighted",
+      "type": "text",
+      "text": "# Node Highlighted\n\nEmitted when a single node receives highlight focus",
+      "x": 640,
+      "y": 640,
+      "width": 280,
+      "height": 120,
+      "color": "#0ea5e9",
+      "pv": {
+        "event": {
+          "name": "node.highlighted",
+          "attributes": {
+            "node.id": "string",
+            "node.event": "string",
+            "highlight.source": "string"
+          }
+        },
+        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "ui-state"
+        },
+        "dataSchema": {
+          "node.id": {
+            "type": "string",
+            "required": true
+          },
+          "node.event": {
+            "type": "string",
+            "required": false,
+            "description": "The event name associated with the highlighted node"
+          },
+          "highlight.source": {
+            "type": "string",
+            "required": true,
+            "description": "What triggered the highlight: node-clicked, event-clicked, playback"
+          }
+        }
+      }
     }
   ],
   "edges": [
@@ -610,6 +777,76 @@
       "toSide": "top",
       "pv": {
         "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-scenario-focus",
+      "fromNode": "scenario-selected",
+      "toNode": "canvas-focus-changed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "edge-scenario-hover-focus",
+      "fromNode": "scenario-hovered",
+      "toNode": "canvas-focus-changed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "edge-trace-focus",
+      "fromNode": "trace-loaded",
+      "toNode": "canvas-focus-changed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "edge-focus-viewport",
+      "fromNode": "canvas-focus-changed",
+      "toNode": "viewport-fitted",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "edge-node-click-highlight",
+      "fromNode": "node-clicked",
+      "toNode": "node-highlighted",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "edge-node-click-viewport",
+      "fromNode": "node-clicked",
+      "toNode": "viewport-fitted",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "edge-event-click-highlight",
+      "fromNode": "event-clicked",
+      "toNode": "node-highlighted",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "triggers"
       }
     }
   ],

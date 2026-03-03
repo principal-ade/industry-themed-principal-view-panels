@@ -9,30 +9,79 @@
   "status": "draft",
   "scenarios": [
     {
-      "id": "explore-scenario",
+      "id": "scenario-click-focus",
       "priority": 1,
-      "description": "User loads panel and explores a scenario with its traces",
+      "description": "User clicks a scenario to focus canvas on its nodes",
       "template": {
         "events": {
-          "panel.loading": "Loading panel for canvas {{canvas.id}}",
-          "panel.loaded": "Panel ready with {{scenario.count}} scenarios and {{trace.count}} traces",
           "scenario.selected": "Selected scenario: {{scenario.name}}",
-          "trace.selected": "Viewing trace {{trace.id}} ({{trace.source}})"
+          "canvas.focus.changed": "Focused on {{focus.node.count}} scenario nodes",
+          "viewport.fitted": "Viewport fitted to focused nodes"
         },
-        "summary": "Explored scenario {{scenario.name}} with trace analysis"
+        "summary": "Focused canvas on {{scenario.name}} scenario"
+      }
+    },
+    {
+      "id": "scenario-hover-preview",
+      "priority": 2,
+      "description": "User hovers a scenario to preview its nodes with viewport fit",
+      "template": {
+        "events": {
+          "scenario.hovered": "Hovering scenario: {{scenario.name}}",
+          "canvas.focus.changed": "Preview focus on {{focus.node.count}} nodes",
+          "viewport.fitted": "Viewport fitted to hovered scenario nodes"
+        },
+        "summary": "Previewed {{scenario.name}} scenario"
+      }
+    },
+    {
+      "id": "trace-loaded-focus",
+      "priority": 3,
+      "description": "Trace loads and auto-focuses to matched scenario nodes",
+      "template": {
+        "events": {
+          "trace.selected": "Selected trace {{trace.id}}",
+          "trace.loaded": "Loaded {{span.count}} spans with {{event.count}} events",
+          "canvas.focus.changed": "Focused on {{focus.node.count}} matched nodes",
+          "viewport.fitted": "Viewport fitted to matched scenario"
+        },
+        "summary": "Loaded trace and focused on matched scenario"
+      }
+    },
+    {
+      "id": "node-inspection",
+      "priority": 4,
+      "description": "User clicks a node to highlight it and focus viewport on it",
+      "template": {
+        "events": {
+          "node.clicked": "Clicked node {{node.id}}",
+          "node.highlighted": "Highlighted node {{node.id}}",
+          "viewport.fitted": "Viewport fitted to clicked node"
+        },
+        "summary": "Inspected node {{node.id}}"
+      }
+    },
+    {
+      "id": "event-navigation",
+      "priority": 5,
+      "description": "User clicks an event in the timeline to highlight its node",
+      "template": {
+        "events": {
+          "event.clicked": "Clicked event {{event.name}} at index {{event.index}}",
+          "node.highlighted": "Highlighted node for {{node.event}}"
+        },
+        "summary": "Navigated to event {{event.name}}"
       }
     },
     {
       "id": "trace-playback",
-      "priority": 2,
+      "priority": 6,
       "description": "User plays back a trace execution",
       "template": {
         "events": {
-          "panel.loading": "Loading panel",
-          "panel.loaded": "Panel ready with {{scenario.count}} scenarios",
-          "trace.selected": "Selected trace {{trace.id}}",
           "trace.loaded": "Loaded {{span.count}} spans with {{event.count}} events",
           "playback.started": "Started playback at span {{span.index}}",
+          "node.highlighted": "Highlighting node for current event",
           "playback.stopped": "Playback {{reason}} at event {{event.index}}"
         },
         "summary": "Played back trace with {{span.count}} spans"
@@ -40,16 +89,31 @@
     },
     {
       "id": "source-navigation",
-      "priority": 3,
+      "priority": 7,
       "description": "User navigates to source code from the panel",
       "template": {
         "events": {
-          "panel.loading": "Loading panel",
-          "panel.loaded": "Panel loaded",
           "node.clicked": "Clicked node {{node.id}}",
+          "node.highlighted": "Highlighted node {{node.id}}",
           "source.opened": "Opened source: {{source.path}}"
         },
         "summary": "Navigated to source {{source.path}}"
+      }
+    },
+    {
+      "id": "explore-scenario",
+      "priority": 8,
+      "description": "User loads panel and explores a scenario with its traces",
+      "template": {
+        "events": {
+          "panel.loading": "Loading panel for canvas {{canvas.id}}",
+          "panel.loaded": "Panel ready with {{scenario.count}} scenarios and {{trace.count}} traces",
+          "scenario.selected": "Selected scenario: {{scenario.name}}",
+          "canvas.focus.changed": "Focused on scenario nodes",
+          "viewport.fitted": "Viewport fitted to scenario",
+          "trace.selected": "Viewing trace {{trace.id}} ({{trace.source}})"
+        },
+        "summary": "Explored scenario {{scenario.name}} with trace analysis"
       }
     },
     {

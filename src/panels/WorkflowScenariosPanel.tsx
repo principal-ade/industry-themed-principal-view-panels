@@ -978,6 +978,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
   // Handle narrative event click - highlight corresponding canvas node
   const handleNarrativeEventClick = useCallback((event: import('@principal-ai/principal-view-core').OtelEvent, eventIndex: number) => {
+    // First update state with the highlighted node
     setState(prev => {
       const nodeId = mapEventToNodeId({ name: event.name, time: Number(event.timestamp), attributes: event.attributes }, prev.canvas);
       return {
@@ -986,6 +987,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
         currentEventIndex: eventIndex,
       };
     });
+    // Then trigger fit (will use the updated highlightedNodeId in next render)
+    setShouldFitToNodes(true);
   }, []);
 
   // Handle source click from scenario details panel (simplified signature)
@@ -1061,6 +1064,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
           const eventIndex = eventNames.indexOf(nodeEventName);
 
           if (eventIndex >= 0) {
+            // Trigger fit to the clicked node
+            setShouldFitToNodes(true);
             return {
               ...prev,
               highlightedNodeId: nodeId,
@@ -1098,6 +1103,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       });
 
       if (eventIndex >= 0) {
+        // Trigger fit to the clicked node
+        setShouldFitToNodes(true);
         return {
           ...prev,
           highlightedNodeId: nodeId,
@@ -1110,14 +1117,20 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   }, []);
 
   // Handle scenario hover - highlight nodes that have events matching the scenario
+  // Also triggers viewport fit to the hovered scenario's nodes
   const handleScenarioHover = useCallback((eventNames: string[] | null) => {
     setState(prev => ({
       ...prev,
       hoveredScenarioEventNames: eventNames,
     }));
+    // Trigger fit-to-nodes when hovering (not when leaving)
+    if (eventNames && eventNames.length > 0) {
+      setShouldFitToNodes(true);
+    }
   }, []);
 
   // Handle scenario click - show ScenarioDetailsPanel for the selected scenario
+  // Also triggers canvas focus and viewport fit to scenario nodes
   const handleScenarioClick = useCallback((scenarioId: string, scenario: WorkflowScenario) => {
     setState(prev => ({
       ...prev,
@@ -1125,6 +1138,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       selectedScenario: scenario,
       viewMode: 'narrative', // Default to workflow view when showing a scenario
     }));
+    // Trigger fit-to-nodes for the selected scenario
+    setShouldFitToNodes(true);
   }, []);
 
   // Helper to get match info for the current span
@@ -1314,7 +1329,11 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
   // Compute fitViewToNodeIds - only when shouldFitToNodes is true (one-shot on trace load)
   const fitViewToNodeIds = useMemo(() => {
     if (shouldFitToNodes) {
-      // If we have active nodes, fit to those
+      // Priority 1: If a single node is highlighted (clicked), fit to just that node
+      if (state.highlightedNodeId) {
+        return [state.highlightedNodeId];
+      }
+      // Priority 2: If we have active nodes, fit to those
       if (activeNodeIds && activeNodeIds.length > 0) {
         return activeNodeIds;
       }
@@ -1324,7 +1343,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       }
     }
     return undefined;
-  }, [shouldFitToNodes, activeNodeIds, state.canvas?.nodes]);
+  }, [shouldFitToNodes, activeNodeIds, state.canvas?.nodes, state.highlightedNodeId]);
 
   // Clear shouldFitToNodes after the fit happens (one-shot behavior)
   useEffect(() => {
