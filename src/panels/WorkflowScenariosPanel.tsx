@@ -6,7 +6,6 @@ import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, WorkflowTempl
 import { renderWorkflow, type ExecutionData, type DiscoveredTestTrace, type DiscoveredWorkflow } from '@principal-ai/principal-view-core';
 import type { FileInfo } from '@principal-ai/repository-abstraction';
 import { AnimatedResizableLayout } from '@principal-ade/panels';
-import { ScenarioDetailsPanel } from './execution-viewer/ScenarioDetailsPanel';
 import { convertToOtelEvents, type TestSpan } from './execution-viewer/workflow-converter';
 import { Activity, X, CheckCircle2 } from 'lucide-react';
 import { ExecutionStats } from './execution-viewer/ExecutionStats';
@@ -16,6 +15,7 @@ import { getSpansFromTrace, type RegisteredTrace } from '../types/otel';
 import type { OtelSpanData, OtelKeyValue } from '@principal-ai/principal-view-core';
 import { mapEventToNodeId, buildEventToNodeMap } from './execution-viewer/EventNodeMapper';
 import { ScenariosList } from './execution-viewer/ScenariosList';
+import { EventCarousel } from './execution-viewer/EventCarousel';
 import { useCanvasData } from './canvas-list/hooks/useCanvasData';
 import { parseExecutionArtifact, getSpans, getExecutionMetadata, type ExecutionMetadata } from './execution-viewer/executionUtils';
 import { getServiceName } from '../utils/traceHelpers';
@@ -354,6 +354,9 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
   // Track whether to fit viewport to active nodes (one-shot on trace load)
   const [shouldFitToNodes, setShouldFitToNodes] = useState(false);
+
+  // Track whether the event carousel is expanded
+  const [isCarouselExpanded, setIsCarouselExpanded] = useState(false);
 
   const [state, setState] = useState<WorkflowScenariosPanelState>({
     canvas: null,
@@ -703,8 +706,10 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
 
           setState(prev => {
             // Find the matching scenario from the workflow template
-            const matchingScenario = scenarioId && prev.workflowTemplate
-              ? prev.workflowTemplate.scenarios?.find(s => s.id === scenarioId)
+            // Use workflowTemplateProp directly since prev.workflowTemplate might not be set yet
+            const template = prev.workflowTemplate || workflowTemplateProp;
+            const matchingScenario = scenarioId && template
+              ? template.scenarios?.find(s => s.id === scenarioId)
               : null;
 
             return {
@@ -733,7 +738,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
         }
       }
     }
-  }, [selectedTraceIdProp, highlightedSpanIdProp, selectedScenarioIdProp, liveTraces, state.canvas, state.selectedExecutionId]);
+  }, [selectedTraceIdProp, highlightedSpanIdProp, selectedScenarioIdProp, liveTraces, state.canvas, state.selectedExecutionId, workflowTemplateProp]);
 
   // Listen for custom events to switch canvases (event-driven mode)
   useEffect(() => {
@@ -848,8 +853,8 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     };
   }, [events, canvasPathProp, workflowPathProp, selectedCanvasIdProp, loadCanvas]);
 
-  // Playback control
-  const handleViewModeChange = useCallback((mode: ViewMode) => {
+  // Playback control (may be used for future view mode switching)
+  const _handleViewModeChange = useCallback((mode: ViewMode) => {
     setState(prev => ({ ...prev, viewMode: mode }));
   }, []);
 
@@ -967,7 +972,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     }
   }, [liveTraces, state.canvas]);
 
-  const handleSpanIndexChange = useCallback((newSpanIndex: number) => {
+  const _handleSpanIndexChange = useCallback((newSpanIndex: number) => {
     setState(prev => ({
       ...prev,
       currentSpanIndex: newSpanIndex,
@@ -1129,7 +1134,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
     }
   }, []);
 
-  // Handle scenario click - show ScenarioDetailsPanel for the selected scenario
+  // Handle scenario click - show EventCarousel for the selected scenario
   // Also triggers canvas focus and viewport fit to scenario nodes
   const handleScenarioClick = useCallback((scenarioId: string, scenario: WorkflowScenario) => {
     setState(prev => ({
@@ -1138,12 +1143,14 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
       selectedScenario: scenario,
       viewMode: 'narrative', // Default to workflow view when showing a scenario
     }));
+    // Start with expanded list view
+    setIsCarouselExpanded(true);
     // Trigger fit-to-nodes for the selected scenario
     setShouldFitToNodes(true);
   }, []);
 
-  // Helper to get match info for the current span
-  const getCurrentSpanMatchInfo = useMemo(() => {
+  // Helper to get match info for the current span (may be used for future trace inspection)
+  const _getCurrentSpanMatchInfo = useMemo(() => {
     if (!state.selectedTrace || !state.execution) return null;
 
     const spans = getSpans(state.execution);
@@ -1532,206 +1539,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
             theme={theme}
             leftPanel={
               <div style={{ height: '100%', overflow: 'hidden', background: '#0a0a0a' }}>
-                {state.execution && (getCurrentSpanMatchInfo?.type === 'full' || state.selectedScenarioId) ? (
-                  // Full match OR user clicked on a scenario from the list - show details
-                  <ScenarioDetailsPanel
-                    spans={getSpans(state.execution) as TestSpan[]}
-                    currentSpanIndex={state.currentSpanIndex}
-                    currentEventIndex={state.currentEventIndex}
-                    onSpanIndexChange={handleSpanIndexChange}
-                    workflowTemplate={state.workflowTemplate ?? undefined}
-                    viewMode={state.viewMode}
-                    onViewModeChange={handleViewModeChange}
-                    onNarrativeEventClick={handleNarrativeEventClick}
-                    showNavigation={false}
-                    showTestName={false}
-                    canvas={state.canvas}
-                    availableExecutions={state.availableExecutions}
-                    selectedExecutionId={state.selectedExecutionId}
-                    onExecutionSelect={handleExecutionSelect}
-                    onSourceClick={handleScenarioSourceClick}
-                    selectedScenario={state.selectedScenario ?? undefined}
-                    overrideScenarioId={state.selectedScenarioId ?? undefined}
-                    onDeselectExecution={() => {
-                      setState(prev => ({
-                        ...prev,
-                        selectedExecutionId: null,
-                        execution: null,
-                        metadata: null,
-                        isPlaying: false,
-                        currentSpanIndex: 0,
-                        currentEventIndex: 0,
-                        highlightedNodeId: null,
-                      }));
-                    }}
-                    onExecutionHover={(executionId) => {
-                      if (executionId) {
-                        // Load the execution for preview (hover)
-                        const execution = state.availableExecutions.find(e => e.id === executionId);
-                        if (execution) {
-                          (async () => {
-                            try {
-                              const ctx = contextRef.current;
-                              const acts = actionsRef.current;
-                              const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
-                              const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
-
-                              if (readFile && repositoryPath) {
-                                const fullExecutionPath = `${repositoryPath}/${execution.path}`;
-                                const executionContent = await readFile(fullExecutionPath);
-                                if (executionContent && typeof executionContent === 'string') {
-                                  const executionArtifact = parseExecutionArtifact(executionContent);
-                                  setState(prev => ({
-                                    ...prev,
-                                    hoveredExecutionId: execution.id,
-                                    hoveredExecution: executionArtifact,
-                                  }));
-                                }
-                              }
-                            } catch (error) {
-                              console.error('[ExecutionViewer] Failed to load execution for preview:', error);
-                            }
-                          })();
-                        }
-                      } else {
-                        setState(prev => ({
-                          ...prev,
-                          hoveredExecutionId: null,
-                          hoveredExecution: null,
-                        }));
-                      }
-                    }}
-                    showBackButton={!!(state.selectedScenarioId || (state.workflowTemplate && state.availableExecutions.length > 0))}
-                    onBackClick={() => {
-                      setState(prev => ({
-                        ...prev,
-                        selectedScenarioId: null,
-                        selectedScenario: null,
-                        // Keep execution data if viewing a live trace - just go back to the decorated list
-                        selectedExecutionId: state.selectedScenarioId && getCurrentSpanMatchInfo?.type !== 'full' ? prev.selectedExecutionId : null,
-                        execution: state.selectedScenarioId && getCurrentSpanMatchInfo?.type !== 'full' ? prev.execution : null,
-                        metadata: state.selectedScenarioId && getCurrentSpanMatchInfo?.type !== 'full' ? prev.metadata : null,
-                        selectedTrace: state.selectedScenarioId && getCurrentSpanMatchInfo?.type !== 'full' ? prev.selectedTrace : null,
-                        isPlaying: false,
-                        currentSpanIndex: prev.currentSpanIndex,
-                        currentEventIndex: 0,
-                        highlightedNodeId: null,
-                      }));
-                    }}
-                    scenarioName={
-                      (state.selectedScenarioId || (state.selectedExecutionId && state.executionScenarioMap[state.selectedExecutionId]))
-                        ? (state.selectedScenarioId || state.executionScenarioMap[state.selectedExecutionId!])
-                            .split('-')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ')
-                        : undefined
-                    }
-                  />
-                ) : state.selectedScenario ? (
-                  <ScenarioDetailsPanel
-                    spans={[]} // Empty spans when showing scenario without execution
-                    currentSpanIndex={0}
-                    currentEventIndex={state.currentEventIndex}
-                    workflowTemplate={state.workflowTemplate ?? undefined}
-                    viewMode={state.viewMode}
-                    onViewModeChange={handleViewModeChange}
-                    onNarrativeEventClick={handleNarrativeEventClick}
-                    showNavigation={false}
-                    showTestName={false}
-                    canvas={state.canvas}
-                    availableExecutions={state.availableExecutions.filter(
-                      exec => state.executionScenarioMap[exec.id] === state.selectedScenarioId
-                    )}
-                    selectedExecutionId={state.selectedExecutionId}
-                    onExecutionSelect={handleExecutionSelect}
-                    onSourceClick={handleScenarioSourceClick}
-                    onDeselectExecution={() => {
-                      setState(prev => ({
-                        ...prev,
-                        selectedExecutionId: null,
-                        execution: null,
-                        metadata: null,
-                        isPlaying: false,
-                        currentSpanIndex: 0,
-                        currentEventIndex: 0,
-                        highlightedNodeId: null,
-                      }));
-                    }}
-                    onExecutionHover={(executionId) => {
-                      if (executionId) {
-                        const execution = state.availableExecutions.find(e => e.id === executionId);
-                        if (execution) {
-                          (async () => {
-                            try {
-                              const ctx = contextRef.current;
-                              const acts = actionsRef.current;
-                              const readFile = (acts as { readFile?: (path: string) => Promise<string> }).readFile;
-                              const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
-
-                              if (readFile && repositoryPath) {
-                                const fullExecutionPath = `${repositoryPath}/${execution.path}`;
-                                const executionContent = await readFile(fullExecutionPath);
-                                if (executionContent && typeof executionContent === 'string') {
-                                  const executionArtifact = parseExecutionArtifact(executionContent);
-                                  setState(prev => ({
-                                    ...prev,
-                                    hoveredExecutionId: execution.id,
-                                    hoveredExecution: executionArtifact,
-                                  }));
-                                }
-                              }
-                            } catch (error) {
-                              console.error('[ExecutionViewer] Failed to load execution for preview:', error);
-                            }
-                          })();
-                        }
-                      } else {
-                        setState(prev => ({
-                          ...prev,
-                          hoveredExecutionId: null,
-                          hoveredExecution: null,
-                        }));
-                      }
-                    }}
-                    showBackButton={true}
-                    onBackClick={() => {
-                      setState(prev => ({
-                        ...prev,
-                        selectedScenarioId: null,
-                        selectedScenario: null,
-                        selectedExecutionId: null,
-                        execution: null,
-                        metadata: null,
-                      }));
-                    }}
-                    scenarioName={
-                      state.selectedScenarioId
-                        ? state.selectedScenarioId
-                            .split('-')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ')
-                        : undefined
-                    }
-                    selectedScenario={state.selectedScenario ?? undefined}
-                    overrideScenarioId={state.selectedScenarioId ?? undefined}
-                  />
-                ) : state.execution && (getCurrentSpanMatchInfo?.type === 'partial' || getCurrentSpanMatchInfo?.type === 'orphaned') && state.workflowTemplate ? (
-                  // Partial/Orphaned match - show scenarios list with match decorations
-                  <ScenariosList
-                    workflowTemplate={state.workflowTemplate}
-                    availableExecutions={state.availableExecutions}
-                    executionScenarioMap={state.executionScenarioMap}
-                    onExecutionSelect={handleExecutionSelect}
-                    onScenarioHover={handleScenarioHover}
-                    onScenarioClick={handleScenarioClick}
-                    traceMatchInfo={state.selectedTrace?.scenarioMatches?.map(m => ({
-                      scenarioId: m.scenarioId,
-                      matchType: m.matchType as 'full' | 'partial',
-                      coveragePercent: m.coveragePercent,
-                      missingSteps: (m as { missingSteps?: string[] }).missingSteps,
-                    })) || []}
-                  />
-                ) : state.workflowTemplate ? (
+                {state.workflowTemplate ? (
                   <ScenariosList
                     workflowTemplate={state.workflowTemplate}
                     availableExecutions={state.availableExecutions}
@@ -1785,42 +1593,131 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
               </div>
             }
             rightPanel={
-              <div style={{ height: '100%', position: 'relative', background: '#0a0a0a' }}>
-                <GraphRenderer
-                  canvas={state.canvas}
-                  showMinimap={false}
-                  showControls={true}
-                  showBackground={false}
-                  backgroundVariant="lines"
-                  showTooltips={true}
-                  highlightedNodeId={state.highlightedNodeId}
-                  activeNodeIds={activeNodeIds}
-                  fitViewToNodeIds={fitViewToNodeIds}
-                  fitViewPadding={0.15}
-                  onNodeClick={handleNodeClick}
-                  showNodeDetailPanel={false}
-                />
-                {/* Test Trace Search Overlay - positioned over canvas */}
-                {state.showTraceSearch && (
-                  <TraceSearchView
-                    traces={state.availableExecutions}
-                    selectedScenarioId={state.selectedScenarioId}
-                    executionScenarioMap={state.executionScenarioMap}
-                    selectedTraceId={state.selectedExecutionId}
-                    onTraceSelect={handleExecutionSelect}
-                    onClose={() => setState(prev => ({ ...prev, showTraceSearch: false }))}
-                    theme={theme}
+              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#0a0a0a', position: 'relative' }}>
+                {/* Canvas Area */}
+                <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+                  <GraphRenderer
+                    canvas={state.canvas}
+                    showMinimap={false}
+                    showControls={true}
+                    showBackground={false}
+                    backgroundVariant="lines"
+                    showTooltips={true}
+                    highlightedNodeId={state.highlightedNodeId}
+                    activeNodeIds={activeNodeIds}
+                    fitViewToNodeIds={fitViewToNodeIds}
+                    fitViewPadding={0.15}
+                    onNodeClick={handleNodeClick}
+                    showNodeDetailPanel={false}
                   />
-                )}
-                {/* Live Trace Search Overlay - positioned over canvas */}
-                {state.showLiveTraceSearch && (
-                  <LiveTraceSearchView
-                    traces={liveTraces}
-                    selectedScenarioId={state.selectedScenarioId}
-                    selectedTraceId={state.selectedExecutionId}
-                    onTraceSelect={handleLiveTraceSelect}
-                    onClose={() => setState(prev => ({ ...prev, showLiveTraceSearch: false }))}
-                    theme={theme}
+                  {/* Test Trace Search Overlay - positioned over canvas */}
+                  {state.showTraceSearch && (
+                    <TraceSearchView
+                      traces={state.availableExecutions}
+                      selectedScenarioId={state.selectedScenarioId}
+                      executionScenarioMap={state.executionScenarioMap}
+                      selectedTraceId={state.selectedExecutionId}
+                      onTraceSelect={handleExecutionSelect}
+                      onClose={() => setState(prev => ({ ...prev, showTraceSearch: false }))}
+                      theme={theme}
+                    />
+                  )}
+                  {/* Live Trace Search Overlay - positioned over canvas */}
+                  {state.showLiveTraceSearch && (
+                    <LiveTraceSearchView
+                      traces={liveTraces}
+                      selectedScenarioId={state.selectedScenarioId}
+                      selectedTraceId={state.selectedExecutionId}
+                      onTraceSelect={handleLiveTraceSelect}
+                      onClose={() => setState(prev => ({ ...prev, showLiveTraceSearch: false }))}
+                      theme={theme}
+                    />
+                  )}
+                </div>
+                {/* Event Carousel - shown when scenario is selected */}
+                {state.selectedScenario && (
+                  <EventCarousel
+                    scenario={state.selectedScenario}
+                    currentEventIndex={state.currentEventIndex}
+                    onEventIndexChange={(index) => setState(prev => ({ ...prev, currentEventIndex: index }))}
+                    onEventClick={handleNarrativeEventClick}
+                    onDismiss={() => {
+                      setIsCarouselExpanded(false);
+                      setState(prev => ({
+                        ...prev,
+                        selectedScenario: null,
+                        selectedScenarioId: null,
+                        currentEventIndex: 0,
+                        highlightedNodeId: null,
+                      }));
+                    }}
+                    onSourceClick={handleScenarioSourceClick}
+                    sources={(() => {
+                      // Get sources for the current event
+                      const eventNames = Object.keys(state.selectedScenario?.template.events || {});
+                      const currentEventName = eventNames[state.currentEventIndex];
+                      if (!currentEventName || !state.canvas?.nodes) return [];
+
+                      const sources: string[] = [];
+                      state.canvas.nodes.forEach(node => {
+                        const nodePv = node.pv as PVNodeExtension | undefined;
+                        const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
+                        if (nodeEventName === currentEventName && nodePv?.sources) {
+                          const nodeSources = nodePv.sources as string[];
+                          nodeSources.forEach(src => {
+                            if (typeof src === 'string' && !sources.includes(src)) {
+                              sources.push(src);
+                            }
+                          });
+                        }
+                      });
+                      return sources;
+                    })()}
+                    getSourcesForEvent={(eventName: string) => {
+                      if (!state.canvas?.nodes) return [];
+                      const sources: string[] = [];
+                      state.canvas.nodes.forEach(node => {
+                        const nodePv = node.pv as PVNodeExtension | undefined;
+                        const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
+                        if (nodeEventName === eventName && nodePv?.sources) {
+                          const nodeSources = nodePv.sources as string[];
+                          nodeSources.forEach(src => {
+                            if (typeof src === 'string' && !sources.includes(src)) {
+                              sources.push(src);
+                            }
+                          });
+                        }
+                      });
+                      return sources;
+                    }}
+                    isExpanded={isCarouselExpanded}
+                    onExpandToggle={() => setIsCarouselExpanded(!isCarouselExpanded)}
+                    traceEvents={(() => {
+                      // Get events from execution spans to fill in template variables
+                      if (!state.execution?.spans) return [];
+                      const events: import('@principal-ai/principal-view-core').OtelEvent[] = [];
+                      for (const span of state.execution.spans) {
+                        // Add span-level event (the span itself as an event)
+                        events.push({
+                          name: span.name,
+                          timestamp: span.startTime ?? 0,
+                          spanId: span.id,
+                          traceId: state.selectedExecutionId || 'unknown',
+                          attributes: span.attributes as Record<string, string | number | boolean>,
+                        });
+                        // Add span events
+                        for (const evt of span.events || []) {
+                          events.push({
+                            name: evt.name,
+                            timestamp: evt.time ?? 0,
+                            spanId: span.id,
+                            traceId: state.selectedExecutionId || 'unknown',
+                            attributes: evt.attributes as Record<string, string | number | boolean>,
+                          });
+                        }
+                      }
+                      return events;
+                    })()}
                   />
                 )}
               </div>
