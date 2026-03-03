@@ -633,7 +633,6 @@ export const ComposableExplanationPanel: React.FC<ComposableExplanationPanelProp
               highlightedNodeId={highlightedNodeId}
               activeNodeIds={activeNodeIds}
               onNodeClick={handleNodeClickFull}
-              showNodeDetailPanel={false}
             />
           ) : (
             <div

@@ -608,7 +608,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
             onPendingChangesChange={(hasChanges) => {
               setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
             }}
-            showNodeDetailPanel={true}
             showBackground={state.showGridLines}
             backgroundVariant="lines"
           />

@@ -1609,7 +1609,6 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                     fitViewToNodeIds={fitViewToNodeIds}
                     fitViewPadding={0.15}
                     onNodeClick={handleNodeClick}
-                    showNodeDetailPanel={false}
                   />
                   {/* Test Trace Search Overlay - positioned over canvas */}
                   {state.showTraceSearch && (

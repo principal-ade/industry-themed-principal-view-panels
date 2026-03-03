@@ -246,7 +246,6 @@ export const StoryGraphRenderer: React.FC<StoryGraphRendererProps> = ({
           fitViewToNodeIds={shouldFitView ? activeNodeIds || undefined : undefined}
           fitViewPadding={0.2}
           onNodeClick={handleNodeClick}
-          showNodeDetailPanel={false}
         />
       </motion.div>
 

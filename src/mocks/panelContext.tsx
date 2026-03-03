@@ -58,7 +58,7 @@ const createMockSlice = <T,>(
 
 /**
  * Mock Panel Context for Storybook
- * Supports both typed slice properties (new pattern) and dynamic slice access (legacy)
+ * Provides typed slice properties for direct access
  */
 export const createMockContext = <T extends PanelContextValue = PanelContextValue>(
   overrides?: Partial<T>
@@ -134,7 +134,7 @@ export const createMockContext = <T extends PanelContextValue = PanelContextValu
   const qualitySlice = mockSlices.get('quality')!;
   const telemetrySlice = createMockSlice('telemetry', []);
 
-  // Build context with both typed slice properties and legacy dynamic access
+  // Build context with typed slice properties
   // Use type intersection to support panel-specific typed contexts
   const defaultContext = {
     currentScope: {
@@ -161,45 +161,13 @@ export const createMockContext = <T extends PanelContextValue = PanelContextValu
         },
       },
     },
-    // Typed slice properties (new pattern - direct access)
+    // Typed slice properties (direct access)
     fileTree: fileTreeSlice,
     git: gitSlice,
     markdown: markdownSlice,
     packages: packagesSlice,
     quality: qualitySlice,
     telemetry: telemetrySlice,
-    // Legacy dynamic slice access (for backwards compatibility)
-    slices: mockSlices,
-    getSlice: <T,>(name: string): DataSlice<T> | undefined => {
-      return mockSlices.get(name) as DataSlice<T> | undefined;
-    },
-    getWorkspaceSlice: <T,>(name: string): DataSlice<T> | undefined => {
-      const slice = mockSlices.get(name);
-      return slice?.scope === 'workspace'
-        ? (slice as DataSlice<T>)
-        : undefined;
-    },
-    getRepositorySlice: <T,>(name: string): DataSlice<T> | undefined => {
-      const slice = mockSlices.get(name);
-      return slice?.scope === 'repository'
-        ? (slice as DataSlice<T>)
-        : undefined;
-    },
-    hasSlice: (name: string, scope?: 'workspace' | 'repository'): boolean => {
-      const slice = mockSlices.get(name);
-      if (!slice) return false;
-      if (!scope) return true;
-      return slice.scope === scope;
-    },
-    isSliceLoading: (
-      name: string,
-      scope?: 'workspace' | 'repository'
-    ): boolean => {
-      const slice = mockSlices.get(name);
-      if (!slice) return false;
-      if (scope && slice.scope !== scope) return false;
-      return slice.loading;
-    },
     refresh: async (
       scope?: 'workspace' | 'repository',
       slice?: string
@@ -208,21 +176,8 @@ export const createMockContext = <T extends PanelContextValue = PanelContextValu
     },
   };
 
-  // Merge overrides, but preserve getSlice fallback to mockSlices
+  // Merge overrides
   const merged = { ...defaultContext, ...overrides };
-
-  // If getSlice was overridden, wrap it to fall back to default slices
-  if (overrides?.getSlice) {
-    const customGetSlice = overrides.getSlice;
-    const defaultGetSlice = defaultContext.getSlice;
-    merged.getSlice = <T,>(name: string): DataSlice<T> | undefined => {
-      const customSlice = customGetSlice<T>(name);
-      if (customSlice !== undefined) {
-        return customSlice;
-      }
-      return defaultGetSlice<T>(name);
-    };
-  }
 
   return merged as unknown as T;
 };
