@@ -23,6 +23,8 @@ interface ScenariosListProps {
   onScenarioClick?: (scenarioId: string, scenario: WorkflowScenario) => void;
   /** Match info from the current trace (for decorating scenarios) */
   traceMatchInfo?: ScenarioMatchInfo[];
+  /** Currently selected scenario ID */
+  selectedScenarioId?: string;
 }
 
 /**
@@ -36,6 +38,7 @@ export const ScenariosList: React.FC<ScenariosListProps> = ({
   onScenarioHover,
   onScenarioClick,
   traceMatchInfo = [],
+  selectedScenarioId,
 }) => {
   const { theme } = useTheme();
 
@@ -77,6 +80,14 @@ export const ScenariosList: React.FC<ScenariosListProps> = ({
           );
           // Check if current trace has a match for this scenario
           const traceMatch = traceMatchInfo.find(m => m.scenarioId === scenarioId);
+          const isSelected = selectedScenarioId === scenarioId;
+
+          // Determine background color based on state
+          const getBackground = () => {
+            if (isSelected) return theme.colors.muted;
+            if (traceMatch) return traceMatch.matchType === 'full' ? '#10b98110' : '#f59e0b10';
+            return 'transparent';
+          };
 
           return (
             <div
@@ -96,11 +107,15 @@ export const ScenariosList: React.FC<ScenariosListProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   transition: 'background 0.2s',
-                  background: traceMatch ? (traceMatch.matchType === 'full' ? '#10b98110' : '#f59e0b10') : 'transparent',
-                  borderLeft: traceMatch ? `3px solid ${traceMatch.matchType === 'full' ? '#10b981' : '#f59e0b'}` : '3px solid transparent',
+                  background: getBackground(),
+                  borderLeft: isSelected
+                    ? `3px solid ${theme.colors.primary}`
+                    : traceMatch
+                      ? `3px solid ${traceMatch.matchType === 'full' ? '#10b981' : '#f59e0b'}`
+                      : '3px solid transparent',
                 }}
                 onMouseEnter={(e) => {
-                  if (!traceMatch) {
+                  if (!traceMatch && !isSelected) {
                     e.currentTarget.style.background = theme.colors.backgroundSecondary;
                   }
                   if (onScenarioHover) {
@@ -109,7 +124,7 @@ export const ScenariosList: React.FC<ScenariosListProps> = ({
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!traceMatch) {
+                  if (!traceMatch && !isSelected) {
                     e.currentTarget.style.background = 'transparent';
                   }
                   if (onScenarioHover) {

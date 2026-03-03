@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
 import { ChevronLeft, ChevronRight, X, FileCode, Maximize2, Minimize2 } from 'lucide-react';
-import type { WorkflowScenario, OtelEvent, TemplateContext } from '@principal-ai/principal-view-core';
-import { parseTemplate, ParsedTemplate } from '@principal-ai/principal-view-core';
+import type { WorkflowScenario, OtelEvent, TemplateSegment } from '@principal-ai/principal-view-core';
+import { renderEventTemplate } from '@principal-ai/principal-view-core';
 import { SourceFileList } from './SourceFileList';
+import { TemplateText } from './TemplateText';
 
 export interface EventCarouselProps {
   /** The selected scenario to display events from */
@@ -65,41 +66,11 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
     return map;
   }, [traceEvents]);
 
-  // Helper to render template text, filling in variables from trace event if available
-  const renderEventText = useCallback((eventName: string, templateText: string) => {
+  // Helper to get template segments for an event
+  const getEventSegments = useCallback((eventName: string, templateText: string): TemplateSegment[] => {
     const traceEvent = traceEventMap.get(eventName);
-    if (!traceEvent || !traceEvent.attributes) {
-      // No trace event - show template as-is (with {{variables}})
-      return templateText;
-    }
-
-    // Build context from event attributes (convert dot notation to nested objects)
-    const context: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(traceEvent.attributes)) {
-      if (key.includes('.')) {
-        const parts = key.split('.');
-        let current: Record<string, unknown> = context;
-        for (let i = 0; i < parts.length - 1; i++) {
-          if (!current[parts[i]] || typeof current[parts[i]] !== 'object') {
-            current[parts[i]] = {};
-          }
-          current = current[parts[i]] as Record<string, unknown>;
-        }
-        current[parts[parts.length - 1]] = value;
-      } else {
-        context[key] = value;
-      }
-    }
-
-    // Use parseTemplate to fill in variables
-    try {
-      const result = parseTemplate(templateText, context as unknown as TemplateContext);
-      // ParsedTemplate has toString(), plain string is returned as-is
-      return result instanceof ParsedTemplate ? result.toString() : result;
-    } catch {
-      // If parsing fails, return original template
-      return templateText;
-    }
+    const parsed = renderEventTemplate(templateText, traceEvent);
+    return parsed.segments;
   }, [traceEventMap]);
   const totalEvents = eventEntries.length;
   const currentEntry = eventEntries[currentEventIndex];
@@ -176,25 +147,6 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handlePrev, handleNext]);
 
-  // Helper to highlight template variables in text
-  const highlightTemplateVariables = (text: string) => {
-    const parts = text.split(/(\{\{[^}]+\}\})/g);
-    return (
-      <>
-        {parts.map((part, i) => {
-          if (part.match(/^\{\{[^}]+\}\}$/)) {
-            return (
-              <span key={i} style={{ color: theme.colors.accent, fontWeight: 600 }}>
-                {part}
-              </span>
-            );
-          }
-          return part;
-        })}
-      </>
-    );
-  };
-
   // Only show "no events" if there are truly no events defined
   if (eventEntries.length === 0) {
     return (
@@ -259,6 +211,7 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
             style={{
               fontSize: theme.fontSizes[1],
               fontWeight: 600,
+              fontFamily: theme.fonts.heading,
               color: theme.colors.text,
             }}
           >
@@ -336,25 +289,27 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
             )}
           </div>
         </div>
-        {/* Progress bar */}
-        <div
-          style={{
-            display: 'flex',
-            height: '3px',
-            background: theme.colors.border,
-          }}
-        >
-          {eventEntries.map((_, idx) => (
-            <div
-              key={idx}
-              style={{
-                flex: 1,
-                background: idx <= effectiveIndex ? theme.colors.primary : 'transparent',
-                transition: 'background 0.2s',
-              }}
-            />
-          ))}
-        </div>
+        {/* Progress bar - only show in collapsed state */}
+        {!isExpanded && (
+          <div
+            style={{
+              display: 'flex',
+              height: '3px',
+              background: theme.colors.border,
+            }}
+          >
+            {eventEntries.map((_, idx) => (
+              <div
+                key={idx}
+                style={{
+                  flex: 1,
+                  background: idx <= effectiveIndex ? theme.colors.primary : 'transparent',
+                  transition: 'background 0.2s',
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -370,7 +325,7 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
           {eventEntries.map(([evtName, evtTemplate], idx) => {
             const isActive = idx === currentEventIndex;
             const traceEvent = traceEventMap.get(evtName);
-            const renderedText = renderEventText(evtName, String(evtTemplate));
+            const segments = getEventSegments(evtName, String(evtTemplate));
             return (
               <div
                 key={evtName}
@@ -401,7 +356,7 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
                 }}
               >
                 <div style={{ marginTop: '4px' }}>
-                  {highlightTemplateVariables(renderedText)}
+                  <TemplateText segments={segments} />
                 </div>
                 {/* Show source paths for this event */}
                 {showSources && getSourcesForEvent && (
@@ -472,7 +427,7 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
                 fontFamily: theme.fonts.body,
               }}
             >
-              {highlightTemplateVariables(renderEventText(effectiveEntry[0], String(eventTemplate)))}
+              <TemplateText segments={getEventSegments(effectiveEntry[0], String(eventTemplate))} />
             </div>
 
             {/* Source files */}

@@ -1547,6 +1547,7 @@ export const WorkflowScenariosPanel: React.FC<WorkflowScenariosPanelProps> = ({
                     onExecutionSelect={handleExecutionSelect}
                     onScenarioHover={handleScenarioHover}
                     onScenarioClick={handleScenarioClick}
+                    selectedScenarioId={state.selectedScenarioId ?? undefined}
                   />
                 ) : (
                   <div
