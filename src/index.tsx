@@ -14,7 +14,7 @@ export { StoryboardListPanel } from './panels/StoryboardListPanel';
 export { TraceListPanel } from './panels/TraceListPanel';
 export { TraceDetailsPanel } from './panels/TraceDetailsPanel';
 export { MultiCanvasPanel, createMultiCanvasLayout } from './panels/MultiCanvasPanel';
-export type { MultiCanvasPanelProps } from './panels/MultiCanvasPanel';
+export type { MultiCanvasPanelProps, CanvasInfo } from './panels/MultiCanvasPanel';
 
 // Re-export adapter for external use
 export { PanelFileSystemAdapter } from './adapters/PanelFileSystemAdapter';
