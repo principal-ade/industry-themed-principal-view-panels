@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MultiCanvasRenderer, type MultiCanvasLayout } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas } from '@principal-ai/principal-view-core';
 import { ConfigLoader } from './principal-view/ConfigLoader';
+import type { MultiCanvasPanelPropsTyped } from '../types';
 
 /**
  * Canvas info with path for loading
@@ -15,17 +16,7 @@ export interface CanvasInfo {
   label?: string;
 }
 
-export interface MultiCanvasPanelProps {
-  /** Context from panel framework */
-  context: {
-    repositoryPath?: string;
-    [key: string]: unknown;
-  };
-  /** Actions from panel framework */
-  actions: {
-    readFile?: (path: string) => Promise<string>;
-    [key: string]: unknown;
-  };
+export interface MultiCanvasPanelProps extends MultiCanvasPanelPropsTyped {
   /** Canvas infos with paths to load */
   canvasInfos: CanvasInfo[];
   /** Whether to show group borders around each canvas (default: true) */
@@ -93,7 +84,7 @@ export const MultiCanvasPanel: React.FC<MultiCanvasPanelProps> = ({
       return;
     }
 
-    const repositoryPath = ctx.repositoryPath as string | undefined;
+    const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
     if (!repositoryPath) {
       setError('Repository path not available');
       setLoading(false);

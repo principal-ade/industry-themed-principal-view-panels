@@ -132,6 +132,29 @@ export type TraceListPanelPropsTyped = PanelComponentProps<
   TraceListPanelContext
 >;
 
+/**
+ * Typed actions for MultiCanvasPanel
+ */
+export interface MultiCanvasPanelActions extends PanelActions {
+  readFile: (path: string) => Promise<string>;
+}
+
+/**
+ * Typed context for MultiCanvasPanel
+ * Note: repositoryPath is accessed via casting as it's part of the base context
+ */
+export interface MultiCanvasPanelContext {
+  fileTree: DataSlice<FileTree | null>;
+}
+
+/**
+ * Typed panel props for MultiCanvasPanel
+ */
+export type MultiCanvasPanelPropsTyped = PanelComponentProps<
+  MultiCanvasPanelActions,
+  MultiCanvasPanelContext
+>;
+
 // ============================================================================
 // Panel Event Payloads
 // ============================================================================
