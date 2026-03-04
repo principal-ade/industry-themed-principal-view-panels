@@ -103,7 +103,9 @@ export const MultiCanvasPanel: React.FC<MultiCanvasPanelProps> = ({
           const content = await readFile(fullPath);
 
           if (content && typeof content === 'string') {
+            console.info(`[MultiCanvasPanel] Loaded content for ${info.path}, length:`, content.length);
             const canvas = ConfigLoader.parseCanvas(content);
+            console.info(`[MultiCanvasPanel] Parsed canvas for ${info.path}:`, canvas ? 'success' : 'null', canvas?.nodes?.length, 'nodes');
             if (canvas) {
               loaded.push({
                 id: info.id,
@@ -111,6 +113,8 @@ export const MultiCanvasPanel: React.FC<MultiCanvasPanelProps> = ({
                 label: info.label,
               });
             }
+          } else {
+            console.warn(`[MultiCanvasPanel] No content for ${info.path}`);
           }
         } catch (err) {
           console.warn(`[MultiCanvasPanel] Failed to load canvas ${info.path}:`, err);
@@ -176,7 +180,24 @@ export const MultiCanvasPanel: React.FC<MultiCanvasPanelProps> = ({
   }
 
   // Build the layout from loaded canvases
+  console.info('[MultiCanvasPanel] Building layout from', loadedCanvases.length, 'canvases:', loadedCanvases);
   const layout = createMultiCanvasLayout(loadedCanvases, { direction, gap });
+  console.info('[MultiCanvasPanel] Created layout:', layout);
+
+  if (!layout || !layout.placements) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        color: '#ef4444',
+        fontSize: '14px',
+      }}>
+        Failed to create canvas layout
+      </div>
+    );
+  }
 
   return (
     <MultiCanvasRenderer
