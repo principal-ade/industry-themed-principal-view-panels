@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useCallback } from 'react';
 import type { StoryboardListPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
-import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check, Network } from 'lucide-react';
+import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check, Network, Layers } from 'lucide-react';
 import { useCanvasWorkflowData } from './canvas-list/hooks/useCanvasWorkflowData';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
 import { StoryboardLoadingGraph } from './canvas-list/components/StoryboardLoadingGraph';
@@ -386,6 +386,27 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     });
   }, []);
 
+  const handleOpenMultiCanvas = useCallback(() => {
+    if (!events || filteredStoryboards.length === 0) return;
+
+    // Emit event to open multi-canvas view with all visible canvases
+    events.emit({
+      type: 'custom',
+      source: 'storyboard-list-panel',
+      timestamp: Date.now(),
+      payload: {
+        action: 'openMultiCanvas',
+        canvases: filteredStoryboards.map((sb) => ({
+          id: sb.canvas.id,
+          canvas: sb.canvas,
+          label: sb.name,
+          fileInfo: getCanvasFileInfo(sb.canvas.path),
+        })),
+        canvasType: effectiveCanvasTypeFilter,
+      },
+    });
+  }, [events, filteredStoryboards, effectiveCanvasTypeFilter, getCanvasFileInfo]);
+
   return (
     <div
       ref={panelRef}
@@ -438,6 +459,30 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
           </h2>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+            {/* View All Canvases button */}
+            {filteredStoryboards.length >= 2 && (
+              <button
+                onClick={handleOpenMultiCanvas}
+                style={{
+                  background: theme.colors.backgroundSecondary,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.radii[1],
+                  padding: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                }}
+                title={`View all ${filteredStoryboards.length} canvases together`}
+              >
+                <Layers
+                  size={14}
+                  color={theme.colors.textSecondary}
+                />
+              </button>
+            )}
+
             {/* Refresh button */}
             <button
               onClick={handleRefresh}
