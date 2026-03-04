@@ -464,21 +464,43 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
               />
             </button>
 
-            {/* Help button */}
+            {/* Help button - draggable to copy CLI command */}
             <button
               onClick={toggleHelp}
+              draggable
+              onDragStart={(e) => {
+                const cliCommand = storyboards.length > 0
+                  ? 'npx @principal-ai/principal-view-cli@latest --help'
+                  : 'npx @principal-ai/principal-view-cli@latest init';
+
+                const dragData = {
+                  dataType: 'cli-command',
+                  primaryData: cliCommand,
+                  metadata: {
+                    description: 'Principal View CLI command',
+                    action: storyboards.length > 0 ? 'help' : 'init',
+                  },
+                  suggestedActions: ['paste', 'execute'],
+                  sourcePanel: 'storyboard-list',
+                  dragPreview: cliCommand,
+                };
+
+                e.dataTransfer.setData('application/x-panel-data', JSON.stringify(dragData));
+                e.dataTransfer.setData('text/plain', cliCommand);
+                e.dataTransfer.effectAllowed = 'copy';
+              }}
               style={{
                 background: showHelp ? theme.colors.primary : theme.colors.backgroundSecondary,
                 border: `1px solid ${theme.colors.border}`,
                 borderRadius: theme.radii[1],
                 padding: '6px',
-                cursor: 'pointer',
+                cursor: 'grab',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.2s ease',
               }}
-              title="Help & Getting Started"
+              title="Help & Getting Started (drag to copy CLI command)"
             >
               <HelpCircle
                 size={14}
