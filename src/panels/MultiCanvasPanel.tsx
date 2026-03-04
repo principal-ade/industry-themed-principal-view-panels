@@ -30,9 +30,11 @@ export interface MultiCanvasPanelProps extends MultiCanvasPanelPropsTyped {
   /** Background pattern variant */
   backgroundVariant?: 'dots' | 'lines' | 'cross';
   /** Layout direction */
-  direction?: 'vertical' | 'horizontal';
+  direction?: 'vertical' | 'horizontal' | 'grid';
   /** Gap between canvases */
   gap?: number;
+  /** Number of columns for grid layout */
+  columns?: number;
   /** Optional click handler for nodes */
   onNodeClick?: (nodeId: string) => void;
 }
@@ -56,8 +58,9 @@ export const MultiCanvasPanel: React.FC<MultiCanvasPanelProps> = ({
   showControls = true,
   showBackground = true,
   backgroundVariant = 'dots',
-  direction = 'vertical',
+  direction = 'grid',
   gap = 150,
+  columns = 2,
   onNodeClick,
 }) => {
   const [loadedCanvases, setLoadedCanvases] = useState<LoadedCanvas[]>([]);
@@ -103,9 +106,7 @@ export const MultiCanvasPanel: React.FC<MultiCanvasPanelProps> = ({
           const content = await readFile(fullPath);
 
           if (content && typeof content === 'string') {
-            console.info(`[MultiCanvasPanel] Loaded content for ${info.path}, length:`, content.length);
             const canvas = ConfigLoader.parseCanvas(content);
-            console.info(`[MultiCanvasPanel] Parsed canvas for ${info.path}:`, canvas ? 'success' : 'null', canvas?.nodes?.length, 'nodes');
             if (canvas) {
               loaded.push({
                 id: info.id,
@@ -113,8 +114,6 @@ export const MultiCanvasPanel: React.FC<MultiCanvasPanelProps> = ({
                 label: info.label,
               });
             }
-          } else {
-            console.warn(`[MultiCanvasPanel] No content for ${info.path}`);
           }
         } catch (err) {
           console.warn(`[MultiCanvasPanel] Failed to load canvas ${info.path}:`, err);
@@ -180,24 +179,7 @@ export const MultiCanvasPanel: React.FC<MultiCanvasPanelProps> = ({
   }
 
   // Build the layout from loaded canvases
-  console.info('[MultiCanvasPanel] Building layout from', loadedCanvases.length, 'canvases:', loadedCanvases);
-  const layout = createMultiCanvasLayout(loadedCanvases, { direction, gap });
-  console.info('[MultiCanvasPanel] Created layout:', layout);
-
-  if (!layout || !layout.placements) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100%',
-        color: '#ef4444',
-        fontSize: '14px',
-      }}>
-        Failed to create canvas layout
-      </div>
-    );
-  }
+  const layout = createMultiCanvasLayout(loadedCanvases, { direction, gap, columns });
 
   return (
     <MultiCanvasRenderer
@@ -222,13 +204,44 @@ export function createMultiCanvasLayout(
     label?: string;
   }>,
   options?: {
-    direction?: 'vertical' | 'horizontal';
+    direction?: 'vertical' | 'horizontal' | 'grid';
     gap?: number;
+    columns?: number;
   }
 ): MultiCanvasLayout {
-  const direction = options?.direction ?? 'vertical';
+  const direction = options?.direction ?? 'grid';
   const gap = options?.gap ?? 100;
+  const columns = options?.columns ?? 2;
 
+  if (direction === 'grid') {
+    // Calculate max dimensions for each canvas to create uniform grid cells
+    const canvasDimensions = canvases.map(({ canvas }) => {
+      const nodes = canvas.nodes ?? [];
+      const maxX = nodes.length > 0 ? Math.max(...nodes.map((n) => (n.x ?? 0) + (n.width ?? 200))) : 400;
+      const maxY = nodes.length > 0 ? Math.max(...nodes.map((n) => (n.y ?? 0) + (n.height ?? 100))) : 200;
+      return { width: maxX, height: maxY };
+    });
+
+    // Find max width and height for uniform cell sizing
+    const cellWidth = Math.max(...canvasDimensions.map((d) => d.width)) + gap;
+    const cellHeight = Math.max(...canvasDimensions.map((d) => d.height)) + gap;
+
+    const placements = canvases.map(({ id, canvas, label }, index) => {
+      const col = index % columns;
+      const row = Math.floor(index / columns);
+
+      return {
+        canvasId: id,
+        canvas,
+        position: { x: col * cellWidth, y: row * cellHeight },
+        label,
+      };
+    });
+
+    return { placements };
+  }
+
+  // Linear layout (vertical or horizontal)
   let currentOffset = 0;
 
   const placements = canvases.map(({ id, canvas, label }) => {
