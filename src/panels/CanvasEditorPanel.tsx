@@ -113,10 +113,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   // Ref to GraphRenderer for getting pending changes
   const graphRef = useRef<GraphRendererHandle>(null);
 
-  // Ref to container for measuring dimensions
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-
   const [state, setState] = useState<GraphPanelState>({
     canvas: null,
     library: null,
@@ -138,6 +134,8 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
   // Track whether to fit viewport to active nodes (one-shot on scenario selection)
   const [shouldFitToNodes, setShouldFitToNodes] = useState(false);
+  // Counter to force new array reference when re-fitting to same nodes
+  const [fitCounter, setFitCounter] = useState(0);
 
   // Track whether the event carousel is expanded
   const [isCarouselExpanded, setIsCarouselExpanded] = useState(false);
@@ -166,42 +164,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
   // Track "copied" feedback for copy path button
   const [pathCopied, setPathCopied] = useState(false);
-
-  // Callback ref for measuring container dimensions
-  const containerRef = useCallback((container: HTMLDivElement | null) => {
-    // Clean up previous observer
-    if (resizeObserverRef.current) {
-      resizeObserverRef.current.disconnect();
-      resizeObserverRef.current = null;
-    }
-
-    if (!container) {
-      return;
-    }
-
-    const updateDimensions = () => {
-      const { width, height } = container.getBoundingClientRect();
-      setDimensions(prev => {
-        const newWidth = Math.round(width);
-        const newHeight = Math.round(height);
-        if (prev.width === newWidth && prev.height === newHeight) {
-          return prev;
-        }
-        return { width: newWidth, height: newHeight };
-      });
-    };
-
-    // Initial measurement
-    updateDimensions();
-
-    // Set up ResizeObserver
-    const resizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(updateDimensions);
-    });
-    resizeObserver.observe(container);
-    resizeObserverRef.current = resizeObserver;
-  }, []);
-
 
   const loadConfiguration = useCallback(async () => {
     // Early return if required props are missing
@@ -334,6 +296,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     }));
     // Trigger fit-to-nodes when hovering (not when leaving)
     if (eventNames && eventNames.length > 0) {
+      setFitCounter(c => c + 1); // Force new array reference
       setShouldFitToNodes(true);
     }
   }, []);
@@ -348,6 +311,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       highlightedNodeId: null,
     }));
     setIsCarouselExpanded(true);
+    setFitCounter(c => c + 1); // Force new array reference
     setShouldFitToNodes(true);
   }, []);
 
@@ -362,6 +326,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       };
     });
     // Trigger fit to the highlighted node
+    setFitCounter(c => c + 1); // Force new array reference
     setShouldFitToNodes(true);
   }, []);
 
@@ -481,6 +446,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   }, [state.canvas, state.hoveredScenarioEventNames, state.selectedScenario, getNodeEventName]);
 
   // Compute fitViewToNodeIds - only when shouldFitToNodes is true (one-shot)
+  // Include fitCounter in deps to force new array reference when re-fitting
   const fitViewToNodeIds = useMemo(() => {
     if (shouldFitToNodes) {
       // Priority 1: If a single node is highlighted (clicked), fit to just that node
@@ -489,7 +455,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       }
       // Priority 2: If we have active nodes, fit to those
       if (activeNodeIds && activeNodeIds.length > 0) {
-        return activeNodeIds;
+        return [...activeNodeIds]; // New array reference
       }
       // Priority 3: Fit to all nodes in canvas
       if (state.canvas?.nodes && state.canvas.nodes.length > 0) {
@@ -497,16 +463,41 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       }
     }
     return undefined;
-  }, [shouldFitToNodes, activeNodeIds, state.canvas?.nodes, state.highlightedNodeId]);
+  }, [shouldFitToNodes, activeNodeIds, state.canvas?.nodes, state.highlightedNodeId, fitCounter]);
 
   // Clear shouldFitToNodes after the fit happens (one-shot behavior)
   useEffect(() => {
     if (shouldFitToNodes) {
-      // Allow time for the fit animation to trigger, then reset
-      const timer = setTimeout(() => setShouldFitToNodes(false), 100);
+      // Allow time for the fit animation to trigger, then reset (300ms matches WorkflowScenariosPanel)
+      const timer = setTimeout(() => setShouldFitToNodes(false), 300);
       return () => clearTimeout(timer);
     }
   }, [shouldFitToNodes]);
+
+  // Track previous workflow state to detect transitions
+  const prevWorkflowTemplateRef = useRef<typeof workflowTemplate>(workflowTemplate);
+
+  // Clear scenario state when workflow changes
+  useEffect(() => {
+    const hadWorkflow = !!prevWorkflowTemplateRef.current;
+    const hasWorkflow = !!workflowTemplate;
+
+    // Update ref for next comparison
+    prevWorkflowTemplateRef.current = workflowTemplate;
+
+    // If workflow state changed, clear scenario state
+    if (hadWorkflow !== hasWorkflow) {
+      setState(prev => ({
+        ...prev,
+        selectedScenarioId: null,
+        selectedScenario: null,
+        hoveredScenarioEventNames: null,
+        highlightedNodeId: null,
+        currentEventIndex: 0,
+      }));
+      setIsCarouselExpanded(false);
+    }
+  }, [workflowTemplate]);
 
   // Load configuration when canvasPath prop changes
   useEffect(() => {
@@ -780,12 +771,14 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         </button>
       </div>
 
-      {/* Main content area - conditional layout based on workflow presence */}
+      {/* Main content area - always use AnimatedResizableLayout, collapse left panel when no workflow */}
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        {workflowTemplate ? (
-          <AnimatedResizableLayout
-            theme={theme}
-            leftPanel={
+        <AnimatedResizableLayout
+          theme={theme}
+          collapsed={!workflowTemplate}
+          showCollapseButton={!!workflowTemplate}
+          leftPanel={
+            workflowTemplate ? (
               <div style={{ height: '100%', overflow: 'hidden', background: theme.colors.background }}>
                 <ScenariosList
                   workflowTemplate={workflowTemplate}
@@ -795,456 +788,260 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                   traceMatchInfo={traceMatchInfo}
                 />
               </div>
-            }
-            rightPanel={
-              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: theme.colors.background, position: 'relative' }}>
-                {/* Canvas Area */}
-                <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-                  <GraphRenderer
-                    ref={graphRef}
-                    canvas={state.canvas}
-                    library={state.library ?? undefined}
-                    editable={state.isEditMode}
-                    onPendingChangesChange={(hasChanges) => {
-                      setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
-                    }}
-                    showBackground={state.showGridLines}
-                    backgroundVariant="lines"
-                    showControls={true}
-                    highlightedNodeId={state.highlightedNodeId}
-                    activeNodeIds={activeNodeIds}
-                    fitViewToNodeIds={fitViewToNodeIds}
-                    fitViewPadding={0.15}
-                  />
+            ) : (
+              <div />
+            )
+          }
+          rightPanel={
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: theme.colors.background, position: 'relative' }}>
+              {/* Canvas Area */}
+              <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+                <GraphRenderer
+                  ref={graphRef}
+                  canvas={state.canvas}
+                  library={state.library ?? undefined}
+                  editable={state.isEditMode}
+                  onPendingChangesChange={(hasChanges) => {
+                    setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
+                  }}
+                  showBackground={state.showGridLines}
+                  backgroundVariant="lines"
+                  showControls={true}
+                  highlightedNodeId={state.highlightedNodeId}
+                  activeNodeIds={activeNodeIds}
+                  fitViewToNodeIds={fitViewToNodeIds}
+                  fitViewPadding={0.15}
+                />
 
-                  {/* Save/Discard Overlay - top right corner */}
-                  {state.isEditMode && state.hasUnsavedChanges && (
+                {/* Save/Discard Overlay - top right corner */}
+                {state.isEditMode && state.hasUnsavedChanges && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    height: 40,
+                    display: 'flex',
+                    alignItems: 'stretch',
+                    backgroundColor: theme.colors.background,
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: 0,
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                    zIndex: 40,
+                  }}>
                     <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      right: 0,
-                      height: 40,
-                      display: 'flex',
-                      alignItems: 'stretch',
-                      backgroundColor: theme.colors.background,
-                      border: `1px solid ${theme.colors.border}`,
-                      borderRadius: 0,
-                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                      zIndex: 40,
-                    }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: theme.space[3],
-                        fontSize: theme.fontSizes[1],
-                        color: theme.colors.warning || '#f59e0b',
-                        fontStyle: 'italic',
-                        fontWeight: theme.fontWeights.medium,
-                      }}>
-                        Unsaved changes
-                      </div>
-
-                      <button
-                        onClick={saveAllChanges}
-                        disabled={state.isSaving}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: theme.space[1],
-                          padding: `0 ${theme.space[3]}`,
-                          fontSize: theme.fontSizes[1],
-                          fontFamily: theme.fonts.body,
-                          color: 'white',
-                          backgroundColor: theme.colors.primary,
-                          border: 'none',
-                          borderRadius: 0,
-                          cursor: state.isSaving ? 'wait' : 'pointer',
-                          opacity: state.isSaving ? 0.7 : 1,
-                          transition: 'all 0.2s',
-                          minWidth: 80,
-                        }}
-                      >
-                        {state.isSaving ? (
-                          <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                        ) : (
-                          <Save size={14} />
-                        )}
-                        <span>Save</span>
-                      </button>
-
-                      <button
-                        onClick={discardChanges}
-                        disabled={state.isSaving}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: theme.space[1],
-                          padding: `0 ${theme.space[3]}`,
-                          fontSize: theme.fontSizes[1],
-                          fontFamily: theme.fonts.body,
-                          color: theme.colors.text,
-                          backgroundColor: theme.colors.backgroundSecondary,
-                          border: 'none',
-                          borderLeft: `1px solid ${theme.colors.border}`,
-                          borderRadius: 0,
-                          cursor: state.isSaving ? 'wait' : 'pointer',
-                          opacity: state.isSaving ? 0.7 : 1,
-                          transition: 'all 0.2s',
-                          minWidth: 80,
-                        }}
-                      >
-                        <X size={14} />
-                        <span>Discard</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Legend Bar */}
-                  {state.showLegend && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: 40,
-                      backgroundColor: theme.colors.background,
-                      borderBottom: `1px solid ${theme.colors.border}`,
-                      padding: `0 ${theme.space[3]}`,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: theme.space[4],
-                      overflowX: 'auto',
-                      zIndex: 50,
-                      boxSizing: 'border-box',
+                      padding: theme.space[3],
+                      fontSize: theme.fontSizes[1],
+                      color: theme.colors.warning || '#f59e0b',
+                      fontStyle: 'italic',
+                      fontWeight: theme.fontWeights.medium,
                     }}>
+                      Unsaved changes
+                    </div>
+
+                    <button
+                      onClick={saveAllChanges}
+                      disabled={state.isSaving}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: theme.space[1],
+                        padding: `0 ${theme.space[3]}`,
+                        fontSize: theme.fontSizes[1],
+                        fontFamily: theme.fonts.body,
+                        color: 'white',
+                        backgroundColor: theme.colors.primary,
+                        border: 'none',
+                        borderRadius: 0,
+                        cursor: state.isSaving ? 'wait' : 'pointer',
+                        opacity: state.isSaving ? 0.7 : 1,
+                        transition: 'all 0.2s',
+                        minWidth: 80,
+                      }}
+                    >
+                      {state.isSaving ? (
+                        <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                      ) : (
+                        <Save size={14} />
+                      )}
+                      <span>Save</span>
+                    </button>
+
+                    <button
+                      onClick={discardChanges}
+                      disabled={state.isSaving}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: theme.space[1],
+                        padding: `0 ${theme.space[3]}`,
+                        fontSize: theme.fontSizes[1],
+                        fontFamily: theme.fonts.body,
+                        color: theme.colors.text,
+                        backgroundColor: theme.colors.backgroundSecondary,
+                        border: 'none',
+                        borderLeft: `1px solid ${theme.colors.border}`,
+                        borderRadius: 0,
+                        cursor: state.isSaving ? 'wait' : 'pointer',
+                        opacity: state.isSaving ? 0.7 : 1,
+                        transition: 'all 0.2s',
+                        minWidth: 80,
+                      }}
+                    >
+                      <X size={14} />
+                      <span>Discard</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Legend Bar */}
+                {state.showLegend && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 40,
+                    backgroundColor: theme.colors.background,
+                    borderBottom: `1px solid ${theme.colors.border}`,
+                    padding: `0 ${theme.space[3]}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.space[4],
+                    overflowX: 'auto',
+                    zIndex: 50,
+                    boxSizing: 'border-box',
+                  }}>
+                    <span style={{
+                      fontSize: theme.fontSizes[1],
+                      fontWeight: theme.fontWeights.medium,
+                      color: theme.colors.textMuted,
+                      flexShrink: 0,
+                    }}>
+                      Edges:
+                    </span>
+
+                    {state.canvas?.pv?.edgeTypes && Object.keys(state.canvas.pv.edgeTypes).length > 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[4], flexWrap: 'wrap' }}>
+                        {Object.entries(state.canvas.pv.edgeTypes).map(([typeName, edgeType]) => (
+                          <div
+                            key={typeName}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: theme.space[2],
+                            }}
+                          >
+                            <svg width="40" height="12" style={{ flexShrink: 0 }}>
+                              <defs>
+                                <marker
+                                  id={`legend-arrow-${typeName}`}
+                                  markerWidth="8"
+                                  markerHeight="6"
+                                  refX="7"
+                                  refY="3"
+                                  orient="auto"
+                                >
+                                  <polygon
+                                    points="0 0, 8 3, 0 6"
+                                    fill={edgeType.color || '#64748b'}
+                                  />
+                                </marker>
+                              </defs>
+                              <line
+                                x1="2"
+                                y1="6"
+                                x2="32"
+                                y2="6"
+                                stroke={edgeType.color || '#64748b'}
+                                strokeWidth={Math.min(edgeType.width || 2, 3)}
+                                strokeDasharray={
+                                  edgeType.style === 'dashed' ? '4,2' :
+                                  edgeType.style === 'dotted' ? '2,2' : undefined
+                                }
+                                markerEnd={edgeType.directed ? `url(#legend-arrow-${typeName})` : undefined}
+                              />
+                            </svg>
+                            <span style={{
+                              fontSize: theme.fontSizes[1],
+                              color: theme.colors.text,
+                              textTransform: 'capitalize',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {typeName.replace(/-/g, ' ')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
                       <span style={{
                         fontSize: theme.fontSizes[1],
-                        fontWeight: theme.fontWeights.medium,
                         color: theme.colors.textMuted,
-                        flexShrink: 0,
+                        fontStyle: 'italic',
                       }}>
-                        Edges:
+                        No edge types defined
                       </span>
-
-                      {state.canvas?.pv?.edgeTypes && Object.keys(state.canvas.pv.edgeTypes).length > 0 ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[4], flexWrap: 'wrap' }}>
-                          {Object.entries(state.canvas.pv.edgeTypes).map(([typeName, edgeType]) => (
-                            <div
-                              key={typeName}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: theme.space[2],
-                              }}
-                            >
-                              <svg width="40" height="12" style={{ flexShrink: 0 }}>
-                                <defs>
-                                  <marker
-                                    id={`legend-arrow-${typeName}`}
-                                    markerWidth="8"
-                                    markerHeight="6"
-                                    refX="7"
-                                    refY="3"
-                                    orient="auto"
-                                  >
-                                    <polygon
-                                      points="0 0, 8 3, 0 6"
-                                      fill={edgeType.color || '#64748b'}
-                                    />
-                                  </marker>
-                                </defs>
-                                <line
-                                  x1="2"
-                                  y1="6"
-                                  x2="32"
-                                  y2="6"
-                                  stroke={edgeType.color || '#64748b'}
-                                  strokeWidth={Math.min(edgeType.width || 2, 3)}
-                                  strokeDasharray={
-                                    edgeType.style === 'dashed' ? '4,2' :
-                                    edgeType.style === 'dotted' ? '2,2' : undefined
-                                  }
-                                  markerEnd={edgeType.directed ? `url(#legend-arrow-${typeName})` : undefined}
-                                />
-                              </svg>
-                              <span style={{
-                                fontSize: theme.fontSizes[1],
-                                color: theme.colors.text,
-                                textTransform: 'capitalize',
-                                whiteSpace: 'nowrap',
-                              }}>
-                                {typeName.replace(/-/g, ' ')}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span style={{
-                          fontSize: theme.fontSizes[1],
-                          color: theme.colors.textMuted,
-                          fontStyle: 'italic',
-                        }}>
-                          No edge types defined
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Event Carousel - shown when scenario is selected */}
-                {state.selectedScenario && (
-                  <EventCarousel
-                    scenario={state.selectedScenario}
-                    currentEventIndex={state.currentEventIndex}
-                    onEventIndexChange={(index) => setState(prev => ({ ...prev, currentEventIndex: index }))}
-                    onEventClick={handleNarrativeEventClick}
-                    onDismiss={handleEventCarouselDismiss}
-                    isExpanded={isCarouselExpanded}
-                    onExpandToggle={() => setIsCarouselExpanded(prev => !prev)}
-                    sources={(() => {
-                      // Get sources for the current event
-                      const eventNames = Object.keys(state.selectedScenario?.template.events || {});
-                      const currentEventName = eventNames[state.currentEventIndex];
-                      if (!currentEventName || !state.canvas?.nodes) return [];
-
-                      const sources: string[] = [];
-                      state.canvas.nodes.forEach(node => {
-                        const nodePv = node.pv as PVNodeExtension | undefined;
-                        const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
-                        if (nodeEventName === currentEventName && nodePv?.sources) {
-                          const nodeSources = nodePv.sources as string[];
-                          nodeSources.forEach(src => {
-                            if (typeof src === 'string' && !sources.includes(src)) {
-                              sources.push(src);
-                            }
-                          });
-                        }
-                      });
-                      return sources;
-                    })()}
-                    getSourcesForEvent={(eventName: string) => {
-                      if (!state.canvas?.nodes) return [];
-                      const sources: string[] = [];
-                      state.canvas.nodes.forEach(node => {
-                        const nodePv = node.pv as PVNodeExtension | undefined;
-                        const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
-                        if (nodeEventName === eventName && nodePv?.sources) {
-                          const nodeSources = nodePv.sources as string[];
-                          nodeSources.forEach(src => {
-                            if (typeof src === 'string' && !sources.includes(src)) {
-                              sources.push(src);
-                            }
-                          });
-                        }
-                      });
-                      return sources;
-                    }}
-                  />
-                )}
-              </div>
-            }
-          />
-        ) : (
-          /* Original editor layout when no workflow is present */
-          <div style={{ display: 'flex', position: 'relative', height: '100%', overflow: 'hidden' }}>
-            <div ref={containerRef} style={{ flex: 1, position: 'relative' }}>
-              <GraphRenderer
-                ref={graphRef}
-                canvas={state.canvas}
-                library={state.library ?? undefined}
-                width={dimensions.width}
-                height={dimensions.height}
-                editable={state.isEditMode}
-                onPendingChangesChange={(hasChanges) => {
-                  setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
-                }}
-                showBackground={state.showGridLines}
-                backgroundVariant="lines"
-                highlightedNodeId={state.highlightedNodeId}
-                activeNodeIds={activeNodeIds}
-                fitViewToNodeIds={fitViewToNodeIds}
-                fitViewPadding={0.15}
-              />
-            </div>
-
-            {/* Save/Discard Overlay - top right corner */}
-            {state.isEditMode && state.hasUnsavedChanges && (
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                height: 40,
-                display: 'flex',
-                alignItems: 'stretch',
-                backgroundColor: theme.colors.background,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: 0,
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                zIndex: 40,
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: theme.space[3],
-                  fontSize: theme.fontSizes[1],
-                  color: theme.colors.warning || '#f59e0b',
-                  fontStyle: 'italic',
-                  fontWeight: theme.fontWeights.medium,
-                }}>
-                  Unsaved changes
-                </div>
-
-                <button
-                  onClick={saveAllChanges}
-                  disabled={state.isSaving}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: theme.space[1],
-                    padding: `0 ${theme.space[3]}`,
-                    fontSize: theme.fontSizes[1],
-                    fontFamily: theme.fonts.body,
-                    color: 'white',
-                    backgroundColor: theme.colors.primary,
-                    border: 'none',
-                    borderRadius: 0,
-                    cursor: state.isSaving ? 'wait' : 'pointer',
-                    opacity: state.isSaving ? 0.7 : 1,
-                    transition: 'all 0.2s',
-                    minWidth: 80,
-                  }}
-                >
-                  {state.isSaving ? (
-                    <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  ) : (
-                    <Save size={14} />
-                  )}
-                  <span>Save</span>
-                </button>
-
-                <button
-                  onClick={discardChanges}
-                  disabled={state.isSaving}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: theme.space[1],
-                    padding: `0 ${theme.space[3]}`,
-                    fontSize: theme.fontSizes[1],
-                    fontFamily: theme.fonts.body,
-                    color: theme.colors.text,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    border: 'none',
-                    borderLeft: `1px solid ${theme.colors.border}`,
-                    borderRadius: 0,
-                    cursor: state.isSaving ? 'wait' : 'pointer',
-                    opacity: state.isSaving ? 0.7 : 1,
-                    transition: 'all 0.2s',
-                    minWidth: 80,
-                  }}
-                >
-                  <X size={14} />
-                  <span>Discard</span>
-                </button>
-              </div>
-            )}
-
-            {/* Legend Bar */}
-            {state.showLegend && (
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 40,
-                backgroundColor: theme.colors.background,
-                borderBottom: `1px solid ${theme.colors.border}`,
-                padding: `0 ${theme.space[3]}`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.space[4],
-                overflowX: 'auto',
-                zIndex: 50,
-                boxSizing: 'border-box',
-              }}>
-                <span style={{
-                  fontSize: theme.fontSizes[1],
-                  fontWeight: theme.fontWeights.medium,
-                  color: theme.colors.textMuted,
-                  flexShrink: 0,
-                }}>
-                  Edges:
-                </span>
-
-                {state.canvas?.pv?.edgeTypes && Object.keys(state.canvas.pv.edgeTypes).length > 0 ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[4], flexWrap: 'wrap' }}>
-                    {Object.entries(state.canvas.pv.edgeTypes).map(([typeName, edgeType]) => (
-                      <div
-                        key={typeName}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: theme.space[2],
-                        }}
-                      >
-                        <svg width="40" height="12" style={{ flexShrink: 0 }}>
-                          <defs>
-                            <marker
-                              id={`legend-arrow-${typeName}`}
-                              markerWidth="8"
-                              markerHeight="6"
-                              refX="7"
-                              refY="3"
-                              orient="auto"
-                            >
-                              <polygon
-                                points="0 0, 8 3, 0 6"
-                                fill={edgeType.color || '#64748b'}
-                              />
-                            </marker>
-                          </defs>
-                          <line
-                            x1="2"
-                            y1="6"
-                            x2="32"
-                            y2="6"
-                            stroke={edgeType.color || '#64748b'}
-                            strokeWidth={Math.min(edgeType.width || 2, 3)}
-                            strokeDasharray={
-                              edgeType.style === 'dashed' ? '4,2' :
-                              edgeType.style === 'dotted' ? '2,2' : undefined
-                            }
-                            markerEnd={edgeType.directed ? `url(#legend-arrow-${typeName})` : undefined}
-                          />
-                        </svg>
-                        <span style={{
-                          fontSize: theme.fontSizes[1],
-                          color: theme.colors.text,
-                          textTransform: 'capitalize',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          {typeName.replace(/-/g, ' ')}
-                        </span>
-                      </div>
-                    ))}
+                    )}
                   </div>
-                ) : (
-                  <span style={{
-                    fontSize: theme.fontSizes[1],
-                    color: theme.colors.textMuted,
-                    fontStyle: 'italic',
-                  }}>
-                    No edge types defined
-                  </span>
                 )}
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Event Carousel - shown when scenario is selected */}
+              {state.selectedScenario && (
+                <EventCarousel
+                  scenario={state.selectedScenario}
+                  currentEventIndex={state.currentEventIndex}
+                  onEventIndexChange={(index) => setState(prev => ({ ...prev, currentEventIndex: index }))}
+                  onEventClick={handleNarrativeEventClick}
+                  onDismiss={handleEventCarouselDismiss}
+                  isExpanded={isCarouselExpanded}
+                  onExpandToggle={() => setIsCarouselExpanded(prev => !prev)}
+                  sources={(() => {
+                    // Get sources for the current event
+                    const eventNames = Object.keys(state.selectedScenario?.template.events || {});
+                    const currentEventName = eventNames[state.currentEventIndex];
+                    if (!currentEventName || !state.canvas?.nodes) return [];
+
+                    const sources: string[] = [];
+                    state.canvas.nodes.forEach(node => {
+                      const nodePv = node.pv as PVNodeExtension | undefined;
+                      const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
+                      if (nodeEventName === currentEventName && nodePv?.sources) {
+                        const nodeSources = nodePv.sources as string[];
+                        nodeSources.forEach(src => {
+                          if (typeof src === 'string' && !sources.includes(src)) {
+                            sources.push(src);
+                          }
+                        });
+                      }
+                    });
+                    return sources;
+                  })()}
+                  getSourcesForEvent={(eventName: string) => {
+                    if (!state.canvas?.nodes) return [];
+                    const sources: string[] = [];
+                    state.canvas.nodes.forEach(node => {
+                      const nodePv = node.pv as PVNodeExtension | undefined;
+                      const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
+                      if (nodeEventName === eventName && nodePv?.sources) {
+                        const nodeSources = nodePv.sources as string[];
+                        nodeSources.forEach(src => {
+                          if (typeof src === 'string' && !sources.includes(src)) {
+                            sources.push(src);
+                          }
+                        });
+                      }
+                    });
+                    return sources;
+                  }}
+                />
+              )}
+            </div>
+          }
+        />
       </div>
     </div>
   );
