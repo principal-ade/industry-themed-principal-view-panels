@@ -1,14 +1,18 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { CanvasEditorPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
-import type { ExtendedCanvas, ComponentLibrary } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, ComponentLibrary, WorkflowTemplate, WorkflowScenario, OtelAttributes } from '@principal-ai/principal-view-core';
 import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw } from 'lucide-react';
 import { ConfigLoader } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
 import type { FileInfo } from '@principal-ai/repository-abstraction';
+import { AnimatedResizableLayout } from '@principal-ade/panels';
+import { ScenariosList } from './execution-viewer/ScenariosList';
+import { EventCarousel } from './execution-viewer/EventCarousel';
+import { mapEventToNodeId } from './execution-viewer/EventNodeMapper';
 
 interface GraphPanelState {
   canvas: ExtendedCanvas | null;
@@ -25,6 +29,12 @@ interface GraphPanelState {
   isEditMode: boolean;
   hasUnsavedChanges: boolean;
   isSaving: boolean;
+  // Scenario state (for workflow integration)
+  selectedScenarioId: string | null;
+  selectedScenario: WorkflowScenario | null;
+  hoveredScenarioEventNames: string[] | null;
+  currentEventIndex: number;
+  highlightedNodeId: string | null;
 }
 
 /**
@@ -46,6 +56,37 @@ export interface CanvasEditorPanelProps extends CanvasEditorPanelPropsTyped {
    * Used for detecting file changes and auto-reloading.
    */
   canvasFileInfo?: FileInfo | null;
+
+  /**
+   * Workflow template with scenarios (optional).
+   * When provided, displays ScenariosList side panel and enables scenario browsing.
+   */
+  workflowTemplate?: WorkflowTemplate | null;
+
+  /**
+   * Workflow ID for display and identification (optional).
+   */
+  selectedWorkflowId?: string | null;
+
+  /**
+   * Path to the workflow file (optional).
+   */
+  workflowPath?: string | null;
+
+  /**
+   * Workflow file info with metadata (optional).
+   */
+  workflowFileInfo?: FileInfo | null;
+
+  /**
+   * Match info from a trace showing which scenarios matched (optional).
+   * Used to highlight matched scenarios in the ScenariosList.
+   */
+  traceMatchInfo?: Array<{
+    scenarioId: string;
+    matchType: 'full' | 'partial';
+    coveragePercent?: number;
+  }>;
 }
 
 /**
@@ -61,6 +102,11 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   canvasPath,
   canvasName,
   canvasFileInfo,
+  workflowTemplate,
+  selectedWorkflowId: _selectedWorkflowId,
+  workflowPath: _workflowPath,
+  workflowFileInfo: _workflowFileInfo,
+  traceMatchInfo,
 }) => {
   const { theme } = useTheme();
 
@@ -82,7 +128,19 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     isEditMode: false,
     hasUnsavedChanges: false,
     isSaving: false,
+    // Scenario state
+    selectedScenarioId: null,
+    selectedScenario: null,
+    hoveredScenarioEventNames: null,
+    currentEventIndex: 0,
+    highlightedNodeId: null,
   });
+
+  // Track whether to fit viewport to active nodes (one-shot on scenario selection)
+  const [shouldFitToNodes, setShouldFitToNodes] = useState(false);
+
+  // Track whether the event carousel is expanded
+  const [isCarouselExpanded, setIsCarouselExpanded] = useState(false);
 
   // Store context and actions in refs to avoid recreation of callbacks
   const contextRef = useRef(context);
@@ -260,6 +318,65 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     setState(prev => ({ ...prev, hasUnsavedChanges: false }));
   }, [loadConfiguration]);
 
+  // Helper to extract event name from node (handles both event.name and eventRef)
+  const getNodeEventName = useCallback((node: ExtendedCanvasNode): string | null => {
+    const nodePv: PVNodeExtension | undefined = node.pv;
+    // eventRef is the event name directly (string)
+    // event.name is the event name within an event schema object
+    return nodePv?.eventRef || nodePv?.event?.name || null;
+  }, []);
+
+  // Handle scenario hover - highlight nodes that have events matching the scenario
+  const handleScenarioHover = useCallback((eventNames: string[] | null) => {
+    setState(prev => ({
+      ...prev,
+      hoveredScenarioEventNames: eventNames,
+    }));
+    // Trigger fit-to-nodes when hovering (not when leaving)
+    if (eventNames && eventNames.length > 0) {
+      setShouldFitToNodes(true);
+    }
+  }, []);
+
+  // Handle scenario click - show EventCarousel for the selected scenario
+  const handleScenarioClick = useCallback((scenarioId: string, scenario: WorkflowScenario) => {
+    setState(prev => ({
+      ...prev,
+      selectedScenarioId: scenarioId,
+      selectedScenario: scenario,
+      currentEventIndex: 0,
+      highlightedNodeId: null,
+    }));
+    setIsCarouselExpanded(true);
+    setShouldFitToNodes(true);
+  }, []);
+
+  // Handle narrative event click from EventCarousel - highlight corresponding canvas node
+  const handleNarrativeEventClick = useCallback((event: { name: string; timestamp?: string | number; attributes?: OtelAttributes }, eventIndex: number) => {
+    setState(prev => {
+      const nodeId = mapEventToNodeId({ name: event.name, time: Number(event.timestamp) || 0, attributes: event.attributes }, prev.canvas);
+      return {
+        ...prev,
+        highlightedNodeId: nodeId,
+        currentEventIndex: eventIndex,
+      };
+    });
+    // Trigger fit to the highlighted node
+    setShouldFitToNodes(true);
+  }, []);
+
+  // Handle EventCarousel dismiss - clear selected scenario
+  const handleEventCarouselDismiss = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      selectedScenario: null,
+      selectedScenarioId: null,
+      currentEventIndex: 0,
+      highlightedNodeId: null,
+    }));
+    setIsCarouselExpanded(false);
+  }, []);
+
   // Save all pending changes
   const saveAllChanges = useCallback(async () => {
     if (!state.canvas || !canvasPath) return;
@@ -321,6 +438,75 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       }));
     }
   }, [state.canvas, state.hasUnsavedChanges, canvasPath]);
+
+  // Calculate active node IDs for scenario hover preview
+  const activeNodeIds = useMemo(() => {
+    if (!state.canvas) return null;
+
+    // Hovered scenario preview (find nodes with matching events)
+    if (state.hoveredScenarioEventNames && state.hoveredScenarioEventNames.length > 0) {
+      const activeIds = new Set<string>();
+
+      // Find nodes that have eventRef or event.name matching hovered scenario events
+      if (state.canvas.nodes) {
+        for (const node of state.canvas.nodes) {
+          const nodeEventName = getNodeEventName(node);
+          if (nodeEventName && state.hoveredScenarioEventNames.includes(nodeEventName)) {
+            activeIds.add(node.id);
+          }
+        }
+      }
+
+      return activeIds.size > 0 ? Array.from(activeIds) : null;
+    }
+
+    // Selected scenario - find nodes matching scenario events
+    if (state.selectedScenario?.template?.events) {
+      const scenarioEventNames = Object.keys(state.selectedScenario.template.events);
+      const activeIds = new Set<string>();
+
+      if (state.canvas.nodes) {
+        for (const node of state.canvas.nodes) {
+          const nodeEventName = getNodeEventName(node);
+          if (nodeEventName && scenarioEventNames.includes(nodeEventName)) {
+            activeIds.add(node.id);
+          }
+        }
+      }
+
+      return activeIds.size > 0 ? Array.from(activeIds) : null;
+    }
+
+    return null;
+  }, [state.canvas, state.hoveredScenarioEventNames, state.selectedScenario, getNodeEventName]);
+
+  // Compute fitViewToNodeIds - only when shouldFitToNodes is true (one-shot)
+  const fitViewToNodeIds = useMemo(() => {
+    if (shouldFitToNodes) {
+      // Priority 1: If a single node is highlighted (clicked), fit to just that node
+      if (state.highlightedNodeId) {
+        return [state.highlightedNodeId];
+      }
+      // Priority 2: If we have active nodes, fit to those
+      if (activeNodeIds && activeNodeIds.length > 0) {
+        return activeNodeIds;
+      }
+      // Priority 3: Fit to all nodes in canvas
+      if (state.canvas?.nodes && state.canvas.nodes.length > 0) {
+        return state.canvas.nodes.map(n => n.id);
+      }
+    }
+    return undefined;
+  }, [shouldFitToNodes, activeNodeIds, state.canvas?.nodes, state.highlightedNodeId]);
+
+  // Clear shouldFitToNodes after the fit happens (one-shot behavior)
+  useEffect(() => {
+    if (shouldFitToNodes) {
+      // Allow time for the fit animation to trigger, then reset
+      const timer = setTimeout(() => setShouldFitToNodes(false), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldFitToNodes]);
 
   // Load configuration when canvasPath prop changes
   useEffect(() => {
@@ -594,200 +780,468 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         </button>
       </div>
 
-      {/* Main content area with overlays and graph */}
-      <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }}>
-        {/* Graph */}
-        <div ref={containerRef} style={{ flex: 1, position: 'relative' }}>
-          <GraphRenderer
-            ref={graphRef}
-            canvas={state.canvas}
-            library={state.library ?? undefined}
-            width={dimensions.width}
-            height={dimensions.height}
-            editable={state.isEditMode}
-            onPendingChangesChange={(hasChanges) => {
-              setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
-            }}
-            showBackground={state.showGridLines}
-            backgroundVariant="lines"
-          />
-        </div>
+      {/* Main content area - conditional layout based on workflow presence */}
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        {workflowTemplate ? (
+          <AnimatedResizableLayout
+            theme={theme}
+            leftPanel={
+              <div style={{ height: '100%', overflow: 'hidden', background: theme.colors.background }}>
+                <ScenariosList
+                  workflowTemplate={workflowTemplate}
+                  onScenarioHover={handleScenarioHover}
+                  onScenarioClick={handleScenarioClick}
+                  selectedScenarioId={state.selectedScenarioId ?? undefined}
+                  traceMatchInfo={traceMatchInfo}
+                />
+              </div>
+            }
+            rightPanel={
+              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: theme.colors.background, position: 'relative' }}>
+                {/* Canvas Area */}
+                <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+                  <GraphRenderer
+                    ref={graphRef}
+                    canvas={state.canvas}
+                    library={state.library ?? undefined}
+                    editable={state.isEditMode}
+                    onPendingChangesChange={(hasChanges) => {
+                      setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
+                    }}
+                    showBackground={state.showGridLines}
+                    backgroundVariant="lines"
+                    showControls={true}
+                    highlightedNodeId={state.highlightedNodeId}
+                    activeNodeIds={activeNodeIds}
+                    fitViewToNodeIds={fitViewToNodeIds}
+                    fitViewPadding={0.15}
+                  />
 
-        {/* Save/Discard Overlay - top right corner */}
-        {state.isEditMode && state.hasUnsavedChanges && (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            height: 40,
-            display: 'flex',
-            alignItems: 'stretch',
-            backgroundColor: theme.colors.background,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: 0,
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            zIndex: 40,
-          }}>
-            {/* Unsaved changes indicator */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: theme.space[3],
-              fontSize: theme.fontSizes[1],
-              color: theme.colors.warning || '#f59e0b',
-              fontStyle: 'italic',
-              fontWeight: theme.fontWeights.medium,
-            }}>
-              Unsaved changes
-            </div>
+                  {/* Save/Discard Overlay - top right corner */}
+                  {state.isEditMode && state.hasUnsavedChanges && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      height: 40,
+                      display: 'flex',
+                      alignItems: 'stretch',
+                      backgroundColor: theme.colors.background,
+                      border: `1px solid ${theme.colors.border}`,
+                      borderRadius: 0,
+                      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                      zIndex: 40,
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: theme.space[3],
+                        fontSize: theme.fontSizes[1],
+                        color: theme.colors.warning || '#f59e0b',
+                        fontStyle: 'italic',
+                        fontWeight: theme.fontWeights.medium,
+                      }}>
+                        Unsaved changes
+                      </div>
 
-            <button
-              onClick={saveAllChanges}
-              disabled={state.isSaving}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: theme.space[1],
-                padding: `0 ${theme.space[3]}`,
-                fontSize: theme.fontSizes[1],
-                fontFamily: theme.fonts.body,
-                color: 'white',
-                backgroundColor: theme.colors.primary,
-                border: 'none',
-                borderRadius: 0,
-                cursor: state.isSaving ? 'wait' : 'pointer',
-                opacity: state.isSaving ? 0.7 : 1,
-                transition: 'all 0.2s',
-                minWidth: 80,
-              }}
-            >
-              {state.isSaving ? (
-                <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
-              ) : (
-                <Save size={14} />
-              )}
-              <span>Save</span>
-            </button>
+                      <button
+                        onClick={saveAllChanges}
+                        disabled={state.isSaving}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: theme.space[1],
+                          padding: `0 ${theme.space[3]}`,
+                          fontSize: theme.fontSizes[1],
+                          fontFamily: theme.fonts.body,
+                          color: 'white',
+                          backgroundColor: theme.colors.primary,
+                          border: 'none',
+                          borderRadius: 0,
+                          cursor: state.isSaving ? 'wait' : 'pointer',
+                          opacity: state.isSaving ? 0.7 : 1,
+                          transition: 'all 0.2s',
+                          minWidth: 80,
+                        }}
+                      >
+                        {state.isSaving ? (
+                          <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                        ) : (
+                          <Save size={14} />
+                        )}
+                        <span>Save</span>
+                      </button>
 
-            <button
-              onClick={discardChanges}
-              disabled={state.isSaving}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: theme.space[1],
-                padding: `0 ${theme.space[3]}`,
-                fontSize: theme.fontSizes[1],
-                fontFamily: theme.fonts.body,
-                color: theme.colors.text,
-                backgroundColor: theme.colors.backgroundSecondary,
-                border: 'none',
-                borderLeft: `1px solid ${theme.colors.border}`,
-                borderRadius: 0,
-                cursor: state.isSaving ? 'wait' : 'pointer',
-                opacity: state.isSaving ? 0.7 : 1,
-                transition: 'all 0.2s',
-                minWidth: 80,
-              }}
-            >
-              <X size={14} />
-              <span>Discard</span>
-            </button>
-          </div>
-        )}
+                      <button
+                        onClick={discardChanges}
+                        disabled={state.isSaving}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: theme.space[1],
+                          padding: `0 ${theme.space[3]}`,
+                          fontSize: theme.fontSizes[1],
+                          fontFamily: theme.fonts.body,
+                          color: theme.colors.text,
+                          backgroundColor: theme.colors.backgroundSecondary,
+                          border: 'none',
+                          borderLeft: `1px solid ${theme.colors.border}`,
+                          borderRadius: 0,
+                          cursor: state.isSaving ? 'wait' : 'pointer',
+                          opacity: state.isSaving ? 0.7 : 1,
+                          transition: 'all 0.2s',
+                          minWidth: 80,
+                        }}
+                      >
+                        <X size={14} />
+                        <span>Discard</span>
+                      </button>
+                    </div>
+                  )}
 
-        {/* Legend Bar */}
-        {state.showLegend && (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 40,
-            backgroundColor: theme.colors.background,
-            borderBottom: `1px solid ${theme.colors.border}`,
-            padding: `0 ${theme.space[3]}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.space[4],
-            overflowX: 'auto',
-            zIndex: 50,
-            boxSizing: 'border-box',
-          }}>
-            <span style={{
-              fontSize: theme.fontSizes[1],
-              fontWeight: theme.fontWeights.medium,
-              color: theme.colors.textMuted,
-              flexShrink: 0,
-            }}>
-              Edges:
-            </span>
-
-            {state.canvas?.pv?.edgeTypes && Object.keys(state.canvas.pv.edgeTypes).length > 0 ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[4], flexWrap: 'wrap' }}>
-                {Object.entries(state.canvas.pv.edgeTypes).map(([typeName, edgeType]) => (
-                  <div
-                    key={typeName}
-                    style={{
+                  {/* Legend Bar */}
+                  {state.showLegend && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 40,
+                      backgroundColor: theme.colors.background,
+                      borderBottom: `1px solid ${theme.colors.border}`,
+                      padding: `0 ${theme.space[3]}`,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: theme.space[2],
-                    }}
-                  >
-                    {/* Edge visual representation */}
-                    <svg width="40" height="12" style={{ flexShrink: 0 }}>
-                      <defs>
-                        <marker
-                          id={`legend-arrow-${typeName}`}
-                          markerWidth="8"
-                          markerHeight="6"
-                          refX="7"
-                          refY="3"
-                          orient="auto"
-                        >
-                          <polygon
-                            points="0 0, 8 3, 0 6"
-                            fill={edgeType.color || '#64748b'}
-                          />
-                        </marker>
-                      </defs>
-                      <line
-                        x1="2"
-                        y1="6"
-                        x2="32"
-                        y2="6"
-                        stroke={edgeType.color || '#64748b'}
-                        strokeWidth={Math.min(edgeType.width || 2, 3)}
-                        strokeDasharray={
-                          edgeType.style === 'dashed' ? '4,2' :
-                          edgeType.style === 'dotted' ? '2,2' : undefined
-                        }
-                        markerEnd={edgeType.directed ? `url(#legend-arrow-${typeName})` : undefined}
-                      />
-                    </svg>
-
-                    {/* Edge type name */}
-                    <span style={{
-                      fontSize: theme.fontSizes[1],
-                      color: theme.colors.text,
-                      textTransform: 'capitalize',
-                      whiteSpace: 'nowrap',
+                      gap: theme.space[4],
+                      overflowX: 'auto',
+                      zIndex: 50,
+                      boxSizing: 'border-box',
                     }}>
-                      {typeName.replace(/-/g, ' ')}
-                    </span>
-                  </div>
-                ))}
+                      <span style={{
+                        fontSize: theme.fontSizes[1],
+                        fontWeight: theme.fontWeights.medium,
+                        color: theme.colors.textMuted,
+                        flexShrink: 0,
+                      }}>
+                        Edges:
+                      </span>
+
+                      {state.canvas?.pv?.edgeTypes && Object.keys(state.canvas.pv.edgeTypes).length > 0 ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[4], flexWrap: 'wrap' }}>
+                          {Object.entries(state.canvas.pv.edgeTypes).map(([typeName, edgeType]) => (
+                            <div
+                              key={typeName}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: theme.space[2],
+                              }}
+                            >
+                              <svg width="40" height="12" style={{ flexShrink: 0 }}>
+                                <defs>
+                                  <marker
+                                    id={`legend-arrow-${typeName}`}
+                                    markerWidth="8"
+                                    markerHeight="6"
+                                    refX="7"
+                                    refY="3"
+                                    orient="auto"
+                                  >
+                                    <polygon
+                                      points="0 0, 8 3, 0 6"
+                                      fill={edgeType.color || '#64748b'}
+                                    />
+                                  </marker>
+                                </defs>
+                                <line
+                                  x1="2"
+                                  y1="6"
+                                  x2="32"
+                                  y2="6"
+                                  stroke={edgeType.color || '#64748b'}
+                                  strokeWidth={Math.min(edgeType.width || 2, 3)}
+                                  strokeDasharray={
+                                    edgeType.style === 'dashed' ? '4,2' :
+                                    edgeType.style === 'dotted' ? '2,2' : undefined
+                                  }
+                                  markerEnd={edgeType.directed ? `url(#legend-arrow-${typeName})` : undefined}
+                                />
+                              </svg>
+                              <span style={{
+                                fontSize: theme.fontSizes[1],
+                                color: theme.colors.text,
+                                textTransform: 'capitalize',
+                                whiteSpace: 'nowrap',
+                              }}>
+                                {typeName.replace(/-/g, ' ')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{
+                          fontSize: theme.fontSizes[1],
+                          color: theme.colors.textMuted,
+                          fontStyle: 'italic',
+                        }}>
+                          No edge types defined
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Event Carousel - shown when scenario is selected */}
+                {state.selectedScenario && (
+                  <EventCarousel
+                    scenario={state.selectedScenario}
+                    currentEventIndex={state.currentEventIndex}
+                    onEventIndexChange={(index) => setState(prev => ({ ...prev, currentEventIndex: index }))}
+                    onEventClick={handleNarrativeEventClick}
+                    onDismiss={handleEventCarouselDismiss}
+                    isExpanded={isCarouselExpanded}
+                    onExpandToggle={() => setIsCarouselExpanded(prev => !prev)}
+                    sources={(() => {
+                      // Get sources for the current event
+                      const eventNames = Object.keys(state.selectedScenario?.template.events || {});
+                      const currentEventName = eventNames[state.currentEventIndex];
+                      if (!currentEventName || !state.canvas?.nodes) return [];
+
+                      const sources: string[] = [];
+                      state.canvas.nodes.forEach(node => {
+                        const nodePv = node.pv as PVNodeExtension | undefined;
+                        const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
+                        if (nodeEventName === currentEventName && nodePv?.sources) {
+                          const nodeSources = nodePv.sources as string[];
+                          nodeSources.forEach(src => {
+                            if (typeof src === 'string' && !sources.includes(src)) {
+                              sources.push(src);
+                            }
+                          });
+                        }
+                      });
+                      return sources;
+                    })()}
+                    getSourcesForEvent={(eventName: string) => {
+                      if (!state.canvas?.nodes) return [];
+                      const sources: string[] = [];
+                      state.canvas.nodes.forEach(node => {
+                        const nodePv = node.pv as PVNodeExtension | undefined;
+                        const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
+                        if (nodeEventName === eventName && nodePv?.sources) {
+                          const nodeSources = nodePv.sources as string[];
+                          nodeSources.forEach(src => {
+                            if (typeof src === 'string' && !sources.includes(src)) {
+                              sources.push(src);
+                            }
+                          });
+                        }
+                      });
+                      return sources;
+                    }}
+                  />
+                )}
               </div>
-            ) : (
-              <span style={{
-                fontSize: theme.fontSizes[1],
-                color: theme.colors.textMuted,
-                fontStyle: 'italic',
+            }
+          />
+        ) : (
+          /* Original editor layout when no workflow is present */
+          <div style={{ display: 'flex', position: 'relative', height: '100%', overflow: 'hidden' }}>
+            <div ref={containerRef} style={{ flex: 1, position: 'relative' }}>
+              <GraphRenderer
+                ref={graphRef}
+                canvas={state.canvas}
+                library={state.library ?? undefined}
+                width={dimensions.width}
+                height={dimensions.height}
+                editable={state.isEditMode}
+                onPendingChangesChange={(hasChanges) => {
+                  setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
+                }}
+                showBackground={state.showGridLines}
+                backgroundVariant="lines"
+                highlightedNodeId={state.highlightedNodeId}
+                activeNodeIds={activeNodeIds}
+                fitViewToNodeIds={fitViewToNodeIds}
+                fitViewPadding={0.15}
+              />
+            </div>
+
+            {/* Save/Discard Overlay - top right corner */}
+            {state.isEditMode && state.hasUnsavedChanges && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                height: 40,
+                display: 'flex',
+                alignItems: 'stretch',
+                backgroundColor: theme.colors.background,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: 0,
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                zIndex: 40,
               }}>
-                No edge types defined
-              </span>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: theme.space[3],
+                  fontSize: theme.fontSizes[1],
+                  color: theme.colors.warning || '#f59e0b',
+                  fontStyle: 'italic',
+                  fontWeight: theme.fontWeights.medium,
+                }}>
+                  Unsaved changes
+                </div>
+
+                <button
+                  onClick={saveAllChanges}
+                  disabled={state.isSaving}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: theme.space[1],
+                    padding: `0 ${theme.space[3]}`,
+                    fontSize: theme.fontSizes[1],
+                    fontFamily: theme.fonts.body,
+                    color: 'white',
+                    backgroundColor: theme.colors.primary,
+                    border: 'none',
+                    borderRadius: 0,
+                    cursor: state.isSaving ? 'wait' : 'pointer',
+                    opacity: state.isSaving ? 0.7 : 1,
+                    transition: 'all 0.2s',
+                    minWidth: 80,
+                  }}
+                >
+                  {state.isSaving ? (
+                    <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <Save size={14} />
+                  )}
+                  <span>Save</span>
+                </button>
+
+                <button
+                  onClick={discardChanges}
+                  disabled={state.isSaving}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: theme.space[1],
+                    padding: `0 ${theme.space[3]}`,
+                    fontSize: theme.fontSizes[1],
+                    fontFamily: theme.fonts.body,
+                    color: theme.colors.text,
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    border: 'none',
+                    borderLeft: `1px solid ${theme.colors.border}`,
+                    borderRadius: 0,
+                    cursor: state.isSaving ? 'wait' : 'pointer',
+                    opacity: state.isSaving ? 0.7 : 1,
+                    transition: 'all 0.2s',
+                    minWidth: 80,
+                  }}
+                >
+                  <X size={14} />
+                  <span>Discard</span>
+                </button>
+              </div>
+            )}
+
+            {/* Legend Bar */}
+            {state.showLegend && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 40,
+                backgroundColor: theme.colors.background,
+                borderBottom: `1px solid ${theme.colors.border}`,
+                padding: `0 ${theme.space[3]}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.space[4],
+                overflowX: 'auto',
+                zIndex: 50,
+                boxSizing: 'border-box',
+              }}>
+                <span style={{
+                  fontSize: theme.fontSizes[1],
+                  fontWeight: theme.fontWeights.medium,
+                  color: theme.colors.textMuted,
+                  flexShrink: 0,
+                }}>
+                  Edges:
+                </span>
+
+                {state.canvas?.pv?.edgeTypes && Object.keys(state.canvas.pv.edgeTypes).length > 0 ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[4], flexWrap: 'wrap' }}>
+                    {Object.entries(state.canvas.pv.edgeTypes).map(([typeName, edgeType]) => (
+                      <div
+                        key={typeName}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: theme.space[2],
+                        }}
+                      >
+                        <svg width="40" height="12" style={{ flexShrink: 0 }}>
+                          <defs>
+                            <marker
+                              id={`legend-arrow-${typeName}`}
+                              markerWidth="8"
+                              markerHeight="6"
+                              refX="7"
+                              refY="3"
+                              orient="auto"
+                            >
+                              <polygon
+                                points="0 0, 8 3, 0 6"
+                                fill={edgeType.color || '#64748b'}
+                              />
+                            </marker>
+                          </defs>
+                          <line
+                            x1="2"
+                            y1="6"
+                            x2="32"
+                            y2="6"
+                            stroke={edgeType.color || '#64748b'}
+                            strokeWidth={Math.min(edgeType.width || 2, 3)}
+                            strokeDasharray={
+                              edgeType.style === 'dashed' ? '4,2' :
+                              edgeType.style === 'dotted' ? '2,2' : undefined
+                            }
+                            markerEnd={edgeType.directed ? `url(#legend-arrow-${typeName})` : undefined}
+                          />
+                        </svg>
+                        <span style={{
+                          fontSize: theme.fontSizes[1],
+                          color: theme.colors.text,
+                          textTransform: 'capitalize',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {typeName.replace(/-/g, ' ')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span style={{
+                    fontSize: theme.fontSizes[1],
+                    color: theme.colors.textMuted,
+                    fontStyle: 'italic',
+                  }}>
+                    No edge types defined
+                  </span>
+                )}
+              </div>
             )}
           </div>
         )}
