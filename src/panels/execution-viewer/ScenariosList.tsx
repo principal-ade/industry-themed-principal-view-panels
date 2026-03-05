@@ -21,6 +21,7 @@ interface ScenariosListProps {
   onExecutionSelect?: (executionId: string) => void;
   onScenarioHover?: (eventNames: string[] | null) => void;
   onScenarioClick?: (scenarioId: string, scenario: WorkflowScenario) => void;
+  onScenarioDoubleClick?: (scenarioId: string, scenario: WorkflowScenario) => void;
   /** Match info from the current trace (for decorating scenarios) */
   traceMatchInfo?: ScenarioMatchInfo[];
   /** Currently selected scenario ID */
@@ -37,6 +38,7 @@ export const ScenariosList: React.FC<ScenariosListProps> = ({
   onExecutionSelect: _onExecutionSelect,
   onScenarioHover,
   onScenarioClick,
+  onScenarioDoubleClick,
   traceMatchInfo = [],
   selectedScenarioId,
 }) => {
@@ -45,6 +47,12 @@ export const ScenariosList: React.FC<ScenariosListProps> = ({
   const handleScenarioClick = (scenarioId: string, scenario: WorkflowScenario) => {
     if (onScenarioClick) {
       onScenarioClick(scenarioId, scenario);
+    }
+  };
+
+  const handleScenarioDoubleClick = (scenarioId: string, scenario: WorkflowScenario) => {
+    if (onScenarioDoubleClick) {
+      onScenarioDoubleClick(scenarioId, scenario);
     }
   };
 
@@ -101,6 +109,7 @@ export const ScenariosList: React.FC<ScenariosListProps> = ({
               {/* Scenario Header - Clickable */}
               <div
                 onClick={() => handleScenarioClick(scenarioId, scenario)}
+                onDoubleClick={() => handleScenarioDoubleClick(scenarioId, scenario)}
                 style={{
                   padding: '12px 12px 12px 20px',
                   cursor: 'pointer',

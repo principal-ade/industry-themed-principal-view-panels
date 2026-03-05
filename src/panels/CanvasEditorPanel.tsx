@@ -35,6 +35,7 @@ interface GraphPanelState {
   hoveredScenarioEventNames: string[] | null;
   currentEventIndex: number;
   highlightedNodeId: string | null;
+  focusedNodeId: string | null;
 }
 
 /**
@@ -137,6 +138,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     hoveredScenarioEventNames: null,
     currentEventIndex: 0,
     highlightedNodeId: null,
+    focusedNodeId: null,
   });
 
   // Track whether to fit viewport to active nodes (one-shot on scenario selection)
@@ -311,7 +313,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     }
   }, []);
 
-  // Handle scenario click - show EventCarousel for the selected scenario
+  // Handle scenario click - show list view and fit to all scenario nodes
   const handleScenarioClick = useCallback((scenarioId: string, scenario: WorkflowScenario) => {
     setState(prev => ({
       ...prev,
@@ -319,23 +321,48 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       selectedScenario: scenario,
       currentEventIndex: 0,
       highlightedNodeId: null,
+      focusedNodeId: null, // null so fitViewToNodeIds uses activeNodeIds (all scenario nodes)
     }));
-    setIsCarouselExpanded(true);
+    setIsCarouselExpanded(true); // Show list view on single click
     setFitCounter(c => c + 1); // Force new array reference
     setShouldFitToNodes(true);
   }, []);
 
-  // Handle narrative event click from EventCarousel - highlight corresponding canvas node
+  // Handle scenario double-click - show compact carousel view
+  const handleScenarioDoubleClick = useCallback((scenarioId: string, scenario: WorkflowScenario) => {
+    setState(prev => {
+      // Get the first event name from the scenario and map it to a node
+      const eventNames = scenario.template?.events ? Object.keys(scenario.template.events) : [];
+      const firstEventName = eventNames[0];
+      const firstNodeId = firstEventName
+        ? mapEventToNodeId({ name: firstEventName, time: 0, attributes: {} }, prev.canvas)
+        : null;
+
+      return {
+        ...prev,
+        selectedScenarioId: scenarioId,
+        selectedScenario: scenario,
+        currentEventIndex: 0,
+        highlightedNodeId: null,
+        focusedNodeId: firstNodeId,
+      };
+    });
+    setIsCarouselExpanded(false); // Show carousel view on double click
+    setFitCounter(c => c + 1);
+    setShouldFitToNodes(true);
+  }, []);
+
+  // Handle narrative event click from EventCarousel - focus on corresponding canvas node (without highlighting)
   const handleNarrativeEventClick = useCallback((event: { name: string; timestamp?: string | number; attributes?: OtelAttributes }, eventIndex: number) => {
     setState(prev => {
       const nodeId = mapEventToNodeId({ name: event.name, time: Number(event.timestamp) || 0, attributes: event.attributes }, prev.canvas);
       return {
         ...prev,
-        highlightedNodeId: nodeId,
+        focusedNodeId: nodeId,
         currentEventIndex: eventIndex,
       };
     });
-    // Trigger fit to the highlighted node
+    // Trigger fit to the focused node
     setFitCounter(c => c + 1); // Force new array reference
     setShouldFitToNodes(true);
   }, []);
@@ -348,6 +375,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       selectedScenarioId: null,
       currentEventIndex: 0,
       highlightedNodeId: null,
+      focusedNodeId: null,
     }));
     setIsCarouselExpanded(false);
   }, []);
@@ -459,12 +487,12 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   // otherwise GraphRenderer's default fitView effect triggers and fits to ALL nodes.
   // The fitCounter forces new array references when we want to trigger a new fit animation.
   const fitViewToNodeIds = useMemo(() => {
-    // Priority 1: If a single node is highlighted (clicked), fit to just that node
-    // Only fit when shouldFitToNodes is true (one-shot)
-    if (shouldFitToNodes && state.highlightedNodeId) {
-      return [state.highlightedNodeId];
+    // Priority 1: If a single node is focused (from event navigation), always return it
+    // This keeps the view stable on that node (GraphRenderer won't re-fit to same value)
+    if (state.focusedNodeId) {
+      return [state.focusedNodeId];
     }
-    // Priority 2: If we have active nodes (hover/selection), always return them
+    // Priority 2: If we have active nodes (hover/selection) and no focused node, fit to them
     // This prevents the fit-to-all fallback when shouldFitToNodes resets
     if (activeNodeIds && activeNodeIds.length > 0) {
       return [...activeNodeIds]; // New array reference (fitCounter in deps forces this)
@@ -474,7 +502,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       return state.canvas.nodes.map(n => n.id);
     }
     return undefined;
-  }, [shouldFitToNodes, activeNodeIds, state.canvas?.nodes, state.highlightedNodeId, fitCounter]);
+  }, [shouldFitToNodes, activeNodeIds, state.canvas?.nodes, state.focusedNodeId, fitCounter]);
 
   // Clear shouldFitToNodes after the fit happens (one-shot behavior)
   useEffect(() => {
@@ -504,6 +532,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         selectedScenario: null,
         hoveredScenarioEventNames: null,
         highlightedNodeId: null,
+        focusedNodeId: null,
         currentEventIndex: 0,
       }));
       setIsCarouselExpanded(false);
@@ -816,7 +845,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         <AnimatedResizableLayout
           theme={theme}
           collapsed={!workflowTemplate}
-          showCollapseButton={!!workflowTemplate}
+          showCollapseButton={false}
           leftPanel={
             workflowTemplate ? (
               <div style={{ height: '100%', overflow: 'hidden', background: theme.colors.background }}>
@@ -824,6 +853,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                   workflowTemplate={workflowTemplate}
                   onScenarioHover={handleScenarioHover}
                   onScenarioClick={handleScenarioClick}
+                  onScenarioDoubleClick={handleScenarioDoubleClick}
                   selectedScenarioId={state.selectedScenarioId ?? undefined}
                   traceMatchInfo={traceMatchInfo}
                 />

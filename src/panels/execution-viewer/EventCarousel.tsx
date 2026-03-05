@@ -80,7 +80,7 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
       const newIndex = currentEventIndex - 1;
       onEventIndexChange(newIndex);
 
-      // Trigger event click for highlighting
+      // Trigger event click for focusing (without highlighting)
       if (onEventClick && eventEntries[newIndex]) {
         const [eventName] = eventEntries[newIndex];
         const syntheticEvent: OtelEvent = {
@@ -101,7 +101,7 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
       const newIndex = currentEventIndex + 1;
       onEventIndexChange(newIndex);
 
-      // Trigger event click for highlighting
+      // Trigger event click for focusing (without highlighting)
       if (onEventClick && eventEntries[newIndex]) {
         const [eventName] = eventEntries[newIndex];
         const syntheticEvent: OtelEvent = {
@@ -116,22 +116,6 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
       }
     }
   }, [currentEventIndex, totalEvents, onEventIndexChange, onEventClick, eventEntries]);
-
-  // Trigger initial event click on mount to highlight first node
-  useEffect(() => {
-    if (onEventClick && currentEntry) {
-      const [eventName] = currentEntry;
-      const syntheticEvent: OtelEvent = {
-        name: eventName,
-        timestamp: 0,
-        type: 'span',
-        spanId: 'preview',
-        traceId: 'preview',
-        attributes: {},
-      };
-      onEventClick(syntheticEvent, currentEventIndex);
-    }
-  }, [scenario.id]); // Only on scenario change
 
   // Keyboard navigation
   useEffect(() => {
@@ -180,15 +164,10 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: theme.colors.backgroundSecondary,
-        borderTop: isExpanded ? 'none' : `1px solid ${theme.colors.border}`,
+        borderTop: `1px solid ${theme.colors.border}`,
         flexShrink: 0,
-        height: isExpanded ? '100%' : '200px',
-        position: isExpanded ? 'absolute' : 'relative',
-        top: isExpanded ? 0 : undefined,
-        left: isExpanded ? 0 : undefined,
-        right: isExpanded ? 0 : undefined,
-        bottom: isExpanded ? 0 : undefined,
-        zIndex: isExpanded ? 10 : undefined,
+        height: isExpanded ? '50%' : '200px',
+        minHeight: isExpanded ? '200px' : '200px',
       }}
     >
       {/* Header */}
@@ -331,6 +310,7 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
                 key={evtName}
                 onClick={() => {
                   onEventIndexChange(idx);
+                  // Trigger event click for focusing (without highlighting)
                   if (onEventClick) {
                     const syntheticEvent: OtelEvent = {
                       name: evtName,
