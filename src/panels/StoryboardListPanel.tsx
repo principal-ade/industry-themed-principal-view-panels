@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import type { StoryboardListPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
@@ -89,8 +89,19 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   const panelRef = useRef<HTMLDivElement>(null);
 
   usePanelFocusListener('storyboard-list', events, () => panelRef.current?.focus());
+
+  // Get controlled selection from context (for programmatic control like tours)
+  const selectedNodeIdFromContext = context.selectedNodeId;
+
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Sync controlled selection from context to internal state
+  useEffect(() => {
+    if (selectedNodeIdFromContext !== undefined) {
+      setSelectedNodeId(selectedNodeIdFromContext);
+    }
+  }, [selectedNodeIdFromContext]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [cliCommandCopied, setCliCommandCopied] = useState(false);

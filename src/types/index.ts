@@ -95,6 +95,17 @@ export type WorkflowScenariosPanelPropsTyped = PanelComponentProps<
 export interface StoryboardListPanelContext {
   fileTree: DataSlice<FileTree | null>;
   git?: DataSlice<GitStatusWithFiles | null>;
+  /**
+   * Controlled selection - when provided, syncs with internal selection state.
+   * Format: 'canvas:{canvasId}' or 'workflow:{workflowId}'
+   *
+   * Examples:
+   * - 'canvas:my-canvas' - Select a canvas node
+   * - 'workflow:my-workflow' - Select a workflow node
+   *
+   * Used for programmatic control (e.g., tours, external navigation).
+   */
+  selectedNodeId?: string | null;
 }
 
 /**
