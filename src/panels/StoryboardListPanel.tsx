@@ -375,7 +375,11 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
       : 'npx @principal-ai/principal-view-cli@latest init';
     navigator.clipboard.writeText(cliCommand).then(() => {
       setCliCommandCopied(true);
-      setTimeout(() => setCliCommandCopied(false), 2000);
+      // Brief delay so user sees the checkmark confirmation before modal closes
+      setTimeout(() => {
+        setShowHelp(false);
+        setCliCommandCopied(false);
+      }, 600);
     });
   }, [storyboards.length]);
 

@@ -1,0 +1,701 @@
+{
+  "nodes": [
+    {
+      "id": "props-received",
+      "type": "text",
+      "text": "# Props Received\n\nMultiCanvasPanel receives props and determines operation mode",
+      "x": 0,
+      "y": 0,
+      "width": 300,
+      "height": 100,
+      "color": "#6366f1",
+      "pv": {
+        "event": {
+          "name": "panel.props.received",
+          "attributes": {
+            "mode": "string",
+            "canvas.count": "number"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        },
+        "dataSchema": {
+          "mode": {
+            "type": "string",
+            "required": true
+          },
+          "canvas.count": {
+            "type": "number",
+            "required": true
+          }
+        }
+      }
+    },
+    {
+      "id": "static-mode",
+      "type": "text",
+      "text": "# Static Layout Mode\n\nLayout prop provided directly with pre-built canvas data (used in Storybook)",
+      "x": 400,
+      "y": -100,
+      "width": 300,
+      "height": 120,
+      "color": "#10b981",
+      "pv": {
+        "event": {
+          "name": "panel.mode.static",
+          "attributes": {
+            "placement.count": "number"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        },
+        "dataSchema": {
+          "placement.count": {
+            "type": "number",
+            "required": true
+          }
+        }
+      }
+    },
+    {
+      "id": "dynamic-mode",
+      "type": "text",
+      "text": "# Dynamic Loading Mode\n\ncanvasInfos prop with paths to load from files (production use)",
+      "x": 400,
+      "y": 100,
+      "width": 300,
+      "height": 120,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "panel.mode.dynamic",
+          "attributes": {
+            "canvas.paths": "string[]"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        },
+        "dataSchema": {
+          "canvas.paths": {
+            "type": "array",
+            "required": true
+          }
+        }
+      }
+    },
+    {
+      "id": "loading-started",
+      "type": "text",
+      "text": "# Loading Started\n\nBegins loading canvas files from repository",
+      "x": 800,
+      "y": 100,
+      "width": 280,
+      "height": 100,
+      "color": "#8b5cf6",
+      "pv": {
+        "event": {
+          "name": "canvas.loading.started",
+          "attributes": {
+            "canvas.count": "number",
+            "repository.path": "string"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        },
+        "dataSchema": {
+          "canvas.count": {
+            "type": "number",
+            "required": true
+          },
+          "repository.path": {
+            "type": "string",
+            "required": true
+          }
+        }
+      }
+    },
+    {
+      "id": "file-read",
+      "type": "text",
+      "text": "# File Read\n\nReads canvas file using actions.readFile",
+      "x": 1150,
+      "y": 0,
+      "width": 280,
+      "height": 100,
+      "color": "#06b6d4",
+      "pv": {
+        "event": {
+          "name": "canvas.file.read",
+          "attributes": {
+            "file.path": "string",
+            "file.size": "number"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "io"
+        },
+        "dataSchema": {
+          "file.path": {
+            "type": "string",
+            "required": true
+          },
+          "file.size": {
+            "type": "number",
+            "required": false
+          }
+        }
+      }
+    },
+    {
+      "id": "canvas-parsed",
+      "type": "text",
+      "text": "# Canvas Parsed\n\nConfigLoader.parseCanvas extracts ExtendedCanvas from file content",
+      "x": 1150,
+      "y": 140,
+      "width": 280,
+      "height": 120,
+      "color": "#06b6d4",
+      "pv": {
+        "event": {
+          "name": "canvas.parsed",
+          "attributes": {
+            "canvas.id": "string",
+            "node.count": "number",
+            "edge.count": "number"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        },
+        "dataSchema": {
+          "canvas.id": {
+            "type": "string",
+            "required": true
+          },
+          "node.count": {
+            "type": "number",
+            "required": true
+          },
+          "edge.count": {
+            "type": "number",
+            "required": false
+          }
+        }
+      }
+    },
+    {
+      "id": "loading-complete",
+      "type": "text",
+      "text": "# Loading Complete\n\nAll canvases loaded successfully",
+      "x": 800,
+      "y": 300,
+      "width": 280,
+      "height": 100,
+      "color": "#10b981",
+      "pv": {
+        "event": {
+          "name": "canvas.loading.complete",
+          "attributes": {
+            "canvas.loaded.count": "number",
+            "canvas.failed.count": "number"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        },
+        "dataSchema": {
+          "canvas.loaded.count": {
+            "type": "number",
+            "required": true
+          },
+          "canvas.failed.count": {
+            "type": "number",
+            "required": false
+          }
+        }
+      }
+    },
+    {
+      "id": "loading-error",
+      "type": "text",
+      "text": "# Loading Error\n\nCritical error during loading (missing readFile or repositoryPath)",
+      "x": 1150,
+      "y": 300,
+      "width": 280,
+      "height": 120,
+      "color": "#ef4444",
+      "pv": {
+        "event": {
+          "name": "canvas.loading.error",
+          "attributes": {
+            "error.type": "string",
+            "error.message": "string"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "error"
+        },
+        "dataSchema": {
+          "error.type": {
+            "type": "string",
+            "required": true
+          },
+          "error.message": {
+            "type": "string",
+            "required": true
+          }
+        }
+      }
+    },
+    {
+      "id": "layout-created",
+      "type": "text",
+      "text": "# Layout Created\n\ncreateMultiCanvasLayout generates placements with positions",
+      "x": 400,
+      "y": 300,
+      "width": 280,
+      "height": 120,
+      "color": "#84cc16",
+      "pv": {
+        "event": {
+          "name": "layout.created",
+          "attributes": {
+            "direction": "string",
+            "gap": "number",
+            "columns": "number",
+            "placement.count": "number"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        },
+        "dataSchema": {
+          "direction": {
+            "type": "string",
+            "required": true
+          },
+          "gap": {
+            "type": "number",
+            "required": true
+          },
+          "columns": {
+            "type": "number",
+            "required": false
+          },
+          "placement.count": {
+            "type": "number",
+            "required": true
+          }
+        }
+      }
+    },
+    {
+      "id": "grid-layout",
+      "type": "text",
+      "text": "# Grid Layout\n\n2-column grid with uniform cell sizing",
+      "x": 100,
+      "y": 480,
+      "width": 240,
+      "height": 100,
+      "color": "#ec4899",
+      "pv": {
+        "event": {
+          "name": "layout.grid",
+          "attributes": {
+            "cell.width": "number",
+            "cell.height": "number",
+            "columns": "number"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "ui-state"
+        }
+      }
+    },
+    {
+      "id": "vertical-layout",
+      "type": "text",
+      "text": "# Vertical Layout\n\nCanvases stacked top to bottom",
+      "x": 380,
+      "y": 480,
+      "width": 240,
+      "height": 100,
+      "color": "#a855f7",
+      "pv": {
+        "event": {
+          "name": "layout.vertical",
+          "attributes": {
+            "total.height": "number"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "ui-state"
+        }
+      }
+    },
+    {
+      "id": "horizontal-layout",
+      "type": "text",
+      "text": "# Horizontal Layout\n\nCanvases side by side",
+      "x": 660,
+      "y": 480,
+      "width": 240,
+      "height": 100,
+      "color": "#0ea5e9",
+      "pv": {
+        "event": {
+          "name": "layout.horizontal",
+          "attributes": {
+            "total.width": "number"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "ui-state"
+        }
+      }
+    },
+    {
+      "id": "renderer-mounted",
+      "type": "text",
+      "text": "# Renderer Mounted\n\nMultiCanvasRenderer displays unified view with all canvases",
+      "x": 400,
+      "y": 640,
+      "width": 300,
+      "height": 120,
+      "color": "#10b981",
+      "pv": {
+        "event": {
+          "name": "renderer.mounted",
+          "attributes": {
+            "show.groups": "boolean",
+            "show.minimap": "boolean",
+            "show.controls": "boolean",
+            "show.background": "boolean",
+            "background.variant": "string"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        },
+        "dataSchema": {
+          "show.groups": {
+            "type": "boolean",
+            "required": true
+          },
+          "show.minimap": {
+            "type": "boolean",
+            "required": true
+          },
+          "show.controls": {
+            "type": "boolean",
+            "required": true
+          },
+          "show.background": {
+            "type": "boolean",
+            "required": true
+          },
+          "background.variant": {
+            "type": "string",
+            "required": false
+          }
+        }
+      }
+    },
+    {
+      "id": "node-clicked",
+      "type": "text",
+      "text": "# Node Clicked\n\nUser clicks a node in one of the canvases",
+      "x": 800,
+      "y": 640,
+      "width": 280,
+      "height": 100,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "node.clicked",
+          "attributes": {
+            "node.id": "string",
+            "canvas.id": "string"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "interaction"
+        },
+        "dataSchema": {
+          "node.id": {
+            "type": "string",
+            "required": true
+          },
+          "canvas.id": {
+            "type": "string",
+            "required": false
+          }
+        }
+      }
+    },
+    {
+      "id": "empty-state",
+      "type": "text",
+      "text": "# Empty State\n\nNo canvases loaded successfully",
+      "x": 1150,
+      "y": 480,
+      "width": 240,
+      "height": 100,
+      "color": "#64748b",
+      "pv": {
+        "event": {
+          "name": "panel.empty",
+          "attributes": {
+            "reason": "string"
+          }
+        },
+        "references": ["src/panels/MultiCanvasPanel.tsx"],
+        "status": "draft",
+        "otel": {
+          "kind": "event",
+          "category": "ui-state"
+        },
+        "dataSchema": {
+          "reason": {
+            "type": "string",
+            "required": true
+          }
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-props-static",
+      "fromNode": "props-received",
+      "toNode": "static-mode",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "layout prop",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-props-dynamic",
+      "fromNode": "props-received",
+      "toNode": "dynamic-mode",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "canvasInfos prop",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-static-render",
+      "fromNode": "static-mode",
+      "toNode": "renderer-mounted",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "direct render",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-dynamic-loading",
+      "fromNode": "dynamic-mode",
+      "toNode": "loading-started",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-loading-read",
+      "fromNode": "loading-started",
+      "toNode": "file-read",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "for each canvas",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-read-parse",
+      "fromNode": "file-read",
+      "toNode": "canvas-parsed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-parse-complete",
+      "fromNode": "canvas-parsed",
+      "toNode": "loading-complete",
+      "fromSide": "bottom",
+      "toSide": "right",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-loading-error",
+      "fromNode": "loading-started",
+      "toNode": "loading-error",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "on error",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-complete-layout",
+      "fromNode": "loading-complete",
+      "toNode": "layout-created",
+      "fromSide": "left",
+      "toSide": "right",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-layout-grid",
+      "fromNode": "layout-created",
+      "toNode": "grid-layout",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "direction=grid",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-layout-vertical",
+      "fromNode": "layout-created",
+      "toNode": "vertical-layout",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "direction=vertical",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-layout-horizontal",
+      "fromNode": "layout-created",
+      "toNode": "horizontal-layout",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "direction=horizontal",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-grid-render",
+      "fromNode": "grid-layout",
+      "toNode": "renderer-mounted",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-vertical-render",
+      "fromNode": "vertical-layout",
+      "toNode": "renderer-mounted",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-horizontal-render",
+      "fromNode": "horizontal-layout",
+      "toNode": "renderer-mounted",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-render-click",
+      "fromNode": "renderer-mounted",
+      "toNode": "node-clicked",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "onNodeClick",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-complete-empty",
+      "fromNode": "loading-complete",
+      "toNode": "empty-state",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "0 loaded",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    }
+  ],
+  "pv": {
+    "name": "Multi Canvas Panel",
+    "version": "1.0.0",
+    "description": "OTEL event schema for the MultiCanvasPanel component - displays multiple canvases on a unified view",
+    "markdown": ".principal-views/multi-canvas-panel/multi-canvas-panel.md"
+  }
+}

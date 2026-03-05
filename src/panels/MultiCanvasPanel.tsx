@@ -16,9 +16,10 @@ export interface CanvasInfo {
   label?: string;
 }
 
-export interface MultiCanvasPanelProps extends MultiCanvasPanelPropsTyped {
-  /** Canvas infos with paths to load */
-  canvasInfos: CanvasInfo[];
+/**
+ * Base props for display options (shared between both modes)
+ */
+interface MultiCanvasPanelDisplayProps {
   /** Whether to show group borders around each canvas (default: true) */
   showGroups?: boolean;
   /** Show minimap for navigation (default: false) */
@@ -29,15 +30,40 @@ export interface MultiCanvasPanelProps extends MultiCanvasPanelPropsTyped {
   showBackground?: boolean;
   /** Background pattern variant */
   backgroundVariant?: 'dots' | 'lines' | 'cross';
+  /** Optional click handler for nodes */
+  onNodeClick?: (nodeId: string) => void;
+}
+
+/**
+ * Props for static layout mode (used in stories)
+ */
+interface StaticLayoutProps extends MultiCanvasPanelDisplayProps {
+  /** Pre-built layout with canvas data */
+  layout: MultiCanvasLayout;
+  canvasInfos?: never;
+  context?: never;
+  actions?: never;
+  direction?: never;
+  gap?: never;
+  columns?: never;
+}
+
+/**
+ * Props for dynamic loading mode (used in production)
+ */
+interface DynamicLoadingProps extends MultiCanvasPanelPropsTyped, MultiCanvasPanelDisplayProps {
+  /** Canvas infos with paths to load */
+  canvasInfos: CanvasInfo[];
   /** Layout direction */
   direction?: 'vertical' | 'horizontal' | 'grid';
   /** Gap between canvases */
   gap?: number;
   /** Number of columns for grid layout */
   columns?: number;
-  /** Optional click handler for nodes */
-  onNodeClick?: (nodeId: string) => void;
+  layout?: never;
 }
+
+export type MultiCanvasPanelProps = StaticLayoutProps | DynamicLoadingProps;
 
 interface LoadedCanvas {
   id: string;
@@ -46,18 +72,71 @@ interface LoadedCanvas {
 }
 
 /**
+ * Helper to check if props are for static layout mode
+ */
+function isStaticLayoutProps(props: MultiCanvasPanelProps): props is StaticLayoutProps {
+  return 'layout' in props && props.layout !== undefined;
+}
+
+/**
  * MultiCanvasPanel loads and displays multiple canvases on a single unified view
  * using the MultiCanvasRenderer from principal-view-react.
+ *
+ * Supports two modes:
+ * 1. Static layout mode: Pass a pre-built `layout` prop (used in stories)
+ * 2. Dynamic loading mode: Pass `canvasInfos`, `context`, and `actions` to load from files
  */
-export const MultiCanvasPanel: React.FC<MultiCanvasPanelProps> = ({
+export const MultiCanvasPanel: React.FC<MultiCanvasPanelProps> = (props) => {
+  const {
+    showGroups = true,
+    showMinimap = true,
+    showControls = true,
+    showBackground = true,
+    backgroundVariant = 'dots',
+    onNodeClick,
+  } = props;
+
+  // Static layout mode - render directly
+  if (isStaticLayoutProps(props)) {
+    return (
+      <MultiCanvasRenderer
+        layout={props.layout}
+        showGroups={showGroups}
+        showMinimap={showMinimap}
+        showControls={showControls}
+        showBackground={showBackground}
+        backgroundVariant={backgroundVariant}
+        onNodeClick={onNodeClick}
+      />
+    );
+  }
+
+  // Dynamic loading mode
+  return (
+    <DynamicMultiCanvasPanel
+      {...props}
+      showGroups={showGroups}
+      showMinimap={showMinimap}
+      showControls={showControls}
+      showBackground={showBackground}
+      backgroundVariant={backgroundVariant}
+      onNodeClick={onNodeClick}
+    />
+  );
+};
+
+/**
+ * Internal component for dynamic loading mode
+ */
+const DynamicMultiCanvasPanel: React.FC<DynamicLoadingProps> = ({
   context,
   actions,
   canvasInfos,
-  showGroups = true,
-  showMinimap = true,
-  showControls = true,
-  showBackground = true,
-  backgroundVariant = 'dots',
+  showGroups,
+  showMinimap,
+  showControls,
+  showBackground,
+  backgroundVariant,
   direction = 'grid',
   gap = 150,
   columns = 2,
@@ -80,14 +159,14 @@ export const MultiCanvasPanel: React.FC<MultiCanvasPanelProps> = ({
     const ctx = contextRef.current;
     const acts = actionsRef.current;
 
-    const readFile = acts.readFile;
+    const readFile = acts?.readFile;
     if (!readFile) {
       setError('readFile action not available');
       setLoading(false);
       return;
     }
 
-    const repositoryPath = (ctx as { repositoryPath?: string }).repositoryPath;
+    const repositoryPath = (ctx as { repositoryPath?: string } | undefined)?.repositoryPath;
     if (!repositoryPath) {
       setError('Repository path not available');
       setLoading(false);
@@ -143,7 +222,7 @@ export const MultiCanvasPanel: React.FC<MultiCanvasPanelProps> = ({
         color: '#888',
         fontSize: '14px',
       }}>
-        Loading {canvasInfos.length} canvases...
+        Loading {canvasInfos?.length ?? 0} canvases...
       </div>
     );
   }

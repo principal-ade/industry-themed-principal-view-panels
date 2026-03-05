@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import React from 'react';
 import { MultiCanvasPanel, createMultiCanvasLayout } from './MultiCanvasPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
-import type { MultiCanvasLayout } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas } from '@principal-ai/principal-view-core';
 
 // Import the canvas data
@@ -274,5 +273,34 @@ export const LinesBackground: Story = {
     showControls: true,
     showBackground: true,
     backgroundVariant: 'lines',
+  },
+};
+
+/**
+ * Grid layout - 2-column grid with uniform cell sizing
+ */
+const gridLayout = createMultiCanvasLayout(
+  [
+    {
+      id: 'checkout-flow',
+      canvas: checkoutFlowCanvas as ExtendedCanvas,
+      label: 'Checkout Flow',
+    },
+    {
+      id: 'workflow-scenarios',
+      canvas: workflowScenariosCanvas,
+      label: 'Workflow Scenarios Panel',
+    },
+  ],
+  { direction: 'grid', gap: 150, columns: 2 }
+);
+
+export const GridLayout: Story = {
+  args: {
+    layout: gridLayout,
+    showGroups: true,
+    showControls: true,
+    showBackground: true,
+    showMinimap: true,
   },
 };
