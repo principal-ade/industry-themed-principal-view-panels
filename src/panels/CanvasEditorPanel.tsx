@@ -87,6 +87,12 @@ export interface CanvasEditorPanelProps extends CanvasEditorPanelPropsTyped {
     matchType: 'full' | 'partial';
     coveragePercent?: number;
   }>;
+
+  /**
+   * Optional callback to close the panel.
+   * When provided, displays a close button (X) in the header.
+   */
+  onClosePanel?: () => void;
 }
 
 /**
@@ -107,6 +113,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   workflowPath: _workflowPath,
   workflowFileInfo: _workflowFileInfo,
   traceMatchInfo,
+  onClosePanel,
 }) => {
   const { theme } = useTheme();
 
@@ -150,6 +157,9 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
   // Track if we should skip the next file change (after save)
   const skipNextFileChangeRef = useRef(false);
+
+  // Check if editing is available (writeFile action exists)
+  const canEdit = !!actions.writeFile;
 
   // Track canvas file timestamp for auto-reload on changes
   const canvasFileTimestampRef = useRef<number | null>(null);
@@ -361,8 +371,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       const ctx = contextRef.current;
       const acts = actionsRef.current;
 
-      const writeFile = (acts as { writeFile?: (path: string, content: string) => Promise<void> }).writeFile;
-      if (!writeFile) {
+      if (!acts.writeFile) {
         throw new Error('writeFile action not available');
       }
 
@@ -382,7 +391,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
       // Write to file using canvasPath prop
       const fullPath = `${repositoryPath}/${canvasPath}`;
-      await writeFile(fullPath, jsonContent);
+      await acts.writeFile(fullPath, jsonContent);
 
       // Skip the next file change event since we caused it
       skipNextFileChangeRef.current = true;
@@ -675,30 +684,32 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
           </div>
         </div>
 
-        {/* Refresh Button - flush right, full height */}
-        <button
-          onClick={() => loadConfiguration()}
-          disabled={state.hasUnsavedChanges}
-          title={state.hasUnsavedChanges ? 'Save or discard changes before refreshing' : 'Refresh'}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 40,
-            height: 39,
-            padding: 0,
-            backgroundColor: 'transparent',
-            color: theme.colors.textMuted,
-            border: 'none',
-            borderLeft: `1px solid ${theme.colors.border}`,
-            cursor: state.hasUnsavedChanges ? 'not-allowed' : 'pointer',
-            opacity: state.hasUnsavedChanges ? 0.5 : 1,
-            transition: 'all 0.15s',
-            flexShrink: 0,
-          }}
-        >
-          <RefreshCw size={18} />
-        </button>
+        {/* Refresh Button - only shown when editing is available */}
+        {canEdit && (
+          <button
+            onClick={() => loadConfiguration()}
+            disabled={state.hasUnsavedChanges}
+            title={state.hasUnsavedChanges ? 'Save or discard changes before refreshing' : 'Refresh'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 40,
+              height: 39,
+              padding: 0,
+              backgroundColor: 'transparent',
+              color: theme.colors.textMuted,
+              border: 'none',
+              borderLeft: `1px solid ${theme.colors.border}`,
+              cursor: state.hasUnsavedChanges ? 'not-allowed' : 'pointer',
+              opacity: state.hasUnsavedChanges ? 0.5 : 1,
+              transition: 'all 0.15s',
+              flexShrink: 0,
+            }}
+          >
+            <RefreshCw size={18} />
+          </button>
+        )}
 
         {/* Grid Lines Toggle Button */}
         <button
@@ -746,29 +757,56 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
           <Info size={18} />
         </button>
 
-        {/* Edit Mode Toggle - flush right, full height */}
-        <button
-          onClick={toggleEditMode}
-          disabled={state.isSaving}
-          title={state.isEditMode ? 'Exit edit mode' : 'Enter edit mode'}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 40,
-            height: 39,
-            padding: 0,
-            backgroundColor: state.isEditMode ? theme.colors.primary : 'transparent',
-            color: state.isEditMode ? 'white' : theme.colors.textMuted,
-            border: 'none',
-            borderLeft: `1px solid ${theme.colors.border}`,
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-            flexShrink: 0,
-          }}
-        >
-          <Pencil size={18} />
-        </button>
+        {/* Edit Mode Toggle - only shown when writeFile action is available */}
+        {canEdit && (
+          <button
+            onClick={toggleEditMode}
+            disabled={state.isSaving}
+            title={state.isEditMode ? 'Exit edit mode' : 'Enter edit mode'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 40,
+              height: 39,
+              padding: 0,
+              backgroundColor: state.isEditMode ? theme.colors.primary : 'transparent',
+              color: state.isEditMode ? 'white' : theme.colors.textMuted,
+              border: 'none',
+              borderLeft: `1px solid ${theme.colors.border}`,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              flexShrink: 0,
+            }}
+          >
+            <Pencil size={18} />
+          </button>
+        )}
+
+        {/* Close Panel Button - only shown when onClosePanel is provided */}
+        {onClosePanel && (
+          <button
+            onClick={onClosePanel}
+            title="Close panel"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 40,
+              height: 39,
+              padding: 0,
+              backgroundColor: 'transparent',
+              color: theme.colors.textMuted,
+              border: 'none',
+              borderLeft: `1px solid ${theme.colors.border}`,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              flexShrink: 0,
+            }}
+          >
+            <X size={18} />
+          </button>
+        )}
       </div>
 
       {/* Main content area - always use AnimatedResizableLayout, collapse left panel when no workflow */}

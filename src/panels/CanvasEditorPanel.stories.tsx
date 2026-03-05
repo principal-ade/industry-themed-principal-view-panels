@@ -231,6 +231,218 @@ export const Default: Story = {
 };
 
 // ============================================================================
+// With Close Button Story - Shows the optional close panel button
+// ============================================================================
+
+export const WithCloseButton: Story = {
+  args: {} as never,
+  render: () => {
+    const [closed, setClosed] = useState(false);
+
+    const fileTreeData = {
+      allFiles: [
+        {
+          path: '.principal-views/sample.canvas',
+          relativePath: '.principal-views/sample.canvas',
+          name: 'sample.canvas',
+          content: JSON.stringify(sampleCanvas, null, 2),
+        },
+      ],
+    };
+
+    const mockSlices = new Map<string, DataSlice>();
+    mockSlices.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeData,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+
+    const configs = ConfigLoader.findConfigs(fileTreeData.allFiles);
+    const firstCanvas = configs.length > 0 ? configs[0] : null;
+
+    if (closed) {
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          gap: 16,
+        }}>
+          <div style={{ fontSize: 18, color: '#666' }}>Panel closed!</div>
+          <button
+            onClick={() => setClosed(false)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#4A90E2',
+              color: 'white',
+              border: 'none',
+              borderRadius: 4,
+              cursor: 'pointer',
+            }}
+          >
+            Reopen Panel
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          slices: mockSlices,
+          getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+            return mockSlices.get(name) as DataSlice<T> | undefined;
+          },
+          hasSlice: (name: string) => mockSlices.has(name),
+          isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+          repositoryPath: '/mock/repository',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return file.content;
+          },
+          writeFile: async (path: string, content: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (file) {
+              file.content = content;
+              console.log('[Storybook Mock] Saved file:', path);
+              console.log('[Storybook Mock] Content:', JSON.parse(content));
+            }
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+      >
+        {(props) => (
+          <CanvasEditorPanel
+            {...props}
+            canvasPath={firstCanvas?.path}
+            canvasName={firstCanvas?.name}
+            onClosePanel={() => setClosed(true)}
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+**With Close Button**
+
+This story demonstrates the optional close button that appears in the header when \`onClosePanel\` is provided.
+
+The close button (X icon) appears at the far right of the header toolbar. Clicking it triggers the \`onClosePanel\` callback.
+
+**Usage:**
+\`\`\`tsx
+<CanvasEditorPanel
+  // ... other props
+  onClosePanel={() => {
+    // Handle panel close
+  }}
+/>
+\`\`\`
+        `,
+      },
+    },
+  },
+};
+
+// ============================================================================
+// Read Only Story - Shows panel without edit button (no writeFile action)
+// ============================================================================
+
+export const ReadOnly: Story = {
+  args: {} as never,
+  render: () => {
+    const fileTreeData = {
+      allFiles: [
+        {
+          path: '.principal-views/sample.canvas',
+          relativePath: '.principal-views/sample.canvas',
+          name: 'sample.canvas',
+          content: JSON.stringify(sampleCanvas, null, 2),
+        },
+      ],
+    };
+
+    const mockSlices = new Map<string, DataSlice>();
+    mockSlices.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeData,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+
+    const configs = ConfigLoader.findConfigs(fileTreeData.allFiles);
+    const firstCanvas = configs.length > 0 ? configs[0] : null;
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          slices: mockSlices,
+          getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+            return mockSlices.get(name) as DataSlice<T> | undefined;
+          },
+          hasSlice: (name: string) => mockSlices.has(name),
+          isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+          repositoryPath: '/mock/repository',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return file.content;
+          },
+          // Explicitly set to undefined to hide edit/refresh buttons
+          writeFile: undefined,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+      >
+        {(props) => (
+          <CanvasEditorPanel
+            {...props}
+            canvasPath={firstCanvas?.path}
+            canvasName={firstCanvas?.name}
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+**Read Only Mode**
+
+This story shows the panel without the edit button. The edit button (pencil icon) is hidden because no \`writeFile\` action is provided.
+
+This is useful for embedding the canvas viewer in contexts where editing should not be allowed.
+        `,
+      },
+    },
+  },
+};
+
+// ============================================================================
 // Library Colors Story - Tests that nodeComponent colors from library.yaml work
 // ============================================================================
 

@@ -55,6 +55,7 @@ import type { RegisteredTrace } from './otel';
  */
 export interface CanvasEditorPanelActions extends PanelActions {
   readFile: (path: string) => Promise<string>;
+  writeFile?: (path: string, content: string) => Promise<void>;
 }
 
 /**
