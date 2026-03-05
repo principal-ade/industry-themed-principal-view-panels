@@ -454,22 +454,24 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     return null;
   }, [state.canvas, state.hoveredScenarioEventNames, state.selectedScenario, getNodeEventName]);
 
-  // Compute fitViewToNodeIds - only when shouldFitToNodes is true (one-shot)
-  // Include fitCounter in deps to force new array reference when re-fitting
+  // Compute fitViewToNodeIds - controls which nodes GraphRenderer fits to
+  // IMPORTANT: We must keep returning activeNodeIds even after shouldFitToNodes resets,
+  // otherwise GraphRenderer's default fitView effect triggers and fits to ALL nodes.
+  // The fitCounter forces new array references when we want to trigger a new fit animation.
   const fitViewToNodeIds = useMemo(() => {
-    if (shouldFitToNodes) {
-      // Priority 1: If a single node is highlighted (clicked), fit to just that node
-      if (state.highlightedNodeId) {
-        return [state.highlightedNodeId];
-      }
-      // Priority 2: If we have active nodes, fit to those
-      if (activeNodeIds && activeNodeIds.length > 0) {
-        return [...activeNodeIds]; // New array reference
-      }
-      // Priority 3: Fit to all nodes in canvas
-      if (state.canvas?.nodes && state.canvas.nodes.length > 0) {
-        return state.canvas.nodes.map(n => n.id);
-      }
+    // Priority 1: If a single node is highlighted (clicked), fit to just that node
+    // Only fit when shouldFitToNodes is true (one-shot)
+    if (shouldFitToNodes && state.highlightedNodeId) {
+      return [state.highlightedNodeId];
+    }
+    // Priority 2: If we have active nodes (hover/selection), always return them
+    // This prevents the fit-to-all fallback when shouldFitToNodes resets
+    if (activeNodeIds && activeNodeIds.length > 0) {
+      return [...activeNodeIds]; // New array reference (fitCounter in deps forces this)
+    }
+    // Priority 3: Fit to all nodes only when explicitly requested
+    if (shouldFitToNodes && state.canvas?.nodes && state.canvas.nodes.length > 0) {
+      return state.canvas.nodes.map(n => n.id);
     }
     return undefined;
   }, [shouldFitToNodes, activeNodeIds, state.canvas?.nodes, state.highlightedNodeId, fitCounter]);
