@@ -120,19 +120,19 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   }, [storyboards]);
 
   // Auto-select the tab that has content (only once when data loads)
-  // If both have content, prefer OTEL; if neither, default to OTEL
+  // If both have content, prefer Architecture; if neither, default to Architecture
   const effectiveCanvasTypeFilter = useMemo(() => {
     if (canvasTypeFilter !== null) {
       return canvasTypeFilter;
     }
-    // Auto-select: prefer the one with content, or OTEL if both/neither have content
+    // Auto-select: prefer the one with content, or Architecture if both/neither have content
     if (otelCount > 0 && staticCount === 0) {
       return 'otel';
     }
     if (staticCount > 0 && otelCount === 0) {
       return 'regular';
     }
-    return 'otel'; // Default to OTEL if both have content or neither has content
+    return 'regular'; // Default to Architecture if both have content or neither has content
   }, [canvasTypeFilter, otelCount, staticCount]);
 
   // Get fileTree to access FileInfo metadata
