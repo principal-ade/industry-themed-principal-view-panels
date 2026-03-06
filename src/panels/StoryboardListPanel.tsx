@@ -90,6 +90,47 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
 
   usePanelFocusListener('storyboard-list', events, () => panelRef.current?.focus());
 
+  // State for controlled tree expansion (for programmatic control like tours)
+  const [openState, setOpenState] = useState<Record<string, boolean>>({});
+
+  // Handle tree node toggle - update openState
+  const handleTreeToggle = useCallback((nodeId: string, isOpen: boolean) => {
+    setOpenState(prev => ({ ...prev, [nodeId]: isOpen }));
+  }, []);
+
+  // Ref to store the click handler for programmatic access
+  const handleTreeNodeClickRef = useRef<((node: StoryboardWorkflowNodeData | CanvasListNodeData) => void) | null>(null);
+
+  // Listen for basic programmatic events (switchTab, toggleNode)
+  useEffect(() => {
+    if (!events) return;
+
+    const handleCustomEvent = (event: { type: string; payload?: unknown }) => {
+      const payload = event.payload as {
+        action?: string;
+        tab?: 'otel' | 'regular';
+        nodeId?: string;
+        open?: boolean;
+      } | undefined;
+
+      if (payload?.action === 'switchTab' && payload.tab) {
+        setCanvasTypeFilter(payload.tab);
+      } else if (payload?.action === 'toggleNode' && payload.nodeId !== undefined) {
+        // Toggle or set specific open state for a node
+        setOpenState(prev => {
+          const currentState = prev[payload.nodeId!] ?? false;
+          const newState = payload.open !== undefined ? payload.open : !currentState;
+          return { ...prev, [payload.nodeId!]: newState };
+        });
+      }
+    };
+
+    events.on('custom', handleCustomEvent);
+    return () => {
+      events.off('custom', handleCustomEvent);
+    };
+  }, [events]);
+
   // Get controlled selection from context (for programmatic control like tours)
   const selectedNodeIdFromContext = context.selectedNodeId;
 
@@ -111,6 +152,84 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   // Storyboards come directly from the discovery system (no transformation needed)
   // Also load full workflow templates for sending complete data when workflows are clicked
   const { storyboards, workflows, testTraces, isLoading, error, discovery } = useCanvasWorkflowData({ context, actions });
+
+  // Listen for selectNode events (requires storyboards to be loaded)
+  useEffect(() => {
+    if (!events) return;
+
+    const handleSelectNode = (event: { type: string; payload?: unknown }) => {
+      const payload = event.payload as {
+        action?: string;
+        nodeId?: string;
+      } | undefined;
+
+      if (payload?.action === 'selectNode' && payload.nodeId !== undefined) {
+        // Programmatically select a node and emit events as if clicked
+        // nodeId format: "canvas:id", "workflow:id", "overview:id", "storyboard:id"
+        const [type, ...idParts] = payload.nodeId.split(':');
+        const id = idParts.join(':'); // Rejoin in case id contains colons
+
+        if (handleTreeNodeClickRef.current) {
+          // Find the matching node data based on type and id
+          if (type === 'storyboard' || type === 'canvas') {
+            // Find storyboard by id (basename)
+            const storyboard = storyboards.find(sb => sb.basename === id || sb.canvas.id === id);
+            if (storyboard) {
+              const node: StoryboardWorkflowNodeData = {
+                id: `canvas:${storyboard.canvas.id}`,
+                name: storyboard.canvas.name,
+                type: 'canvas',
+                canvas: storyboard.canvas,
+                storyboard,
+              };
+              handleTreeNodeClickRef.current(node);
+            }
+          } else if (type === 'workflow') {
+            // Find workflow by id - need to search through storyboards
+            // Workflow IDs can be full paths like "storyboard-name/workflow-name" or just "workflow-name"
+            for (const storyboard of storyboards) {
+              const workflow = storyboard.workflows.find(wf =>
+                wf.id === id ||
+                wf.name === id ||
+                wf.id.endsWith(`/${id}`) ||  // Match partial path
+                wf.id.split('/').pop() === id  // Match just the workflow folder name
+              );
+              if (workflow) {
+                const node: StoryboardWorkflowNodeData = {
+                  id: `workflow:${workflow.id}`,
+                  name: workflow.name,
+                  type: 'workflow',
+                  workflow,
+                  storyboard,
+                };
+                handleTreeNodeClickRef.current(node);
+                break;
+              }
+            }
+          } else if (type === 'overview') {
+            // Find canvas with markdown for overview
+            const storyboard = storyboards.find(sb => sb.basename === id || sb.canvas.id === id);
+            if (storyboard && storyboard.canvas.markdownPath) {
+              const node: StoryboardWorkflowNodeData = {
+                id: `overview:${storyboard.canvas.id}`,
+                name: 'Overview',
+                type: 'overview',
+                markdownPath: storyboard.canvas.markdownPath,
+                canvas: storyboard.canvas,
+                storyboard,
+              };
+              handleTreeNodeClickRef.current(node);
+            }
+          }
+        }
+      }
+    };
+
+    events.on('custom', handleSelectNode);
+    return () => {
+      events.off('custom', handleSelectNode);
+    };
+  }, [events, storyboards]);
 
   // Count storyboards by type to determine default tab
   const { otelCount, staticCount } = useMemo(() => {
@@ -354,6 +473,11 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
       }
     }
   }, [events, getCanvasFileInfo, workflows]);
+
+  // Keep ref updated for programmatic access from event handlers
+  useEffect(() => {
+    handleTreeNodeClickRef.current = handleTreeNodeClick;
+  }, [handleTreeNodeClick]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -876,6 +1000,8 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             onClick={handleTreeNodeClick}
             selectedNodeId={selectedNodeId ?? undefined}
             defaultOpen={filteredStoryboards.length <= 2}
+            openState={openState}
+            onToggle={handleTreeToggle}
             horizontalNodePadding="clamp(16px, 4vw, 24px)"
             verticalPadding="10px"
             workflowCoverageMap={workflowCoverageMap}
@@ -889,6 +1015,8 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             onClick={handleTreeNodeClick as (node: CanvasListNodeData) => void}
             selectedNodeId={selectedNodeId ?? undefined}
             defaultOpen={filteredCanvases.length <= 2}
+            openState={openState}
+            onToggle={handleTreeToggle}
             horizontalNodePadding="clamp(16px, 4vw, 24px)"
             verticalPadding="10px"
             gitStatusData={gitStatusData}

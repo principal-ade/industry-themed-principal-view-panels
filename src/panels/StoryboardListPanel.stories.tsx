@@ -2104,3 +2104,427 @@ export const WithGitStatusBadges: Story = {
     );
   },
 };
+
+/**
+ * Programmatic Control - Demonstrates external control of tabs and tree nodes
+ * Used for tours and external navigation where the landing page needs to
+ * programmatically switch tabs and expand/collapse tree nodes.
+ *
+ * Supported events:
+ * - { action: 'switchTab', tab: 'otel' | 'regular' }
+ * - { action: 'toggleNode', nodeId: string, open?: boolean }
+ */
+export const ProgrammaticTabControl: Story = {
+  args: {} as never,
+  render: () => {
+    const [eventLog, setEventLog] = useState<Array<{ timestamp: string; action: string; detail: string }>>([]);
+
+    // Create a ref to hold event listeners
+    const listenersRef = React.useRef<Map<string, Set<(event: unknown) => void>>>(new Map());
+
+    // Create events object with working on/off/emit
+    const mockEvents = React.useMemo(() => ({
+      emit: (event: PanelEvent<unknown>) => {
+        const timestamp = new Date().toLocaleTimeString();
+        console.log(`[${timestamp}] Event emitted:`, event);
+
+        // Dispatch to registered listeners
+        const listeners = listenersRef.current.get(event.type);
+        if (listeners) {
+          listeners.forEach(listener => listener(event));
+        }
+      },
+      on: (type: string, callback: (event: unknown) => void) => {
+        if (!listenersRef.current.has(type)) {
+          listenersRef.current.set(type, new Set());
+        }
+        listenersRef.current.get(type)!.add(callback);
+        return () => {
+          listenersRef.current.get(type)?.delete(callback);
+        };
+      },
+      off: (type: string, callback: (event: unknown) => void) => {
+        listenersRef.current.get(type)?.delete(callback);
+      },
+    }), []);
+
+    // Function to emit tab switch event
+    const switchTab = (tab: 'otel' | 'regular') => {
+      const timestamp = new Date().toLocaleTimeString();
+      setEventLog(prev => [{ timestamp, action: 'switchTab', detail: tab }, ...prev].slice(0, 10));
+
+      mockEvents.emit({
+        type: 'custom',
+        source: 'external-tour-control',
+        timestamp: Date.now(),
+        payload: { action: 'switchTab', tab },
+      });
+    };
+
+    // Function to toggle a tree node
+    const toggleNode = (nodeId: string, open?: boolean) => {
+      const timestamp = new Date().toLocaleTimeString();
+      const detail = open !== undefined ? `${nodeId} → ${open ? 'open' : 'close'}` : `${nodeId} → toggle`;
+      setEventLog(prev => [{ timestamp, action: 'toggleNode', detail }, ...prev].slice(0, 10));
+
+      mockEvents.emit({
+        type: 'custom',
+        source: 'external-tour-control',
+        timestamp: Date.now(),
+        payload: { action: 'toggleNode', nodeId, open },
+      });
+    };
+
+    // Function to select a node and emit click events
+    const selectNode = (nodeId: string) => {
+      const timestamp = new Date().toLocaleTimeString();
+      setEventLog(prev => [{ timestamp, action: 'selectNode', detail: nodeId }, ...prev].slice(0, 10));
+
+      mockEvents.emit({
+        type: 'custom',
+        source: 'external-tour-control',
+        timestamp: Date.now(),
+        payload: { action: 'selectNode', nodeId },
+      });
+    };
+
+    const allFiles = [
+      // Static canvases for Architecture tab
+      ...createStaticCanvasFile('system-architecture', true),
+      ...createStaticCanvasFile('database-design', false),
+      ...createStaticCanvasFile('api-design', true),
+
+      // OTEL canvases for OTEL Workflows tab
+      ...createStoryboardFiles('authentication-flow', [
+        { name: 'login-flow', executions: 2 },
+        { name: 'logout-flow', executions: 1 },
+      ]),
+      ...createStoryboardFiles('payment-processing', [
+        { name: 'checkout', executions: 1 },
+      ]),
+    ];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-programmatic';
+    fileTree.allFiles = allFiles;
+
+    return (
+      <div style={{ display: 'flex', height: '100vh', background: '#0a0a0a' }}>
+        {/* Panel */}
+        <div style={{ flex: 1 }}>
+          <MockPanelProvider
+            contextOverrides={{
+              fileTree: createMockFileTreeSlice(fileTree),
+            }}
+            actionsOverrides={{
+              readFile: createMockReadFile(fileTree),
+            }}
+            eventsOverride={mockEvents}
+          >
+            {(props) => <StoryboardListPanel {...props} />}
+          </MockPanelProvider>
+        </div>
+
+        {/* Control Panel */}
+        <div
+          style={{
+            width: 350,
+            background: '#1a1a1a',
+            padding: 20,
+            color: '#fff',
+            overflow: 'auto',
+            borderLeft: '1px solid #333',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 20,
+          }}
+        >
+          <div>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: 16 }}>
+              Programmatic Control
+            </h3>
+            <p style={{ margin: 0, fontSize: 12, color: '#aaa', lineHeight: 1.5 }}>
+              Simulate external control of tabs and tree nodes (e.g., from a tour).
+            </p>
+          </div>
+
+          {/* Tab Control */}
+          <div>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Tab Switching</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => switchTab('regular')}
+                style={{
+                  flex: 1,
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 12px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: 500,
+                }}
+              >
+                Architecture
+              </button>
+              <button
+                onClick={() => switchTab('otel')}
+                style={{
+                  flex: 1,
+                  background: '#8b5cf6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 12px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: 500,
+                }}
+              >
+                OTEL Workflows
+              </button>
+            </div>
+          </div>
+
+          {/* Node Toggle - Architecture Tab */}
+          <div>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Toggle Nodes (Architecture)</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <button
+                onClick={() => toggleNode('canvas-folder:system-architecture')}
+                style={{
+                  background: '#374151',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  textAlign: 'left',
+                }}
+              >
+                Toggle: System Architecture
+              </button>
+              <button
+                onClick={() => toggleNode('canvas-folder:api-design')}
+                style={{
+                  background: '#374151',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  textAlign: 'left',
+                }}
+              >
+                Toggle: API Design
+              </button>
+            </div>
+          </div>
+
+          {/* Node Toggle - OTEL Tab */}
+          <div>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Toggle Nodes (OTEL)</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <button
+                onClick={() => toggleNode('storyboard:authentication-flow')}
+                style={{
+                  background: '#374151',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  textAlign: 'left',
+                }}
+              >
+                Toggle: Authentication Flow
+              </button>
+              <button
+                onClick={() => toggleNode('storyboard:payment-processing')}
+                style={{
+                  background: '#374151',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  textAlign: 'left',
+                }}
+              >
+                Toggle: Payment Processing
+              </button>
+              <button
+                onClick={() => toggleNode('workflows:authentication-flow', true)}
+                style={{
+                  background: '#065f46',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  textAlign: 'left',
+                }}
+              >
+                Open: Auth Workflows Container
+              </button>
+            </div>
+          </div>
+
+          {/* Select Node (Click Simulation) */}
+          <div>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Select Node (Simulate Click)</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <button
+                onClick={() => selectNode('canvas:authentication-flow')}
+                style={{
+                  background: '#b45309',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  textAlign: 'left',
+                }}
+              >
+                Select Canvas: Authentication Flow
+              </button>
+              <button
+                onClick={() => selectNode('workflow:login-flow')}
+                style={{
+                  background: '#7c3aed',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  textAlign: 'left',
+                }}
+              >
+                Select Workflow: Login Flow
+              </button>
+              <button
+                onClick={() => selectNode('overview:system-architecture')}
+                style={{
+                  background: '#0369a1',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  textAlign: 'left',
+                }}
+              >
+                Select Overview: System Architecture
+              </button>
+            </div>
+          </div>
+
+          {/* Event Format */}
+          <div style={{
+            padding: 12,
+            background: '#0a0a0a',
+            borderRadius: 6,
+            border: '1px solid #333',
+          }}>
+            <div style={{ fontSize: 11, color: '#888', marginBottom: 8 }}>
+              Event payload formats:
+            </div>
+            <pre style={{
+              margin: 0,
+              fontSize: 10,
+              color: '#10b981',
+              fontFamily: 'monospace',
+              whiteSpace: 'pre-wrap',
+            }}>
+{`// Switch tabs
+{ action: 'switchTab', tab: 'otel' | 'regular' }
+
+// Toggle node (flip current state)
+{ action: 'toggleNode', nodeId: string }
+
+// Set node open/closed explicitly
+{ action: 'toggleNode', nodeId: string, open: boolean }
+
+// Select node (emit click events)
+{ action: 'selectNode', nodeId: string }
+// nodeId formats:
+//   canvas:storyboard-name
+//   workflow:workflow-name
+//   overview:canvas-name`}
+            </pre>
+          </div>
+
+          {/* Event Log */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h4 style={{ margin: 0, fontSize: 14 }}>Event Log</h4>
+              <button
+                onClick={() => setEventLog([])}
+                style={{
+                  background: '#333',
+                  color: '#aaa',
+                  border: '1px solid #444',
+                  padding: '4px 8px',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                }}
+              >
+                Clear
+              </button>
+            </div>
+            <div
+              style={{
+                flex: 1,
+                fontSize: 11,
+                fontFamily: 'monospace',
+                background: '#0a0a0a',
+                border: '1px solid #333',
+                borderRadius: 6,
+                padding: 12,
+                overflowY: 'auto',
+                minHeight: 150,
+              }}
+            >
+              {eventLog.length === 0 ? (
+                <div style={{ color: '#666', textAlign: 'center', padding: 20 }}>
+                  No events yet. Click a button above.
+                </div>
+              ) : (
+                eventLog.map((entry, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      marginBottom: 8,
+                      padding: 8,
+                      background: '#1a1a1a',
+                      border: '1px solid #333',
+                      borderRadius: 4,
+                    }}
+                  >
+                    <span style={{ color: '#666' }}>[{entry.timestamp}]</span>{' '}
+                    <span style={{ color: entry.action === 'switchTab' ? '#f59e0b' : '#10b981' }}>
+                      {entry.action}
+                    </span>
+                    {' → '}
+                    <span style={{ color: '#aaa' }}>{entry.detail}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  },
+};

@@ -1,6 +1,6 @@
 {
   "name": "@industry-theme/principal-view-panels",
-  "version": "0.12.20",
+  "version": "0.12.21",
   "description": "Principal View Graph Panels for visualizing graph configurations from .principal-views/ folder as interactive diagrams",
   "type": "module",
   "main": "dist/panels.bundle.js",
@@ -82,7 +82,7 @@
     "@eslint/js": "^9.32.0",
     "@opentelemetry/api": "^1.9.0",
     "@principal-ai/storybook-addon-otel": "^0.3.22",
-    "@principal-ade/dynamic-file-tree": "0.1.72",
+    "@principal-ade/dynamic-file-tree": "0.2.3",
     "@principal-ade/industry-theme": "^0.1.7",
     "@principal-ade/panel-framework-core": "0.5.1",
     "@principal-ade/panel-layouts": "0.4.0",
