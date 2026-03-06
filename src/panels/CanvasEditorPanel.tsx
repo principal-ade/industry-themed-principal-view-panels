@@ -733,6 +733,88 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Listen for programmatic control events (selectScenario, selectEvent)
+  useEffect(() => {
+    if (!events) return;
+
+    const handleCustomEvent = (event: { type: string; payload?: unknown }) => {
+      const payload = event.payload as {
+        action?: string;
+        scenarioId?: string;
+        mode?: 'list' | 'carousel';
+        eventIndex?: number;
+        eventName?: string;
+      } | undefined;
+
+      console.log('[CanvasEditorPanel] handleCustomEvent:', payload);
+
+      if (payload?.action === 'selectScenario' && payload.scenarioId !== undefined) {
+        // Programmatically select a scenario from the workflow
+        if (!workflowTemplate?.scenarios) {
+          console.warn('[CanvasEditorPanel] No workflow template or scenarios available');
+          return;
+        }
+
+        const scenario = workflowTemplate.scenarios.find(s => s.id === payload.scenarioId);
+        if (!scenario) {
+          console.warn('[CanvasEditorPanel] Scenario not found:', payload.scenarioId);
+          return;
+        }
+
+        console.log('[CanvasEditorPanel] Selecting scenario:', payload.scenarioId, 'mode:', payload.mode);
+
+        // Use the mode to determine whether to show list view or carousel view
+        if (payload.mode === 'carousel') {
+          handleScenarioDoubleClick(payload.scenarioId, scenario);
+        } else {
+          // Default to list view (expanded mode)
+          handleScenarioClick(payload.scenarioId, scenario);
+        }
+      } else if (payload?.action === 'selectEvent') {
+        // Programmatically select an event within the current scenario
+        if (!state.selectedScenario?.template?.events) {
+          console.warn('[CanvasEditorPanel] No scenario selected or no events available');
+          return;
+        }
+
+        const eventNames = Object.keys(state.selectedScenario.template.events);
+        let targetIndex: number;
+
+        if (payload.eventIndex !== undefined) {
+          // Select by index
+          targetIndex = payload.eventIndex;
+        } else if (payload.eventName !== undefined) {
+          // Select by event name
+          targetIndex = eventNames.indexOf(payload.eventName);
+          if (targetIndex === -1) {
+            console.warn('[CanvasEditorPanel] Event not found:', payload.eventName);
+            return;
+          }
+        } else {
+          console.warn('[CanvasEditorPanel] selectEvent requires eventIndex or eventName');
+          return;
+        }
+
+        // Validate index bounds
+        if (targetIndex < 0 || targetIndex >= eventNames.length) {
+          console.warn('[CanvasEditorPanel] Event index out of bounds:', targetIndex);
+          return;
+        }
+
+        const eventName = eventNames[targetIndex];
+        console.log('[CanvasEditorPanel] Selecting event:', eventName, 'at index:', targetIndex);
+
+        // Trigger the same behavior as clicking an event in the carousel
+        handleNarrativeEventClick({ name: eventName, timestamp: 0, attributes: {} }, targetIndex);
+      }
+    };
+
+    events.on('custom', handleCustomEvent);
+    return () => {
+      events.off('custom', handleCustomEvent);
+    };
+  }, [events, workflowTemplate, state.selectedScenario, handleScenarioClick, handleScenarioDoubleClick, handleNarrativeEventClick]);
+
   if (state.loading) {
     return (
       <div style={{
