@@ -479,8 +479,36 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       return activeIds.size > 0 ? Array.from(activeIds) : null;
     }
 
+    // Workflow provided but no scenario selected/hovered - find nodes matching ANY scenario event
+    if (workflowTemplate?.scenarios && workflowTemplate.scenarios.length > 0) {
+      // Collect all event names from all scenarios
+      const allWorkflowEventNames = new Set<string>();
+      for (const scenario of workflowTemplate.scenarios) {
+        if (scenario.template?.events) {
+          for (const eventName of Object.keys(scenario.template.events)) {
+            allWorkflowEventNames.add(eventName);
+          }
+        }
+      }
+
+      if (allWorkflowEventNames.size > 0) {
+        const activeIds = new Set<string>();
+
+        if (state.canvas.nodes) {
+          for (const node of state.canvas.nodes) {
+            const nodeEventName = getNodeEventName(node);
+            if (nodeEventName && allWorkflowEventNames.has(nodeEventName)) {
+              activeIds.add(node.id);
+            }
+          }
+        }
+
+        return activeIds.size > 0 ? Array.from(activeIds) : null;
+      }
+    }
+
     return null;
-  }, [state.canvas, state.hoveredScenarioEventNames, state.selectedScenario, getNodeEventName]);
+  }, [state.canvas, state.hoveredScenarioEventNames, state.selectedScenario, workflowTemplate, getNodeEventName]);
 
   // Compute fitViewToNodeIds - controls which nodes GraphRenderer fits to
   // IMPORTANT: We must keep returning activeNodeIds even after shouldFitToNodes resets,
@@ -516,10 +544,11 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   // Track previous workflow state to detect transitions
   const prevWorkflowTemplateRef = useRef<typeof workflowTemplate>(workflowTemplate);
 
-  // Clear scenario state when workflow changes
+  // Clear scenario state when workflow changes, and trigger fit to workflow nodes
   useEffect(() => {
     const hadWorkflow = !!prevWorkflowTemplateRef.current;
     const hasWorkflow = !!workflowTemplate;
+    const workflowChanged = prevWorkflowTemplateRef.current !== workflowTemplate;
 
     // Update ref for next comparison
     prevWorkflowTemplateRef.current = workflowTemplate;
@@ -536,6 +565,12 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         currentEventIndex: 0,
       }));
       setIsCarouselExpanded(false);
+    }
+
+    // Trigger fit to workflow nodes when workflow is provided or changes
+    if (hasWorkflow && workflowChanged) {
+      setFitCounter(c => c + 1);
+      setShouldFitToNodes(true);
     }
   }, [workflowTemplate]);
 

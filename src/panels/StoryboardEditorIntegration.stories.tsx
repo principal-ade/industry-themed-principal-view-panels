@@ -702,6 +702,271 @@ export const WithPartialMatch: Story = {
 };
 
 /**
+ * Demonstrates workflow subset focusing behavior:
+ * - Canvas has 8 nodes spread across the view
+ * - Two separate workflows, each covering different subsets of nodes
+ * - Click "request-processing" workflow → focuses on 5 nodes (right side)
+ * - Click "observability" workflow → focuses on 3 nodes (left side)
+ */
+export const WorkflowFocusSubset: Story = {
+  render: () => {
+    // Extended canvas with 8 nodes
+    const extendedCanvas = {
+      pv: {
+        name: 'System Overview',
+        version: '1.0.0',
+        description: 'Canvas with 8 nodes covered by 2 different workflows',
+        edgeTypes: {
+          'data-flow': { color: '#3b82f6', width: 2, style: 'solid', directed: true },
+          'triggers': { color: '#10b981', width: 2, style: 'dashed', directed: true },
+          'monitoring': { color: '#6366f1', width: 2, style: 'dotted', directed: true },
+        },
+      },
+      nodes: [
+        // === Request processing nodes (5 nodes, right side) ===
+        {
+          id: 'request-received',
+          type: 'text',
+          text: 'Request Received',
+          x: 200,
+          y: 200,
+          width: 160,
+          height: 70,
+          pv: { nodeType: 'event', fill: '#3b82f6', eventRef: 'request.received' },
+        },
+        {
+          id: 'validate-input',
+          type: 'text',
+          text: 'Validate Input',
+          x: 430,
+          y: 200,
+          width: 160,
+          height: 70,
+          pv: { nodeType: 'event', fill: '#f59e0b', eventRef: 'input.validated' },
+        },
+        {
+          id: 'process-data',
+          type: 'text',
+          text: 'Process Data',
+          x: 660,
+          y: 200,
+          width: 160,
+          height: 70,
+          pv: { nodeType: 'event', fill: '#8b5cf6', eventRef: 'data.processed' },
+        },
+        {
+          id: 'send-response',
+          type: 'text',
+          text: 'Send Response',
+          x: 890,
+          y: 200,
+          width: 160,
+          height: 70,
+          pv: { nodeType: 'event', fill: '#10b981', eventRef: 'response.sent' },
+        },
+        {
+          id: 'log-error',
+          type: 'text',
+          text: 'Log Error',
+          x: 430,
+          y: 350,
+          width: 160,
+          height: 70,
+          pv: { nodeType: 'event', fill: '#ef4444', eventRef: 'error.logged' },
+        },
+        // === Observability nodes (3 nodes, left side) ===
+        {
+          id: 'metrics-collected',
+          type: 'text',
+          text: 'Metrics Collected',
+          x: -150,
+          y: 50,
+          width: 160,
+          height: 70,
+          pv: { nodeType: 'event', fill: '#6366f1', eventRef: 'metrics.collected' },
+        },
+        {
+          id: 'cache-updated',
+          type: 'text',
+          text: 'Cache Updated',
+          x: -150,
+          y: 200,
+          width: 160,
+          height: 70,
+          pv: { nodeType: 'event', fill: '#06b6d4', eventRef: 'cache.updated' },
+        },
+        {
+          id: 'audit-logged',
+          type: 'text',
+          text: 'Audit Logged',
+          x: -150,
+          y: 350,
+          width: 160,
+          height: 70,
+          pv: { nodeType: 'event', fill: '#a855f7', eventRef: 'audit.logged' },
+        },
+      ],
+      edges: [
+        { id: 'e1', fromNode: 'request-received', toNode: 'validate-input', pv: { edgeType: 'data-flow' } },
+        { id: 'e2', fromNode: 'validate-input', toNode: 'process-data', pv: { edgeType: 'data-flow' } },
+        { id: 'e3', fromNode: 'process-data', toNode: 'send-response', pv: { edgeType: 'data-flow' } },
+        { id: 'e4', fromNode: 'validate-input', toNode: 'log-error', pv: { edgeType: 'triggers' } },
+        { id: 'e5', fromNode: 'request-received', toNode: 'metrics-collected', pv: { edgeType: 'monitoring' } },
+        { id: 'e6', fromNode: 'process-data', toNode: 'cache-updated', pv: { edgeType: 'monitoring' } },
+        { id: 'e7', fromNode: 'send-response', toNode: 'audit-logged', pv: { edgeType: 'monitoring' } },
+      ],
+    };
+
+    // Workflow 1: Request Processing (covers 5 nodes)
+    const requestProcessingWorkflow: WorkflowTemplate = {
+      version: '1.0.0',
+      name: 'Request Processing',
+      canvas: 'system-overview.otel.canvas',
+      mode: 'timeline',
+      scenarioSelection: 'first-match',
+      scenarios: [
+        {
+          id: 'happy-path',
+          priority: 1,
+          description: 'Successful request flow',
+          template: {
+            introduction: 'Request Processing',
+            events: {
+              'request.received': 'Request received from {{client.name}}',
+              'input.validated': 'Input validated successfully',
+              'data.processed': 'Data processed in {{processing.duration}}ms',
+              'response.sent': 'Response sent with status {{response.status}}',
+              'error.logged': 'Error logged if validation fails',
+            },
+            summary: 'Request completed.',
+          },
+        },
+      ],
+    };
+
+    // Workflow 2: Observability (covers 3 nodes)
+    const observabilityWorkflow: WorkflowTemplate = {
+      version: '1.0.0',
+      name: 'Observability',
+      canvas: 'system-overview.otel.canvas',
+      mode: 'timeline',
+      scenarioSelection: 'first-match',
+      scenarios: [
+        {
+          id: 'monitoring-flow',
+          priority: 1,
+          description: 'System monitoring and audit trail',
+          template: {
+            introduction: 'Observability',
+            events: {
+              'metrics.collected': 'Metrics collected: {{metrics.count}} data points',
+              'cache.updated': 'Cache updated with TTL {{cache.ttl}}s',
+              'audit.logged': 'Audit entry created for {{audit.action}}',
+            },
+            summary: 'Monitoring complete.',
+          },
+        },
+      ],
+    };
+
+    // Build file tree with the new storyboard
+    const buildExtendedFileTree = (): FileTree => {
+      const files = [
+        // system-overview storyboard with 2 workflows
+        {
+          name: 'system-overview.otel.canvas',
+          relativePath: '.principal-views/system-overview/system-overview.otel.canvas',
+          path: '.principal-views/system-overview/system-overview.otel.canvas',
+          extension: '.canvas',
+          size: 2048,
+          lastModified: new Date('2024-01-15'),
+          isDirectory: false,
+        },
+        {
+          name: 'request-processing.workflow.json',
+          relativePath: '.principal-views/system-overview/request-processing/request-processing.workflow.json',
+          path: '.principal-views/system-overview/request-processing/request-processing.workflow.json',
+          extension: '.json',
+          size: 1024,
+          lastModified: new Date('2024-01-15'),
+          isDirectory: false,
+        },
+        {
+          name: 'observability.workflow.json',
+          relativePath: '.principal-views/system-overview/observability/observability.workflow.json',
+          path: '.principal-views/system-overview/observability/observability.workflow.json',
+          extension: '.json',
+          size: 1024,
+          lastModified: new Date('2024-01-15'),
+          isDirectory: false,
+        },
+      ];
+
+      const filePaths = files.map(f => f.path);
+      const builder = new PathsFileTreeBuilder();
+      const fileTree = builder.build({ files: filePaths });
+      fileTree.allFiles = files;
+      fileTree.sha = 'mock-sha-workflow-focus';
+
+      return fileTree;
+    };
+
+    const WorkflowFocusWrapper: React.FC = () => {
+      const [editorState, setEditorState] = useState<EditorPanelState | null>(null);
+      const extendedFileTree = buildExtendedFileTree();
+
+      const mockReadFile = async (path: string) => {
+        // Return the extended canvas
+        if (path.includes('system-overview') && (path.endsWith('.otel.canvas') || path.endsWith('.canvas'))) {
+          return JSON.stringify(extendedCanvas);
+        }
+        // Return request-processing workflow
+        if (path.includes('request-processing') && path.endsWith('.workflow.json')) {
+          return JSON.stringify(requestProcessingWorkflow);
+        }
+        // Return observability workflow
+        if (path.includes('observability') && path.endsWith('.workflow.json')) {
+          return JSON.stringify(observabilityWorkflow);
+        }
+        return '{}';
+      };
+
+      return (
+        <MockPanelProvider
+          contextOverrides={{
+            fileTree: {
+              scope: 'repository' as const,
+              name: 'fileTree',
+              data: extendedFileTree,
+              loading: false,
+              error: null,
+              refresh: async () => {},
+            },
+            repositoryPath: '/mock/repository',
+          }}
+          actionsOverrides={{
+            readFile: mockReadFile,
+            writeFile: async (path: string, content: string) => {
+              console.log('[Mock writeFile]', path, content.slice(0, 100) + '...');
+            },
+          }}
+        >
+          {(props) => (
+            <PanelInner
+              props={props}
+              editorState={editorState}
+              setEditorState={setEditorState}
+            />
+          )}
+        </MockPanelProvider>
+      );
+    };
+
+    return <WorkflowFocusWrapper />;
+  },
+};
+
+/**
  * With multiple matches - demonstrates when a trace matches multiple scenarios
  */
 export const WithMultipleMatches: Story = {
