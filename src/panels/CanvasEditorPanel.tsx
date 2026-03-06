@@ -177,6 +177,9 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   // Track "copied" feedback for copy path button
   const [pathCopied, setPathCopied] = useState(false);
 
+  // Track "copied nodes" feedback toast
+  const [copiedNodesCount, setCopiedNodesCount] = useState<number | null>(null);
+
   const loadConfiguration = useCallback(async () => {
     // Early return if required props are missing
     if (!canvasPath) {
@@ -328,8 +331,9 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
     // Copy to clipboard as formatted JSON
     navigator.clipboard.writeText(JSON.stringify(copyContext, null, 2)).then(() => {
-      // Could add visual feedback here if desired
-      console.log(`[CanvasEditorPanel] Copied ${nodes.length} node(s) to clipboard`);
+      // Show toast feedback
+      setCopiedNodesCount(nodes.length);
+      setTimeout(() => setCopiedNodesCount(null), 2000);
     }).catch(err => {
       console.error('[CanvasEditorPanel] Failed to copy nodes:', err);
     });
@@ -1152,6 +1156,35 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                         No edge types defined
                       </span>
                     )}
+                  </div>
+                )}
+
+                {/* Copy nodes toast - bottom center */}
+                {copiedNodesCount !== null && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 16,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.space[2],
+                    padding: `${theme.space[2]} ${theme.space[3]}`,
+                    backgroundColor: theme.colors.backgroundSecondary,
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: theme.radii[1],
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                    zIndex: 50,
+                    animation: 'fadeIn 0.15s ease-out',
+                  }}>
+                    <Check size={14} style={{ color: theme.colors.success || '#22c55e' }} />
+                    <span style={{
+                      fontSize: theme.fontSizes[1],
+                      color: theme.colors.text,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      Copied {copiedNodesCount} node{copiedNodesCount !== 1 ? 's' : ''} to clipboard
+                    </span>
                   </div>
                 )}
               </div>
