@@ -274,6 +274,67 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     });
   }, [canvasPath]);
 
+  // Handle copy of selected nodes (Cmd+C / Ctrl+C)
+  const handleCopyNodes = useCallback((selectedNodeIds: string[]) => {
+    if (!state.canvas || selectedNodeIds.length === 0) return;
+
+    const selectedSet = new Set(selectedNodeIds);
+
+    // Build node context for each selected node
+    const nodes = selectedNodeIds.map(nodeId => {
+      const node = state.canvas!.nodes?.find(n => n.id === nodeId);
+      if (!node) return null;
+
+      const pv = node.pv;
+
+      // Get label: prefer pv.name, fall back to text content for text nodes
+      let label = pv?.name || nodeId;
+      if ('text' in node && node.text && !pv?.name) {
+        // Extract first line of text content as label
+        label = node.text.split('\n')[0].trim() || nodeId;
+      }
+
+      return {
+        id: node.id,
+        type: node.type,
+        label,
+        ...(pv?.nodeType && { nodeType: pv.nodeType }),
+        ...(pv?.description && { description: pv.description }),
+        ...(pv?.icon && { icon: pv.icon }),
+        ...(pv?.eventRef && { eventRef: pv.eventRef }),
+        ...(pv?.event?.name && { eventName: pv.event.name }),
+        ...(pv?.sources && pv.sources.length > 0 && { sources: pv.sources }),
+      };
+    }).filter(Boolean);
+
+    // Find edges that connect selected nodes to each other
+    const edges = (state.canvas!.edges || [])
+      .filter(edge => selectedSet.has(edge.fromNode) && selectedSet.has(edge.toNode))
+      .map(edge => ({
+        from: edge.fromNode,
+        to: edge.toNode,
+        ...(edge.pv?.edgeType && { type: edge.pv.edgeType }),
+      }));
+
+    // Build the full context object
+    const copyContext = {
+      canvas: {
+        path: canvasPath || 'unknown',
+        name: canvasName || state.canvas!.pv?.name || 'Untitled',
+      },
+      nodes,
+      ...(edges.length > 0 && { edges }),
+    };
+
+    // Copy to clipboard as formatted JSON
+    navigator.clipboard.writeText(JSON.stringify(copyContext, null, 2)).then(() => {
+      // Could add visual feedback here if desired
+      console.log(`[CanvasEditorPanel] Copied ${nodes.length} node(s) to clipboard`);
+    }).catch(err => {
+      console.error('[CanvasEditorPanel] Failed to copy nodes:', err);
+    });
+  }, [state.canvas, canvasPath, canvasName]);
+
   // Toggle edit mode
   const toggleEditMode = useCallback(() => {
     setState(prev => {
@@ -909,6 +970,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                   onPendingChangesChange={(hasChanges) => {
                     setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
                   }}
+                  onCopy={handleCopyNodes}
                   showBackground={state.showGridLines}
                   backgroundVariant="lines"
                   showControls={true}

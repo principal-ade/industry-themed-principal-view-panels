@@ -20,7 +20,7 @@
         "@chromatic-com/storybook": "^4.1.3",
         "@eslint/js": "^9.32.0",
         "@opentelemetry/api": "^1.9.0",
-        "@principal-ade/dynamic-file-tree": "0.1.72",
+        "@principal-ade/dynamic-file-tree": "0.2.3",
         "@principal-ade/industry-theme": "^0.1.7",
         "@principal-ade/panel-framework-core": "0.5.1",
         "@principal-ade/panel-layouts": "0.4.0",
@@ -350,7 +350,7 @@
 
     "@pkgjs/parseargs": ["@pkgjs/parseargs@0.11.0", "", {}, "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="],
 
-    "@principal-ade/dynamic-file-tree": ["@principal-ade/dynamic-file-tree@0.1.72", "", { "dependencies": { "react-arborist": "^3.4.3", "typescript": "^5.0.4" }, "peerDependencies": { "@principal-ade/industry-theme": ">=0.1.0", "@principal-ade/panel-framework-core": ">=0.4.0", "@principal-ai/principal-view-core": "^0.24.8", "@principal-ai/repository-abstraction": "^0.5.7", "lucide-react": ">=0.263.0", "react": ">=19.0.0", "react-dom": ">=19.0.0" }, "optionalPeers": ["@principal-ade/panel-framework-core", "lucide-react", "react", "react-dom"] }, "sha512-7I83Ws3Ntj9Y0uy1EPpcdfA5iTXF5JmqMwmt8Xt+k9vqv/Ttltiqv7pYmLbXA3uP1+eqHiIIxjAc+6cON9/CLA=="],
+    "@principal-ade/dynamic-file-tree": ["@principal-ade/dynamic-file-tree@0.2.3", "", { "dependencies": { "react-arborist": "^3.4.3", "typescript": "^5.9.3" }, "peerDependencies": { "@principal-ade/industry-theme": ">=0.1.0", "@principal-ade/panel-framework-core": ">=0.5.0", "@principal-ai/alexandria-core-library": ">=0.3.0", "@principal-ai/principal-view-core": ">=0.24.8", "@principal-ai/repository-abstraction": "^0.5.7", "lucide-react": ">=0.263.0", "react": ">=19.0.0", "react-dom": ">=19.0.0" }, "optionalPeers": ["@principal-ade/panel-framework-core", "@principal-ai/alexandria-core-library", "lucide-react", "react", "react-dom"] }, "sha512-ZMz7Gmb4i09U9vjxdosaONkdAseOcLXb5Oz6h1W6gJycOFvAl1gIZnzwgefZonKLS8/bGxengv3zHkhQvG1pIg=="],
 
     "@principal-ade/industry-theme": ["@principal-ade/industry-theme@0.1.7", "", { "peerDependencies": { "react": ">=19.0.0" } }, "sha512-KsBWKtPgxUaigzNllaLMXKnoSRrPUINzUhBRkBJcgq9zOLLUGNU1gAUqzKPUh4H+jiX21ZgTP9ZdwKgDfnXDSg=="],
 
