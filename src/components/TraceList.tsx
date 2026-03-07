@@ -3,10 +3,7 @@ import { Search, Trash2, X } from 'lucide-react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { RegisteredTrace } from '../types/otel';
 import { TraceExpansion } from './TraceExpansion';
-import {
-  getPrimaryScope,
-  getMatchQuality,
-} from '../utils/traceHelpers';
+import { getPrimaryScope } from '../utils/traceHelpers';
 
 export interface TraceListProps {
   traces: RegisteredTrace[];
@@ -19,13 +16,6 @@ export interface TraceListProps {
   expandedTraceIds?: Set<string>;
   showSearch?: boolean;
   emptyMessage?: string;
-}
-
-interface GroupedTrace {
-  key: string;
-  traces: RegisteredTrace[];
-  representative: RegisteredTrace; // Most recent trace in the group
-  count: number;
 }
 
 /**
@@ -51,70 +41,28 @@ export const TraceList: React.FC<TraceListProps> = ({
   emptyMessage = 'No traces available',
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-  // Filter traces by search query
+  // Filter and sort traces by search query (most recent first)
   const filteredTraces = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return traces;
+    let result = traces;
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = traces.filter((trace) => {
+        // Search in trace ID
+        if (trace.traceId.toLowerCase().includes(query)) return true;
+        // Search in scope name
+        const scope = getPrimaryScope(trace);
+        if (scope?.name.toLowerCase().includes(query)) return true;
+        // Search in trace name
+        if (trace.name.toLowerCase().includes(query)) return true;
+        return false;
+      });
     }
 
-    const query = searchQuery.toLowerCase().trim();
-    return traces.filter((trace) => {
-      // Search in trace ID
-      if (trace.traceId.toLowerCase().includes(query)) return true;
-      // Search in scope name
-      const scope = getPrimaryScope(trace);
-      if (scope?.name.toLowerCase().includes(query)) return true;
-      // Search in trace name
-      if (trace.name.toLowerCase().includes(query)) return true;
-      return false;
-    });
+    // Sort by start time (most recent first)
+    return [...result].sort((a, b) => b.startTime - a.startTime);
   }, [traces, searchQuery]);
-
-  // Group traces by name, error status, and workflow matching
-  const groupedTraces = useMemo((): GroupedTrace[] => {
-    const groups = new Map<string, RegisteredTrace[]>();
-
-    for (const trace of filteredTraces) {
-      // Create a key based on: trace name, error status, match quality
-      const traceName = trace.name || 'Unknown Operation';
-      const hasErrors = trace.hasErrors ? 'error' : 'success';
-      const matchQuality = getMatchQuality(trace);
-      const key = `${traceName}|${hasErrors}|${matchQuality}`;
-
-      if (!groups.has(key)) {
-        groups.set(key, []);
-      }
-      groups.get(key)!.push(trace);
-    }
-
-    // Convert to GroupedTrace array
-    return Array.from(groups.entries()).map(([key, traces]) => {
-      // Sort traces by start time (most recent first)
-      const sortedTraces = [...traces].sort((a, b) => b.startTime - a.startTime);
-
-      return {
-        key,
-        traces: sortedTraces,
-        representative: sortedTraces[0], // Most recent
-        count: sortedTraces.length,
-      };
-    });
-  }, [filteredTraces]);
-
-  // Toggle group expansion (UI removed, but keeping logic for potential future use)
-  const _toggleGroup = (_groupKey: string) => {
-    setExpandedGroups((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(_groupKey)) {
-        newSet.delete(_groupKey);
-      } else {
-        newSet.add(_groupKey);
-      }
-      return newSet;
-    });
-  };
 
   // Format duration for display
   const formatDuration = (durationMs: number): string => {
@@ -272,7 +220,7 @@ export const TraceList: React.FC<TraceListProps> = ({
           gap: 0,
         }}
       >
-        {groupedTraces.length === 0 ? (
+        {filteredTraces.length === 0 ? (
           <div
             style={{
               display: 'flex',
@@ -289,16 +237,7 @@ export const TraceList: React.FC<TraceListProps> = ({
             {searchQuery ? 'No traces match your search' : emptyMessage}
           </div>
         ) : (
-          groupedTraces.map((group) => {
-            const isExpanded = expandedGroups.has(group.key);
-            const _isGrouped = group.count > 1; // UI removed, keeping for potential future use
-            const tracesToShow = isExpanded ? group.traces : [group.representative];
-
-            return (
-              <div key={group.key} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                {tracesToShow.map((trace, index) => {
-                  const isRepresentative = index === 0;
-                  return (
+          filteredTraces.map((trace) => (
             <React.Fragment key={trace.traceId}>
             <div
               onClick={() => onTraceClick?.(trace)}
@@ -321,10 +260,8 @@ export const TraceList: React.FC<TraceListProps> = ({
                 flexDirection: 'column',
                 gap: theme.space[2],
                 minWidth: 0,
-                width: !isRepresentative && isExpanded ? `calc(100% - ${theme.space[3]})` : '100%',
+                width: '100%',
                 boxSizing: 'border-box',
-                marginLeft: !isRepresentative && isExpanded ? theme.space[3] : '0',
-                opacity: !isRepresentative && isExpanded ? 0.9 : 1,
               }}
               onMouseEnter={(e) => {
                 if (onTraceClick && !expandedTraceIds?.has(trace.traceId)) {
@@ -552,8 +489,6 @@ export const TraceList: React.FC<TraceListProps> = ({
             {expandedTraceIds?.has(trace.traceId) && (
               <div
                 style={{
-                  marginLeft: !isRepresentative && isExpanded ? theme.space[3] : '0',
-                  width: !isRepresentative && isExpanded ? `calc(100% - ${theme.space[3]})` : '100%',
                   borderLeft: `2px solid ${theme.colors.primary}`,
                   paddingLeft: theme.space[3],
                   borderBottom: `1px solid ${theme.colors.border}`,
@@ -570,11 +505,7 @@ export const TraceList: React.FC<TraceListProps> = ({
               </div>
             )}
             </React.Fragment>
-                  );
-                })}
-              </div>
-            );
-          })
+          ))
         )}
       </div>
     </div>
