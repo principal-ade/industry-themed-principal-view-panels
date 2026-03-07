@@ -5,7 +5,7 @@ import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, ComponentLibrary, WorkflowTemplate, WorkflowScenario, OtelAttributes, OtelEvent } from '@principal-ai/principal-view-core';
 import { getSpansFromTrace, type RegisteredTrace } from '../types/otel';
-import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw } from 'lucide-react';
+import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import { ConfigLoader } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
@@ -37,6 +37,9 @@ interface GraphPanelState {
   currentEventIndex: number;
   highlightedNodeId: string | null;
   focusedNodeId: string | null;
+  // Search state
+  isSearchOpen: boolean;
+  searchQuery: string;
 }
 
 /**
@@ -155,6 +158,9 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     currentEventIndex: 0,
     highlightedNodeId: null,
     focusedNodeId: null,
+    // Search state
+    isSearchOpen: false,
+    searchQuery: '',
   });
 
   // Track whether to fit viewport to active nodes (one-shot on scenario selection)
@@ -195,6 +201,12 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
   // Track "copied nodes" feedback toast
   const [copiedNodesCount, setCopiedNodesCount] = useState<number | null>(null);
+
+  // Search input ref for focus management
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Track current search result index for navigation
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
 
   const loadConfiguration = useCallback(async () => {
     // Early return if required props are missing
@@ -292,6 +304,127 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       setTimeout(() => setPathCopied(false), 2000);
     });
   }, [canvasPath]);
+
+  // Open search with Cmd+F / Ctrl+F
+  const openSearch = useCallback(() => {
+    setState(prev => ({ ...prev, isSearchOpen: true }));
+    // Focus the input after state updates
+    setTimeout(() => searchInputRef.current?.focus(), 0);
+  }, []);
+
+  // Close search
+  const closeSearch = useCallback(() => {
+    setState(prev => ({ ...prev, isSearchOpen: false, searchQuery: '' }));
+    setCurrentSearchIndex(0);
+  }, []);
+
+  // Handle search query change
+  const handleSearchChange = useCallback((query: string) => {
+    setState(prev => ({ ...prev, searchQuery: query }));
+    setCurrentSearchIndex(0);
+  }, []);
+
+  // Compute search results (matching node IDs)
+  const searchMatchedNodeIds = useMemo(() => {
+    if (!state.isSearchOpen || !state.searchQuery.trim() || !state.canvas?.nodes) {
+      return [];
+    }
+
+    const query = state.searchQuery.toLowerCase().trim();
+    const matchedIds: string[] = [];
+
+    for (const node of state.canvas.nodes) {
+      // Search in node id
+      if (node.id.toLowerCase().includes(query)) {
+        matchedIds.push(node.id);
+        continue;
+      }
+
+      // Search in node text (for text nodes)
+      if ('text' in node && typeof node.text === 'string' && node.text.toLowerCase().includes(query)) {
+        matchedIds.push(node.id);
+        continue;
+      }
+
+      // Search in pv extension fields
+      const pv = node.pv;
+      if (pv) {
+        // Search in pv.name
+        if (pv.name && pv.name.toLowerCase().includes(query)) {
+          matchedIds.push(node.id);
+          continue;
+        }
+
+        // Search in pv.description
+        if (pv.description && pv.description.toLowerCase().includes(query)) {
+          matchedIds.push(node.id);
+          continue;
+        }
+
+        // Search in pv.eventRef
+        if (pv.eventRef && pv.eventRef.toLowerCase().includes(query)) {
+          matchedIds.push(node.id);
+          continue;
+        }
+
+        // Search in pv.event.name
+        if (pv.event?.name && pv.event.name.toLowerCase().includes(query)) {
+          matchedIds.push(node.id);
+          continue;
+        }
+
+        // Search in pv.nodeType
+        if (pv.nodeType && pv.nodeType.toLowerCase().includes(query)) {
+          matchedIds.push(node.id);
+          continue;
+        }
+      }
+    }
+
+    return matchedIds;
+  }, [state.isSearchOpen, state.searchQuery, state.canvas?.nodes]);
+
+  // Navigate to next search result
+  const goToNextSearchResult = useCallback(() => {
+    if (searchMatchedNodeIds.length === 0) return;
+    setCurrentSearchIndex(prev => (prev + 1) % searchMatchedNodeIds.length);
+  }, [searchMatchedNodeIds.length]);
+
+  // Navigate to previous search result
+  const goToPrevSearchResult = useCallback(() => {
+    if (searchMatchedNodeIds.length === 0) return;
+    setCurrentSearchIndex(prev => (prev - 1 + searchMatchedNodeIds.length) % searchMatchedNodeIds.length);
+  }, [searchMatchedNodeIds.length]);
+
+  // Keyboard shortcut handler for Cmd+F / Ctrl+F
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+F / Ctrl+F to open search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault();
+        openSearch();
+      }
+
+      // Escape to close search
+      if (e.key === 'Escape' && state.isSearchOpen) {
+        e.preventDefault();
+        closeSearch();
+      }
+
+      // Enter to go to next result, Shift+Enter for previous
+      if (e.key === 'Enter' && state.isSearchOpen && searchMatchedNodeIds.length > 0) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          goToPrevSearchResult();
+        } else {
+          goToNextSearchResult();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [openSearch, closeSearch, state.isSearchOpen, searchMatchedNodeIds.length, goToNextSearchResult, goToPrevSearchResult]);
 
   // Handle copy of selected nodes (Cmd+C / Ctrl+C)
   const handleCopyNodes = useCallback((selectedNodeIds: string[]) => {
@@ -522,9 +655,14 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     }
   }, [state.canvas, state.hasUnsavedChanges, canvasPath]);
 
-  // Calculate active node IDs for scenario hover preview
+  // Calculate active node IDs for scenario hover preview or search
   const activeNodeIds = useMemo(() => {
     if (!state.canvas) return null;
+
+    // Search results take priority
+    if (state.isSearchOpen && searchMatchedNodeIds.length > 0) {
+      return searchMatchedNodeIds;
+    }
 
     // Hovered scenario preview (find nodes with matching events)
     if (state.hoveredScenarioEventNames && state.hoveredScenarioEventNames.length > 0) {
@@ -589,7 +727,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     }
 
     return null;
-  }, [state.canvas, state.hoveredScenarioEventNames, state.selectedScenario, workflowTemplate, getNodeEventName]);
+  }, [state.canvas, state.hoveredScenarioEventNames, state.selectedScenario, workflowTemplate, getNodeEventName, state.isSearchOpen, searchMatchedNodeIds]);
 
   // Compute fitViewToNodeIds - controls which nodes GraphRenderer fits to
   // IMPORTANT: We must keep returning activeNodeIds even after shouldFitToNodes resets,
@@ -1317,6 +1455,135 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                         No edge types defined
                       </span>
                     )}
+                  </div>
+                )}
+
+                {/* Search Bar - top center */}
+                {state.isSearchOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 12,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.space[2],
+                    padding: `${theme.space[2]} ${theme.space[3]}`,
+                    backgroundColor: theme.colors.background,
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: theme.radii[2],
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                    zIndex: 60,
+                  }}>
+                    <Search size={16} style={{ color: theme.colors.textMuted, flexShrink: 0 }} />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={state.searchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      placeholder="Search nodes..."
+                      style={{
+                        width: 200,
+                        padding: `${theme.space[1]} ${theme.space[2]}`,
+                        fontSize: theme.fontSizes[1],
+                        fontFamily: theme.fonts.body,
+                        color: theme.colors.text,
+                        backgroundColor: theme.colors.backgroundSecondary,
+                        border: `1px solid ${theme.colors.border}`,
+                        borderRadius: theme.radii[1],
+                        outline: 'none',
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = theme.colors.primary;
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = theme.colors.border;
+                      }}
+                    />
+                    {/* Result count and navigation */}
+                    {state.searchQuery.trim() && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: theme.space[1],
+                      }}>
+                        <span style={{
+                          fontSize: theme.fontSizes[0],
+                          color: searchMatchedNodeIds.length > 0 ? theme.colors.textMuted : (theme.colors.error || '#ef4444'),
+                          whiteSpace: 'nowrap',
+                          minWidth: 50,
+                          textAlign: 'center',
+                        }}>
+                          {searchMatchedNodeIds.length > 0
+                            ? `${currentSearchIndex + 1}/${searchMatchedNodeIds.length}`
+                            : 'No results'
+                          }
+                        </span>
+                        {searchMatchedNodeIds.length > 1 && (
+                          <>
+                            <button
+                              onClick={goToPrevSearchResult}
+                              title="Previous result (Shift+Enter)"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 24,
+                                height: 24,
+                                padding: 0,
+                                backgroundColor: 'transparent',
+                                color: theme.colors.textMuted,
+                                border: 'none',
+                                borderRadius: theme.radii[0],
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <ChevronUp size={16} />
+                            </button>
+                            <button
+                              onClick={goToNextSearchResult}
+                              title="Next result (Enter)"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 24,
+                                height: 24,
+                                padding: 0,
+                                backgroundColor: 'transparent',
+                                color: theme.colors.textMuted,
+                                border: 'none',
+                                borderRadius: theme.radii[0],
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <ChevronDown size={16} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {/* Close button */}
+                    <button
+                      onClick={closeSearch}
+                      title="Close search (Escape)"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 24,
+                        height: 24,
+                        padding: 0,
+                        backgroundColor: 'transparent',
+                        color: theme.colors.textMuted,
+                        border: 'none',
+                        borderRadius: theme.radii[0],
+                        cursor: 'pointer',
+                        marginLeft: theme.space[1],
+                      }}
+                    >
+                      <X size={16} />
+                    </button>
                   </div>
                 )}
 
