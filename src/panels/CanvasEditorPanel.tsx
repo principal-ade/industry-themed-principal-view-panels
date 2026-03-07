@@ -3,7 +3,8 @@ import type { CanvasEditorPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
-import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, ComponentLibrary, WorkflowTemplate, WorkflowScenario, OtelAttributes } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, ComponentLibrary, WorkflowTemplate, WorkflowScenario, OtelAttributes, OtelEvent } from '@principal-ai/principal-view-core';
+import { getSpansFromTrace, type RegisteredTrace } from '../types/otel';
 import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw } from 'lucide-react';
 import { ConfigLoader } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
@@ -90,6 +91,19 @@ export interface CanvasEditorPanelProps extends CanvasEditorPanelPropsTyped {
   }>;
 
   /**
+   * Scenario ID to auto-select (optional).
+   * When provided, auto-selects the matching scenario from workflowTemplate.
+   */
+  selectedScenarioId?: string | null;
+
+  /**
+   * Selected trace for template interpolation (optional).
+   * When provided, trace events are passed to EventCarousel to fill in
+   * template variables like {{session.id}}.
+   */
+  selectedTrace?: RegisteredTrace | null;
+
+  /**
    * Optional callback to close the panel.
    * When provided, displays a close button (X) in the header.
    */
@@ -114,6 +128,8 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   workflowPath: _workflowPath,
   workflowFileInfo: _workflowFileInfo,
   traceMatchInfo,
+  selectedScenarioId: selectedScenarioIdProp,
+  selectedTrace,
   onClosePanel,
 }) => {
   const { theme } = useTheme();
@@ -638,6 +654,69 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       setShouldFitToNodes(true);
     }
   }, [workflowTemplate]);
+
+  // Sync selectedScenarioIdProp to state when it changes
+  useEffect(() => {
+    if (selectedScenarioIdProp && workflowTemplate?.scenarios) {
+      const scenario = workflowTemplate.scenarios.find(s => s.id === selectedScenarioIdProp);
+      if (scenario && state.selectedScenarioId !== selectedScenarioIdProp) {
+        setState(prev => ({
+          ...prev,
+          selectedScenarioId: selectedScenarioIdProp,
+          selectedScenario: scenario,
+          currentEventIndex: 0,
+          hoveredScenarioEventNames: null,
+          highlightedNodeId: null,
+          focusedNodeId: null,
+        }));
+        setIsCarouselExpanded(true); // Show expanded list view
+        setFitCounter(c => c + 1);
+        setShouldFitToNodes(true);
+      }
+    }
+  }, [selectedScenarioIdProp, workflowTemplate, state.selectedScenarioId]);
+
+  // Extract trace events from selectedTrace for template interpolation
+  const traceEvents = useMemo((): OtelEvent[] => {
+    if (!selectedTrace) return [];
+
+    const spans = getSpansFromTrace(selectedTrace);
+    const events: OtelEvent[] = [];
+
+    for (const span of spans) {
+      // Add span-level event (the span itself)
+      events.push({
+        name: span.name,
+        timestamp: Math.floor(Number(span.startTimeUnixNano) / 1_000_000),
+        spanId: span.spanId,
+        traceId: selectedTrace.traceId,
+        attributes: span.attributes?.reduce((acc: OtelAttributes, attr: { key: string; value?: { stringValue?: string; intValue?: number; boolValue?: boolean } }) => {
+          if (attr.value?.stringValue !== undefined) acc[attr.key] = attr.value.stringValue;
+          else if (attr.value?.intValue !== undefined) acc[attr.key] = attr.value.intValue;
+          else if (attr.value?.boolValue !== undefined) acc[attr.key] = attr.value.boolValue;
+          return acc;
+        }, {} as OtelAttributes),
+      });
+
+      // Add span events
+      for (const evt of span.events || []) {
+        events.push({
+          name: evt.name,
+          timestamp: Math.floor(Number(evt.timeUnixNano) / 1_000_000),
+          spanId: span.spanId,
+          traceId: selectedTrace.traceId,
+          attributes: evt.attributes?.reduce((acc: OtelAttributes, attr: { key: string; value?: { stringValue?: string; intValue?: number; boolValue?: boolean } }) => {
+            if (attr.value?.stringValue !== undefined) acc[attr.key] = attr.value.stringValue;
+            else if (attr.value?.intValue !== undefined) acc[attr.key] = attr.value.intValue;
+            else if (attr.value?.boolValue !== undefined) acc[attr.key] = attr.value.boolValue;
+            return acc;
+          }, {} as OtelAttributes),
+        });
+      }
+    }
+
+    return events;
+  }, [selectedTrace]);
 
   // Load configuration when canvasPath prop changes
   useEffect(() => {
@@ -1319,6 +1398,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                     });
                     return sources;
                   }}
+                  traceEvents={traceEvents}
                 />
               )}
             </div>
