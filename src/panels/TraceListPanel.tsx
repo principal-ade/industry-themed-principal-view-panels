@@ -4,7 +4,9 @@ import type { TraceListPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { TraceList } from '../components/TraceList';
+import { TraceTape } from '../components/TraceTape';
 import type { RegisteredTrace } from '../types/otel';
+import type { OtelSpanData } from '@principal-ai/principal-view-core';
 import { LibraryDiscovery } from '@principal-ai/principal-view-core';
 import type { WorkflowTemplate } from '@principal-ai/principal-view-core';
 import { PanelFileSystemAdapter } from '../adapters/PanelFileSystemAdapter';
@@ -59,6 +61,10 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
   const [activeTab, setActiveTab] = useState<TabView>('traces');
   const [selectedSchematicNodeId, setSelectedSchematicNodeId] = useState<string | null>(null);
   const [workflowFilterMode, setWorkflowFilterMode] = useState<StoryboardFilterMode>('all');
+
+  // TraceTape state
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>();
+  const [focusTraceId, setFocusTraceId] = useState<string | null>(null);
 
   // Get traces from telemetry slice
   // Get telemetry and schematics from typed context (direct property access)
@@ -375,6 +381,47 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
     }
   };
 
+  // Find which trace contains a given span
+  const findTraceForSpan = (spanId: string): RegisteredTrace | null => {
+    // Handle synthetic spanIds from TraceTape (format: "trace-{traceId}")
+    if (spanId.startsWith('trace-')) {
+      const traceId = spanId.slice(6); // Remove "trace-" prefix
+      return traces.find(t => t.traceId === traceId) || null;
+    }
+
+    // Search through OTLP data for actual spans
+    for (const trace of traces) {
+      if (trace.otlpData?.resourceSpans) {
+        for (const resourceSpan of trace.otlpData.resourceSpans) {
+          for (const scopeSpan of resourceSpan.scopeSpans) {
+            if (scopeSpan.spans.some(s => s.spanId === spanId)) {
+              return trace;
+            }
+          }
+        }
+      }
+    }
+    return null;
+  };
+
+  // Handle span highlight from TraceTape
+  const handleSpanHighlight = (spanId: string | null, _span: OtelSpanData | null) => {
+    setHighlightedSpanId(spanId ?? undefined);
+    setFocusTraceId(null); // Clear focus when scrubbing
+
+    // Expand the trace containing the highlighted span
+    if (spanId) {
+      const trace = findTraceForSpan(spanId);
+      if (trace) {
+        setExpandedTraceIds(prev => {
+          const newSet = new Set(prev);
+          newSet.add(trace.traceId);
+          return newSet;
+        });
+      }
+    }
+  };
+
   // Toggle expansion only - no event emission
   const handleTraceClick = (trace: RegisteredTrace) => {
     setExpandedTraceIds(prev => {
@@ -386,6 +433,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
       }
       return newSet;
     });
+    // Set focus for TraceTape to jump to this trace
+    setFocusTraceId(trace.traceId);
   };
 
   // Emit trace:selected event - for trace ID click and unmatched span click
@@ -704,18 +753,42 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
 
       {/* Tab Content */}
       {activeTab === 'traces' ? (
-        <div style={{ flex: 1, overflow: 'auto' }}>
-          <TraceList
-            traces={traces}
-            theme={theme}
-            onTraceClick={handleTraceClick}
-            onTraceSelect={handleTraceSelect}
-            onWorkflowClick={handleWorkflowClick}
-            onRemoveTrace={handleRemoveTrace}
-            onClearAll={handleClearAll}
-            expandedTraceIds={expandedTraceIds}
-            emptyMessage={traces.length === 0 ? 'No traces received yet. Waiting for telemetry data...' : undefined}
-          />
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          {/* TraceTape scrubber */}
+          {traces.length > 0 && (
+            <div
+              style={{
+                padding: '16px 16px 8px 16px',
+                paddingTop: '24px', // Extra space for scrubber label
+                borderBottom: `1px solid ${theme.colors.border}`,
+                flexShrink: 0,
+              }}
+            >
+              <TraceTape
+                traces={traces}
+                theme={theme}
+                highlightedSpanId={highlightedSpanId}
+                selectedTraceId={Array.from(expandedTraceIds)[0]}
+                focusTraceId={focusTraceId}
+                onSpanHighlight={handleSpanHighlight}
+                height={40}
+              />
+            </div>
+          )}
+          {/* Trace list */}
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            <TraceList
+              traces={traces}
+              theme={theme}
+              onTraceClick={handleTraceClick}
+              onTraceSelect={handleTraceSelect}
+              onWorkflowClick={handleWorkflowClick}
+              onRemoveTrace={handleRemoveTrace}
+              onClearAll={handleClearAll}
+              expandedTraceIds={expandedTraceIds}
+              emptyMessage={traces.length === 0 ? 'No traces received yet. Waiting for telemetry data...' : undefined}
+            />
+          </div>
         </div>
       ) : activeTab === 'configuration' && showConfigurationTab ? (
         <div style={{ flex: 1, padding: '16px', overflow: 'auto' }}>
