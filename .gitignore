@@ -37,12 +37,10 @@ yarn-error.log*
 lerna-debug.log*
 pnpm-debug.log*
 
-# Lock files (choose one based on package manager)
-# Uncomment the ones you don't use:
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
-bun.lockb
+# Lock files (using bun.lock)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Misc
 .cache/
