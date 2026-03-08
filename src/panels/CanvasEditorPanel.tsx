@@ -1086,7 +1086,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
             whiteSpace: 'nowrap',
             minWidth: 0,
           }}>
-            {canvasName || 'Untitled'}
+            {canvasName || 'Untitled'}{workflowTemplate?.name && <span style={{ color: theme.colors.textMuted }}> / {workflowTemplate.name}</span>}
           </h2>
 
           {/* Copy path button */}
