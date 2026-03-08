@@ -231,6 +231,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                 }}
                 style={{
                   fontSize: theme.fontSizes[2],
+                  fontFamily: theme.fonts.body,
                   color,
                   display: 'flex',
                   alignItems: 'center',
@@ -277,6 +278,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                   <span
                     style={{
                       fontSize: theme.fontSizes[1],
+                      fontFamily: theme.fonts.body,
                       color: span.reason.includes('not registered in any owned-scopes') ||
                              span.reason.includes('has no storyboards')
                         ? theme.colors.error || '#ef4444'
@@ -301,6 +303,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
           <div
             style={{
               fontSize: theme.fontSizes[1],
+              fontFamily: theme.fonts.body,
               fontWeight: theme.fontWeights.semibold,
               marginBottom: theme.space[2],
               paddingLeft: theme.space[2],
@@ -347,6 +350,7 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
           style={{
             padding: theme.space[3],
             fontSize: theme.fontSizes[1],
+            fontFamily: theme.fonts.body,
             color: theme.colors.textSecondary,
             fontStyle: 'italic',
             textAlign: 'center',
