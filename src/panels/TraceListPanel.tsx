@@ -9,7 +9,7 @@ import { LibraryDiscovery } from '@principal-ai/principal-view-core';
 import type { WorkflowTemplate } from '@principal-ai/principal-view-core';
 import { PanelFileSystemAdapter } from '../adapters/PanelFileSystemAdapter';
 import { StoryboardWorkflowsTreeCore, hasWorkflowContent } from '@principal-ade/dynamic-file-tree';
-import type { StoryboardWorkflowNodeData, StoryboardFilterMode } from '@principal-ade/dynamic-file-tree';
+import type { StoryboardWorkflowNodeData, StoryboardFilterMode, WorkflowScenarioStatus } from '@principal-ade/dynamic-file-tree';
 import yaml from 'js-yaml';
 
 type TabView = 'traces' | 'configuration' | 'schematics';
@@ -94,6 +94,46 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
 
     return workflowSet;
   }, [traces]);
+
+  // Build set of scenario IDs that have traces (key format: "workflowId/scenarioId")
+  const scenarioTraceSet = React.useMemo(() => {
+    const scenarioSet = new Set<string>();
+
+    traces.forEach(trace => {
+      trace.scenarioMatches?.forEach(match => {
+        if (match.workflowId && match.scenarioId) {
+          scenarioSet.add(`${match.workflowId}/${match.scenarioId}`);
+        }
+      });
+    });
+
+    return scenarioSet;
+  }, [traces]);
+
+  // Build scenario status map for coverage bars
+  const scenarioStatusMap = React.useMemo(() => {
+    const statusMap: Record<string, WorkflowScenarioStatus> = {};
+
+    versionSnapshots.forEach(snapshot => {
+      snapshot.storyboards.forEach(storyboard => {
+        storyboard.workflows.forEach(workflow => {
+          if ('content' in workflow) {
+            const content = workflow.content as WorkflowTemplate;
+            if (content?.scenarios) {
+              statusMap[workflow.id] = {
+                scenarios: content.scenarios.map((scenario: { id?: string }) => ({
+                  id: scenario.id || '',
+                  hasTrace: scenarioTraceSet.has(`${workflow.id}/${scenario.id}`),
+                })),
+              };
+            }
+          }
+        });
+      });
+    });
+
+    return statusMap;
+  }, [versionSnapshots, scenarioTraceSet]);
 
   // Configuration tab state
   const [resources, setResources] = useState<Record<string, string>>({});
@@ -637,7 +677,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
         )}
         <button
           onClick={() => setActiveTab('schematics')}
-          title="Storyboards"
+          title="Coverage"
           style={{
             flex: 1,
             height: '100%',
@@ -658,7 +698,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
             gap: '6px',
           }}
         >
-          {isCompactTabs ? <GitBranch size={16} /> : 'Storyboards'}
+          {isCompactTabs ? <GitBranch size={16} /> : 'Coverage'}
         </button>
       </div>
 
@@ -1113,6 +1153,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                   verticalPadding="10px"
                   workflowFilterMode={workflowFilterMode}
                   traceWorkflowsSet={traceWorkflowsSet}
+                  scenarioStatusMap={scenarioStatusMap}
+                  statusBarDisplay="traces"
                 />
               </div>
             </>
