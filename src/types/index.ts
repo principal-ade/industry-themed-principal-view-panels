@@ -122,6 +122,19 @@ export type StoryboardListPanelPropsTyped = PanelComponentProps<
 export interface TraceListPanelActions extends PanelActions {
   clearTelemetry?: () => Promise<void>;
   readFile: (path: string) => Promise<string>;
+  /**
+   * Update a scenario's filterDefault property in the workflow file.
+   * If not provided, visibility toggle will only affect local UI state.
+   *
+   * @param workflowPath - Path to the workflow.json file
+   * @param scenarioId - ID of the scenario to update
+   * @param filterDefault - New filterDefault value (true = hidden by default)
+   */
+  updateScenarioFilterDefault?: (
+    workflowPath: string,
+    scenarioId: string,
+    filterDefault: boolean
+  ) => Promise<void>;
 }
 
 /**

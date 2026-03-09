@@ -1150,18 +1150,10 @@ const mockSchematics: VersionSnapshot[] = [
               name: 'Authentication Workflow',
               mode: 'testing' as const,
               scenarios: [
-                {
-                  id: 'happy-path-login',
-                },
-                {
-                  id: 'failed-login-invalid-password',
-                },
-                {
-                  id: 'failed-login-account-locked',
-                },
-                {
-                  id: 'default-error-scenario',
-                },
+                { id: 'happy-path-login', priority: 1, description: 'Successful login', outcomeType: 'expected' as const, template: { introduction: '' } },
+                { id: 'failed-login-invalid-password', priority: 2, description: 'Invalid password', outcomeType: 'expected' as const, template: { introduction: '' } },
+                { id: 'failed-login-account-locked', priority: 3, description: 'Account locked', outcomeType: 'expected-issue' as const, template: { introduction: '' } },
+                { id: 'default-error-scenario', priority: 4, description: 'Default error', outcomeType: 'unknown-issue' as const, template: { introduction: '' } },
               ],
             },
           },
@@ -1177,15 +1169,9 @@ const mockSchematics: VersionSnapshot[] = [
               name: 'Checkout Workflow',
               mode: 'testing' as const,
               scenarios: [
-                {
-                  id: 'standard-checkout',
-                },
-                {
-                  id: 'express-checkout',
-                },
-                {
-                  id: 'checkout-with-coupon',
-                },
+                { id: 'standard-checkout', priority: 1, description: 'Standard checkout', outcomeType: 'expected' as const, template: { introduction: '' } },
+                { id: 'express-checkout', priority: 2, description: 'Express checkout', outcomeType: 'expected' as const, template: { introduction: '' } },
+                { id: 'checkout-with-coupon', priority: 3, description: 'With coupon', outcomeType: 'expected' as const, template: { introduction: '' } },
               ],
             },
           },
@@ -1218,15 +1204,9 @@ const mockSchematics: VersionSnapshot[] = [
               name: 'Product Management',
               mode: 'testing' as const,
               scenarios: [
-                {
-                  id: 'create-product',
-                },
-                {
-                  id: 'update-product',
-                },
-                {
-                  id: 'delete-product',
-                },
+                { id: 'create-product', priority: 1, description: 'Create product', outcomeType: 'expected' as const, template: { introduction: '' } },
+                { id: 'update-product', priority: 2, description: 'Update product', outcomeType: 'expected' as const, template: { introduction: '' } },
+                { id: 'delete-product', priority: 3, description: 'Delete product', outcomeType: 'expected' as const, template: { introduction: '' } },
               ],
             },
           },
@@ -1265,15 +1245,9 @@ const mockSchematics: VersionSnapshot[] = [
               name: 'Credit Card Payment',
               mode: 'testing' as const,
               scenarios: [
-                {
-                  id: 'successful-payment',
-                },
-                {
-                  id: 'declined-insufficient-funds',
-                },
-                {
-                  id: 'declined-invalid-card',
-                },
+                { id: 'successful-payment', priority: 1, description: 'Successful payment', outcomeType: 'expected' as const, template: { introduction: '' } },
+                { id: 'declined-insufficient-funds', priority: 2, description: 'Declined - insufficient funds', outcomeType: 'expected-issue' as const, template: { introduction: '' } },
+                { id: 'declined-invalid-card', priority: 3, description: 'Declined - invalid card', outcomeType: 'expected-issue' as const, template: { introduction: '' } },
               ],
             },
           },
@@ -1517,6 +1491,196 @@ export const SchematicsLoading: Story = {
     docs: {
       description: {
         story: 'Navigate to the "Schematics" tab to see the loading state.',
+      },
+    },
+  },
+};
+
+// Mock schematics with filterDefault values for visibility toggle demo
+const mockSchematicsWithFilterDefault: VersionSnapshot[] = [
+  {
+    repositoryUrl: 'https://github.com/example-org/ecommerce-platform',
+    commitSha: 'a1b2c3d4e5f6789012345678901234567890abcd',
+    storyboards: [
+      {
+        id: 'ecommerce-journey',
+        name: 'E-Commerce User Journey',
+        path: '.principal-views/ecommerce-journey.otel.canvas',
+        basename: 'ecommerce-journey',
+        scope: 'root' as const,
+        canvas: {
+          id: 'ecommerce-journey',
+          name: 'E-Commerce User Journey',
+          path: '.principal-views/ecommerce-journey.otel.canvas',
+          basename: 'ecommerce-journey',
+          type: 'otel' as const,
+          scope: 'root' as const,
+        },
+        workflows: [
+          {
+            id: 'authentication-workflow',
+            name: 'Authentication Workflow',
+            path: '.principal-views/ecommerce-journey/authentication-workflow.workflow.json',
+            basename: 'authentication-workflow',
+            storyboardId: 'ecommerce-journey',
+            scope: 'root' as const,
+            testTraces: [],
+            content: {
+              name: 'Authentication Workflow',
+              mode: 'testing' as const,
+              scenarios: [
+                {
+                  id: 'happy-path-login',
+                  description: 'Successful login with valid credentials',
+                  priority: 1,
+                  outcomeType: 'expected' as const,
+                  filterDefault: false, // Visible by default (eye open)
+                  template: { introduction: 'User logs in successfully' },
+                },
+                {
+                  id: 'failed-login-invalid-password',
+                  description: 'Login fails due to wrong password',
+                  priority: 2,
+                  outcomeType: 'expected' as const,
+                  filterDefault: false, // Visible by default
+                  template: { introduction: 'User enters wrong password' },
+                },
+                {
+                  id: 'failed-login-account-locked',
+                  description: 'Login fails because account is locked',
+                  priority: 3,
+                  outcomeType: 'expected-issue' as const,
+                  filterDefault: true, // Hidden by default (eye closed)
+                  template: { introduction: 'Account is locked after too many attempts' },
+                },
+                {
+                  id: 'edge-case-expired-session',
+                  description: 'Edge case: session expired during login',
+                  priority: 4,
+                  outcomeType: 'unknown-issue' as const,
+                  filterDefault: true, // Hidden by default (eye closed)
+                  template: { introduction: 'Session expires mid-login' },
+                },
+              ],
+            },
+          },
+          {
+            id: 'checkout-workflow',
+            name: 'Checkout Workflow',
+            path: '.principal-views/ecommerce-journey/checkout-workflow.workflow.json',
+            basename: 'checkout-workflow',
+            storyboardId: 'ecommerce-journey',
+            scope: 'root' as const,
+            testTraces: [],
+            content: {
+              name: 'Checkout Workflow',
+              mode: 'testing' as const,
+              scenarios: [
+                {
+                  id: 'standard-checkout',
+                  description: 'Normal checkout flow',
+                  priority: 1,
+                  outcomeType: 'expected' as const,
+                  filterDefault: false,
+                  template: { introduction: 'Standard checkout process' },
+                },
+                {
+                  id: 'express-checkout',
+                  description: 'Express checkout for returning customers',
+                  priority: 2,
+                  outcomeType: 'expected' as const,
+                  filterDefault: false,
+                  template: { introduction: 'Fast checkout for returning users' },
+                },
+                {
+                  id: 'checkout-payment-declined',
+                  description: 'Checkout fails due to payment decline',
+                  priority: 3,
+                  outcomeType: 'expected-issue' as const,
+                  filterDefault: true, // Hidden by default
+                  template: { introduction: 'Payment is declined' },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  },
+];
+
+/**
+ * With scenario visibility toggle - demonstrates filterDefault editing
+ *
+ * Navigate to the "Coverage" tab to see:
+ * - Scenario nodes with eye icons (visibility toggle)
+ * - Some scenarios start with eye open (filterDefault: false)
+ * - Some scenarios start with eye closed (filterDefault: true)
+ * - Click the eye icon to toggle visibility
+ * - Changes are logged to console (simulating persistence)
+ */
+export const WithScenarioVisibilityToggle: Story = {
+  render: () => {
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          schematics: {
+            scope: 'repository' as const,
+            name: 'schematics',
+            data: mockSchematicsWithFilterDefault,
+            loading: false,
+            error: null,
+            refresh: async () => {},
+          },
+          telemetry: {
+            scope: 'repository' as const,
+            name: 'telemetry',
+            data: mockTracesForSchematics,
+            loading: false,
+            error: null,
+            refresh: async () => {},
+          },
+        }}
+        actionsOverrides={{
+          updateScenarioFilterDefault: async (
+            workflowPath: string,
+            scenarioId: string,
+            filterDefault: boolean
+          ) => {
+            console.log('[Mock] updateScenarioFilterDefault called:', {
+              workflowPath,
+              scenarioId,
+              filterDefault,
+            });
+            // Simulate async write
+            await new Promise(resolve => setTimeout(resolve, 100));
+            console.log('[Mock] Scenario filterDefault updated successfully');
+          },
+        }}
+      >
+        {(props) => <TraceListPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `Demonstrates the scenario visibility toggle feature.
+
+**How to use:**
+1. Click the "Coverage" tab
+2. Expand a workflow node to see scenario children
+3. Look for the eye icon on each scenario:
+   - 👁 Open eye = visible (filterDefault: false)
+   - 👁‍🗨 Closed eye = hidden by default (filterDefault: true)
+4. Click the eye icon to toggle
+5. Check the console to see the mock action being called
+
+**Scenarios with filterDefault: true (eye closed):**
+- "failed-login-account-locked"
+- "edge-case-expired-session"
+- "checkout-payment-declined"
+`,
       },
     },
   },

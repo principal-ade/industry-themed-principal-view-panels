@@ -158,6 +158,100 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
     return statusMap;
   }, [versionSnapshots, scenarioTraceSet]);
 
+  // Scenario visibility state (for filterDefault toggle)
+  // Key format: "workflowId/scenarioId", value: true = visible (eye open), false = hidden (eye closed)
+  const [scenarioVisibilityMap, setScenarioVisibilityMap] = useState<Record<string, boolean>>({});
+
+  // Initialize visibility map from scenario filterDefault values when versionSnapshots change
+  React.useEffect(() => {
+    const initialVisibility: Record<string, boolean> = {};
+
+    versionSnapshots.forEach(snapshot => {
+      snapshot.storyboards.forEach(storyboard => {
+        storyboard.workflows.forEach(workflow => {
+          if ('content' in workflow) {
+            const content = workflow.content as WorkflowTemplate;
+            if (content?.scenarios) {
+              content.scenarios.forEach((scenario: { id?: string; filterDefault?: boolean }) => {
+                if (scenario.id) {
+                  const key = `${workflow.id}/${scenario.id}`;
+                  // filterDefault: true means hidden by default, so visibility is inverted
+                  initialVisibility[key] = !scenario.filterDefault;
+                }
+              });
+            }
+          }
+        });
+      });
+    });
+
+    setScenarioVisibilityMap(initialVisibility);
+  }, [versionSnapshots]);
+
+  // Handle scenario visibility toggle (eye icon click)
+  const handleScenarioVisibilityToggle = React.useCallback(
+    async (scenarioKey: string, isVisible: boolean) => {
+      // Update local state immediately (optimistic UI)
+      setScenarioVisibilityMap(prev => ({
+        ...prev,
+        [scenarioKey]: isVisible,
+      }));
+
+      // If action is available, persist the change
+      if (actions && 'updateScenarioFilterDefault' in actions && typeof actions.updateScenarioFilterDefault === 'function') {
+        // Parse the key to get workflowId and scenarioId
+        const [workflowId, scenarioId] = scenarioKey.split('/');
+
+        // Find the workflow path from versionSnapshots
+        let workflowPath: string | undefined;
+        for (const snapshot of versionSnapshots) {
+          for (const storyboard of snapshot.storyboards) {
+            const workflow = storyboard.workflows.find(w => w.id === workflowId);
+            if (workflow) {
+              workflowPath = workflow.path;
+              break;
+            }
+          }
+          if (workflowPath) break;
+        }
+
+        if (workflowPath && scenarioId) {
+          try {
+            // filterDefault is inverse of visibility (visible = not filtered)
+            await (actions as { updateScenarioFilterDefault: (path: string, id: string, filterDefault: boolean) => Promise<void> })
+              .updateScenarioFilterDefault(workflowPath, scenarioId, !isVisible);
+          } catch (error) {
+            console.error('[TraceListPanel] Failed to update scenario filterDefault:', error);
+            // Revert local state on error
+            setScenarioVisibilityMap(prev => ({
+              ...prev,
+              [scenarioKey]: !isVisible,
+            }));
+          }
+        }
+      }
+    },
+    [actions, versionSnapshots]
+  );
+
+  // Filter traces based on scenario visibility
+  // Traces matching only hidden scenarios are filtered out
+  const filteredTraces = React.useMemo(() => {
+    return traces.filter(trace => {
+      // No scenario matches = always show (unmatched trace)
+      if (!trace.scenarioMatches || trace.scenarioMatches.length === 0) {
+        return true;
+      }
+
+      // Show if at least one matched scenario is visible
+      return trace.scenarioMatches.some(match => {
+        const key = `${match.workflowId}/${match.scenarioId}`;
+        // Default to visible if not in map (scenarios not yet loaded or no filterDefault)
+        return scenarioVisibilityMap[key] !== false;
+      });
+    });
+  }, [traces, scenarioVisibilityMap]);
+
   // Configuration tab state
   const [resources, setResources] = useState<Record<string, string>>({});
   const [configLoading, setConfigLoading] = useState(false);
@@ -977,7 +1071,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
       {activeTab === 'traces' ? (
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {/* TraceTape scrubber */}
-          {traces.length > 0 && (
+          {filteredTraces.length > 0 && (
             <div
               style={{
                 padding: '16px 16px 8px 16px',
@@ -987,7 +1081,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
               }}
             >
               <TraceTape
-                traces={traces}
+                traces={filteredTraces}
                 theme={theme}
                 highlightedSpanId={highlightedSpanId}
                 selectedTraceId={Array.from(expandedTraceIds)[0]}
@@ -1002,7 +1096,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
           {/* Trace list */}
           <div style={{ flex: 1, overflow: 'auto' }}>
             <TraceList
-              traces={traces}
+              traces={filteredTraces}
               theme={theme}
               onTraceClick={handleTraceClick}
               onTraceSelect={handleTraceSelect}
@@ -1010,7 +1104,13 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
               onRemoveTrace={handleRemoveTrace}
               onClearAll={handleClearAll}
               expandedTraceIds={expandedTraceIds}
-              emptyMessage={traces.length === 0 ? 'No traces received yet. Waiting for telemetry data...' : undefined}
+              emptyMessage={
+                traces.length === 0
+                  ? 'No traces received yet. Waiting for telemetry data...'
+                  : filteredTraces.length === 0
+                    ? 'All traces filtered by scenario visibility. Toggle scenarios in Coverage tab.'
+                    : undefined
+              }
             />
           </div>
         </div>
@@ -1452,6 +1552,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                   traceWorkflowsSet={traceWorkflowsSet}
                   scenarioStatusMap={scenarioStatusMap}
                   scenarioTraceCounts={scenarioTraceCounts}
+                  scenarioVisibilityMap={scenarioVisibilityMap}
+                  onScenarioVisibilityToggle={handleScenarioVisibilityToggle}
                   statusBarDisplay="traces"
                 />
               </div>
