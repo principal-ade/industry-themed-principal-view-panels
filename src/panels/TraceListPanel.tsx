@@ -200,7 +200,10 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
       // If action is available, persist the change
       if (actions && 'updateScenarioFilterDefault' in actions && typeof actions.updateScenarioFilterDefault === 'function') {
         // Parse the key to get workflowId and scenarioId
-        const [workflowId, scenarioId] = scenarioKey.split('/');
+        // Key format: "workflowId/scenarioId" - workflow IDs may contain slashes, so split on last slash
+        const lastSlashIndex = scenarioKey.lastIndexOf('/');
+        const workflowId = scenarioKey.substring(0, lastSlashIndex);
+        const scenarioId = scenarioKey.substring(lastSlashIndex + 1);
 
         // Find the workflow path from versionSnapshots
         let workflowPath: string | undefined;
