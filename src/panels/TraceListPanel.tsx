@@ -117,6 +117,22 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
     return scenarioSet;
   }, [traces]);
 
+  // Build scenario trace counts for scenario nodes in the tree
+  const scenarioTraceCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+
+    traces.forEach(trace => {
+      trace.scenarioMatches?.forEach(match => {
+        if (match.workflowId && match.scenarioId) {
+          const key = `${match.workflowId}/${match.scenarioId}`;
+          counts[key] = (counts[key] || 0) + 1;
+        }
+      });
+    });
+
+    return counts;
+  }, [traces]);
+
   // Build scenario status map for coverage bars
   const scenarioStatusMap = React.useMemo(() => {
     const statusMap: Record<string, WorkflowScenarioStatus> = {};
@@ -978,6 +994,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                 focusTraceId={focusTraceId}
                 onSpanHighlight={handleSpanHighlight}
                 height={40}
+                maxVisibleItems={20}
+                showMinimap={true}
               />
             </div>
           )}
@@ -1433,6 +1451,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                   workflowFilterMode={workflowFilterMode}
                   traceWorkflowsSet={traceWorkflowsSet}
                   scenarioStatusMap={scenarioStatusMap}
+                  scenarioTraceCounts={scenarioTraceCounts}
                   statusBarDisplay="traces"
                 />
               </div>

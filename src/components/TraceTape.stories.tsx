@@ -448,3 +448,190 @@ const LiveUpdatingComponent = () => {
 export const LiveUpdating: Story = {
   render: () => <LiveUpdatingComponent />,
 };
+
+/**
+ * With max visible items and minimap - scrolling kicks in when there are too many spans
+ */
+const WithMaxVisibleItemsComponent = () => {
+  const { theme } = useTheme();
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>();
+  const [focusTraceId, setFocusTraceId] = useState<string | null>(null);
+
+  // Generate a lot of traces to trigger scrolling
+  const traces = useMemo(() => {
+    const randomTraces = generateRandomTraces(50);
+    return convertToRegisteredTraces(randomTraces);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <TraceTape
+        traces={traces}
+        theme={theme}
+        highlightedSpanId={highlightedSpanId}
+        focusTraceId={focusTraceId}
+        maxVisibleItems={15}
+        showMinimap={true}
+        onSpanHighlight={(spanId) => {
+          setHighlightedSpanId(spanId ?? undefined);
+          setFocusTraceId(null);
+        }}
+      />
+      {/* Trace buttons to jump to */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '8px',
+          flexWrap: 'wrap',
+          maxHeight: '150px',
+          overflowY: 'auto',
+        }}
+      >
+        {traces.slice(0, 20).map((trace, index) => (
+          <button
+            key={trace.traceId}
+            onClick={() => setFocusTraceId(trace.traceId)}
+            style={{
+              padding: '4px 8px',
+              background: theme.colors.backgroundSecondary,
+              color: theme.colors.text,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: theme.radii[1],
+              cursor: 'pointer',
+              fontFamily: theme.fonts.monospace,
+              fontSize: theme.fontSizes[0],
+            }}
+          >
+            {index + 1}
+          </button>
+        ))}
+      </div>
+      <div
+        style={{
+          fontSize: theme.fontSizes[1],
+          color: theme.colors.textMuted,
+          fontFamily: theme.fonts.body,
+        }}
+      >
+        {traces.length} traces with maxVisibleItems=15 - use minimap or scroll to navigate
+      </div>
+    </div>
+  );
+};
+
+export const WithMaxVisibleItems: Story = {
+  render: () => <WithMaxVisibleItemsComponent />,
+};
+
+/**
+ * Without minimap - scrolling only, no overview bar
+ */
+const WithoutMinimapComponent = () => {
+  const { theme } = useTheme();
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>();
+
+  const traces = useMemo(() => {
+    const randomTraces = generateRandomTraces(50);
+    return convertToRegisteredTraces(randomTraces);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <TraceTape
+        traces={traces}
+        theme={theme}
+        highlightedSpanId={highlightedSpanId}
+        maxVisibleItems={15}
+        showMinimap={false}
+        onSpanHighlight={(spanId) => setHighlightedSpanId(spanId ?? undefined)}
+      />
+      <div
+        style={{
+          fontSize: theme.fontSizes[1],
+          color: theme.colors.textMuted,
+          fontFamily: theme.fonts.body,
+        }}
+      >
+        {traces.length} traces with maxVisibleItems=15, minimap disabled - scroll only
+      </div>
+    </div>
+  );
+};
+
+export const WithoutMinimap: Story = {
+  render: () => <WithoutMinimapComponent />,
+};
+
+/**
+ * Live updating with scroll and minimap - adds 3 traces per second to test scrolling behavior
+ */
+const LiveUpdatingWithScrollComponent = () => {
+  const { theme } = useTheme();
+  const [traces, setTraces] = useState<RegisteredTrace[]>([]);
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>();
+  const [focusTraceId, setFocusTraceId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    // Add a new trace every 333ms (3 per second)
+    const interval = setInterval(() => {
+      const newTrace = generateRandomTraces(1);
+      const newRegisteredTraces = convertToRegisteredTraces(newTrace);
+
+      setTraces((prev) => [...newRegisteredTraces, ...prev].slice(0, 100)); // Keep last 100
+    }, 333);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <TraceTape
+        traces={traces}
+        theme={theme}
+        highlightedSpanId={highlightedSpanId}
+        focusTraceId={focusTraceId}
+        maxVisibleItems={20}
+        showMinimap={true}
+        onSpanHighlight={(spanId) => {
+          setHighlightedSpanId(spanId ?? undefined);
+          setFocusTraceId(null);
+        }}
+      />
+      {/* Jump buttons for first 10 traces */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        {traces.slice(0, 10).map((trace, index) => (
+          <button
+            key={trace.traceId}
+            onClick={() => setFocusTraceId(trace.traceId)}
+            style={{
+              padding: '4px 10px',
+              background: theme.colors.backgroundSecondary,
+              color: theme.colors.text,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: theme.radii[1],
+              cursor: 'pointer',
+              fontFamily: theme.fonts.monospace,
+              fontSize: theme.fontSizes[1],
+            }}
+          >
+            {index + 1}
+          </button>
+        ))}
+      </div>
+      <div
+        style={{
+          fontSize: theme.fontSizes[2],
+          color: theme.colors.textSecondary,
+          fontFamily: theme.fonts.body,
+        }}
+      >
+        {traces.length} traces ({traces.reduce((sum, t) => sum + t.spanCount, 0)} spans) - 3 new
+        traces/sec, maxVisibleItems=20, minimap enabled
+      </div>
+    </div>
+  );
+};
+
+export const LiveUpdatingWithScroll: Story = {
+  render: () => <LiveUpdatingWithScrollComponent />,
+};
