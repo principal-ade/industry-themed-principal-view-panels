@@ -26,7 +26,7 @@ export type { RegisteredTrace, WorkflowMatch } from './types/otel';
 export { getServiceName, getSpansFromTrace, getRootSpan, getResource } from './types/otel';
 
 // Re-export event payload types for panel navigation
-export type { OpenCanvasPayload } from './types';
+export type { OpenCanvasPayload, TraceListPanelAction } from './types';
 
 // Re-export trace components
 export { TraceExpansion } from './components/TraceExpansion';

@@ -145,6 +145,54 @@ export type TraceListPanelPropsTyped = PanelComponentProps<
 >;
 
 /**
+ * Programmatic control action types for TraceListPanel
+ *
+ * Used with 'custom' events to control the panel programmatically.
+ *
+ * Actions:
+ * - selectTrace: Expand and scroll to a specific trace
+ * - clickSpan: Click on a span within an expanded trace (triggers workflow panel)
+ *
+ * @example
+ * ```typescript
+ * // Select and expand a trace by ID
+ * events.emit({
+ *   type: 'custom',
+ *   source: 'tour-controller',
+ *   timestamp: Date.now(),
+ *   payload: { action: 'selectTrace', traceId: 'abc123' }
+ * });
+ *
+ * // Select the most recent trace (index 0)
+ * events.emit({
+ *   type: 'custom',
+ *   source: 'tour-controller',
+ *   timestamp: Date.now(),
+ *   payload: { action: 'selectTrace', traceIndex: 0 }
+ * });
+ *
+ * // Click on a specific span (opens workflow panel)
+ * events.emit({
+ *   type: 'custom',
+ *   source: 'tour-controller',
+ *   timestamp: Date.now(),
+ *   payload: { action: 'clickSpan', traceIndex: 0, spanIndex: 0 }
+ * });
+ * ```
+ */
+export interface TraceListPanelAction {
+  action: 'selectTrace' | 'clickSpan';
+  /** Trace ID to select or find span in */
+  traceId?: string;
+  /** Trace index (0 = most recent trace) - alternative to traceId */
+  traceIndex?: number;
+  /** Span ID to click (for clickSpan action) */
+  spanId?: string;
+  /** Span index within the trace (alternative to spanId for clickSpan) */
+  spanIndex?: number;
+}
+
+/**
  * Typed actions for MultiCanvasPanel
  */
 export interface MultiCanvasPanelActions extends PanelActions {

@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Activity, Settings, GitBranch } from 'lucide-react';
-import type { TraceListPanelPropsTyped } from '../types';
+import type { TraceListPanelPropsTyped, TraceListPanelAction } from '../types';
+import type { PanelEvent } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
 import { TraceList } from '../components/TraceList';
@@ -152,6 +153,211 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
   const [discoveredServices, setDiscoveredServices] = useState<string[]>([]);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [selectedLibraryPath, setSelectedLibraryPath] = useState<string | null>(null);
+
+  // Refs to hold latest values for use in programmatic control
+  const tracesRef = useRef(traces);
+  const versionSnapshotsRef = useRef(versionSnapshots);
+  tracesRef.current = traces;
+  versionSnapshotsRef.current = versionSnapshots;
+
+  /**
+   * Find span data from a trace by spanId or spanIndex
+   * Returns the span info needed for handleWorkflowClick
+   */
+  const findSpanInTrace = useCallback((trace: RegisteredTrace, spanId?: string, spanIndex?: number) => {
+    // Collect all spans in order (matching TraceExpansion logic)
+    interface SpanInfo {
+      spanId: string;
+      spanName: string;
+      storyboardId?: string;
+      workflowId?: string;
+      scenarioId?: string;
+      type: 'matched' | 'orphaned' | 'unmatched';
+    }
+
+    const spans: SpanInfo[] = [];
+
+    // Add matched spans (green)
+    trace.scenarioMatches?.forEach(match => {
+      match.matchedSpans.forEach(span => {
+        spans.push({
+          spanId: span.spanId,
+          spanName: span.spanName,
+          storyboardId: match.storyboardId,
+          workflowId: match.workflowId,
+          scenarioId: match.scenarioId,
+          type: 'matched',
+        });
+      });
+    });
+
+    // Add orphaned spans (workflow matched, no scenario)
+    trace.storyboardMatches?.forEach(match => {
+      match.orphanedSpans.forEach(span => {
+        spans.push({
+          spanId: span.spanId,
+          spanName: span.spanName,
+          storyboardId: match.storyboardId,
+          workflowId: match.workflowId,
+          type: 'orphaned',
+        });
+      });
+    });
+
+    // Add unmatched spans
+    trace.unmatchedSpans?.spans?.forEach(span => {
+      spans.push({
+        spanId: span.spanId,
+        spanName: span.spanName,
+        type: 'unmatched',
+      });
+    });
+
+    // Find by spanId or spanIndex
+    if (spanId) {
+      return spans.find(s => s.spanId === spanId);
+    }
+    if (spanIndex !== undefined && spanIndex >= 0 && spanIndex < spans.length) {
+      return spans[spanIndex];
+    }
+    // Default to first matched span
+    return spans.find(s => s.type === 'matched' || s.type === 'orphaned');
+  }, []);
+
+  /**
+   * Resolve trace from payload (by traceId or traceIndex)
+   * Traces are sorted by most recent first (index 0 = most recent)
+   */
+  const resolveTrace = useCallback((payload: TraceListPanelAction): RegisteredTrace | null => {
+    const currentTraces = tracesRef.current;
+    // Sort by most recent first (same order as TraceList)
+    const sortedTraces = [...currentTraces].sort((a, b) => b.startTime - a.startTime);
+
+    if (payload.traceId) {
+      return sortedTraces.find(t => t.traceId === payload.traceId) || null;
+    }
+    if (payload.traceIndex !== undefined && payload.traceIndex >= 0 && payload.traceIndex < sortedTraces.length) {
+      return sortedTraces[payload.traceIndex];
+    }
+    return null;
+  }, []);
+
+  // Programmatic control: Listen for custom events
+  useEffect(() => {
+    if (!events) return;
+
+    const handleCustomEvent = (event: PanelEvent) => {
+      const payload = event.payload as TraceListPanelAction | undefined;
+      if (!payload?.action) return;
+
+      console.log('[TraceListPanel] handleCustomEvent:', payload);
+
+      if (payload.action === 'selectTrace') {
+        const trace = resolveTrace(payload);
+        if (!trace) {
+          console.warn('[TraceListPanel] Trace not found:', payload);
+          return;
+        }
+
+        // Switch to traces tab if not already
+        setActiveTab('traces');
+
+        // Expand the trace
+        setExpandedTraceIds(prev => {
+          const newSet = new Set(prev);
+          newSet.add(trace.traceId);
+          return newSet;
+        });
+
+        // Set focus to scroll to it
+        setFocusTraceId(trace.traceId);
+      } else if (payload.action === 'clickSpan') {
+        const trace = resolveTrace(payload);
+        if (!trace) {
+          console.warn('[TraceListPanel] Trace not found:', payload);
+          return;
+        }
+
+        // First ensure trace is expanded
+        setActiveTab('traces');
+        setExpandedTraceIds(prev => {
+          const newSet = new Set(prev);
+          newSet.add(trace.traceId);
+          return newSet;
+        });
+        setFocusTraceId(trace.traceId);
+
+        // Find the span
+        const spanInfo = findSpanInTrace(trace, payload.spanId, payload.spanIndex);
+        if (!spanInfo) {
+          console.warn('[TraceListPanel] Span not found in trace:', payload);
+          return;
+        }
+
+        // Only trigger workflow click for matched/orphaned spans
+        if ((spanInfo.type === 'matched' || spanInfo.type === 'orphaned') && spanInfo.storyboardId) {
+          // Small delay to allow the trace to expand first
+          setTimeout(() => {
+            // Find workflow data from version snapshots (same logic as handleWorkflowClick)
+            let fullWorkflowTemplate: WorkflowTemplate | undefined;
+            let workflowPath: string | undefined;
+            let canvasId: string | undefined;
+            let canvasPath: string | undefined;
+            let canvasName: string | undefined;
+            let storyboardName: string | undefined;
+
+            for (const snapshot of versionSnapshotsRef.current) {
+              const storyboard = snapshot.storyboards.find(sb => sb.id === spanInfo.storyboardId);
+              if (storyboard) {
+                storyboardName = storyboard.name;
+                canvasId = storyboard.canvas.id;
+                canvasPath = storyboard.canvas.path;
+                canvasName = storyboard.canvas.name;
+
+                for (const workflow of storyboard.workflows) {
+                  if ('content' in workflow && workflow.content && workflow.id === spanInfo.workflowId) {
+                    fullWorkflowTemplate = workflow.content as WorkflowTemplate;
+                    workflowPath = workflow.path;
+                    break;
+                  }
+                }
+                if (fullWorkflowTemplate) break;
+              }
+            }
+
+            // Emit the openCanvas event
+            events.emit({
+              type: 'custom',
+              source: 'trace-list-panel',
+              timestamp: Date.now(),
+              payload: {
+                action: 'openCanvas',
+                canvasId,
+                canvasPath,
+                canvas: canvasId ? { id: canvasId, path: canvasPath, name: canvasName } : undefined,
+                workflowId: spanInfo.workflowId || spanInfo.storyboardId,
+                workflowPath,
+                workflow: fullWorkflowTemplate,
+                openMode: 'detail',
+                storyboardId: spanInfo.storyboardId,
+                storyboardName,
+                scenarioId: spanInfo.scenarioId || '',
+                trace,
+                traceId: trace.traceId,
+                spanId: spanInfo.spanId,
+              },
+            });
+          }, 100);
+        }
+      }
+    };
+
+    const unsubscribe = events.on('custom', handleCustomEvent);
+    return () => {
+      events.off('custom', handleCustomEvent);
+      unsubscribe?.();
+    };
+  }, [events, findSpanInTrace, resolveTrace]);
 
   // Load resources when switching to configuration tab
   useEffect(() => {
