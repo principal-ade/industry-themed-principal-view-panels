@@ -349,6 +349,21 @@ export const TraceList: React.FC<TraceListProps> = ({
                       const scope = getPrimaryScope(trace);
                       if (!scope) return null;
 
+                      // Determine badge color based on match status
+                      const matchedSpanCount = trace.scenarioMatches?.reduce(
+                        (sum, match) => sum + match.matchedSpans.length,
+                        0
+                      ) ?? 0;
+                      const hasMatches = matchedSpanCount > 0;
+                      const allMatched = matchedSpanCount === trace.spanCount;
+
+                      // Color: green (all matched), yellow (partial), muted (none)
+                      const badgeColor = allMatched
+                        ? theme.colors.success
+                        : hasMatches
+                          ? theme.colors.warning
+                          : theme.colors.textMuted;
+
                       return (
                         <span
                           style={{
@@ -358,15 +373,15 @@ export const TraceList: React.FC<TraceListProps> = ({
                             padding: '2px 8px',
                             fontFamily: theme.fonts.body,
                             fontSize: theme.fontSizes[1],
-                            backgroundColor: `${theme.colors.primary}15`,
-                            color: theme.colors.primary,
-                            border: `1px solid ${theme.colors.primary}40`,
+                            backgroundColor: `${badgeColor}15`,
+                            color: badgeColor,
+                            border: `1px solid ${badgeColor}40`,
                             borderRadius: '3px',
                             fontWeight: theme.fontWeights.medium,
                             overflow: 'hidden',
                             minWidth: 0,
                           }}
-                          title={`${scope.name}@${scope.version}`}
+                          title={`${scope.name}@${scope.version}${allMatched ? ' (fully matched)' : hasMatches ? ' (partially matched)' : ' (no matches)'}`}
                         >
                           <span
                             style={{
@@ -379,7 +394,7 @@ export const TraceList: React.FC<TraceListProps> = ({
                           </span>
                           {scope.version !== 'unknown' && (
                             <>
-                              <span style={{ color: `${theme.colors.primary}80` }}>@</span>
+                              <span style={{ color: `${badgeColor}80` }}>@</span>
                               <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
                                 {scope.version}
                               </span>
