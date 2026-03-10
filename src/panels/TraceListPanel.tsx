@@ -1085,39 +1085,41 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
       {/* Tab Content */}
       {activeTab === 'traces' ? (
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          {/* Trace filter segmented control */}
-          <div
-            style={{
-              display: 'flex',
-              borderBottom: `1px solid ${theme.colors.border}`,
-            }}
-          >
-            {(['all', 'known', 'unknown'] as const).map((mode, index) => {
-              const isSelected = traceFilterMode === mode;
-              const label = mode === 'all' ? 'All' : mode === 'known' ? 'Known' : 'Unknown';
-              return (
-                <button
-                  key={mode}
-                  onClick={() => setTraceFilterMode(mode)}
-                  style={{
-                    flex: 1,
-                    padding: '10px 12px',
-                    fontFamily: theme.fonts.body,
-                    fontSize: theme.fontSizes[1],
-                    fontWeight: isSelected ? theme.fontWeights.medium : theme.fontWeights.body,
-                    backgroundColor: isSelected ? theme.colors.primary : theme.colors.backgroundSecondary,
-                    color: isSelected ? theme.colors.textOnPrimary : theme.colors.textSecondary,
-                    border: 'none',
-                    borderRight: index < 2 ? `1px solid ${theme.colors.border}` : 'none',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.15s, color 0.15s',
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+          {/* Trace filter segmented control - only show when there are traces */}
+          {traces.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                borderBottom: `1px solid ${theme.colors.border}`,
+              }}
+            >
+              {(['all', 'known', 'unknown'] as const).map((mode, index) => {
+                const isSelected = traceFilterMode === mode;
+                const label = mode === 'all' ? 'All' : mode === 'known' ? 'Known' : 'Unknown';
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => setTraceFilterMode(mode)}
+                    style={{
+                      flex: 1,
+                      padding: '10px 12px',
+                      fontFamily: theme.fonts.body,
+                      fontSize: theme.fontSizes[1],
+                      fontWeight: isSelected ? theme.fontWeights.medium : theme.fontWeights.body,
+                      backgroundColor: isSelected ? theme.colors.primary : theme.colors.backgroundSecondary,
+                      color: isSelected ? theme.colors.textOnPrimary : theme.colors.textSecondary,
+                      border: 'none',
+                      borderRight: index < 2 ? `1px solid ${theme.colors.border}` : 'none',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.15s, color 0.15s',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {/* TraceTape scrubber */}
           {filteredTraces.length > 0 && (
             <div
