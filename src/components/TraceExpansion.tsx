@@ -9,6 +9,7 @@
  */
 
 import React, { useMemo } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { RegisteredTrace } from '../types/otel';
 
@@ -17,6 +18,10 @@ export interface TraceExpansionProps {
   theme: Theme;
   onWorkflowClick?: (storyboardId: string, workflowId: string, scenarioId: string, spanId: string) => void;
   onSpanClick?: () => void;
+  /** Map of scenario visibility state (key: "workflowId/scenarioId", value: true = visible) */
+  scenarioVisibilityMap?: Record<string, boolean>;
+  /** Callback when scenario visibility is toggled */
+  onScenarioVisibilityToggle?: (scenarioKey: string, isVisible: boolean) => void;
 }
 
 /**
@@ -44,6 +49,8 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
   theme,
   onWorkflowClick,
   onSpanClick,
+  scenarioVisibilityMap,
+  onScenarioVisibilityToggle,
 }) => {
   // Build span index map from original OTLP data (preserves ingestion order)
   const spanIndexMap = useMemo(() => {
@@ -290,6 +297,44 @@ export const TraceExpansion: React.FC<TraceExpansionProps> = ({
                   >
                     ({span.reason})
                   </span>
+                )}
+                {/* Visibility toggle for matched spans with scenarioId */}
+                {span.type === 'matched' && span.workflowId && span.scenarioId && onScenarioVisibilityToggle && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const key = `${span.workflowId}/${span.scenarioId}`;
+                      const currentVisibility = scenarioVisibilityMap?.[key] !== false;
+                      onScenarioVisibilityToggle(key, !currentVisibility);
+                    }}
+                    title={scenarioVisibilityMap?.[`${span.workflowId}/${span.scenarioId}`] !== false
+                      ? 'Hide this scenario from trace list (toggle filterDefault)'
+                      : 'Show this scenario in trace list (toggle filterDefault)'}
+                    style={{
+                      marginLeft: 'auto',
+                      padding: '2px 4px',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: 0.6,
+                      transition: 'opacity 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '0.6';
+                    }}
+                  >
+                    {scenarioVisibilityMap?.[`${span.workflowId}/${span.scenarioId}`] !== false ? (
+                      <Eye size={14} color={theme.colors.textSecondary} />
+                    ) : (
+                      <EyeOff size={14} color={theme.colors.textMuted} />
+                    )}
+                  </button>
                 )}
               </div>
             );

@@ -593,3 +593,86 @@ export const MixedUnmatchedReasons: Story = {
     );
   },
 };
+
+/**
+ * Visibility Toggle - Interactive filter default toggle
+ *
+ * Demonstrates the eye icon button on matched spans that allows toggling
+ * the filterDefault setting. Click the eye icon on any matched span to
+ * toggle its visibility state. The state is shown in the panel below.
+ */
+export const WithVisibilityToggle: Story = {
+  render: () => {
+    const { theme } = useTheme();
+    const [visibilityMap, setVisibilityMap] = React.useState<Record<string, boolean>>({
+      'checkout-flow/happy-path': true,
+      'payment-gateway/credit-card': true,
+      'analytics/purchase-complete': false, // This one starts hidden
+    });
+
+    const handleToggle = (scenarioKey: string, isVisible: boolean) => {
+      setVisibilityMap(prev => ({
+        ...prev,
+        [scenarioKey]: isVisible,
+      }));
+    };
+
+    const trace = createTraceWithMultiWorkflowData({
+      name: 'ProcessPayment',
+      workflows: [
+        {
+          storyboardId: 'ecommerce',
+          storyboardName: 'E-commerce Platform',
+          workflowId: 'checkout-flow',
+          workflowName: 'Checkout Flow',
+          scenarioId: 'happy-path',
+          scenarioName: 'Standard successful checkout',
+          matchedEventCount: 8,
+        },
+        {
+          storyboardId: 'payment',
+          storyboardName: 'Payment Processing',
+          workflowId: 'payment-gateway',
+          workflowName: 'Payment Gateway',
+          scenarioId: 'credit-card',
+          scenarioName: 'Credit card payment processing',
+          matchedEventCount: 5,
+        },
+        {
+          storyboardId: 'analytics',
+          storyboardName: 'Analytics & Tracking',
+          workflowId: 'analytics',
+          workflowName: 'Conversion Tracking',
+          scenarioId: 'purchase-complete',
+          scenarioName: 'Purchase completion event',
+          matchedEventCount: 3,
+        },
+      ],
+      unmatchedEventNames: ['cache.hit', 'logging.debug'],
+      totalEventCount: 18,
+    });
+
+    return (
+      <ExpansionWrapper>
+        <div style={{ marginBottom: '16px', padding: '12px', background: '#1a1a1a', borderRadius: '4px' }}>
+          <div style={{ color: '#888', fontSize: '12px', marginBottom: '8px' }}>
+            Click the eye icon on matched spans to toggle filterDefault visibility:
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {Object.entries(visibilityMap).map(([key, visible]) => (
+              <div key={key} style={{ color: visible ? '#22c55e' : '#6b7280', fontSize: '11px', fontFamily: 'monospace' }}>
+                {key}: {visible ? 'visible (eye open)' : 'hidden (eye closed)'}
+              </div>
+            ))}
+          </div>
+        </div>
+        <TraceExpansion
+          trace={trace}
+          theme={theme}
+          scenarioVisibilityMap={visibilityMap}
+          onScenarioVisibilityToggle={handleToggle}
+        />
+      </ExpansionWrapper>
+    );
+  },
+};

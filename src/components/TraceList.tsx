@@ -16,6 +16,10 @@ export interface TraceListProps {
   expandedTraceIds?: Set<string>;
   showSearch?: boolean;
   emptyMessage?: string;
+  /** Map of scenario visibility state (key: "workflowId/scenarioId", value: true = visible) */
+  scenarioVisibilityMap?: Record<string, boolean>;
+  /** Callback when scenario visibility is toggled */
+  onScenarioVisibilityToggle?: (scenarioKey: string, isVisible: boolean) => void;
 }
 
 /**
@@ -39,6 +43,8 @@ export const TraceList: React.FC<TraceListProps> = ({
   expandedTraceIds,
   showSearch = true,
   emptyMessage = 'No traces available',
+  scenarioVisibilityMap,
+  onScenarioVisibilityToggle,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -501,6 +507,8 @@ export const TraceList: React.FC<TraceListProps> = ({
                   onWorkflowClick={(storyboardId, workflowId, scenarioId, spanId) =>
                     onWorkflowClick?.(trace, storyboardId, workflowId, scenarioId, spanId)
                   }
+                  scenarioVisibilityMap={scenarioVisibilityMap}
+                  onScenarioVisibilityToggle={onScenarioVisibilityToggle}
                 />
               </div>
             )}

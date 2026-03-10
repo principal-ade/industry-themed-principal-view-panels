@@ -1114,6 +1114,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                     ? 'All traces filtered by scenario visibility. Toggle scenarios in Coverage tab.'
                     : undefined
               }
+              scenarioVisibilityMap={scenarioVisibilityMap}
+              onScenarioVisibilityToggle={handleScenarioVisibilityToggle}
             />
           </div>
         </div>
