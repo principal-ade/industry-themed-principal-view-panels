@@ -16,6 +16,7 @@ import type { StoryboardWorkflowNodeData, StoryboardFilterMode, WorkflowScenario
 import yaml from 'js-yaml';
 
 type TabView = 'traces' | 'configuration' | 'schematics';
+type TraceFilterMode = 'all' | 'known' | 'unknown';
 
 /**
  * TraceListPanel - Panel for displaying OpenTelemetry traces
@@ -62,6 +63,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
   const [activeTab, setActiveTab] = useState<TabView>('traces');
   const [selectedSchematicNodeId, setSelectedSchematicNodeId] = useState<string | null>(null);
   const [workflowFilterMode, setWorkflowFilterMode] = useState<StoryboardFilterMode>('all');
+  const [traceFilterMode, setTraceFilterMode] = useState<TraceFilterMode>('all');
 
   // TraceTape state
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>();
@@ -237,12 +239,22 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
     [actions, versionSnapshots]
   );
 
-  // Filter traces based on scenario visibility
+  // Filter traces based on scenario visibility and trace filter mode
   // Traces matching only hidden scenarios are filtered out
   const filteredTraces = React.useMemo(() => {
     return traces.filter(trace => {
-      // No scenario matches = always show (unmatched trace)
-      if (!trace.scenarioMatches || trace.scenarioMatches.length === 0) {
+      const hasScenarioMatches = trace.scenarioMatches && trace.scenarioMatches.length > 0;
+
+      // Apply trace filter mode first
+      if (traceFilterMode === 'known' && !hasScenarioMatches) {
+        return false; // Hide unmatched traces when filtering for "known"
+      }
+      if (traceFilterMode === 'unknown' && hasScenarioMatches) {
+        return false; // Hide matched traces when filtering for "unknown"
+      }
+
+      // No scenario matches = show (passes filter mode check above)
+      if (!hasScenarioMatches) {
         return true;
       }
 
@@ -253,7 +265,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
         return scenarioVisibilityMap[key] !== false;
       });
     });
-  }, [traces, scenarioVisibilityMap]);
+  }, [traces, scenarioVisibilityMap, traceFilterMode]);
 
   // Configuration tab state
   const [resources, setResources] = useState<Record<string, string>>({});
@@ -1073,6 +1085,39 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
       {/* Tab Content */}
       {activeTab === 'traces' ? (
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          {/* Trace filter segmented control */}
+          <div
+            style={{
+              display: 'flex',
+              borderBottom: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            {(['all', 'known', 'unknown'] as const).map((mode, index) => {
+              const isSelected = traceFilterMode === mode;
+              const label = mode === 'all' ? 'All' : mode === 'known' ? 'Known' : 'Unknown';
+              return (
+                <button
+                  key={mode}
+                  onClick={() => setTraceFilterMode(mode)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    fontFamily: theme.fonts.body,
+                    fontSize: theme.fontSizes[1],
+                    fontWeight: isSelected ? theme.fontWeights.medium : theme.fontWeights.body,
+                    backgroundColor: isSelected ? theme.colors.primary : theme.colors.backgroundSecondary,
+                    color: isSelected ? theme.colors.textOnPrimary : theme.colors.textSecondary,
+                    border: 'none',
+                    borderRight: index < 2 ? `1px solid ${theme.colors.border}` : 'none',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.15s, color 0.15s',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
           {/* TraceTape scrubber */}
           {filteredTraces.length > 0 && (
             <div
@@ -1111,7 +1156,11 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                 traces.length === 0
                   ? 'No traces received yet. Waiting for telemetry data...'
                   : filteredTraces.length === 0
-                    ? 'All traces filtered by scenario visibility. Toggle scenarios in Coverage tab.'
+                    ? traceFilterMode === 'known'
+                      ? 'No known traces. Switch to "All" or "Unknown" to see unmatched traces.'
+                      : traceFilterMode === 'unknown'
+                        ? 'No unknown traces. All traces have been matched to scenarios.'
+                        : 'All traces filtered by scenario visibility. Toggle scenarios in Coverage tab.'
                     : undefined
               }
               scenarioVisibilityMap={scenarioVisibilityMap}
