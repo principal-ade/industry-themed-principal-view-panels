@@ -1560,6 +1560,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                   scenarioVisibilityMap={scenarioVisibilityMap}
                   onScenarioVisibilityToggle={handleScenarioVisibilityToggle}
                   statusBarDisplay="traces"
+                  showScenarios={true}
                 />
               </div>
             </>
