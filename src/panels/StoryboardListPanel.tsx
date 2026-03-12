@@ -13,9 +13,10 @@ import {
   type CanvasListNodeData,
   type GitFileStatus,
   type GitStatus,
+  type CanvasNodeStatus,
 } from '@principal-ade/dynamic-file-tree';
 import type { FileTree, FileInfo, GitStatusWithFiles } from '@principal-ai/repository-abstraction';
-import type { WorkflowTemplate, DiscoveredTestTrace, WorkflowScenario } from '@principal-ai/principal-view-core';
+import type { WorkflowTemplate, DiscoveredTestTrace, WorkflowScenario, DiscoveredCanvasWithContent, PVNodeExtension } from '@principal-ai/principal-view-core';
 
 /**
  * Helper to convert GitStatusWithFiles to GitFileStatus[] format for tree components
@@ -376,6 +377,41 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
 
     return coverageMap;
   }, [workflows, testTraces, storyboards]);
+
+  // Calculate canvas node status map (storyboard ID -> implementation status counts)
+  // This extracts status from each canvas node's pv.status field
+  const canvasNodeStatusMap = useMemo(() => {
+    const statusMap: Record<string, CanvasNodeStatus> = {};
+
+    for (const storyboard of storyboards) {
+      // Content is loaded via includeContent: true but types don't expose it
+      const canvasWithContent = storyboard.canvas as DiscoveredCanvasWithContent;
+      const canvas = canvasWithContent.content;
+
+      if (canvas?.nodes) {
+        let implemented = 0;
+        let approved = 0;
+        let draft = 0;
+
+        for (const node of canvas.nodes) {
+          const pv = (node as { pv?: PVNodeExtension }).pv;
+          const status = pv?.status ?? 'draft';
+
+          if (status === 'implemented') {
+            implemented++;
+          } else if (status === 'approved') {
+            approved++;
+          } else {
+            draft++;
+          }
+        }
+
+        statusMap[storyboard.id] = { implemented, approved, draft };
+      }
+    }
+
+    return statusMap;
+  }, [storyboards]);
 
   // Filter storyboards by search query and canvas type
   const filteredStoryboards = useMemo(() => {
@@ -1010,6 +1046,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             horizontalNodePadding="clamp(16px, 4vw, 24px)"
             verticalPadding="10px"
             workflowCoverageMap={workflowCoverageMap}
+            canvasNodeStatusMap={canvasNodeStatusMap}
             gitStatusData={gitStatusData}
             enablePanelDrag
           />

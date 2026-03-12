@@ -1364,6 +1364,211 @@ export const WithCoverageIndicators: Story = {
 };
 
 /**
+ * With Implementation Status Bars - Demonstrates node implementation status visualization
+ * Shows status bars on canvas nodes indicating draft/approved/implemented node counts
+ */
+export const WithImplementationStatus: Story = {
+  args: {} as never,
+  render: () => {
+    const allFiles = [
+      // Storyboard with ALL implemented nodes (green name)
+      ...createStoryboardFiles('checkout-flow', [
+        { name: 'complete-purchase', executions: 2 },
+      ]),
+
+      // Storyboard with mixed implementation status (gray - has draft)
+      ...createStoryboardFiles('user-onboarding', [
+        { name: 'signup-flow', executions: 1 },
+        { name: 'profile-setup', executions: 0 },
+      ]),
+
+      // Storyboard with mostly draft nodes (gray)
+      ...createStoryboardFiles('analytics-pipeline', [
+        { name: 'data-ingestion', executions: 0 },
+      ]),
+
+      // Storyboard with all approved (amber name)
+      ...createStoryboardFiles('notification-system', [
+        { name: 'email-notifications', executions: 1 },
+      ]),
+
+      // Storyboard with implemented + approved, no draft (amber name)
+      ...createStoryboardFiles('payment-gateway', [
+        { name: 'process-payment', executions: 2 },
+      ]),
+    ];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-impl-status';
+    fileTree.allFiles = allFiles;
+
+    // Helper to create nodes with different statuses
+    const createNodesWithStatus = (
+      implemented: number,
+      approved: number,
+      draft: number
+    ) => {
+      const nodes: Array<{
+        id: string;
+        type: string;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        text: string;
+        pv: { status: 'implemented' | 'approved' | 'draft'; name: string };
+      }> = [];
+      let id = 1;
+      let y = 0;
+
+      for (let i = 0; i < implemented; i++) {
+        nodes.push({
+          id: `node-${id++}`,
+          type: 'text',
+          x: 0,
+          y: y += 100,
+          width: 200,
+          height: 80,
+          text: `Implemented Node ${i + 1}`,
+          pv: { status: 'implemented', name: `Implemented ${i + 1}` },
+        });
+      }
+      for (let i = 0; i < approved; i++) {
+        nodes.push({
+          id: `node-${id++}`,
+          type: 'text',
+          x: 0,
+          y: y += 100,
+          width: 200,
+          height: 80,
+          text: `Approved Node ${i + 1}`,
+          pv: { status: 'approved', name: `Approved ${i + 1}` },
+        });
+      }
+      for (let i = 0; i < draft; i++) {
+        nodes.push({
+          id: `node-${id++}`,
+          type: 'text',
+          x: 0,
+          y: y += 100,
+          width: 200,
+          height: 80,
+          text: `Draft Node ${i + 1}`,
+          pv: { status: 'draft', name: `Draft ${i + 1}` },
+        });
+      }
+      return nodes;
+    };
+
+    // Custom readFile that returns canvas content with pv.status on nodes
+    const mockReadFile = async (path: string) => {
+      if (path.endsWith('.otel.canvas')) {
+        const storyboardName = path.split('/').slice(-2, -1)[0] || 'Mock Canvas';
+        let nodes: ReturnType<typeof createNodesWithStatus> = [];
+
+        // Different status distributions per storyboard
+        if (storyboardName === 'checkout-flow') {
+          nodes = createNodesWithStatus(10, 0, 0); // ALL implemented → green name
+        } else if (storyboardName === 'user-onboarding') {
+          nodes = createNodesWithStatus(3, 4, 3); // Mixed with draft → gray name
+        } else if (storyboardName === 'analytics-pipeline') {
+          nodes = createNodesWithStatus(1, 2, 7); // Mostly draft → gray name
+        } else if (storyboardName === 'notification-system') {
+          nodes = createNodesWithStatus(0, 6, 0); // All approved → amber name
+        } else if (storyboardName === 'payment-gateway') {
+          nodes = createNodesWithStatus(5, 3, 0); // Implemented + approved, no draft → amber name
+        }
+
+        return JSON.stringify({
+          pv: {
+            name: storyboardName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            version: '1.0.0',
+            description: `Canvas for ${storyboardName}`,
+          },
+          nodes,
+          edges: [],
+        });
+      }
+
+      if (path.endsWith('.workflow.json')) {
+        const workflowName = path.split('/').slice(-2, -1)[0] || 'unknown';
+        const storyboardName = path.split('/').slice(-3, -2)[0] || 'unknown';
+
+        return JSON.stringify({
+          version: '1.0.0',
+          name: workflowName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          canvas: `${storyboardName}.otel.canvas`,
+          mode: 'flow',
+          scenarios: [
+            { id: `${workflowName}-scenario-1`, priority: 1, description: `Scenario 1` },
+            { id: `${workflowName}-scenario-2`, priority: 2, description: `Scenario 2` },
+          ],
+        });
+      }
+
+      if (path.endsWith('.otel.json')) {
+        return JSON.stringify({ events: [], metadata: { timestamp: new Date().toISOString() } });
+      }
+
+      return '{}';
+    };
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          fileTree: createMockFileTreeSlice(fileTree),
+        }}
+        actionsOverrides={{
+          readFile: mockReadFile,
+        }}
+      >
+        {(props) => (
+          <>
+            <StoryboardListPanel {...props} />
+            <div
+              style={{
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                background: '#1a1a1a',
+                border: '1px solid #10b981',
+                borderRadius: '8px',
+                padding: '12px',
+                color: '#fff',
+                fontSize: '12px',
+                maxWidth: '380px',
+              }}
+            >
+              <strong style={{ color: '#10b981' }}>Implementation Status:</strong>
+              <div style={{ marginTop: 8, display: 'flex', gap: 12, fontSize: 11 }}>
+                <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#10b981', borderRadius: 2 }} /> Implemented</span>
+                <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#f59e0b', borderRadius: 2 }} /> Approved</span>
+                <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#6b7280', borderRadius: 2 }} /> Draft</span>
+              </div>
+              <div style={{ marginTop: 8, padding: 8, background: '#0a0a0a', border: '1px solid #333', borderRadius: 4, fontSize: 10 }}>
+                <strong>Storyboard Name Colors:</strong><br/>
+                • <span style={{ color: '#10b981' }}>Green</span> = All nodes implemented<br/>
+                • <span style={{ color: '#f59e0b' }}>Amber</span> = Has approved, no draft<br/>
+                • <span style={{ color: '#9ca3af' }}>Gray</span> = Has draft nodes
+              </div>
+              <div style={{ marginTop: 8, padding: 8, background: '#0a0a0a', border: '1px solid #333', borderRadius: 4, fontSize: 10 }}>
+                <strong>Expected Results:</strong><br/>
+                • <span style={{ color: '#10b981' }}>checkout-flow</span>: 10 impl, 0 approved, 0 draft (green - all implemented)<br/>
+                • <span style={{ color: '#9ca3af' }}>user-onboarding</span>: 3 impl, 4 approved, 3 draft (gray - has draft)<br/>
+                • <span style={{ color: '#9ca3af' }}>analytics-pipeline</span>: 1 impl, 2 approved, 7 draft (gray - has draft)<br/>
+                • <span style={{ color: '#f59e0b' }}>notification-system</span>: 0 impl, 6 approved, 0 draft (amber - all approved)<br/>
+                • <span style={{ color: '#f59e0b' }}>payment-gateway</span>: 5 impl, 3 approved, 0 draft (amber - no draft)
+              </div>
+            </div>
+          </>
+        )}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
  * Change Detection Test - Interactive story for testing SHA-based change detection
  * Demonstrates how the panel responds to file tree changes and manual refresh
  */
