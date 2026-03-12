@@ -14,6 +14,7 @@ import { PanelFileSystemAdapter } from '../adapters/PanelFileSystemAdapter';
 import { StoryboardWorkflowsTreeCore, hasWorkflowContent } from '@principal-ade/dynamic-file-tree';
 import type { StoryboardWorkflowNodeData, StoryboardFilterMode, WorkflowScenarioStatus } from '@principal-ade/dynamic-file-tree';
 import yaml from 'js-yaml';
+import { isTraceMatched } from '../utils/traceHelpers';
 
 type TabView = 'traces' | 'configuration' | 'schematics';
 type TraceFilterMode = 'all' | 'known' | 'unknown';
@@ -244,12 +245,14 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
   const filteredTraces = React.useMemo(() => {
     return traces.filter(trace => {
       const hasScenarioMatches = trace.scenarioMatches && trace.scenarioMatches.length > 0;
+      // A trace is "known" if it has scenario matches OR storyboard matches (workflow-level match)
+      const isKnown = isTraceMatched(trace);
 
       // Apply trace filter mode first
-      if (traceFilterMode === 'known' && !hasScenarioMatches) {
+      if (traceFilterMode === 'known' && !isKnown) {
         return false; // Hide unmatched traces when filtering for "known"
       }
-      if (traceFilterMode === 'unknown' && hasScenarioMatches) {
+      if (traceFilterMode === 'unknown' && isKnown) {
         return false; // Hide matched traces when filtering for "unknown"
       }
 
