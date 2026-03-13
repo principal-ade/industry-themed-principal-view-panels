@@ -94,7 +94,7 @@ export type WorkflowScenariosPanelPropsTyped = PanelComponentProps<
  */
 export interface StoryboardListPanelContext {
   fileTree: DataSlice<FileTree | null>;
-  git?: DataSlice<GitStatusWithFiles | null>;
+  gitStatusWithFiles?: DataSlice<GitStatusWithFiles | null>;
   /**
    * Controlled selection - when provided, syncs with internal selection state.
    * Format: 'canvas:{canvasId}' or 'workflow:{workflowId}'

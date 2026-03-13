@@ -2239,9 +2239,9 @@ export const WithGitStatusBadges: Story = {
           <MockPanelProvider
             contextOverrides={{
               fileTree: createMockFileTreeSlice(fileTree),
-              git: {
+              gitStatusWithFiles: {
                 scope: 'repository' as const,
-                name: 'git',
+                name: 'gitStatusWithFiles',
                 data: gitStatusData,
                 loading: false,
                 error: null,

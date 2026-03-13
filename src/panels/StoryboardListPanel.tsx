@@ -267,7 +267,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
 
   // Get git status data for showing file change badges
   // Only include git status for files relevant to canvas discovery to avoid unnecessary re-renders
-  const gitSlice = context.git;
+  const gitSlice = context.gitStatusWithFiles;
   const gitStatusData = useMemo(() => {
     const gitStatus = gitSlice?.data as GitStatusWithFiles | null;
     if (!gitStatus || !fileTreeData) {
