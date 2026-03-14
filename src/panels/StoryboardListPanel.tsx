@@ -233,9 +233,10 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   }, [events, storyboards]);
 
   // Count storyboards by type to determine default tab
+  // 'scopes' canvases are grouped with 'regular' (Architecture tab)
   const { otelCount, staticCount } = useMemo(() => {
     const otel = storyboards.filter(sb => sb.canvas.type === 'otel').length;
-    const regular = storyboards.filter(sb => sb.canvas.type === 'regular').length;
+    const regular = storyboards.filter(sb => sb.canvas.type === 'regular' || sb.canvas.type === 'scopes').length;
     return { otelCount: otel, staticCount: regular };
   }, [storyboards]);
 
@@ -413,7 +414,13 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     let filtered = storyboards;
 
     // Filter by canvas type (always filter to show one type)
-    filtered = filtered.filter((storyboard) => storyboard.canvas.type === effectiveCanvasTypeFilter);
+    // 'scopes' canvases are grouped with 'regular' (Architecture tab)
+    filtered = filtered.filter((storyboard) => {
+      if (effectiveCanvasTypeFilter === 'regular') {
+        return storyboard.canvas.type === 'regular' || storyboard.canvas.type === 'scopes';
+      }
+      return storyboard.canvas.type === effectiveCanvasTypeFilter;
+    });
 
     // Filter by search query
     if (searchQuery.trim()) {
