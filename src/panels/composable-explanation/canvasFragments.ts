@@ -256,8 +256,6 @@ function determineAutoLayout(fragments: CanvasFragment[]): 'horizontal' | 'verti
   // Calculate total dimensions for each layout option
   const totalWidth = fragments.reduce((sum, f) => sum + f.bounds.width, 0);
   const totalHeight = fragments.reduce((sum, f) => sum + f.bounds.height, 0);
-  const maxWidth = Math.max(...fragments.map((f) => f.bounds.width));
-  const maxHeight = Math.max(...fragments.map((f) => f.bounds.height));
 
   // Prefer horizontal if fragments are taller than wide
   const avgAspectRatio = totalWidth / totalHeight;

@@ -114,18 +114,13 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
         open?: boolean;
       } | undefined;
 
-      console.log('[StoryboardListPanel] handleCustomEvent:', payload);
-
       if (payload?.action === 'switchTab' && payload.tab) {
-        console.log('[StoryboardListPanel] Switching tab to:', payload.tab);
         setCanvasTypeFilter(payload.tab);
       } else if (payload?.action === 'toggleNode' && payload.nodeId !== undefined) {
         // Toggle or set specific open state for a node
-        console.log('[StoryboardListPanel] Toggling node:', payload.nodeId, 'open:', payload.open);
         setOpenState(prev => {
           const currentState = prev[payload.nodeId!] ?? false;
           const newState = payload.open !== undefined ? payload.open : !currentState;
-          console.log('[StoryboardListPanel] openState update:', payload.nodeId, currentState, '->', newState);
           return { ...prev, [payload.nodeId!]: newState };
         });
       }

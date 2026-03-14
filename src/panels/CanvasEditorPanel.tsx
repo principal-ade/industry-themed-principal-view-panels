@@ -749,6 +749,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       return state.canvas.nodes.map(n => n.id);
     }
     return undefined;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fitCounter intentionally forces new array reference for fit animations
   }, [shouldFitToNodes, activeNodeIds, state.canvas?.nodes, state.focusedNodeId, fitCounter]);
 
   // Clear shouldFitToNodes after the fit happens (one-shot behavior)
@@ -963,8 +964,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         eventName?: string;
       } | undefined;
 
-      console.log('[CanvasEditorPanel] handleCustomEvent:', payload);
-
       if (payload?.action === 'selectScenario' && payload.scenarioId !== undefined) {
         // Programmatically select a scenario from the workflow
         if (!workflowTemplate?.scenarios) {
@@ -977,8 +976,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
           console.warn('[CanvasEditorPanel] Scenario not found:', payload.scenarioId);
           return;
         }
-
-        console.log('[CanvasEditorPanel] Selecting scenario:', payload.scenarioId, 'mode:', payload.mode);
 
         // Use the mode to determine whether to show list view or carousel view
         if (payload.mode === 'carousel') {
@@ -1019,7 +1016,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         }
 
         const eventName = eventNames[targetIndex];
-        console.log('[CanvasEditorPanel] Selecting event:', eventName, 'at index:', targetIndex);
 
         // Trigger the same behavior as clicking an event in the carousel
         handleNarrativeEventClick({ name: eventName, timestamp: 0, attributes: {} }, targetIndex);

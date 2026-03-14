@@ -73,7 +73,6 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
     return parsed.segments;
   }, [traceEventMap]);
   const totalEvents = eventEntries.length;
-  const currentEntry = eventEntries[currentEventIndex];
 
   const handlePrev = useCallback(() => {
     if (currentEventIndex > 0) {

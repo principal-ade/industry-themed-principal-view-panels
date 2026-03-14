@@ -12,9 +12,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   buildStepCanvas,
-  calculateStepTransition,
   type StepCanvasConfig,
-  type ComposedCanvas,
   type BridgeEdge,
   type CompositionConfig,
 } from './canvasFragments';

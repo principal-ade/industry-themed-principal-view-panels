@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { ChevronLeft, ChevronRight, Circle } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ExplanationStep } from './types';
 
 export interface StepCarouselProps {

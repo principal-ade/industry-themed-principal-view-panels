@@ -77,7 +77,10 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
 
   // Get schematics from schematics slice (version registry data)
   const schematicsSlice = context.schematics;
-  const versionSnapshots = schematicsSlice?.data || [];
+  const versionSnapshots = React.useMemo(
+    () => schematicsSlice?.data || [],
+    [schematicsSlice?.data]
+  );
   const schematicsLoading = schematicsSlice?.loading || false;
 
   // Get showConfigurationTab from context (defaults to false)
@@ -378,8 +381,6 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
       const payload = event.payload as TraceListPanelAction | undefined;
       if (!payload?.action) return;
 
-      console.log('[TraceListPanel] handleCustomEvent:', payload);
-
       if (payload.action === 'selectTrace') {
         const trace = resolveTrace(payload);
         if (!trace) {
@@ -487,7 +488,6 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
         };
         const targetTab = payload.tab ? tabMap[payload.tab] : undefined;
         if (targetTab) {
-          console.log('[TraceListPanel] Switching to tab:', targetTab);
           setActiveTab(targetTab);
         } else {
           console.warn('[TraceListPanel] Invalid tab:', payload.tab);

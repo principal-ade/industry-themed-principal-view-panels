@@ -5,7 +5,7 @@
  * that compose existing canvas visualizations with narrative content.
  */
 
-import type { ExtendedCanvas, WorkflowTemplate } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas } from '@principal-ai/principal-view-core';
 
 /**
  * Reference to a canvas element using canvas-alias:element-id format

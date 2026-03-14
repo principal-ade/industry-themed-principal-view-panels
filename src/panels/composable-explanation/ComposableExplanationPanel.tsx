@@ -4,7 +4,7 @@ import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas } from '@principal-ai/principal-view-core';
 import { BookOpen, AlertCircle, Layers, Grid } from 'lucide-react';
 import { StepCarousel } from './StepCarousel';
-import { StoryGraphRenderer, explanationStepsToStorySteps, type StoryStep } from './StoryGraphRenderer';
+import { StoryGraphRenderer, explanationStepsToStorySteps } from './StoryGraphRenderer';
 import type {
   ComposableExplanation,
   ExplanationStep,
@@ -179,7 +179,7 @@ function parseElementRef(ref: string): { alias: string; elementId: string } | nu
 export const ComposableExplanationPanel: React.FC<ComposableExplanationPanelProps> = ({
   context,
   actions,
-  events,
+  events: _events,
   explanation,
   canvases: preloadedCanvases,
   canvas: preloadedCanvas,
