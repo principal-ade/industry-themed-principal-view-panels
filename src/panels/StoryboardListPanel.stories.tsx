@@ -2733,3 +2733,264 @@ export const ProgrammaticTabControl: Story = {
     );
   },
 };
+
+// Build enterprise file tree outside render to avoid recreation
+const buildEnterpriseFileTree = () => {
+  const allFiles = [
+    // ===== E-COMMERCE DOMAIN =====
+    ...createStoryboardFiles('checkout-flow', [
+      { name: 'cart-to-payment', executions: 5 },
+      { name: 'payment-success', executions: 8 },
+      { name: 'payment-declined', executions: 3 },
+      { name: 'payment-retry', executions: 2 },
+      { name: 'order-confirmation', executions: 7 },
+      { name: 'order-cancellation', executions: 1 },
+    ]),
+    ...createStoryboardFiles('inventory-management', [
+      { name: 'stock-check', executions: 12 },
+      { name: 'stock-reservation', executions: 6 },
+      { name: 'stock-release', executions: 4 },
+      { name: 'low-stock-alert', executions: 2 },
+      { name: 'reorder-trigger', executions: 1 },
+    ]),
+    ...createStoryboardFiles('shipping-fulfillment', [
+      { name: 'shipping-rate-calculation', executions: 10 },
+      { name: 'label-generation', executions: 5 },
+      { name: 'tracking-update', executions: 15 },
+      { name: 'delivery-confirmation', executions: 8 },
+      { name: 'return-initiation', executions: 2 },
+    ]),
+    // ===== USER MANAGEMENT DOMAIN =====
+    ...createStoryboardFiles('user-authentication', [
+      { name: 'password-login', executions: 20 },
+      { name: 'oauth-google', executions: 8 },
+      { name: 'oauth-github', executions: 5 },
+      { name: 'mfa-verification', executions: 12 },
+      { name: 'session-refresh', executions: 25 },
+      { name: 'session-invalidation', executions: 3 },
+      { name: 'password-reset', executions: 4 },
+    ]),
+    ...createStoryboardFiles('user-profile', [
+      { name: 'profile-view', executions: 30 },
+      { name: 'profile-update', executions: 10 },
+      { name: 'avatar-upload', executions: 5 },
+      { name: 'preferences-change', executions: 8 },
+      { name: 'account-deletion', executions: 1 },
+    ]),
+    ...createStoryboardFiles('notification-system', [
+      { name: 'email-dispatch', executions: 50 },
+      { name: 'push-notification', executions: 35 },
+      { name: 'sms-alert', executions: 10 },
+      { name: 'in-app-notification', executions: 45 },
+      { name: 'notification-preferences', executions: 6 },
+    ]),
+    // ===== API GATEWAY DOMAIN =====
+    ...createStoryboardFiles('api-gateway-routing', [
+      { name: 'route-resolution', executions: 100 },
+      { name: 'load-balancing', executions: 80 },
+      { name: 'service-discovery', executions: 40 },
+      { name: 'request-transformation', executions: 25 },
+      { name: 'response-aggregation', executions: 15 },
+    ]),
+    ...createStoryboardFiles('api-security', [
+      { name: 'rate-limit-check', executions: 200 },
+      { name: 'rate-limit-exceeded', executions: 5 },
+      { name: 'jwt-validation', executions: 150 },
+      { name: 'api-key-validation', executions: 80 },
+      { name: 'ip-blacklist-check', executions: 60 },
+      { name: 'cors-validation', executions: 30 },
+    ]),
+    ...createStoryboardFiles('api-caching', [
+      { name: 'cache-hit', executions: 300 },
+      { name: 'cache-miss', executions: 50 },
+      { name: 'cache-invalidation', executions: 20 },
+      { name: 'cache-warmup', executions: 5 },
+    ]),
+    // ===== MICROSERVICES DOMAIN =====
+    ...createStoryboardFiles('service-mesh', [
+      { name: 'grpc-call', executions: 150 },
+      { name: 'rest-call', executions: 200 },
+      { name: 'graphql-query', executions: 75 },
+      { name: 'event-publish', executions: 100 },
+      { name: 'event-consume', executions: 95 },
+    ]),
+    ...createStoryboardFiles('circuit-breaker', [
+      { name: 'circuit-closed', executions: 500 },
+      { name: 'circuit-open', executions: 3 },
+      { name: 'circuit-half-open', executions: 8 },
+      { name: 'fallback-triggered', executions: 10 },
+      { name: 'recovery-success', executions: 7 },
+    ]),
+    ...createStoryboardFiles('service-health', [
+      { name: 'health-check', executions: 1000 },
+      { name: 'liveness-probe', executions: 800 },
+      { name: 'readiness-probe', executions: 750 },
+      { name: 'dependency-check', executions: 200 },
+    ]),
+    // ===== DATA PROCESSING DOMAIN =====
+    ...createStoryboardFiles('etl-pipeline', [
+      { name: 'data-extraction', executions: 24 },
+      { name: 'data-transformation', executions: 24 },
+      { name: 'data-loading', executions: 24 },
+      { name: 'data-validation', executions: 48 },
+      { name: 'schema-migration', executions: 2 },
+    ]),
+    ...createStoryboardFiles('stream-processing', [
+      { name: 'kafka-consume', executions: 10000 },
+      { name: 'message-processing', executions: 9500 },
+      { name: 'dead-letter-queue', executions: 50 },
+      { name: 'offset-commit', executions: 1000 },
+      { name: 'partition-rebalance', executions: 5 },
+    ]),
+    ...createStoryboardFiles('batch-processing', [
+      { name: 'daily-report', executions: 30 },
+      { name: 'weekly-aggregation', executions: 4 },
+      { name: 'monthly-cleanup', executions: 1 },
+      { name: 'data-archival', executions: 12 },
+      { name: 'backup-job', executions: 30 },
+    ]),
+    // ===== INFRASTRUCTURE DOMAIN =====
+    ...createStoryboardFiles('database-operations', [
+      { name: 'query-execution', executions: 5000 },
+      { name: 'connection-pool', executions: 100 },
+      { name: 'transaction-commit', executions: 800 },
+      { name: 'transaction-rollback', executions: 20 },
+      { name: 'deadlock-detection', executions: 2 },
+    ]),
+    ...createStoryboardFiles('redis-operations', [
+      { name: 'get-operation', executions: 10000 },
+      { name: 'set-operation', executions: 3000 },
+      { name: 'delete-operation', executions: 500 },
+      { name: 'pipeline-execution', executions: 200 },
+      { name: 'pub-sub-message', executions: 1500 },
+    ]),
+    ...createStoryboardFiles('object-storage', [
+      { name: 'upload-object', executions: 200 },
+      { name: 'download-object', executions: 500 },
+      { name: 'presigned-url', executions: 300 },
+      { name: 'multipart-upload', executions: 50 },
+      { name: 'lifecycle-transition', executions: 10 },
+    ]),
+  ];
+
+  const builder = new PathsFileTreeBuilder();
+  const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+  fileTree.sha = 'mock-sha-enterprise';
+  fileTree.allFiles = allFiles;
+  return fileTree;
+};
+
+// Static file tree instance - created once
+const enterpriseFileTree = buildEnterpriseFileTree();
+
+// Static mock readFile function - created once, no dependencies
+const enterpriseMockReadFile = async (path: string) => {
+  // Return canvas content for .otel.canvas files
+  if (path.endsWith('.otel.canvas')) {
+    const canvasName = path.split('/').slice(-2, -1)[0] || 'Mock Canvas';
+    const displayName = canvasName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return JSON.stringify({
+      pv: {
+        name: displayName,
+        version: '1.0.0',
+        description: `Enterprise observability canvas for ${displayName}`,
+      },
+      nodes: [
+        { id: 'start', type: 'text', text: '# Start\n\nWorkflow entry point', x: 0, y: 0, width: 200, height: 100, color: '#10b981' },
+        { id: 'process', type: 'text', text: '# Process\n\nMain processing logic', x: 250, y: 0, width: 200, height: 100, color: '#6366f1' },
+        { id: 'end', type: 'text', text: '# Complete\n\nWorkflow completion', x: 500, y: 0, width: 200, height: 100, color: '#8b5cf6' },
+      ],
+      edges: [
+        { id: 'e1', fromNode: 'start', toNode: 'process', fromSide: 'right', toSide: 'left' },
+        { id: 'e2', fromNode: 'process', toNode: 'end', fromSide: 'right', toSide: 'left' },
+      ],
+    });
+  }
+
+  // Extract workflow info
+  const workflowName = path.split('/').slice(-2, -1)[0] || 'unknown';
+  const storyboardName = path.split('/').slice(-3, -2)[0] || 'unknown';
+  const displayName = workflowName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+  return JSON.stringify({
+    version: '1.0.0',
+    name: displayName,
+    canvas: `.principal-views/${storyboardName}/${storyboardName}.otel.canvas`,
+    description: `Workflow scenarios for ${displayName}`,
+    mode: 'timeline',
+    scenarioSelection: 'first-match',
+    status: 'active',
+    scenarios: [
+      {
+        id: `${workflowName}-happy-path`,
+        priority: 1,
+        description: `Standard successful ${displayName} flow`,
+        template: {
+          events: {
+            'request.started': 'Request initiated for {{operation.name}}',
+            'validation.passed': 'Input validation successful',
+            'operation.completed': 'Operation completed in {{duration.ms}}ms',
+            'response.sent': 'Response delivered to client',
+          },
+          summary: `Successfully completed ${displayName}`,
+        },
+      },
+      {
+        id: `${workflowName}-error`,
+        priority: 2,
+        description: `Error handling for ${displayName}`,
+        template: {
+          events: {
+            'request.started': 'Request initiated for {{operation.name}}',
+            'error.occurred': 'Error: {{error.message}} ({{error.code}})',
+            'error.handled': 'Error handled with fallback',
+            'response.sent': 'Error response delivered',
+          },
+          summary: `Error handled in ${displayName}`,
+        },
+      },
+      {
+        id: `${workflowName}-timeout`,
+        priority: 3,
+        description: `Timeout scenario for ${displayName}`,
+        template: {
+          events: {
+            'request.started': 'Request initiated',
+            'timeout.detected': 'Operation exceeded {{timeout.ms}}ms threshold',
+            'retry.initiated': 'Retry attempt {{retry.count}} of {{retry.max}}',
+            'response.sent': 'Final response after retry',
+          },
+          summary: `Timeout handled in ${displayName}`,
+        },
+      },
+    ],
+  });
+};
+
+// Static context slice - created once
+const enterpriseFileTreeSlice = createMockFileTreeSlice(enterpriseFileTree);
+
+/**
+ * Enterprise Application - Large-scale system with many OTel workflows
+ * Demonstrates a realistic enterprise application with comprehensive observability coverage
+ * across multiple domains: e-commerce, user management, API gateway, microservices, and data processing
+ */
+export const EnterpriseOtelWorkflows: Story = {
+  args: {} as never,
+  render: () => {
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          fileTree: enterpriseFileTreeSlice,
+        }}
+        actionsOverrides={{
+          readFile: enterpriseMockReadFile,
+        }}
+      >
+        {(props) => <StoryboardListPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+};
+
+

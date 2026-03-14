@@ -194,7 +194,7 @@ export type TraceListPanelPropsTyped = PanelComponentProps<
  * ```
  */
 export interface TraceListPanelAction {
-  action: 'selectTrace' | 'clickSpan';
+  action: 'selectTrace' | 'clickSpan' | 'switchTab';
   /** Trace ID to select or find span in */
   traceId?: string;
   /** Trace index (0 = most recent trace) - alternative to traceId */
@@ -203,6 +203,8 @@ export interface TraceListPanelAction {
   spanId?: string;
   /** Span index within the trace (alternative to spanId for clickSpan) */
   spanIndex?: number;
+  /** Tab to switch to (for switchTab action) */
+  tab?: 'traces' | 'configuration' | 'coverage';
 }
 
 /**

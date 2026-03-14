@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type {
   PanelComponentProps,
   PanelContextValue,
@@ -275,9 +275,20 @@ export const MockPanelProvider: React.FC<{
   };
   eventsOverride?: PanelEventEmitter;
 }> = ({ children, contextOverrides, actionsOverrides, eventsOverride }) => {
-  const context = createMockContext(contextOverrides);
-  const actions = createMockActions(actionsOverrides);
-  const events = eventsOverride || createMockEvents();
+  // Memoize context, actions, and events to prevent unnecessary re-renders
+  // when parent component re-renders (e.g., when tree nodes are expanded)
+  const context = useMemo(
+    () => createMockContext(contextOverrides),
+    [contextOverrides]
+  );
+  const actions = useMemo(
+    () => createMockActions(actionsOverrides),
+    [actionsOverrides]
+  );
+  const events = useMemo(
+    () => eventsOverride || createMockEvents(),
+    [eventsOverride]
+  );
 
   return <>{children({ context, actions, events })}</>;
 };

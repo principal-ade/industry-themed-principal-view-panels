@@ -477,6 +477,21 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
             });
           }, 100);
         }
+      } else if (payload.action === 'switchTab') {
+        // Switch to the specified tab
+        const tabMap: Record<string, TabView> = {
+          traces: 'traces',
+          configuration: 'configuration',
+          coverage: 'schematics',
+          schematics: 'schematics',
+        };
+        const targetTab = payload.tab ? tabMap[payload.tab] : undefined;
+        if (targetTab) {
+          console.log('[TraceListPanel] Switching to tab:', targetTab);
+          setActiveTab(targetTab);
+        } else {
+          console.warn('[TraceListPanel] Invalid tab:', payload.tab);
+        }
       }
     };
 
