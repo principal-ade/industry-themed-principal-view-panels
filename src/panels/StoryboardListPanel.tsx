@@ -100,7 +100,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   }, []);
 
   // Ref to store the click handler for programmatic access
-  const handleTreeNodeClickRef = useRef<((node: StoryboardWorkflowNodeData | CanvasListNodeData) => void) | null>(null);
+  const handleTreeNodeClickRef = useRef<((node: StoryboardWorkflowNodeData | CanvasListNodeData, event?: React.MouseEvent) => void) | null>(null);
 
   // Listen for basic programmatic events (switchTab, toggleNode)
   useEffect(() => {
@@ -452,7 +452,30 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     return filteredStoryboards.map((storyboard) => storyboard.canvas);
   }, [filteredStoryboards]);
 
-  const handleTreeNodeClick = useCallback((node: StoryboardWorkflowNodeData | CanvasListNodeData) => {
+  const handleTreeNodeClick = useCallback((node: StoryboardWorkflowNodeData | CanvasListNodeData, event?: React.MouseEvent) => {
+    // Command-click (macOS) or Ctrl-click (Windows/Linux) opens file in editor tab
+    if (event?.metaKey || event?.ctrlKey) {
+      let filePath: string | undefined;
+
+      if (node.type === 'canvas' && node.canvas?.path) {
+        filePath = node.canvas.path;
+      } else if (node.type === 'workflow' && 'workflow' in node && node.workflow?.path) {
+        filePath = node.workflow.path;
+      } else if (node.markdownPath) {
+        filePath = node.markdownPath;
+      }
+
+      if (filePath && events) {
+        events.emit({
+          type: 'file:open',
+          source: 'storyboard-list-panel',
+          timestamp: Date.now(),
+          payload: { path: filePath },
+        });
+        return; // Don't proceed with normal click handling
+      }
+    }
+
     if (node.type === 'overview' && node.markdownPath) {
       // Overview node click - open markdown documentation
       // For CanvasListNodeData, canvas is directly on node; for StoryboardWorkflowNodeData, it's on storyboard
@@ -1058,7 +1081,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
           <CanvasListTreeCore
             canvases={filteredCanvases}
             theme={theme}
-            onClick={handleTreeNodeClick as (node: CanvasListNodeData) => void}
+            onClick={handleTreeNodeClick as (node: CanvasListNodeData, event?: React.MouseEvent) => void}
             selectedNodeId={selectedNodeId ?? undefined}
             defaultOpen={filteredCanvases.length <= 2}
             openState={openState}
