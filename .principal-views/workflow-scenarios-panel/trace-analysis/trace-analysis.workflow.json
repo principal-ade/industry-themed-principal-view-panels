@@ -4,7 +4,6 @@
   "name": "Trace Analysis",
   "description": "Detailed analysis of trace executions including event inspection and canvas navigation",
   "spanPattern": "workflow-scenarios-panel.trace-analysis",
-  "mode": "timeline",
   "scenarioSelection": "first-match",
   "status": "draft",
   "scenarios": [

@@ -1,0 +1,195 @@
+{
+  "nodes": [
+    {
+      "id": "multi-canvas-panel.render",
+      "type": "text",
+      "text": "# multi-canvas-panel.render\n\nRoot span for MultiCanvasPanel rendering lifecycle",
+      "x": -98,
+      "y": -40,
+      "width": 320,
+      "height": 100,
+      "color": "#6366f1",
+      "pv": {
+        "nodeType": "span-convention"
+      }
+    },
+    {
+      "id": "canvas.load",
+      "type": "text",
+      "text": "# canvas.load\n\nChild span for loading individual canvas files",
+      "x": -241,
+      "y": 282,
+      "width": 280,
+      "height": 100,
+      "color": "#8b5cf6",
+      "pv": {
+        "nodeType": "span-convention"
+      }
+    },
+    {
+      "id": "layout.compute",
+      "type": "text",
+      "text": "# layout.compute\n\nChild span for computing canvas layout positions",
+      "x": 80,
+      "y": 282,
+      "width": 280,
+      "height": 100,
+      "color": "#10b981",
+      "pv": {
+        "nodeType": "span-convention"
+      }
+    },
+    {
+      "id": "workflow-scenarios-panel.session",
+      "type": "text",
+      "text": "# workflow-scenarios-panel.session\n\nRoot span for WorkflowScenariosPanel user session",
+      "x": 509,
+      "y": -40,
+      "width": 340,
+      "height": 100,
+      "color": "#f59e0b",
+      "pv": {
+        "nodeType": "span-convention"
+      }
+    },
+    {
+      "id": "scenario.interaction",
+      "type": "text",
+      "text": "# scenario.interaction\n\nChild span for scenario selection and hover events",
+      "x": 395,
+      "y": 280,
+      "width": 280,
+      "height": 100,
+      "color": "#ec4899",
+      "pv": {
+        "nodeType": "span-convention"
+      }
+    },
+    {
+      "id": "trace.playback",
+      "type": "text",
+      "text": "# trace.playback\n\nChild span for trace playback session",
+      "x": 694,
+      "y": 280,
+      "width": 280,
+      "height": 100,
+      "color": "#84cc16",
+      "pv": {
+        "nodeType": "span-convention"
+      }
+    },
+    {
+      "id": "workflow-scenarios-panel.trace-analysis",
+      "type": "text",
+      "text": "# workflow-scenarios-panel.trace-analysis\n\nRoot span for trace analysis operations",
+      "x": 1132,
+      "y": -38,
+      "width": 340,
+      "height": 100,
+      "color": "#06b6d4",
+      "pv": {
+        "nodeType": "span-convention"
+      }
+    },
+    {
+      "id": "trace.match",
+      "type": "text",
+      "text": "# trace.match\n\nChild span for matching trace events to canvas nodes",
+      "x": 1330,
+      "y": 281,
+      "width": 280,
+      "height": 100,
+      "color": "#0ea5e9",
+      "pv": {
+        "nodeType": "span-convention"
+      }
+    },
+    {
+      "id": "coverage.compute",
+      "type": "text",
+      "text": "# coverage.compute\n\nChild span for computing trace coverage metrics",
+      "x": 1008,
+      "y": 280,
+      "width": 280,
+      "height": 100,
+      "color": "#a855f7",
+      "pv": {
+        "nodeType": "span-convention"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-render-load",
+      "fromNode": "multi-canvas-panel.render",
+      "toNode": "canvas.load",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "child",
+      "pv": {
+        "edgeType": "provides"
+      }
+    },
+    {
+      "id": "edge-render-layout",
+      "fromNode": "multi-canvas-panel.render",
+      "toNode": "layout.compute",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "child",
+      "pv": {
+        "edgeType": "provides"
+      }
+    },
+    {
+      "id": "edge-session-scenario",
+      "fromNode": "workflow-scenarios-panel.session",
+      "toNode": "scenario.interaction",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "child",
+      "pv": {
+        "edgeType": "provides"
+      }
+    },
+    {
+      "id": "edge-session-playback",
+      "fromNode": "workflow-scenarios-panel.session",
+      "toNode": "trace.playback",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "child",
+      "pv": {
+        "edgeType": "provides"
+      }
+    },
+    {
+      "id": "edge-analysis-match",
+      "fromNode": "workflow-scenarios-panel.trace-analysis",
+      "toNode": "trace.match",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "child",
+      "pv": {
+        "edgeType": "provides"
+      }
+    },
+    {
+      "id": "edge-analysis-coverage",
+      "fromNode": "workflow-scenarios-panel.trace-analysis",
+      "toNode": "coverage.compute",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "child",
+      "pv": {
+        "edgeType": "provides"
+      }
+    }
+  ],
+  "pv": {
+    "name": "Span Conventions",
+    "version": "1.0.0",
+    "description": "Defines span hierarchy patterns for Principal View panels",
+    "markdown": ".principal-views/spans.md"
+  }
+}

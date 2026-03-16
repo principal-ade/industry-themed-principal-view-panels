@@ -60,6 +60,13 @@ nodeComponents:
     description: "OTEL event node for observability workflows"
     tags: ["event", "otel", "observability"]
 
+  # Span Components (for .spans.canvas files)
+  span-convention:
+    shape: rectangle
+    color: "#06b6d4"
+    description: "Span convention node defining trace span patterns"
+    tags: ["span", "otel", "trace"]
+
 edgeComponents:
   # Data Flow
   data-flow:
@@ -100,3 +107,10 @@ edgeComponents:
     description: "Consumes context/state"
     directed: true
     tags: ["context", "consumer"]
+
+  # Causal Relationships
+  triggers:
+    color: "#f97316"
+    description: "Action triggers another action or state change"
+    directed: true
+    tags: ["causal", "trigger"]
