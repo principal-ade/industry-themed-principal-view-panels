@@ -53,6 +53,13 @@ nodeComponents:
     description: "External library dependency"
     tags: ["external", "dependency"]
 
+  # Event Components (for .otel.canvas files)
+  event:
+    shape: rectangle
+    color: "#f97316"
+    description: "OTEL event node for observability workflows"
+    tags: ["event", "otel", "observability"]
+
 edgeComponents:
   # Data Flow
   data-flow:

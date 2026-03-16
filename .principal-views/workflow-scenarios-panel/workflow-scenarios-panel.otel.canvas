@@ -18,12 +18,9 @@
             "workflow.id": "string"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "lifecycle"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "panel.id": {
             "type": "string",
@@ -60,12 +57,9 @@
             "trace.count": "number"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "lifecycle"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "panel.id": {
             "type": "string",
@@ -108,12 +102,9 @@
             "error.message": "string"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "error"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "panel.id": {
             "type": "string",
@@ -148,12 +139,9 @@
             "workflow.id": "string"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "interaction"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "scenario.id": {
             "type": "string",
@@ -188,12 +176,9 @@
             "hover.state": "string"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "interaction"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "scenario.id": {
             "type": "string",
@@ -230,12 +215,9 @@
             "scenario.id": "string"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "interaction"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "trace.id": {
             "type": "string",
@@ -276,12 +258,9 @@
             "coverage.percent": "number"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "lifecycle"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "trace.id": {
             "type": "string",
@@ -324,12 +303,9 @@
             "modifier.shift": "boolean"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "interaction"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "node.id": {
             "type": "string",
@@ -364,12 +340,9 @@
             "span.index": "number"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "interaction"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "event.name": {
             "type": "string",
@@ -403,12 +376,9 @@
             "trigger": "string"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "navigation"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "source.path": {
             "type": "string",
@@ -439,12 +409,9 @@
             "event.index": "number"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "interaction"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "trace.id": {
             "type": "string",
@@ -480,12 +447,9 @@
             "event.index": "number"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "interaction"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "trace.id": {
             "type": "string",
@@ -523,12 +487,9 @@
             "mode.current": "string"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "interaction"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "mode.previous": {
             "type": "string",
@@ -559,12 +520,9 @@
             "focus.event.names": "string[]"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "ui-state"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "focus.source": {
             "type": "string",
@@ -601,12 +559,9 @@
             "fit.trigger": "string"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "ui-state"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "fit.node.count": {
             "type": "number",
@@ -643,12 +598,9 @@
             "highlight.source": "string"
           }
         },
-        "sources": ["src/panels/WorkflowScenariosPanel.tsx"],
+        "references": ["src/panels/WorkflowScenariosPanel.tsx"],
         "status": "draft",
-        "otel": {
-          "kind": "event",
-          "category": "ui-state"
-        },
+        "nodeType": "event",
         "dataSchema": {
           "node.id": {
             "type": "string",
