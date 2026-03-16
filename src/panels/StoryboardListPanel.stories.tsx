@@ -2993,4 +2993,150 @@ export const EnterpriseOtelWorkflows: Story = {
   },
 };
 
+// ============================================================================
+// Architecture Canvas Grouping Story
+// ============================================================================
+
+// Helper to create architecture-specific canvas files
+const createArchitectureCanvasFile = (
+  canvasName: string,
+  canvasType: 'resources' | 'scopes' | 'spans' | 'regular',
+  withMarkdown: boolean = true
+) => {
+  const extension = canvasType === 'regular' ? '.canvas' : `.${canvasType}.canvas`;
+  const files = [
+    {
+      name: `${canvasName}${extension}`,
+      relativePath: `.principal-views/${canvasName}${extension}`,
+      path: `.principal-views/${canvasName}${extension}`,
+      extension: '.canvas',
+      size: 1024,
+      lastModified: new Date('2024-01-10'),
+      isDirectory: false,
+    },
+  ];
+
+  if (withMarkdown) {
+    files.push({
+      name: `${canvasName}.md`,
+      relativePath: `.principal-views/${canvasName}.md`,
+      path: `.principal-views/${canvasName}.md`,
+      extension: '.md',
+      size: 512,
+      lastModified: new Date('2024-01-10'),
+      isDirectory: false,
+    });
+  }
+
+  return files;
+};
+
+// Build file tree with architecture canvas types for grouping demonstration
+const buildArchitectureFileTree = (): FileTree => {
+  const allFiles = [
+    // Resources & Scopes group
+    ...createArchitectureCanvasFile('otel-hierarchy', 'resources', true),
+    ...createArchitectureCanvasFile('instrumentation', 'scopes', true),
+    ...createArchitectureCanvasFile('service-resources', 'resources', true),
+
+    // Spans group
+    ...createArchitectureCanvasFile('architecture', 'spans', true),
+    ...createArchitectureCanvasFile('api-conventions', 'spans', true),
+
+    // Regular architecture canvases
+    ...createArchitectureCanvasFile('system-design', 'regular', true),
+    ...createArchitectureCanvasFile('data-flow', 'regular', false),
+  ];
+
+  const filePaths = allFiles.map(f => f.path);
+  const builder = new PathsFileTreeBuilder();
+  const fileTree = builder.build({ files: filePaths });
+  fileTree.allFiles = allFiles;
+
+  return fileTree;
+};
+
+const architectureFileTree = buildArchitectureFileTree();
+const architectureFileTreeSlice = createMockFileTreeSlice(architectureFileTree);
+
+// Mock readFile for architecture canvases
+const architectureMockReadFile = async (path: string) => {
+  console.log('[Architecture Mock readFile] Called with path:', path);
+
+  if (path.endsWith('.canvas')) {
+    const filename = path.split('/').pop() || '';
+    const canvasName = filename
+      .replace('.resources.canvas', '')
+      .replace('.scopes.canvas', '')
+      .replace('.spans.canvas', '')
+      .replace('.canvas', '');
+
+    // Determine markdown path
+    const markdownPath = `.principal-views/${canvasName}.md`;
+    const hasMarkdown = architectureFileTree.allFiles.some(f => f.path === markdownPath);
+
+    const content = JSON.stringify({
+      pv: {
+        name: canvasName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        version: '1.0.0',
+        description: `Architecture canvas: ${canvasName}`,
+        ...(hasMarkdown && { markdown: markdownPath }),
+      },
+      nodes: [],
+      edges: [],
+    });
+    return content;
+  }
+
+  return '';
+};
+
+/**
+ * Architecture Canvas Grouping
+ *
+ * Demonstrates the new architecture canvas grouping feature that groups:
+ * - **Resources & Scopes**: .resources.canvas and .scopes.canvas files
+ * - **Spans**: .spans.canvas files
+ * - Regular .canvas files remain ungrouped
+ *
+ * This helps organize OTel instrumentation documentation:
+ * - Resources define service identity (service.name, deployment.environment)
+ * - Scopes define instrumentation libraries (tracer names)
+ * - Spans define span conventions and naming patterns
+ */
+export const ArchitectureCanvasGrouping: Story = {
+  args: {} as never,
+  parameters: {
+    docs: {
+      description: {
+        story: `
+Shows the architecture canvas grouping feature. Architecture canvases are grouped by type:
+- **Resources & Scopes** (Layers icon): Groups \`.resources.canvas\` and \`.scopes.canvas\` files
+- **Spans** (Network icon): Groups \`.spans.canvas\` files
+- Regular \`.canvas\` files appear at the root level
+
+This organization helps teams document their OTel instrumentation strategy:
+- Resources: Service identity attributes (service.name, deployment.environment)
+- Scopes: Instrumentation library definitions (tracer names, versions)
+- Spans: Span naming conventions and patterns
+        `,
+      },
+    },
+  },
+  render: () => {
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          fileTree: architectureFileTreeSlice,
+        }}
+        actionsOverrides={{
+          readFile: architectureMockReadFile,
+        }}
+      >
+        {(props) => <StoryboardListPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+};
+
 
