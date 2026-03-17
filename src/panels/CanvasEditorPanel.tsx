@@ -645,6 +645,10 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         isSaving: false,
         hasUnsavedChanges: false,
       }));
+
+      // Reset GraphRenderer's internal edit state to match the saved canvas
+      // This prevents visual snap-back caused by stale pending changes
+      graphRef.current?.resetEditState();
     } catch (error) {
       console.error('[PrincipalView] Error saving changes:', error);
       setState(prev => ({
@@ -1259,12 +1263,14 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
           }
           rightPanel={
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: theme.colors.background, position: 'relative' }}>
-              {/* Canvas Area */}
-              <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+              {/* Canvas Area - must have explicit height for React Flow */}
+              <div style={{ flex: 1, position: 'relative', minHeight: 0, width: '100%', height: '100%' }}>
                 <GraphRenderer
                   ref={graphRef}
                   canvas={state.canvas}
                   library={state.library ?? undefined}
+                  width="100%"
+                  height="100%"
                   editable={state.isEditMode}
                   onPendingChangesChange={(hasChanges) => {
                     setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));

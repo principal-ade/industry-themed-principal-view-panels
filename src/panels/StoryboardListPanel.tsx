@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { StoryboardListPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
@@ -148,6 +149,15 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   const [showHelp, setShowHelp] = useState(false);
   const [cliCommandCopied, setCliCommandCopied] = useState(false);
   const [canvasTypeFilter, setCanvasTypeFilter] = useState<'otel' | 'regular' | null>(null);
+
+  // Context menu state for copying file paths
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    node: StoryboardWorkflowNodeData | CanvasListNodeData;
+  } | null>(null);
+  const [contextMenuCopied, setContextMenuCopied] = useState(false);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
 
   // Load storyboard data from discovery system
   // Storyboards come directly from the discovery system (no transformation needed)
@@ -392,7 +402,10 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
 
         for (const node of canvas.nodes) {
           const pv = (node as { pv?: PVNodeExtension }).pv;
-          const status = pv?.status ?? 'draft';
+          // Skip nodes without pv extension - they're visual labels, not functional nodes
+          if (!pv) continue;
+
+          const status = pv.status ?? 'draft';
 
           if (status === 'implemented') {
             implemented++;
@@ -541,6 +554,72 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
       }
     }
   }, [events, getCanvasFileInfo, workflows]);
+
+  // Helper to get the file path from a node (works for both tree types)
+  const getNodeFilePath = useCallback((node: StoryboardWorkflowNodeData | CanvasListNodeData): string | undefined => {
+    if (node.type === 'canvas' && node.canvas?.path) {
+      return node.canvas.path;
+    } else if (node.type === 'workflow' && 'workflow' in node && node.workflow?.path) {
+      return node.workflow.path;
+    } else if (node.type === 'overview' && node.markdownPath) {
+      return node.markdownPath;
+    } else if (node.type === 'storyboard' && 'storyboard' in node && node.storyboard?.canvas?.path) {
+      return node.storyboard.canvas.path;
+    } else if (node.type === 'canvas-folder' && node.canvas?.path) {
+      return node.canvas.path;
+    }
+    return undefined;
+  }, []);
+
+  // Context menu handler for copying file paths (works for both tree types)
+  const handleContextMenu = useCallback((event: React.MouseEvent, node: StoryboardWorkflowNodeData | CanvasListNodeData) => {
+    event.preventDefault();
+    const path = getNodeFilePath(node);
+    if (path) {
+      setContextMenu({ x: event.clientX, y: event.clientY, node });
+      setContextMenuCopied(false);
+    }
+  }, [getNodeFilePath]);
+
+  // Copy path to clipboard and close menu
+  const handleCopyPath = useCallback(async () => {
+    if (!contextMenu) return;
+    const path = getNodeFilePath(contextMenu.node);
+    if (path) {
+      try {
+        await navigator.clipboard.writeText(path);
+        setContextMenuCopied(true);
+        setTimeout(() => {
+          setContextMenu(null);
+          setContextMenuCopied(false);
+        }, 800);
+      } catch {
+        console.error('Failed to copy path to clipboard');
+        setContextMenu(null);
+      }
+    }
+  }, [contextMenu, getNodeFilePath]);
+
+  // Close context menu on click outside or escape
+  useEffect(() => {
+    if (!contextMenu) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setContextMenu(null);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [contextMenu]);
 
   // Keep ref updated for programmatic access from event handlers
   useEffect(() => {
@@ -1066,6 +1145,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             storyboards={filteredStoryboards}
             theme={theme}
             onClick={handleTreeNodeClick}
+            onContextMenu={handleContextMenu}
             selectedNodeId={selectedNodeId ?? undefined}
             defaultOpen={filteredStoryboards.length <= 2}
             openState={openState}
@@ -1082,6 +1162,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             canvases={filteredCanvases}
             theme={theme}
             onClick={handleTreeNodeClick as (node: CanvasListNodeData, event?: React.MouseEvent) => void}
+            onContextMenu={handleContextMenu}
             selectedNodeId={selectedNodeId ?? undefined}
             defaultOpen={filteredCanvases.length <= 2}
             openState={openState}
@@ -1262,6 +1343,67 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
           }
         `}
       </style>
+
+      {/* Context menu for copying file paths - rendered as portal */}
+      {contextMenu && createPortal(
+        <div
+          ref={contextMenuRef}
+          style={{
+            position: 'fixed',
+            top: contextMenu.y,
+            left: contextMenu.x,
+            backgroundColor: theme.colors.background,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            zIndex: 1000,
+            minWidth: '180px',
+            padding: '4px 0',
+            fontFamily: theme.fonts.body,
+          }}
+        >
+          <style>
+            {`
+              .storyboard-context-menu-item {
+                transition: background-color 0.15s ease;
+              }
+              .storyboard-context-menu-item:hover {
+                background-color: ${theme.colors.backgroundTertiary} !important;
+              }
+            `}
+          </style>
+          <button
+            onClick={handleCopyPath}
+            className="storyboard-context-menu-item"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              width: '100%',
+              padding: '8px 12px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              fontSize: theme.fontSizes[1],
+              color: theme.colors.text,
+              textAlign: 'left',
+            }}
+          >
+            {contextMenuCopied ? (
+              <>
+                <Check size={14} style={{ color: theme.colors.success || '#22c55e' }} />
+                <span>Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy size={14} />
+                <span>Copy Path</span>
+              </>
+            )}
+          </button>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

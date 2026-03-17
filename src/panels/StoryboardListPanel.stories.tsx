@@ -1569,6 +1569,217 @@ export const WithImplementationStatus: Story = {
 };
 
 /**
+ * Text Nodes Without PV Extension - Verifies that label/title nodes are NOT counted
+ * in implementation status. Text nodes used as visual labels should be skipped
+ * because they don't have pv extensions (they're not functional nodes).
+ *
+ * This tests the fix for: nodes without pv extension were being counted as 'draft'
+ */
+export const TextNodesWithoutPvExtension: Story = {
+  args: {} as never,
+  render: () => {
+    const allFiles = [
+      // Storyboard with title node (no pv) + functional nodes
+      ...createStoryboardFiles('with-title-label', [
+        { name: 'main-flow', executions: 1 },
+      ]),
+
+      // Storyboard without any title nodes (baseline comparison)
+      ...createStoryboardFiles('no-title-label', [
+        { name: 'simple-flow', executions: 1 },
+      ]),
+    ];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = 'mock-sha-text-nodes';
+    fileTree.allFiles = allFiles;
+
+    // Custom readFile that returns canvas with text nodes WITHOUT pv extension
+    const mockReadFile = async (path: string) => {
+      if (path.endsWith('.otel.canvas')) {
+        const storyboardName = path.split('/').slice(-2, -1)[0] || 'Mock Canvas';
+
+        if (storyboardName === 'with-title-label') {
+          // Canvas with:
+          // - 1 title text node WITHOUT pv extension (should NOT be counted)
+          // - 3 functional nodes with pv.status: implemented
+          return JSON.stringify({
+            pv: {
+              name: 'With Title Label',
+              version: '1.0.0',
+              description: 'Canvas with a title label node that has no pv extension',
+            },
+            nodes: [
+              // Title node - NO pv extension, should be SKIPPED
+              {
+                id: 'title',
+                type: 'text',
+                x: 250,
+                y: -50,
+                width: 400,
+                height: 50,
+                color: '#64748B',
+                text: '# Flow Title\n**This is a label node without pv**',
+              },
+              // Functional nodes WITH pv extension
+              {
+                id: 'node-1',
+                type: 'text',
+                x: 100,
+                y: 50,
+                width: 200,
+                height: 80,
+                text: 'Request Received',
+                pv: { status: 'implemented', name: 'Request Received' },
+              },
+              {
+                id: 'node-2',
+                type: 'text',
+                x: 100,
+                y: 150,
+                width: 200,
+                height: 80,
+                text: 'Process Data',
+                pv: { status: 'implemented', name: 'Process Data' },
+              },
+              {
+                id: 'node-3',
+                type: 'text',
+                x: 100,
+                y: 250,
+                width: 200,
+                height: 80,
+                text: 'Send Response',
+                pv: { status: 'implemented', name: 'Send Response' },
+              },
+            ],
+            edges: [],
+          });
+        } else if (storyboardName === 'no-title-label') {
+          // Baseline: Same 3 functional nodes, no title node
+          return JSON.stringify({
+            pv: {
+              name: 'No Title Label',
+              version: '1.0.0',
+              description: 'Canvas without any title label nodes',
+            },
+            nodes: [
+              {
+                id: 'node-1',
+                type: 'text',
+                x: 100,
+                y: 50,
+                width: 200,
+                height: 80,
+                text: 'Request Received',
+                pv: { status: 'implemented', name: 'Request Received' },
+              },
+              {
+                id: 'node-2',
+                type: 'text',
+                x: 100,
+                y: 150,
+                width: 200,
+                height: 80,
+                text: 'Process Data',
+                pv: { status: 'implemented', name: 'Process Data' },
+              },
+              {
+                id: 'node-3',
+                type: 'text',
+                x: 100,
+                y: 250,
+                width: 200,
+                height: 80,
+                text: 'Send Response',
+                pv: { status: 'implemented', name: 'Send Response' },
+              },
+            ],
+            edges: [],
+          });
+        }
+
+        return JSON.stringify({
+          pv: { name: storyboardName, version: '1.0.0' },
+          nodes: [],
+          edges: [],
+        });
+      }
+
+      if (path.endsWith('.workflow.json')) {
+        const workflowName = path.split('/').slice(-2, -1)[0] || 'unknown';
+        const storyboardName = path.split('/').slice(-3, -2)[0] || 'unknown';
+
+        return JSON.stringify({
+          version: '1.0.0',
+          name: workflowName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          canvas: `${storyboardName}.otel.canvas`,
+          mode: 'flow',
+          scenarios: [{ id: `${workflowName}-scenario-1`, priority: 1, description: 'Scenario 1' }],
+        });
+      }
+
+      if (path.endsWith('.otel.json')) {
+        return JSON.stringify({ events: [], metadata: { timestamp: new Date().toISOString() } });
+      }
+
+      return '{}';
+    };
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          fileTree: createMockFileTreeSlice(fileTree),
+        }}
+        actionsOverrides={{
+          readFile: mockReadFile,
+        }}
+      >
+        {(props) => (
+          <>
+            <StoryboardListPanel {...props} />
+            <div
+              style={{
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                background: '#1a1a1a',
+                border: '1px solid #3b82f6',
+                borderRadius: '8px',
+                padding: '12px',
+                color: '#fff',
+                fontSize: '12px',
+                maxWidth: '420px',
+              }}
+            >
+              <strong style={{ color: '#3b82f6' }}>Text Nodes Without PV Extension Test:</strong>
+              <div style={{ marginTop: 8, padding: 8, background: '#0a0a0a', border: '1px solid #333', borderRadius: 4, fontSize: 10 }}>
+                <strong>Bug Fix Being Tested:</strong><br/>
+                Text nodes used as labels/titles (without <code>pv</code> extension) should NOT be counted in implementation status.
+                Previously, they defaulted to 'draft' and inflated the draft count.
+              </div>
+              <div style={{ marginTop: 8, padding: 8, background: '#0a0a0a', border: '1px solid #333', borderRadius: 4, fontSize: 10 }}>
+                <strong>Expected Results (BOTH should be green - all implemented):</strong><br/>
+                • <span style={{ color: '#10b981' }}>with-title-label</span>: 3 impl, 0 approved, 0 draft<br/>
+                <span style={{ marginLeft: 12, color: '#6b7280' }}>(title node WITHOUT pv is skipped)</span><br/>
+                • <span style={{ color: '#10b981' }}>no-title-label</span>: 3 impl, 0 approved, 0 draft<br/>
+                <span style={{ marginLeft: 12, color: '#6b7280' }}>(baseline: no title node)</span>
+              </div>
+              <div style={{ marginTop: 8, padding: 8, background: '#0a0a0a', border: '1px solid #dc2626', borderRadius: 4, fontSize: 10 }}>
+                <strong style={{ color: '#dc2626' }}>If Bug Exists:</strong><br/>
+                • <span style={{ color: '#9ca3af' }}>with-title-label</span>: 3 impl, 0 approved, <strong>1 draft</strong><br/>
+                <span style={{ marginLeft: 12, color: '#6b7280' }}>(title node incorrectly counted as draft)</span>
+              </div>
+            </div>
+          </>
+        )}
+      </MockPanelProvider>
+    );
+  },
+};
+
+/**
  * Change Detection Test - Interactive story for testing SHA-based change detection
  * Demonstrates how the panel responds to file tree changes and manual refresh
  */
