@@ -6,7 +6,7 @@ import { MockPanelProvider } from '../mocks/panelContext';
 import { ConfigLoader } from './principal-view/ConfigLoader';
 import type { DataSlice, PanelEvent } from '../types';
 import { GraphRenderer, type GraphRendererHandle } from '@principal-ai/principal-view-react';
-import type { ComponentLibrary, WorkflowTemplate } from '@principal-ai/principal-view-core';
+import type { ComponentLibrary, WorkflowTemplate, ExtendedCanvas } from '@principal-ai/principal-view-core';
 
 /**
  * CanvasEditorPanel visualizes .canvas files as interactive graphs.
@@ -1228,6 +1228,496 @@ events.emit({
 \`\`\`
 
 See docs/PROGRAMMATIC_CONTROL.md for complete API documentation.
+        `,
+      },
+    },
+  },
+};
+
+// ============================================================================
+// Spans Canvas Story - Shows how .spans.canvas renders span conventions
+// ============================================================================
+
+/**
+ * Sample spans.canvas data showing span conventions with distinct colors
+ * Each span convention defines a telemetry span pattern with its own color
+ */
+const spansCanvasData = {
+  nodes: [
+    {
+      id: 'cli-command',
+      type: 'text' as const,
+      text: '# cli-command\n\nRoot span for CLI command execution',
+      x: 100,
+      y: 50,
+      width: 280,
+      height: 100,
+      color: '#8B5CF6', // Purple - CLI operations
+      pv: {
+        nodeType: 'span-convention',
+        shape: 'hexagon' as const,
+      },
+    },
+    {
+      id: 'validate',
+      type: 'text' as const,
+      text: '# validate\n\nSpan for validation operations',
+      x: 50,
+      y: 200,
+      width: 240,
+      height: 100,
+      color: '#22C55E', // Green - validation success-oriented
+      pv: {
+        nodeType: 'span-convention',
+        shape: 'hexagon' as const,
+      },
+    },
+    {
+      id: 'discover',
+      type: 'text' as const,
+      text: '# discover\n\nSpan for file/resource discovery',
+      x: 320,
+      y: 200,
+      width: 240,
+      height: 100,
+      color: '#3B82F6', // Blue - discovery/exploration
+      pv: {
+        nodeType: 'span-convention',
+        shape: 'hexagon' as const,
+      },
+    },
+    {
+      id: 'parse',
+      type: 'text' as const,
+      text: '# parse\n\nSpan for parsing files',
+      x: 50,
+      y: 350,
+      width: 240,
+      height: 100,
+      color: '#F97316', // Orange - parsing/processing
+      pv: {
+        nodeType: 'span-convention',
+        shape: 'hexagon' as const,
+      },
+    },
+    {
+      id: 'file',
+      type: 'text' as const,
+      text: '# file\n\nSpan for file I/O operations',
+      x: 320,
+      y: 350,
+      width: 240,
+      height: 100,
+      color: '#6B7280', // Gray - low-level file ops
+      pv: {
+        nodeType: 'span-convention',
+        shape: 'hexagon' as const,
+      },
+    },
+  ],
+  edges: [
+    {
+      id: 'edge-cli-validate',
+      fromNode: 'cli-command',
+      toNode: 'validate',
+      fromSide: 'bottom',
+      toSide: 'top',
+      label: 'child',
+      pv: { edgeType: 'provides' },
+    },
+    {
+      id: 'edge-cli-discover',
+      fromNode: 'cli-command',
+      toNode: 'discover',
+      fromSide: 'bottom',
+      toSide: 'top',
+      label: 'child',
+      pv: { edgeType: 'provides' },
+    },
+    {
+      id: 'edge-validate-parse',
+      fromNode: 'validate',
+      toNode: 'parse',
+      fromSide: 'bottom',
+      toSide: 'top',
+      label: 'child',
+      pv: { edgeType: 'provides' },
+    },
+    {
+      id: 'edge-discover-file',
+      fromNode: 'discover',
+      toNode: 'file',
+      fromSide: 'bottom',
+      toSide: 'top',
+      label: 'child',
+      pv: { edgeType: 'provides' },
+    },
+  ],
+  pv: {
+    name: 'CLI Span Conventions',
+    version: '1.0.0',
+    description: 'Defines span hierarchy patterns for CLI operations',
+  },
+};
+
+/**
+ * Library with span-convention nodeType defined
+ */
+const spansLibrary: ComponentLibrary = {
+  version: '1.0.0',
+  name: 'Spans Library',
+  description: 'Library for rendering span conventions',
+  resources: {},
+  nodeComponents: {
+    'span-convention': {
+      description: 'Span convention defining a telemetry span pattern',
+      shape: 'hexagon',
+      color: '#06b6d4', // Default cyan, overridden by node.color
+      icon: 'Activity',
+    },
+  },
+  edgeComponents: {
+    provides: {
+      description: 'Parent span provides child span',
+      style: 'solid',
+      color: '#84cc16',
+      directed: true,
+    },
+  },
+};
+
+/**
+ * Spans Canvas Story - Shows how .spans.canvas files render
+ * Span conventions define telemetry span patterns with unique colors per span type
+ */
+const SpansCanvasTemplate = () => {
+  const graphRef = useRef<GraphRendererHandle>(null);
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '12px 16px', background: '#fff', borderBottom: '1px solid #ddd' }}>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>Spans Canvas (.spans.canvas)</div>
+        <div style={{ fontSize: 12, color: '#666' }}>
+          Span convention files define telemetry span patterns. Each span has its own color
+          which is used as the fill color for events within that span context.
+        </div>
+        <div style={{ marginTop: 8, fontSize: 11, color: '#888' }}>
+          <strong>Color Legend:</strong>{' '}
+          <span style={{ color: '#8B5CF6' }}>●</span> CLI{' '}
+          <span style={{ color: '#22C55E' }}>●</span> Validate{' '}
+          <span style={{ color: '#3B82F6' }}>●</span> Discover{' '}
+          <span style={{ color: '#F97316' }}>●</span> Parse{' '}
+          <span style={{ color: '#6B7280' }}>●</span> File
+        </div>
+      </div>
+      <div style={{ flex: 1, position: 'relative' }}>
+        <GraphRenderer
+          ref={graphRef}
+          canvas={spansCanvasData}
+          library={spansLibrary}
+          width={700}
+          height={500}
+        />
+      </div>
+    </div>
+  );
+};
+
+export const SpansCanvas: Story = {
+  args: {} as never,
+  render: () => <SpansCanvasTemplate />,
+  parameters: {
+    docs: {
+      description: {
+        story: `
+**Spans Canvas (.spans.canvas)**
+
+This story demonstrates how \`.spans.canvas\` files render span conventions.
+
+**What is a Spans Canvas?**
+- Defines telemetry span patterns (OpenTelemetry spans)
+- Each node represents a span convention with a unique color
+- Colors from spans.canvas become the FILL color for events in that span context
+- Uses hexagon shapes to visually distinguish from event nodes
+
+**Node Structure:**
+\`\`\`json
+{
+  "id": "validate",
+  "type": "text",
+  "text": "# validate\\n\\nSpan for validation operations",
+  "color": "#22C55E",  // Required - becomes event fill color
+  "pv": {
+    "nodeType": "span-convention",
+    "shape": "hexagon"
+  }
+}
+\`\`\`
+
+**Color Contract:**
+- Span colors are REQUIRED in .spans.canvas files
+- These colors are used as the FILL color for events rendered within that span context
+- See the ScopeSpanColorContract story for how scope and span colors work together
+        `,
+      },
+    },
+  },
+};
+
+// ============================================================================
+// Scope/Span Color Contract Story - Shows how scopeColor and spanColor work
+// ============================================================================
+
+/**
+ * Sample OTEL events canvas - events don't need colors (derived at render time)
+ */
+const otelEventsCanvas = {
+  nodes: [
+    {
+      id: 'command-start',
+      type: 'text' as const,
+      text: 'command.start',
+      x: 100,
+      y: 50,
+      width: 180,
+      height: 60,
+      // No color - will be derived from span context
+      pv: {
+        nodeType: 'event',
+        shape: 'rectangle' as const,
+        event: { name: 'command.start' },
+      },
+    },
+    {
+      id: 'validate-begin',
+      type: 'text' as const,
+      text: 'validate.begin',
+      x: 50,
+      y: 150,
+      width: 160,
+      height: 60,
+      pv: {
+        nodeType: 'event',
+        shape: 'rectangle' as const,
+        event: { name: 'validate.begin' },
+      },
+    },
+    {
+      id: 'validate-complete',
+      type: 'text' as const,
+      text: 'validate.complete',
+      x: 50,
+      y: 250,
+      width: 160,
+      height: 60,
+      pv: {
+        nodeType: 'event',
+        shape: 'rectangle' as const,
+        event: { name: 'validate.complete' },
+      },
+    },
+    {
+      id: 'discover-files',
+      type: 'text' as const,
+      text: 'discover.files',
+      x: 250,
+      y: 150,
+      width: 160,
+      height: 60,
+      pv: {
+        nodeType: 'event',
+        shape: 'rectangle' as const,
+        event: { name: 'discover.files' },
+      },
+    },
+    {
+      id: 'command-end',
+      type: 'text' as const,
+      text: 'command.end',
+      x: 100,
+      y: 350,
+      width: 180,
+      height: 60,
+      pv: {
+        nodeType: 'event',
+        shape: 'rectangle' as const,
+        event: { name: 'command.end' },
+      },
+    },
+  ],
+  edges: [
+    { id: 'e1', fromNode: 'command-start', toNode: 'validate-begin', pv: { edgeType: 'triggers' } },
+    { id: 'e2', fromNode: 'command-start', toNode: 'discover-files', pv: { edgeType: 'triggers' } },
+    { id: 'e3', fromNode: 'validate-begin', toNode: 'validate-complete', pv: { edgeType: 'triggers' } },
+    { id: 'e4', fromNode: 'validate-complete', toNode: 'command-end', pv: { edgeType: 'triggers' } },
+    { id: 'e5', fromNode: 'discover-files', toNode: 'command-end', pv: { edgeType: 'triggers' } },
+  ],
+  pv: {
+    name: 'CLI Events',
+    version: '1.0.0',
+    description: 'OTEL events for CLI command execution',
+  },
+};
+
+/**
+ * Library with owned-scopes defining scope colors (for borders)
+ */
+const scopeColorLibrary: ComponentLibrary = {
+  version: '1.0.0',
+  name: 'Scope Color Library',
+  description: 'Library demonstrating scope and span colors',
+  resources: {},
+  nodeComponents: {
+    event: {
+      description: 'OTEL event node',
+      shape: 'rectangle',
+      color: '#888888', // Default gray, overridden by span color
+    },
+  },
+  edgeComponents: {
+    triggers: {
+      description: 'Event triggers another event',
+      style: 'solid',
+      color: '#64748b',
+      directed: true,
+    },
+  },
+  // Scope colors become BORDER colors
+  'owned-scopes': {
+    'cli-package': {
+      color: '#EF4444', // Red border
+      description: 'CLI package scope',
+    },
+    'core-package': {
+      color: '#3B82F6', // Blue border
+      description: 'Core library scope',
+    },
+    'react-package': {
+      color: '#10B981', // Green border
+      description: 'React package scope',
+    },
+  },
+};
+
+/**
+ * Scope/Span Color Contract Story
+ * Demonstrates how scopeColor (border) and spanColor (fill) work together
+ */
+const ScopeSpanColorContractTemplate = () => {
+  const graphRef = useRef<GraphRendererHandle>(null);
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '12px 16px', background: '#fff', borderBottom: '1px solid #ddd' }}>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>Scope/Span Color Contract</div>
+        <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
+          Event nodes can have two color sources: scope (border) and span (fill).
+        </div>
+        <div style={{ display: 'flex', gap: 24, fontSize: 11 }}>
+          <div>
+            <strong>Scope → Border:</strong>
+            <div style={{ marginTop: 4, display: 'flex', gap: 8 }}>
+              <span><span style={{ color: '#EF4444' }}>■</span> cli-package</span>
+              <span><span style={{ color: '#3B82F6' }}>■</span> core-package</span>
+              <span><span style={{ color: '#10B981' }}>■</span> react-package</span>
+            </div>
+          </div>
+          <div>
+            <strong>Span → Fill:</strong>
+            <div style={{ marginTop: 4, display: 'flex', gap: 8 }}>
+              <span><span style={{ color: '#8B5CF6' }}>●</span> cli-command</span>
+              <span><span style={{ color: '#22C55E' }}>●</span> validate</span>
+              <span><span style={{ color: '#3B82F6' }}>●</span> discover</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{ flex: 1, display: 'flex' }}>
+        {/* With span color (validate span) */}
+        <div style={{ flex: 1, borderRight: '1px solid #ddd', position: 'relative' }}>
+          <div style={{ padding: '8px', background: '#f0fdf4', fontSize: 11, textAlign: 'center' }}>
+            Span: <strong>validate</strong> (Green Fill) + Scope: <strong>cli-package</strong> (Red Border)
+          </div>
+          <GraphRenderer
+            ref={graphRef}
+            canvas={otelEventsCanvas}
+            library={scopeColorLibrary}
+            spansCanvas={spansCanvasData}
+            workflowSpanPattern="validate"
+            width={450}
+            height={400}
+          />
+        </div>
+        {/* With different span color (discover span) */}
+        <div style={{ flex: 1, position: 'relative' }}>
+          <div style={{ padding: '8px', background: '#eff6ff', fontSize: 11, textAlign: 'center' }}>
+            Span: <strong>discover</strong> (Blue Fill) + Scope: <strong>core-package</strong> (Blue Border)
+          </div>
+          <GraphRenderer
+            canvas={otelEventsCanvas}
+            library={{
+              ...scopeColorLibrary,
+              // Override to show different scope
+              'owned-scopes': {
+                'core-package': {
+                  color: '#3B82F6',
+                  description: 'Core library scope',
+                },
+              },
+            }}
+            spansCanvas={spansCanvasData}
+            workflowSpanPattern="discover"
+            width={450}
+            height={400}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const ScopeSpanColorContract: Story = {
+  args: {} as never,
+  render: () => <ScopeSpanColorContractTemplate />,
+  parameters: {
+    docs: {
+      description: {
+        story: `
+**Scope/Span Color Contract**
+
+This story demonstrates the color contract for event nodes:
+
+**Color Sources:**
+1. **Scope Color → Border** (from library.yaml \`owned-scopes\`)
+   - Represents which package/module owns the event
+   - Applied as the node's stroke/border color
+
+2. **Span Color → Fill** (from .spans.canvas via workflow context)
+   - Represents which telemetry span the event belongs to
+   - Applied as the node's fill/background color
+
+**How It Works:**
+1. \`.otel.canvas\` event nodes do NOT require colors
+2. At render time, \`GraphRenderer\` receives:
+   - \`spansCanvas\` - the .spans.canvas file with span colors
+   - \`workflowSpanPattern\` - which span context to use
+3. The renderer builds a color map and injects \`spanColor\` into each node
+4. \`scopeColor\` comes from the library's \`owned-scopes\` based on file location
+
+**Benefits:**
+- Events can be recolored dynamically based on workflow context
+- Same event can appear in different colors when viewed in different span contexts
+- Clear visual distinction between ownership (border) and behavior (fill)
+
+**Props:**
+\`\`\`tsx
+<GraphRenderer
+  canvas={otelEventsCanvas}
+  library={library}
+  spansCanvas={spansCanvasData}      // .spans.canvas with colors
+  workflowSpanPattern="validate"      // Which span context
+/>
+\`\`\`
         `,
       },
     },

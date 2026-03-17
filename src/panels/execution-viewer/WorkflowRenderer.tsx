@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { renderWorkflow, parseTemplate, computeAggregates, getRequiredEvents, ParsedTemplate } from '@principal-ai/principal-view-core';
+import { renderWorkflow, parseTemplate, computeAggregates, getRequiredEvents, ParsedTemplate, getEventTemplateString } from '@principal-ai/principal-view-core';
 import type { WorkflowTemplate, OtelEvent, ExtendedCanvas, TemplateSegment, TemplateContext } from '@principal-ai/principal-view-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import yaml from 'js-yaml';
@@ -216,7 +216,8 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
         if (matchingEvents.length === 0) {
           // Event is in template but NOT in execution - show template text
           // Variables won't resolve, showing {{variableName}} as the indicator it's missing
-          const renderedText = parseTemplate(eventTemplate, fullContext);
+          const templateString = getEventTemplateString(eventTemplate);
+          const renderedText = parseTemplate(templateString, fullContext);
 
           // Create a synthetic event for click handling
           const syntheticEventIndex = sortedEvents.length + templateEventNames.indexOf(templateEventName);
@@ -285,7 +286,8 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
               }
             }
 
-            const renderedText = parseTemplate(eventTemplate, eventContext as unknown as TemplateContext);
+            const templateString = getEventTemplateString(eventTemplate);
+            const renderedText = parseTemplate(templateString, eventContext as unknown as TemplateContext);
 
             // Make the entire event block clickable
             elements.push(
