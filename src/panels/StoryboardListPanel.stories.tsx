@@ -3350,4 +3350,259 @@ This organization helps teams document their OTel instrumentation strategy:
   },
 };
 
+/**
+ * Architecture Canvas Change Detection Test
+ *
+ * Tests whether the tree updates when new architecture canvas files
+ * (scopes.canvas, spans.canvas, resources.canvas) are added dynamically.
+ *
+ * This story reproduces the bug where adding new canvas files doesn't
+ * automatically refresh the tree.
+ */
+export const ArchitectureCanvasChangeDetection: Story = {
+  args: {} as never,
+  render: () => {
+    const [sha, setSha] = useState('arch-sha-1');
+    const [addedCanvases, setAddedCanvases] = useState<Array<{
+      name: string;
+      type: 'resources' | 'scopes' | 'spans' | 'regular';
+    }>>([]);
+
+    // Base architecture canvases
+    const baseFiles = [
+      ...createArchitectureCanvasFile('system-design', 'regular', true),
+    ];
+
+    // Dynamically added canvases
+    const dynamicFiles = addedCanvases.flatMap(c =>
+      createArchitectureCanvasFile(c.name, c.type, true)
+    );
+
+    const allFiles = [...baseFiles, ...dynamicFiles];
+
+    const builder = new PathsFileTreeBuilder();
+    const fileTree = builder.build({ files: allFiles.map(f => f.path) });
+    fileTree.sha = sha;
+    fileTree.allFiles = allFiles;
+
+    // Mock readFile for architecture canvases
+    const mockReadFile = async (path: string) => {
+      if (path.endsWith('.canvas')) {
+        const filename = path.split('/').pop() || '';
+        const canvasName = filename
+          .replace('.resources.canvas', '')
+          .replace('.scopes.canvas', '')
+          .replace('.spans.canvas', '')
+          .replace('.canvas', '');
+
+        const markdownPath = `.principal-views/${canvasName}.md`;
+        const hasMarkdown = allFiles.some(f => f.path === markdownPath);
+
+        return JSON.stringify({
+          pv: {
+            name: canvasName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            version: '1.0.0',
+            description: `Architecture canvas: ${canvasName}`,
+            ...(hasMarkdown && { markdown: markdownPath }),
+          },
+          nodes: [],
+          edges: [],
+        });
+      }
+      return '';
+    };
+
+    const addCanvas = (type: 'resources' | 'scopes' | 'spans' | 'regular') => {
+      const timestamp = Date.now();
+      const names: Record<string, string> = {
+        resources: `resource-${timestamp}`,
+        scopes: `scope-${timestamp}`,
+        spans: `span-${timestamp}`,
+        regular: `canvas-${timestamp}`,
+      };
+      setAddedCanvases(prev => [...prev, { name: names[type], type }]);
+    };
+
+    // Add canvas AND update SHA together (simulating real file system behavior)
+    const addCanvasWithSha = (type: 'resources' | 'scopes' | 'spans' | 'regular') => {
+      const timestamp = Date.now();
+      const names: Record<string, string> = {
+        resources: `resource-${timestamp}`,
+        scopes: `scope-${timestamp}`,
+        spans: `span-${timestamp}`,
+        regular: `canvas-${timestamp}`,
+      };
+      setAddedCanvases(prev => [...prev, { name: names[type], type }]);
+      setSha(`arch-sha-${timestamp}`);
+    };
+
+    // Debug: log when fileTree changes
+    console.log('[Story] Rendering with:', { sha, fileCount: allFiles.length, files: allFiles.map(f => f.path) });
+
+    return (
+      <div style={{ display: 'flex', height: '100vh', background: '#0a0a0a' }}>
+        {/* Panel */}
+        <div style={{ flex: 1 }}>
+          <MockPanelProvider
+            contextOverrides={{
+              fileTree: createMockFileTreeSlice(fileTree),
+            }}
+            actionsOverrides={{
+              readFile: mockReadFile,
+            }}
+          >
+            {(props) => <StoryboardListPanel {...props} />}
+          </MockPanelProvider>
+        </div>
+
+        {/* Control Panel */}
+        <div
+          style={{
+            width: 380,
+            background: '#1a1a1a',
+            padding: 20,
+            color: '#fff',
+            overflow: 'auto',
+            borderLeft: '1px solid #333',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}
+        >
+          <div>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: 16 }}>
+              Architecture Canvas Change Detection
+            </h3>
+            <p style={{ margin: 0, fontSize: 12, color: '#aaa', lineHeight: 1.5 }}>
+              Test if the tree updates when adding new architecture canvas files.
+              The tree should update automatically when files are added.
+            </p>
+          </div>
+
+          <div style={{ padding: 12, background: '#2a2a2a', borderRadius: 8 }}>
+            <div style={{ fontSize: 12, color: '#f59e0b', marginBottom: 8, fontWeight: 500 }}>
+              Bug Reproduction Steps:
+            </div>
+            <ol style={{ margin: 0, paddingLeft: 20, fontSize: 11, color: '#aaa', lineHeight: 1.8 }}>
+              <li>Click "Add scopes.canvas" or other buttons</li>
+              <li>Notice the tree does NOT update</li>
+              <li>Click "Change SHA" to force refresh</li>
+              <li>Now the new canvas appears</li>
+            </ol>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Add Canvas (files only, no SHA change):</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <button
+                onClick={() => addCanvas('scopes')}
+                style={{
+                  background: '#7c3aed',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 14px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: 500,
+                }}
+              >
+                + scopes.canvas
+              </button>
+              <button
+                onClick={() => addCanvas('spans')}
+                style={{
+                  background: '#2563eb',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 14px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: 500,
+                }}
+              >
+                + spans.canvas
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontSize: 12, color: '#22c55e', marginBottom: 4 }}>Add Canvas + Update SHA (expected behavior):</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <button
+                onClick={() => addCanvasWithSha('scopes')}
+                style={{
+                  background: '#15803d',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 14px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: 500,
+                }}
+              >
+                + scopes + SHA
+              </button>
+              <button
+                onClick={() => addCanvasWithSha('spans')}
+                style={{
+                  background: '#15803d',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 14px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: 500,
+                }}
+              >
+                + spans + SHA
+              </button>
+            </div>
+          </div>
+
+          <div style={{ borderTop: '1px solid #333', paddingTop: 16 }}>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Force Refresh:</div>
+            <button
+              onClick={() => setSha(`arch-sha-${Date.now()}`)}
+              style={{
+                background: '#16a34a',
+                color: 'white',
+                border: 'none',
+                padding: '10px 14px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 500,
+                width: '100%',
+              }}
+            >
+              Change SHA (Force Tree Update)
+            </button>
+          </div>
+
+          <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5, marginTop: 'auto' }}>
+            <strong style={{ color: '#aaa' }}>Current State:</strong>
+            <div>SHA: {sha}</div>
+            <div>Total Files: {allFiles.length}</div>
+            <div>Added Canvases: {addedCanvases.length}</div>
+            {addedCanvases.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <strong style={{ color: '#aaa' }}>Added:</strong>
+                {addedCanvases.map((c, i) => (
+                  <div key={i} style={{ color: '#888' }}>
+                    • {c.name}.{c.type === 'regular' ? '' : `${c.type}.`}canvas
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  },
+};
+
 

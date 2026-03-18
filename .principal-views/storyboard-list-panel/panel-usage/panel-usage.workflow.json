@@ -1,0 +1,151 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/storyboard-list-panel/storyboard-list-panel.otel.canvas",
+  "name": "Panel Usage",
+  "description": "User interactions with the Storyboard List Panel for browsing and selecting canvases",
+  "spanPattern": "storyboard-list-panel.session",
+  "scenarioSelection": "first-match",
+  "status": "draft",
+  "scenarios": [
+    {
+      "id": "browse-and-select-canvas",
+      "priority": 1,
+      "description": "User browses storyboards and selects a canvas to view",
+      "template": {
+        "events": {
+          "panel.loading": "Loading panel {{panel.id}} (tree sha={{file.tree.sha}})",
+          "panel.loaded": "Panel {{panel.id}} loaded: {{storyboard.count}} storyboards, {{canvas.count}} canvases, {{workflow.count}} workflows (otel={{otel.count}}, architecture={{architecture.count}})",
+          "node.toggled": "Toggled node {{node.id}} (open={{node.open}})",
+          "canvas.selected": "Selected canvas: {{canvas.name}} ({{canvas.id}}) at {{canvas.path}} (type={{canvas.type}})",
+          "custom:openCanvas": "Opening canvas {{canvas.id}} (action={{action}})"
+        },
+        "summary": "Browsed and opened canvas {{canvas.name}}"
+      }
+    },
+    {
+      "id": "select-workflow",
+      "priority": 2,
+      "description": "User selects a workflow to view with its scenarios",
+      "template": {
+        "events": {
+          "panel.loaded": "Panel {{panel.id}} loaded: {{storyboard.count}} storyboards, {{canvas.count}} canvases",
+          "workflow.selected": "Selected workflow: {{workflow.name}} ({{workflow.id}}) at {{workflow.path}} for canvas {{canvas.id}} with {{scenario.count}} scenarios",
+          "custom:openCanvas": "Opening workflow (action={{action}}, canvas={{canvas.id}})"
+        },
+        "summary": "Opened workflow {{workflow.name}}"
+      }
+    },
+    {
+      "id": "view-overview",
+      "priority": 3,
+      "description": "User views the documentation overview for a canvas",
+      "template": {
+        "events": {
+          "panel.loaded": "Panel loaded with {{canvas.count}} canvases",
+          "overview.selected": "Selected overview for canvas {{canvas.id}} at {{markdown.path}}",
+          "file:open": "Opening markdown file at {{path}}"
+        },
+        "summary": "Viewed overview documentation"
+      }
+    },
+    {
+      "id": "search-canvases",
+      "priority": 4,
+      "description": "User searches for canvases by name",
+      "template": {
+        "events": {
+          "panel.loaded": "Panel loaded with {{storyboard.count}} storyboards",
+          "search.changed": "Searching for '{{search.query}}' ({{result.count}} results)",
+          "canvas.selected": "Selected canvas: {{canvas.name}} ({{canvas.type}})"
+        },
+        "summary": "Searched and found {{result.count}} results for '{{search.query}}'"
+      }
+    },
+    {
+      "id": "switch-tabs",
+      "priority": 5,
+      "description": "User switches between OTEL and Architecture tabs",
+      "template": {
+        "events": {
+          "panel.loaded": "Panel loaded (otel={{otel.count}}, architecture={{architecture.count}})",
+          "tab.switched": "Switched from {{tab.previous}} to {{tab.current}} tab"
+        },
+        "summary": "Switched to {{tab.current}} tab"
+      }
+    },
+    {
+      "id": "multi-canvas-view",
+      "priority": 6,
+      "description": "User opens multiple canvases in side-by-side view",
+      "template": {
+        "events": {
+          "panel.loaded": "Panel loaded with {{canvas.count}} canvases",
+          "canvas.selected": "Selected canvas: {{canvas.name}}",
+          "custom:openMultiCanvas": "Opening multi-canvas view (action={{action}}, canvases={{canvases}})"
+        },
+        "summary": "Opened multi-canvas view"
+      }
+    },
+    {
+      "id": "refresh-panel",
+      "priority": 7,
+      "description": "User refreshes the panel to reload canvases",
+      "template": {
+        "events": {
+          "canvas:refresh": "Refresh requested from {{source}}",
+          "panel.loading": "Reloading panel {{panel.id}}",
+          "panel.loaded": "Reloaded: {{storyboard.count}} storyboards, {{canvas.count}} canvases"
+        },
+        "summary": "Refreshed panel"
+      }
+    },
+    {
+      "id": "context-menu-copy-path",
+      "priority": 8,
+      "description": "User copies a file path from the context menu",
+      "template": {
+        "events": {
+          "context.menu.opened": "Context menu for {{node.type}} {{node.id}} at ({{position.x}}, {{position.y}})",
+          "path.copied": "Copied path: {{path}} ({{node.type}})"
+        },
+        "summary": "Copied {{node.type}} path to clipboard"
+      }
+    },
+    {
+      "id": "programmatic-selection",
+      "priority": 9,
+      "description": "External event triggers node selection (e.g., from tours)",
+      "template": {
+        "events": {
+          "custom:selectNode": "Programmatic select: {{node.id}} (action={{action}})",
+          "canvas.selected": "Auto-selected canvas: {{canvas.name}}"
+        },
+        "summary": "Programmatically selected {{node.id}}"
+      }
+    },
+    {
+      "id": "programmatic-toggle",
+      "priority": 10,
+      "description": "External event toggles node open state",
+      "template": {
+        "events": {
+          "custom:toggleNode": "Programmatic toggle: {{node.id}} (action={{action}}, open={{open}})",
+          "node.toggled": "Node {{node.id}} toggled (open={{node.open}})"
+        },
+        "summary": "Programmatically toggled {{node.id}}"
+      }
+    },
+    {
+      "id": "load-error",
+      "priority": 11,
+      "description": "Panel fails to load canvases",
+      "template": {
+        "events": {
+          "panel.loading": "Loading panel {{panel.id}}",
+          "panel.error": "Error loading panel {{panel.id}}: {{error.message}} ({{error.type}})"
+        },
+        "summary": "Failed to load: {{error.message}}"
+      }
+    }
+  ]
+}

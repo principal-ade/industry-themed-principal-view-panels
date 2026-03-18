@@ -23,11 +23,16 @@
         "dataSchema": {
           "mode": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Operation mode of the panel",
+            "placeholder": "static"
           },
           "canvas.count": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Number of canvases to display",
+            "placeholder": "3",
+            "displayInLabel": false
           }
         }
       }
@@ -54,7 +59,9 @@
         "dataSchema": {
           "placement.count": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Number of canvas placements in the layout",
+            "placeholder": "4"
           }
         }
       }
@@ -81,7 +88,9 @@
         "dataSchema": {
           "canvas.paths": {
             "type": "array",
-            "required": true
+            "required": true,
+            "description": "Paths to canvas files to load",
+            "placeholder": "[\"canvas1.canvas\", \"canvas2.canvas\"]"
           }
         }
       }
@@ -109,11 +118,15 @@
         "dataSchema": {
           "canvas.count": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Number of canvases being loaded",
+            "placeholder": "3"
           },
           "repository.path": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Root path of the repository",
+            "placeholder": "/path/to/repo"
           }
         }
       }
@@ -141,11 +154,16 @@
         "dataSchema": {
           "file.path": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Path to the canvas file being read",
+            "placeholder": "architecture.canvas"
           },
           "file.size": {
             "type": "number",
-            "required": false
+            "required": false,
+            "description": "Size of the file in bytes",
+            "placeholder": "4096",
+            "displayInLabel": false
           }
         }
       }
@@ -174,15 +192,22 @@
         "dataSchema": {
           "canvas.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Identifier of the parsed canvas",
+            "placeholder": "my-canvas"
           },
           "node.count": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Number of nodes in the canvas",
+            "placeholder": "12"
           },
           "edge.count": {
             "type": "number",
-            "required": false
+            "required": false,
+            "description": "Number of edges in the canvas",
+            "placeholder": "8",
+            "displayInLabel": false
           }
         }
       }
@@ -210,11 +235,15 @@
         "dataSchema": {
           "canvas.loaded.count": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Number of canvases successfully loaded",
+            "placeholder": "3"
           },
           "canvas.failed.count": {
             "type": "number",
-            "required": false
+            "required": false,
+            "description": "Number of canvases that failed to load",
+            "placeholder": "0"
           }
         }
       }
@@ -242,11 +271,15 @@
         "dataSchema": {
           "error.type": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Type of error that occurred",
+            "placeholder": "FILE_NOT_FOUND"
           },
           "error.message": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Human-readable error message",
+            "placeholder": "Canvas file not found"
           }
         }
       }
@@ -276,19 +309,29 @@
         "dataSchema": {
           "direction": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Layout direction: grid, vertical, or horizontal",
+            "placeholder": "grid"
           },
           "gap": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Gap between canvases in pixels",
+            "placeholder": "20",
+            "displayInLabel": false
           },
           "columns": {
             "type": "number",
-            "required": false
+            "required": false,
+            "description": "Number of columns for grid layout",
+            "placeholder": "2",
+            "displayInLabel": false
           },
           "placement.count": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Total number of canvas placements",
+            "placeholder": "4"
           }
         }
       }
@@ -384,23 +427,36 @@
         "dataSchema": {
           "show.groups": {
             "type": "boolean",
-            "required": true
+            "required": true,
+            "description": "Whether to show group nodes",
+            "placeholder": "true",
+            "displayInLabel": false
           },
           "show.minimap": {
             "type": "boolean",
-            "required": true
+            "required": true,
+            "description": "Whether to show the minimap",
+            "placeholder": "true"
           },
           "show.controls": {
             "type": "boolean",
-            "required": true
+            "required": true,
+            "description": "Whether to show zoom/pan controls",
+            "placeholder": "true",
+            "displayInLabel": false
           },
           "show.background": {
             "type": "boolean",
-            "required": true
+            "required": true,
+            "description": "Whether to show background pattern",
+            "placeholder": "true"
           },
           "background.variant": {
             "type": "string",
-            "required": false
+            "required": false,
+            "description": "Background pattern variant: dots, lines, cross",
+            "placeholder": "dots",
+            "displayInLabel": false
           }
         }
       }
@@ -428,11 +484,15 @@
         "dataSchema": {
           "node.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "ID of the clicked node",
+            "placeholder": "node-1"
           },
           "canvas.id": {
             "type": "string",
-            "required": false
+            "required": false,
+            "description": "ID of the canvas containing the node",
+            "placeholder": "canvas-1"
           }
         }
       }
@@ -459,7 +519,9 @@
         "dataSchema": {
           "reason": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Reason for the empty state",
+            "placeholder": "No canvases loaded"
           }
         }
       }

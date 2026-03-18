@@ -18,6 +18,7 @@ import {
 } from '@principal-ade/dynamic-file-tree';
 import type { FileTree, FileInfo, GitStatusWithFiles } from '@principal-ai/repository-abstraction';
 import type { WorkflowTemplate, DiscoveredTestTrace, WorkflowScenario, DiscoveredCanvasWithContent, PVNodeExtension } from '@principal-ai/principal-view-core';
+import { getTracer, type Span } from '../telemetry';
 
 /**
  * Helper to convert GitStatusWithFiles to GitFileStatus[] format for tree components
@@ -71,6 +72,106 @@ function convertGitStatusToFileStatus(gitStatus: GitStatusWithFiles | null): Git
 }
 
 /**
+ * Telemetry hook for StoryboardListPanel
+ * Manages a single span for panel lifecycle with events for state changes
+ */
+function useStoryboardListPanelTelemetry(params: {
+  isLoading: boolean;
+  error: string | null;
+  storyboardCount: number;
+  otelCount: number;
+  architectureCount: number;
+}) {
+  const { isLoading, error, storyboardCount, otelCount, architectureCount } = params;
+  const spanRef = useRef<Span | null>(null);
+  const hasEmittedLoadedRef = useRef(false);
+  const tracer = getTracer();
+
+  // Start span on mount, end on unmount
+  useEffect(() => {
+    spanRef.current = tracer.startSpan('storyboard-list.panel', {
+      attributes: {
+        'panel.id': 'storyboard-list-panel',
+      },
+    });
+    spanRef.current.addEvent('panel.loading', {
+      'panel.id': 'storyboard-list-panel',
+    });
+
+    return () => {
+      spanRef.current?.end();
+      spanRef.current = null;
+      hasEmittedLoadedRef.current = false;
+    };
+  }, [tracer]);
+
+  // Emit loaded/error events based on state
+  useEffect(() => {
+    if (!spanRef.current) return;
+
+    if (error) {
+      spanRef.current.addEvent('panel.error', {
+        'panel.id': 'storyboard-list-panel',
+        'error.type': 'discovery_error',
+        'error.message': error,
+      });
+    } else if (!isLoading && !hasEmittedLoadedRef.current) {
+      spanRef.current.addEvent('panel.loaded', {
+        'panel.id': 'storyboard-list-panel',
+        'storyboard.count': storyboardCount,
+        'otel.count': otelCount,
+        'architecture.count': architectureCount,
+      });
+      hasEmittedLoadedRef.current = true;
+    }
+  }, [isLoading, error, storyboardCount, otelCount, architectureCount]);
+
+  // Return event emitters for user interactions
+  return useMemo(() => ({
+    emitCanvasSelected: (canvasId: string, canvasName: string, canvasPath: string, canvasType: string) => {
+      spanRef.current?.addEvent('canvas.selected', {
+        'canvas.id': canvasId,
+        'canvas.name': canvasName,
+        'canvas.path': canvasPath,
+        'canvas.type': canvasType,
+      });
+    },
+    emitWorkflowSelected: (workflowId: string, workflowName: string, workflowPath: string, canvasId: string, scenarioCount: number) => {
+      spanRef.current?.addEvent('workflow.selected', {
+        'workflow.id': workflowId,
+        'workflow.name': workflowName,
+        'workflow.path': workflowPath,
+        'canvas.id': canvasId,
+        'scenario.count': scenarioCount,
+      });
+    },
+    emitTabSwitched: (previous: string | null, current: string) => {
+      spanRef.current?.addEvent('tab.switched', {
+        'tab.previous': previous ?? 'none',
+        'tab.current': current,
+      });
+    },
+    emitSearchChanged: (query: string, resultCount: number) => {
+      spanRef.current?.addEvent('search.changed', {
+        'search.query': query,
+        'result.count': resultCount,
+      });
+    },
+    emitRefreshRequested: () => {
+      spanRef.current?.addEvent('refresh.requested', {
+        'panel.id': 'storyboard-list-panel',
+      });
+    },
+    emitNodeToggled: (nodeId: string, isOpen: boolean) => {
+      spanRef.current?.addEvent('node.toggled', {
+        'node.id': nodeId,
+        'node.open': isOpen,
+      });
+    },
+  }), []);
+}
+
+/**
  * StoryboardListPanel - A panel for displaying storyboards from the discovery system
  *
  * This panel shows:
@@ -96,9 +197,15 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   const [openState, setOpenState] = useState<Record<string, boolean>>({});
 
   // Handle tree node toggle - update openState
+  // Note: telemetry.emitNodeToggled is called via ref to avoid dependency cycle
   const handleTreeToggle = useCallback((nodeId: string, isOpen: boolean) => {
     setOpenState(prev => ({ ...prev, [nodeId]: isOpen }));
+    // Telemetry is emitted via the telemetryRef to avoid hook ordering issues
+    telemetryRef.current?.emitNodeToggled(nodeId, isOpen);
   }, []);
+
+  // Ref for telemetry functions to avoid hook ordering dependency
+  const telemetryRef = useRef<ReturnType<typeof useStoryboardListPanelTelemetry> | null>(null);
 
   // Ref to store the click handler for programmatic access
   const handleTreeNodeClickRef = useRef<((node: StoryboardWorkflowNodeData | CanvasListNodeData, event?: React.MouseEvent) => void) | null>(null);
@@ -250,6 +357,17 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     const regular = storyboards.filter(sb => architectureTypes.includes(sb.canvas.type)).length;
     return { otelCount: otel, staticCount: regular };
   }, [storyboards]);
+
+  // Telemetry for panel lifecycle and user interactions
+  const telemetry = useStoryboardListPanelTelemetry({
+    isLoading,
+    error,
+    storyboardCount: storyboards.length,
+    otelCount,
+    architectureCount: staticCount,
+  });
+  // Keep ref updated for callbacks defined before the hook
+  telemetryRef.current = telemetry;
 
   // Auto-select the tab that has content (only once when data loads)
   // If both have content, prefer Architecture; if neither, default to Architecture
@@ -505,6 +623,12 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     } else if (node.type === 'canvas' && node.canvas) {
       // Canvas click - open canvas editor
       setSelectedNodeId(`canvas:${node.canvas.id}`);
+      telemetry.emitCanvasSelected(
+        node.canvas.id,
+        node.canvas.name,
+        node.canvas.path,
+        node.canvas.type
+      );
       if (events) {
         const canvasFileInfo = getCanvasFileInfo(node.canvas.path);
         events.emit({
@@ -536,6 +660,14 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
           return;
         }
 
+        telemetry.emitWorkflowSelected(
+          node.workflow.id,
+          node.workflow.name,
+          node.workflow.path,
+          node.storyboard.canvas.id,
+          fullWorkflow.template.scenarios?.length ?? 0
+        );
+
         events.emit({
           type: 'custom',
           source: 'storyboard-list-panel',
@@ -553,7 +685,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
         });
       }
     }
-  }, [events, getCanvasFileInfo, workflows]);
+  }, [events, getCanvasFileInfo, workflows, telemetry]);
 
   // Helper to get the file path from a node (works for both tree types)
   const getNodeFilePath = useCallback((node: StoryboardWorkflowNodeData | CanvasListNodeData): string | undefined => {
@@ -628,6 +760,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
 
   const handleRefresh = () => {
     setIsRefreshing(true);
+    telemetry.emitRefreshRequested();
 
     // Emit refresh event so parent can handle filesystem rescans, etc.
     // The parent will update the file tree SHA, which will trigger automatic reload via useEffect
@@ -851,7 +984,10 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
           padding: '3px',
         }}>
           <button
-            onClick={() => setCanvasTypeFilter('regular')}
+            onClick={() => {
+              telemetry.emitTabSwitched(canvasTypeFilter, 'regular');
+              setCanvasTypeFilter('regular');
+            }}
             style={{
               flex: 1,
               background: effectiveCanvasTypeFilter === 'regular' ? theme.colors.primary : 'transparent',
@@ -870,7 +1006,10 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             Architecture
           </button>
           <button
-            onClick={() => setCanvasTypeFilter('otel')}
+            onClick={() => {
+              telemetry.emitTabSwitched(canvasTypeFilter, 'otel');
+              setCanvasTypeFilter('otel');
+            }}
             style={{
               flex: 1,
               background: effectiveCanvasTypeFilter === 'otel' ? theme.colors.primary : 'transparent',

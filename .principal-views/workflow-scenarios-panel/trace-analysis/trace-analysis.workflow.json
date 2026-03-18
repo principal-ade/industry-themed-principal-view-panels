@@ -13,10 +13,10 @@
       "description": "Analyzing a trace that fully matches a scenario with event inspection",
       "template": {
         "events": {
-          "trace.selected": "Selected trace {{trace.id}} from {{trace.source}}",
-          "trace.loaded": "Full match: {{span.count}} spans, {{event.count}} events",
-          "event.clicked": "Inspecting event {{event.name}} at index {{event.index}}",
-          "node.clicked": "Highlighting node {{node.id}} on canvas"
+          "trace.selected": "Selected trace {{trace.id}} from {{trace.source}} ({{span.count}} spans, scenario={{scenario.id}})",
+          "trace.loaded": "Full match on trace {{trace.id}}: {{span.count}} spans, {{event.count}} events (match={{match.type}}, coverage={{coverage.percent}}%)",
+          "event.clicked": "Inspecting event {{event.name}} at index {{event.index}} (span={{span.index}})",
+          "node.clicked": "Highlighting node {{node.id}} on canvas (event={{node.event}}, shift={{modifier.shift}})"
         },
         "summary": "Analyzed fully matched trace with {{event.count}} events"
       }
@@ -27,8 +27,8 @@
       "description": "User switches between different view modes to analyze trace",
       "template": {
         "events": {
-          "trace.selected": "Selected trace {{trace.id}}",
-          "trace.loaded": "Loaded trace with {{span.count}} spans",
+          "trace.selected": "Selected trace {{trace.id}} ({{span.count}} spans, scenario={{scenario.id}})",
+          "trace.loaded": "Loaded trace {{trace.id}} with {{span.count}} spans (match={{match.type}}, coverage={{coverage.percent}}%)",
           "view.mode.changed": "Switched view: {{mode.previous}} to {{mode.current}}"
         },
         "summary": "Explored trace using {{mode.current}} view"
@@ -40,10 +40,10 @@
       "description": "User plays back trace to analyze execution flow",
       "template": {
         "events": {
-          "trace.selected": "Selected trace {{trace.id}}",
-          "trace.loaded": "Loaded {{span.count}} spans with {{event.count}} events",
-          "playback.started": "Started playback at span {{span.index}}",
-          "playback.stopped": "Playback {{reason}}"
+          "trace.selected": "Selected trace {{trace.id}} ({{span.count}} spans, scenario={{scenario.id}})",
+          "trace.loaded": "Loaded trace {{trace.id}}: {{span.count}} spans with {{event.count}} events (match={{match.type}}, coverage={{coverage.percent}}%)",
+          "playback.started": "Started playback at span {{span.index}} (trace={{trace.id}}, event={{event.index}})",
+          "playback.stopped": "Playback {{reason}} (trace={{trace.id}}, span={{span.index}}, event={{event.index}})"
         },
         "summary": "Analyzed trace via playback"
       }

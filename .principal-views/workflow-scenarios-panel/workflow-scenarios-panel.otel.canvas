@@ -24,15 +24,21 @@
         "dataSchema": {
           "panel.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Unique identifier for the panel instance",
+            "placeholder": "workflow-panel-1"
           },
           "canvas.id": {
             "type": "string",
-            "required": false
+            "required": false,
+            "description": "ID of the canvas being loaded",
+            "placeholder": "my-otel-canvas"
           },
           "workflow.id": {
             "type": "string",
-            "required": false
+            "required": false,
+            "description": "ID of the workflow being loaded",
+            "placeholder": "panel-lifecycle"
           }
         }
       }
@@ -63,23 +69,33 @@
         "dataSchema": {
           "panel.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Unique identifier for the panel instance",
+            "placeholder": "workflow-panel-1"
           },
           "canvas.name": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Display name of the canvas",
+            "placeholder": "Panel Lifecycle Canvas"
           },
           "workflow.name": {
             "type": "string",
-            "required": false
+            "required": false,
+            "description": "Display name of the workflow",
+            "placeholder": "Panel Lifecycle"
           },
           "scenario.count": {
             "type": "number",
-            "required": false
+            "required": false,
+            "description": "Number of scenarios in the workflow",
+            "placeholder": "7"
           },
           "trace.count": {
             "type": "number",
-            "required": false
+            "required": false,
+            "description": "Number of traces available",
+            "placeholder": "12"
           }
         }
       }
@@ -108,15 +124,21 @@
         "dataSchema": {
           "panel.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Unique identifier for the panel instance",
+            "placeholder": "workflow-panel-1"
           },
           "error.type": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Type of error that occurred",
+            "placeholder": "CANVAS_NOT_FOUND"
           },
           "error.message": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Human-readable error message",
+            "placeholder": "Canvas file not found"
           }
         }
       }
@@ -145,15 +167,21 @@
         "dataSchema": {
           "scenario.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "ID of the selected scenario",
+            "placeholder": "static-render"
           },
           "scenario.name": {
             "type": "string",
-            "required": false
+            "required": false,
+            "description": "Display name of the scenario",
+            "placeholder": "Static Render"
           },
           "workflow.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "ID of the parent workflow",
+            "placeholder": "panel-lifecycle"
           }
         }
       }
@@ -182,16 +210,21 @@
         "dataSchema": {
           "scenario.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "ID of the hovered scenario",
+            "placeholder": "static-render"
           },
           "scenario.name": {
             "type": "string",
-            "required": false
+            "required": false,
+            "description": "Display name of the scenario",
+            "placeholder": "Static Render"
           },
           "hover.state": {
             "type": "string",
             "required": true,
-            "description": "enter or leave"
+            "description": "enter or leave",
+            "placeholder": "enter"
           }
         }
       }
@@ -221,19 +254,29 @@
         "dataSchema": {
           "trace.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "ID of the selected trace",
+            "placeholder": "trace-123"
           },
           "trace.source": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Source of the trace data",
+            "placeholder": "live"
           },
           "span.count": {
             "type": "number",
-            "required": false
+            "required": false,
+            "description": "Number of spans in the trace",
+            "placeholder": "5",
+            "displayInLabel": false
           },
           "scenario.id": {
             "type": "string",
-            "required": false
+            "required": false,
+            "description": "ID of the matched scenario",
+            "placeholder": "static-render",
+            "displayInLabel": false
           }
         }
       }
@@ -264,23 +307,36 @@
         "dataSchema": {
           "trace.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "ID of the loaded trace",
+            "placeholder": "trace-123",
+            "displayInLabel": false
           },
           "span.count": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Number of spans in the trace",
+            "placeholder": "5"
           },
           "event.count": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Number of events in the trace",
+            "placeholder": "12"
           },
           "match.type": {
             "type": "string",
-            "required": false
+            "required": false,
+            "description": "Type of scenario match: full, partial, none",
+            "placeholder": "full",
+            "displayInLabel": false
           },
           "coverage.percent": {
             "type": "number",
-            "required": false
+            "required": false,
+            "description": "Percentage of workflow covered by trace",
+            "placeholder": "85",
+            "displayInLabel": false
           }
         }
       }
@@ -309,15 +365,23 @@
         "dataSchema": {
           "node.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "ID of the clicked node",
+            "placeholder": "panel-loading"
           },
           "node.event": {
             "type": "string",
-            "required": false
+            "required": false,
+            "description": "Event name associated with the node",
+            "placeholder": "panel.loading",
+            "displayInLabel": false
           },
           "modifier.shift": {
             "type": "boolean",
-            "required": false
+            "required": false,
+            "description": "Whether shift key was held",
+            "placeholder": "false",
+            "displayInLabel": false
           }
         }
       }
@@ -346,15 +410,22 @@
         "dataSchema": {
           "event.name": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Name of the clicked event",
+            "placeholder": "panel.loading"
           },
           "event.index": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Index of the event in the timeline",
+            "placeholder": "0"
           },
           "span.index": {
             "type": "number",
-            "required": false
+            "required": false,
+            "description": "Index of the parent span",
+            "placeholder": "0",
+            "displayInLabel": false
           }
         }
       }
@@ -382,11 +453,15 @@
         "dataSchema": {
           "source.path": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Path to the source file",
+            "placeholder": "src/panels/WorkflowScenariosPanel.tsx"
           },
           "trigger": {
             "type": "string",
-            "required": false
+            "required": false,
+            "description": "What triggered opening: node-click, context-menu",
+            "placeholder": "node-click"
           }
         }
       }
@@ -415,15 +490,23 @@
         "dataSchema": {
           "trace.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "ID of the trace being played",
+            "placeholder": "trace-123",
+            "displayInLabel": false
           },
           "span.index": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Starting span index",
+            "placeholder": "0"
           },
           "event.index": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Starting event index",
+            "placeholder": "0",
+            "displayInLabel": false
           }
         }
       }
@@ -453,19 +536,30 @@
         "dataSchema": {
           "trace.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "ID of the trace",
+            "placeholder": "trace-123",
+            "displayInLabel": false
           },
           "reason": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Why playback stopped: completed, paused, error",
+            "placeholder": "completed"
           },
           "span.index": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Final span index",
+            "placeholder": "4",
+            "displayInLabel": false
           },
           "event.index": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Final event index",
+            "placeholder": "11",
+            "displayInLabel": false
           }
         }
       }
@@ -493,11 +587,15 @@
         "dataSchema": {
           "mode.previous": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "Previous view mode",
+            "placeholder": "canvas"
           },
           "mode.current": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "New view mode",
+            "placeholder": "timeline"
           }
         }
       }
@@ -527,16 +625,22 @@
           "focus.source": {
             "type": "string",
             "required": true,
-            "description": "What triggered the focus change: scenario-selected, scenario-hovered, trace-loaded, execution-hovered"
+            "description": "What triggered the focus change: scenario-selected, scenario-hovered, trace-loaded, execution-hovered",
+            "placeholder": "scenario-selected",
+            "displayInLabel": false
           },
           "focus.node.count": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Number of nodes now focused",
+            "placeholder": "5"
           },
           "focus.event.names": {
             "type": "array",
             "required": false,
-            "description": "Event names that are now focused"
+            "description": "Event names that are now focused",
+            "placeholder": "[\"panel.loading\", \"panel.loaded\"]",
+            "displayInLabel": false
           }
         }
       }
@@ -565,17 +669,24 @@
         "dataSchema": {
           "fit.node.count": {
             "type": "number",
-            "required": true
+            "required": true,
+            "description": "Number of nodes being fitted",
+            "placeholder": "5",
+            "displayInLabel": false
           },
           "fit.padding": {
             "type": "number",
             "required": false,
-            "description": "Padding percentage used for fit (e.g., 0.15)"
+            "description": "Padding percentage used for fit (e.g., 0.15)",
+            "placeholder": "0.15",
+            "displayInLabel": false
           },
           "fit.trigger": {
             "type": "string",
             "required": true,
-            "description": "What triggered the fit: scenario-selected, trace-loaded"
+            "description": "What triggered the fit: scenario-selected, trace-loaded",
+            "placeholder": "scenario-selected",
+            "displayInLabel": false
           }
         }
       }
@@ -604,17 +715,22 @@
         "dataSchema": {
           "node.id": {
             "type": "string",
-            "required": true
+            "required": true,
+            "description": "ID of the highlighted node",
+            "placeholder": "panel-loading"
           },
           "node.event": {
             "type": "string",
             "required": false,
-            "description": "The event name associated with the highlighted node"
+            "description": "The event name associated with the highlighted node",
+            "placeholder": "panel.loading"
           },
           "highlight.source": {
             "type": "string",
             "required": true,
-            "description": "What triggered the highlight: node-clicked, event-clicked, playback"
+            "description": "What triggered the highlight: node-clicked, event-clicked, playback",
+            "placeholder": "node-clicked",
+            "displayInLabel": false
           }
         }
       }

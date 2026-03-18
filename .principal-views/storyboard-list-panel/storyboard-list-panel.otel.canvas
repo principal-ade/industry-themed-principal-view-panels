@@ -1,0 +1,861 @@
+{
+  "nodes": [
+    {
+      "id": "panel-loading",
+      "type": "text",
+      "text": "# Panel Loading\n\nEmitted when the panel begins discovering canvas files from the file tree",
+      "x": 0,
+      "y": 0,
+      "width": 280,
+      "height": 120,
+      "color": "#6366f1",
+      "pv": {
+        "event": {
+          "name": "panel.loading",
+          "attributes": {
+            "panel.id": "string",
+            "file.tree.sha": "string"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx", "src/panels/canvas-list/hooks/useCanvasData.ts"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "panel.id": {
+            "type": "string",
+            "required": true,
+            "description": "Unique identifier for the panel instance",
+            "placeholder": "storyboard-list-1"
+          },
+          "file.tree.sha": {
+            "type": "string",
+            "required": false,
+            "description": "SHA hash of the file tree for cache invalidation",
+            "placeholder": "abc123"
+          }
+        }
+      }
+    },
+    {
+      "id": "panel-loaded",
+      "type": "text",
+      "text": "# Panel Loaded\n\nEmitted when storyboards and canvases are successfully discovered",
+      "x": 320,
+      "y": 0,
+      "width": 280,
+      "height": 120,
+      "color": "#10b981",
+      "pv": {
+        "event": {
+          "name": "panel.loaded",
+          "attributes": {
+            "panel.id": "string",
+            "storyboard.count": "number",
+            "canvas.count": "number",
+            "workflow.count": "number",
+            "otel.count": "number",
+            "architecture.count": "number"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "panel.id": {
+            "type": "string",
+            "required": true,
+            "description": "Unique identifier for the panel instance",
+            "placeholder": "storyboard-list-1"
+          },
+          "storyboard.count": {
+            "type": "number",
+            "required": true,
+            "description": "Number of storyboards discovered",
+            "placeholder": "5"
+          },
+          "canvas.count": {
+            "type": "number",
+            "required": true,
+            "description": "Total number of canvases discovered",
+            "placeholder": "12"
+          },
+          "workflow.count": {
+            "type": "number",
+            "required": false,
+            "description": "Number of workflow files discovered",
+            "placeholder": "3"
+          },
+          "otel.count": {
+            "type": "number",
+            "required": false,
+            "description": "Count of OTEL canvases",
+            "placeholder": "4"
+          },
+          "architecture.count": {
+            "type": "number",
+            "required": false,
+            "description": "Count of architecture canvases (regular, scopes, spans, resources)",
+            "placeholder": "8"
+          }
+        }
+      }
+    },
+    {
+      "id": "panel-error",
+      "type": "text",
+      "text": "# Panel Error\n\nEmitted when canvas discovery fails",
+      "x": 640,
+      "y": 0,
+      "width": 280,
+      "height": 120,
+      "color": "#ef4444",
+      "pv": {
+        "event": {
+          "name": "panel.error",
+          "attributes": {
+            "panel.id": "string",
+            "error.type": "string",
+            "error.message": "string"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "panel.id": {
+            "type": "string",
+            "required": true,
+            "description": "Unique identifier for the panel instance",
+            "placeholder": "storyboard-list-1"
+          },
+          "error.type": {
+            "type": "string",
+            "required": true,
+            "description": "Type of error that occurred",
+            "placeholder": "DISCOVERY_FAILED"
+          },
+          "error.message": {
+            "type": "string",
+            "required": true,
+            "description": "Human-readable error message",
+            "placeholder": "Failed to read file tree"
+          }
+        }
+      }
+    },
+    {
+      "id": "canvas-selected",
+      "type": "text",
+      "text": "# Canvas Selected\n\nEmitted when user clicks a canvas node in the tree",
+      "x": 0,
+      "y": 160,
+      "width": 280,
+      "height": 120,
+      "color": "#8b5cf6",
+      "pv": {
+        "event": {
+          "name": "canvas.selected",
+          "attributes": {
+            "canvas.id": "string",
+            "canvas.name": "string",
+            "canvas.path": "string",
+            "canvas.type": "string"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "canvas.id": {
+            "type": "string",
+            "required": true,
+            "description": "Unique identifier for the canvas",
+            "placeholder": "architecture-canvas"
+          },
+          "canvas.name": {
+            "type": "string",
+            "required": true,
+            "description": "Display name of the canvas",
+            "placeholder": "Architecture"
+          },
+          "canvas.path": {
+            "type": "string",
+            "required": true,
+            "description": "File path to the canvas",
+            "placeholder": ".principal-views/architecture.canvas"
+          },
+          "canvas.type": {
+            "type": "string",
+            "required": false,
+            "description": "otel, regular, scopes, spans, or resources",
+            "placeholder": "otel"
+          }
+        }
+      }
+    },
+    {
+      "id": "workflow-selected",
+      "type": "text",
+      "text": "# Workflow Selected\n\nEmitted when user clicks a workflow node in the tree",
+      "x": 320,
+      "y": 160,
+      "width": 280,
+      "height": 120,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "workflow.selected",
+          "attributes": {
+            "workflow.id": "string",
+            "workflow.name": "string",
+            "workflow.path": "string",
+            "canvas.id": "string",
+            "scenario.count": "number"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "workflow.id": {
+            "type": "string",
+            "required": true,
+            "description": "Unique identifier for the workflow",
+            "placeholder": "panel-lifecycle"
+          },
+          "workflow.name": {
+            "type": "string",
+            "required": true,
+            "description": "Display name of the workflow",
+            "placeholder": "Panel Lifecycle"
+          },
+          "workflow.path": {
+            "type": "string",
+            "required": true,
+            "description": "File path to the workflow",
+            "placeholder": ".principal-views/panel-lifecycle.workflow.json"
+          },
+          "canvas.id": {
+            "type": "string",
+            "required": true,
+            "description": "ID of the associated canvas",
+            "placeholder": "panel-otel-canvas"
+          },
+          "scenario.count": {
+            "type": "number",
+            "required": false,
+            "description": "Number of scenarios in the workflow",
+            "placeholder": "7"
+          }
+        }
+      }
+    },
+    {
+      "id": "overview-selected",
+      "type": "text",
+      "text": "# Overview Selected\n\nEmitted when user clicks an overview/documentation node",
+      "x": 640,
+      "y": 160,
+      "width": 280,
+      "height": 120,
+      "color": "#06b6d4",
+      "pv": {
+        "event": {
+          "name": "overview.selected",
+          "attributes": {
+            "canvas.id": "string",
+            "markdown.path": "string"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "canvas.id": {
+            "type": "string",
+            "required": true,
+            "description": "ID of the canvas this overview belongs to",
+            "placeholder": "architecture-canvas"
+          },
+          "markdown.path": {
+            "type": "string",
+            "required": true,
+            "description": "Path to the markdown documentation file",
+            "placeholder": ".principal-views/architecture.md"
+          }
+        }
+      }
+    },
+    {
+      "id": "open-canvas-emitted",
+      "type": "text",
+      "text": "# Open Canvas Emitted\n\nCustom event emitted to open a canvas in the editor panel",
+      "x": 0,
+      "y": 320,
+      "width": 280,
+      "height": 120,
+      "color": "#ec4899",
+      "pv": {
+        "event": {
+          "name": "custom:openCanvas",
+          "attributes": {
+            "action": "string",
+            "canvas.id": "string"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "action": {
+            "type": "string",
+            "required": true,
+            "description": "Always 'openCanvas'",
+            "placeholder": "openCanvas"
+          },
+          "canvas.id": {
+            "type": "string",
+            "required": true,
+            "description": "ID of the canvas to open",
+            "placeholder": "architecture-canvas"
+          }
+        }
+      }
+    },
+    {
+      "id": "open-multi-canvas-emitted",
+      "type": "text",
+      "text": "# Open Multi-Canvas Emitted\n\nCustom event emitted to open multiple canvases in side-by-side view",
+      "x": 320,
+      "y": 320,
+      "width": 280,
+      "height": 120,
+      "color": "#ec4899",
+      "pv": {
+        "event": {
+          "name": "custom:openMultiCanvas",
+          "attributes": {
+            "action": "string",
+            "canvases": "array"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "action": {
+            "type": "string",
+            "required": true,
+            "description": "Always 'openMultiCanvas'",
+            "placeholder": "openMultiCanvas"
+          },
+          "canvases": {
+            "type": "array",
+            "required": true,
+            "description": "Array of canvas objects with id, canvas, and canvasFileInfo",
+            "placeholder": "[{id: '...', canvas: {...}}]"
+          }
+        }
+      }
+    },
+    {
+      "id": "file-open-emitted",
+      "type": "text",
+      "text": "# File Open Emitted\n\nEmitted when user shift+clicks to open a file directly",
+      "x": 640,
+      "y": 320,
+      "width": 280,
+      "height": 120,
+      "color": "#06b6d4",
+      "pv": {
+        "event": {
+          "name": "file:open",
+          "attributes": {
+            "path": "string"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "path": {
+            "type": "string",
+            "required": true,
+            "description": "File path to open (canvas, workflow, or markdown)",
+            "placeholder": ".principal-views/architecture.canvas"
+          }
+        }
+      }
+    },
+    {
+      "id": "refresh-requested",
+      "type": "text",
+      "text": "# Refresh Requested\n\nEmitted when user clicks the refresh button",
+      "x": 0,
+      "y": 480,
+      "width": 280,
+      "height": 120,
+      "color": "#84cc16",
+      "pv": {
+        "event": {
+          "name": "canvas:refresh",
+          "attributes": {
+            "source": "string"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "source": {
+            "type": "string",
+            "required": true,
+            "description": "Always 'storyboard-list-panel'",
+            "placeholder": "storyboard-list-panel"
+          }
+        }
+      }
+    },
+    {
+      "id": "tab-switched",
+      "type": "text",
+      "text": "# Tab Switched\n\nEmitted when user switches between OTEL and Architecture tabs",
+      "x": 320,
+      "y": 480,
+      "width": 280,
+      "height": 120,
+      "color": "#8b5cf6",
+      "pv": {
+        "event": {
+          "name": "tab.switched",
+          "attributes": {
+            "tab.previous": "string",
+            "tab.current": "string"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "tab.previous": {
+            "type": "string",
+            "required": false,
+            "description": "otel or regular",
+            "placeholder": "otel"
+          },
+          "tab.current": {
+            "type": "string",
+            "required": true,
+            "description": "otel or regular",
+            "placeholder": "regular"
+          }
+        }
+      }
+    },
+    {
+      "id": "search-changed",
+      "type": "text",
+      "text": "# Search Changed\n\nEmitted when user types in the search box",
+      "x": 640,
+      "y": 480,
+      "width": 280,
+      "height": 120,
+      "color": "#64748b",
+      "pv": {
+        "event": {
+          "name": "search.changed",
+          "attributes": {
+            "search.query": "string",
+            "result.count": "number"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "search.query": {
+            "type": "string",
+            "required": true,
+            "description": "The search query entered by the user",
+            "placeholder": "architecture"
+          },
+          "result.count": {
+            "type": "number",
+            "required": false,
+            "description": "Number of matching storyboards after filtering",
+            "placeholder": "3"
+          }
+        }
+      }
+    },
+    {
+      "id": "node-toggled",
+      "type": "text",
+      "text": "# Node Toggled\n\nEmitted when a tree node is expanded or collapsed",
+      "x": 0,
+      "y": 640,
+      "width": 280,
+      "height": 120,
+      "color": "#0ea5e9",
+      "pv": {
+        "event": {
+          "name": "node.toggled",
+          "attributes": {
+            "node.id": "string",
+            "node.open": "boolean"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "node.id": {
+            "type": "string",
+            "required": true,
+            "description": "ID of the toggled tree node",
+            "placeholder": "storyboard:my-storyboard"
+          },
+          "node.open": {
+            "type": "boolean",
+            "required": true,
+            "description": "True if expanded, false if collapsed",
+            "placeholder": "true"
+          }
+        }
+      }
+    },
+    {
+      "id": "select-node-received",
+      "type": "text",
+      "text": "# Select Node Received\n\nIncoming event to programmatically select a node (e.g., from tours)",
+      "x": 320,
+      "y": 640,
+      "width": 280,
+      "height": 120,
+      "color": "#a855f7",
+      "pv": {
+        "event": {
+          "name": "custom:selectNode",
+          "attributes": {
+            "action": "string",
+            "node.id": "string"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "action": {
+            "type": "string",
+            "required": true,
+            "description": "Always 'selectNode'",
+            "placeholder": "selectNode"
+          },
+          "node.id": {
+            "type": "string",
+            "required": true,
+            "description": "Node ID format: 'canvas:id', 'workflow:id', 'overview:id', 'storyboard:id'",
+            "placeholder": "canvas:architecture"
+          }
+        }
+      }
+    },
+    {
+      "id": "toggle-node-received",
+      "type": "text",
+      "text": "# Toggle Node Received\n\nIncoming event to programmatically toggle a node's open state",
+      "x": 640,
+      "y": 640,
+      "width": 280,
+      "height": 120,
+      "color": "#a855f7",
+      "pv": {
+        "event": {
+          "name": "custom:toggleNode",
+          "attributes": {
+            "action": "string",
+            "node.id": "string",
+            "open": "boolean"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "action": {
+            "type": "string",
+            "required": true,
+            "description": "Always 'toggleNode'",
+            "placeholder": "toggleNode"
+          },
+          "node.id": {
+            "type": "string",
+            "required": true,
+            "description": "ID of the node to toggle",
+            "placeholder": "storyboard:my-storyboard"
+          },
+          "open": {
+            "type": "boolean",
+            "required": false,
+            "description": "If provided, sets state; if omitted, toggles current state",
+            "placeholder": "true"
+          }
+        }
+      }
+    },
+    {
+      "id": "context-menu-opened",
+      "type": "text",
+      "text": "# Context Menu Opened\n\nEmitted when user right-clicks a node to show context menu",
+      "x": 0,
+      "y": 800,
+      "width": 280,
+      "height": 120,
+      "color": "#64748b",
+      "pv": {
+        "event": {
+          "name": "context.menu.opened",
+          "attributes": {
+            "node.id": "string",
+            "node.type": "string",
+            "position.x": "number",
+            "position.y": "number"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "node.id": {
+            "type": "string",
+            "required": true,
+            "description": "ID of the right-clicked node",
+            "placeholder": "canvas:architecture"
+          },
+          "node.type": {
+            "type": "string",
+            "required": true,
+            "description": "canvas, workflow, overview, or storyboard",
+            "placeholder": "canvas"
+          },
+          "position.x": {
+            "type": "number",
+            "required": true,
+            "description": "X coordinate of the context menu",
+            "placeholder": "150"
+          },
+          "position.y": {
+            "type": "number",
+            "required": true,
+            "description": "Y coordinate of the context menu",
+            "placeholder": "200"
+          }
+        }
+      }
+    },
+    {
+      "id": "path-copied",
+      "type": "text",
+      "text": "# Path Copied\n\nEmitted when user copies a file path from the context menu",
+      "x": 320,
+      "y": 800,
+      "width": 280,
+      "height": 120,
+      "color": "#10b981",
+      "pv": {
+        "event": {
+          "name": "path.copied",
+          "attributes": {
+            "path": "string",
+            "node.type": "string"
+          }
+        },
+        "references": ["src/panels/StoryboardListPanel.tsx"],
+        "status": "draft",
+        "nodeType": "event",
+        "dataSchema": {
+          "path": {
+            "type": "string",
+            "required": true,
+            "description": "The file path that was copied",
+            "placeholder": ".principal-views/architecture.canvas"
+          },
+          "node.type": {
+            "type": "string",
+            "required": true,
+            "description": "Type of the node whose path was copied",
+            "placeholder": "canvas"
+          }
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-loading-loaded",
+      "fromNode": "panel-loading",
+      "toNode": "panel-loaded",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-loading-error",
+      "fromNode": "panel-loading",
+      "toNode": "panel-error",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-loaded-canvas",
+      "fromNode": "panel-loaded",
+      "toNode": "canvas-selected",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-loaded-workflow",
+      "fromNode": "panel-loaded",
+      "toNode": "workflow-selected",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-loaded-overview",
+      "fromNode": "panel-loaded",
+      "toNode": "overview-selected",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-canvas-open",
+      "fromNode": "canvas-selected",
+      "toNode": "open-canvas-emitted",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-workflow-open",
+      "fromNode": "workflow-selected",
+      "toNode": "open-canvas-emitted",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-overview-file",
+      "fromNode": "overview-selected",
+      "toNode": "file-open-emitted",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "emits"
+      }
+    },
+    {
+      "id": "edge-loaded-multi",
+      "fromNode": "panel-loaded",
+      "toNode": "open-multi-canvas-emitted",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-refresh-loading",
+      "fromNode": "refresh-requested",
+      "toNode": "panel-loading",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "edge-loaded-tab",
+      "fromNode": "panel-loaded",
+      "toNode": "tab-switched",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-loaded-search",
+      "fromNode": "panel-loaded",
+      "toNode": "search-changed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-loaded-toggle",
+      "fromNode": "panel-loaded",
+      "toNode": "node-toggled",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    },
+    {
+      "id": "edge-select-received",
+      "fromNode": "select-node-received",
+      "toNode": "canvas-selected",
+      "fromSide": "left",
+      "toSide": "right",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "edge-toggle-received",
+      "fromNode": "toggle-node-received",
+      "toNode": "node-toggled",
+      "fromSide": "left",
+      "toSide": "right",
+      "pv": {
+        "edgeType": "triggers"
+      }
+    },
+    {
+      "id": "edge-context-copy",
+      "fromNode": "context-menu-opened",
+      "toNode": "path-copied",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "data-flow"
+      }
+    }
+  ],
+  "pv": {
+    "name": "Storyboard List Panel",
+    "version": "1.0.0",
+    "description": "OTEL event schema for the StoryboardListPanel component - a tree view for browsing and selecting canvases and workflows",
+    "markdown": ".principal-views/storyboard-list-panel/storyboard-list-panel.md"
+  }
+}

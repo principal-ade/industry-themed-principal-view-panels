@@ -13,9 +13,9 @@
       "description": "Panel receives pre-built layout prop and renders directly",
       "template": {
         "events": {
-          "panel.props.received": "Received props with {{mode}} mode",
+          "panel.props.received": "Received props with {{mode}} mode for {{canvas.count}} canvases",
           "panel.mode.static": "Using static layout with {{placement.count}} placements",
-          "renderer.mounted": "Renderer mounted with minimap={{show.minimap}}"
+          "renderer.mounted": "Renderer mounted with minimap={{show.minimap}}, groups={{show.groups}}, controls={{show.controls}}, background={{background.variant}}"
         },
         "summary": "Static render with {{placement.count}} canvas placements"
       }
@@ -26,15 +26,15 @@
       "description": "Panel dynamically loads canvases and renders in grid layout",
       "template": {
         "events": {
-          "panel.props.received": "Received props with {{mode}} mode",
+          "panel.props.received": "Received props with {{mode}} mode for {{canvas.count}} canvases",
           "panel.mode.dynamic": "Dynamic mode with {{canvas.paths}} paths",
           "canvas.loading.started": "Loading {{canvas.count}} canvases from {{repository.path}}",
-          "canvas.file.read": "Reading {{file.path}}",
-          "canvas.parsed": "Parsed canvas {{canvas.id}} with {{node.count}} nodes",
+          "canvas.file.read": "Reading {{file.path}} ({{file.size}} bytes)",
+          "canvas.parsed": "Parsed canvas {{canvas.id}} with {{node.count}} nodes and {{edge.count}} edges",
           "canvas.loading.complete": "Loaded {{canvas.loaded.count}} canvases",
-          "layout.created": "Created {{direction}} layout with {{placement.count}} placements",
+          "layout.created": "Created {{direction}} layout with {{placement.count}} placements (gap={{gap}}, columns={{columns}})",
           "layout.grid": "Grid layout: {{columns}} columns, {{cell.width}}x{{cell.height}} cells",
-          "renderer.mounted": "Renderer mounted with background={{show.background}}"
+          "renderer.mounted": "Renderer mounted with background={{show.background}}, groups={{show.groups}}, controls={{show.controls}}, variant={{background.variant}}"
         },
         "summary": "Loaded {{canvas.loaded.count}} canvases in grid layout"
       }
@@ -45,15 +45,15 @@
       "description": "Panel dynamically loads canvases and renders in vertical stack",
       "template": {
         "events": {
-          "panel.props.received": "Received props with {{mode}} mode",
+          "panel.props.received": "Received props with {{mode}} mode for {{canvas.count}} canvases",
           "panel.mode.dynamic": "Dynamic mode with {{canvas.paths}} paths",
           "canvas.loading.started": "Loading {{canvas.count}} canvases",
-          "canvas.file.read": "Reading {{file.path}}",
-          "canvas.parsed": "Parsed canvas {{canvas.id}} with {{node.count}} nodes",
+          "canvas.file.read": "Reading {{file.path}} ({{file.size}} bytes)",
+          "canvas.parsed": "Parsed canvas {{canvas.id}} with {{node.count}} nodes and {{edge.count}} edges",
           "canvas.loading.complete": "Loaded {{canvas.loaded.count}} canvases",
-          "layout.created": "Created {{direction}} layout",
+          "layout.created": "Created {{direction}} layout with gap={{gap}}, columns={{columns}}",
           "layout.vertical": "Vertical layout with total height {{total.height}}",
-          "renderer.mounted": "Renderer mounted"
+          "renderer.mounted": "Renderer mounted with groups={{show.groups}}, controls={{show.controls}}, background={{background.variant}}"
         },
         "summary": "Loaded {{canvas.loaded.count}} canvases in vertical layout"
       }
@@ -64,15 +64,15 @@
       "description": "Panel dynamically loads canvases and renders side by side",
       "template": {
         "events": {
-          "panel.props.received": "Received props with {{mode}} mode",
+          "panel.props.received": "Received props with {{mode}} mode for {{canvas.count}} canvases",
           "panel.mode.dynamic": "Dynamic mode",
           "canvas.loading.started": "Loading {{canvas.count}} canvases",
-          "canvas.file.read": "Reading {{file.path}}",
-          "canvas.parsed": "Parsed canvas {{canvas.id}}",
+          "canvas.file.read": "Reading {{file.path}} ({{file.size}} bytes)",
+          "canvas.parsed": "Parsed canvas {{canvas.id}} with {{node.count}} nodes and {{edge.count}} edges",
           "canvas.loading.complete": "Loaded {{canvas.loaded.count}} canvases",
-          "layout.created": "Created {{direction}} layout",
+          "layout.created": "Created {{direction}} layout with gap={{gap}}, columns={{columns}}",
           "layout.horizontal": "Horizontal layout with total width {{total.width}}",
-          "renderer.mounted": "Renderer mounted"
+          "renderer.mounted": "Renderer mounted with groups={{show.groups}}, controls={{show.controls}}, background={{background.variant}}"
         },
         "summary": "Loaded {{canvas.loaded.count}} canvases in horizontal layout"
       }
@@ -83,7 +83,7 @@
       "description": "Canvas loading fails due to missing dependencies",
       "template": {
         "events": {
-          "panel.props.received": "Received props",
+          "panel.props.received": "Received props for {{canvas.count}} canvases",
           "panel.mode.dynamic": "Dynamic mode",
           "canvas.loading.started": "Loading canvases",
           "canvas.loading.error": "Error: {{error.type}} - {{error.message}}"
@@ -97,7 +97,7 @@
       "description": "All canvases fail to load, showing empty state",
       "template": {
         "events": {
-          "panel.props.received": "Received props",
+          "panel.props.received": "Received props for {{canvas.count}} canvases",
           "panel.mode.dynamic": "Dynamic mode",
           "canvas.loading.started": "Loading canvases",
           "canvas.loading.complete": "Loaded {{canvas.loaded.count}} canvases ({{canvas.failed.count}} failed)",
@@ -112,7 +112,7 @@
       "description": "User clicks a node on one of the rendered canvases",
       "template": {
         "events": {
-          "renderer.mounted": "Renderer ready",
+          "renderer.mounted": "Renderer ready with groups={{show.groups}}, controls={{show.controls}}, background={{background.variant}}",
           "node.clicked": "Clicked node {{node.id}} on canvas {{canvas.id}}"
         },
         "summary": "User clicked node {{node.id}}"
