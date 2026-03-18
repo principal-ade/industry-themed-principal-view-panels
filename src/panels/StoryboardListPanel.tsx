@@ -504,7 +504,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   }, [workflows, testTraces, storyboards]);
 
   // Calculate canvas node status map (storyboard ID -> implementation status counts)
-  // This extracts status from each canvas node's pv.status field
+  // This extracts status from each canvas node's otel.status field
   const canvasNodeStatusMap = useMemo(() => {
     const statusMap: Record<string, CanvasNodeStatus> = {};
 
@@ -519,11 +519,11 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
         let draft = 0;
 
         for (const node of canvas.nodes) {
-          const pv = (node as { pv?: PVNodeExtension }).pv;
-          // Skip nodes without pv extension - they're visual labels, not functional nodes
-          if (!pv) continue;
+          const otel = (node as { otel?: { status?: string } }).otel;
+          // Skip nodes without otel extension - they're visual labels, not functional nodes
+          if (!otel) continue;
 
-          const status = pv.status ?? 'draft';
+          const status = otel.status ?? 'draft';
 
           if (status === 'implemented') {
             implemented++;

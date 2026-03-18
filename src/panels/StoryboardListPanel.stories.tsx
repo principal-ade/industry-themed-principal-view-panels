@@ -1431,7 +1431,7 @@ export const WithImplementationStatus: Story = {
           width: 200,
           height: 80,
           text: `Implemented Node ${i + 1}`,
-          pv: { status: 'implemented', name: `Implemented ${i + 1}` },
+          otel: { status: 'implemented' },
         });
       }
       for (let i = 0; i < approved; i++) {
@@ -1443,7 +1443,7 @@ export const WithImplementationStatus: Story = {
           width: 200,
           height: 80,
           text: `Approved Node ${i + 1}`,
-          pv: { status: 'approved', name: `Approved ${i + 1}` },
+          otel: { status: 'approved' },
         });
       }
       for (let i = 0; i < draft; i++) {
@@ -1455,13 +1455,13 @@ export const WithImplementationStatus: Story = {
           width: 200,
           height: 80,
           text: `Draft Node ${i + 1}`,
-          pv: { status: 'draft', name: `Draft ${i + 1}` },
+          otel: { status: 'draft' },
         });
       }
       return nodes;
     };
 
-    // Custom readFile that returns canvas content with pv.status on nodes
+    // Custom readFile that returns canvas content with otel.status on nodes
     const mockReadFile = async (path: string) => {
       if (path.endsWith('.otel.canvas')) {
         const storyboardName = path.split('/').slice(-2, -1)[0] || 'Mock Canvas';
@@ -1569,13 +1569,13 @@ export const WithImplementationStatus: Story = {
 };
 
 /**
- * Text Nodes Without PV Extension - Verifies that label/title nodes are NOT counted
+ * Text Nodes Without OTEL Extension - Verifies that label/title nodes are NOT counted
  * in implementation status. Text nodes used as visual labels should be skipped
- * because they don't have pv extensions (they're not functional nodes).
+ * because they don't have otel extensions (they're not functional nodes).
  *
- * This tests the fix for: nodes without pv extension were being counted as 'draft'
+ * This tests the fix for: nodes without otel extension were being counted as 'draft'
  */
-export const TextNodesWithoutPvExtension: Story = {
+export const TextNodesWithoutOtelExtension: Story = {
   args: {} as never,
   render: () => {
     const allFiles = [
@@ -1595,23 +1595,23 @@ export const TextNodesWithoutPvExtension: Story = {
     fileTree.sha = 'mock-sha-text-nodes';
     fileTree.allFiles = allFiles;
 
-    // Custom readFile that returns canvas with text nodes WITHOUT pv extension
+    // Custom readFile that returns canvas with text nodes WITHOUT otel extension
     const mockReadFile = async (path: string) => {
       if (path.endsWith('.otel.canvas')) {
         const storyboardName = path.split('/').slice(-2, -1)[0] || 'Mock Canvas';
 
         if (storyboardName === 'with-title-label') {
           // Canvas with:
-          // - 1 title text node WITHOUT pv extension (should NOT be counted)
-          // - 3 functional nodes with pv.status: implemented
+          // - 1 title text node WITHOUT otel extension (should NOT be counted)
+          // - 3 functional nodes with otel.status: implemented
           return JSON.stringify({
             pv: {
               name: 'With Title Label',
               version: '1.0.0',
-              description: 'Canvas with a title label node that has no pv extension',
+              description: 'Canvas with a title label node that has no otel extension',
             },
             nodes: [
-              // Title node - NO pv extension, should be SKIPPED
+              // Title node - NO otel extension, should be SKIPPED
               {
                 id: 'title',
                 type: 'text',
@@ -1620,38 +1620,38 @@ export const TextNodesWithoutPvExtension: Story = {
                 width: 400,
                 height: 50,
                 color: '#64748B',
-                text: '# Flow Title\n**This is a label node without pv**',
+                text: '# Flow Title\n**This is a label node without otel**',
               },
-              // Functional nodes WITH pv extension
+              // Functional nodes WITH otel extension
               {
                 id: 'node-1',
-                type: 'text',
+                type: 'otel-event',
                 x: 100,
                 y: 50,
                 width: 200,
                 height: 80,
-                text: 'Request Received',
-                pv: { status: 'implemented', name: 'Request Received' },
+                label: 'Request Received',
+                otel: { status: 'implemented' },
               },
               {
                 id: 'node-2',
-                type: 'text',
+                type: 'otel-event',
                 x: 100,
                 y: 150,
                 width: 200,
                 height: 80,
-                text: 'Process Data',
-                pv: { status: 'implemented', name: 'Process Data' },
+                label: 'Process Data',
+                otel: { status: 'implemented' },
               },
               {
                 id: 'node-3',
-                type: 'text',
+                type: 'otel-event',
                 x: 100,
                 y: 250,
                 width: 200,
                 height: 80,
-                text: 'Send Response',
-                pv: { status: 'implemented', name: 'Send Response' },
+                label: 'Send Response',
+                otel: { status: 'implemented' },
               },
             ],
             edges: [],
@@ -1667,33 +1667,33 @@ export const TextNodesWithoutPvExtension: Story = {
             nodes: [
               {
                 id: 'node-1',
-                type: 'text',
+                type: 'otel-event',
                 x: 100,
                 y: 50,
                 width: 200,
                 height: 80,
-                text: 'Request Received',
-                pv: { status: 'implemented', name: 'Request Received' },
+                label: 'Request Received',
+                otel: { status: 'implemented' },
               },
               {
                 id: 'node-2',
-                type: 'text',
+                type: 'otel-event',
                 x: 100,
                 y: 150,
                 width: 200,
                 height: 80,
-                text: 'Process Data',
-                pv: { status: 'implemented', name: 'Process Data' },
+                label: 'Process Data',
+                otel: { status: 'implemented' },
               },
               {
                 id: 'node-3',
-                type: 'text',
+                type: 'otel-event',
                 x: 100,
                 y: 250,
                 width: 200,
                 height: 80,
-                text: 'Send Response',
-                pv: { status: 'implemented', name: 'Send Response' },
+                label: 'Send Response',
+                otel: { status: 'implemented' },
               },
             ],
             edges: [],
