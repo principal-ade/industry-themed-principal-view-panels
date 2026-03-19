@@ -998,7 +998,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
               fontSize: theme.fontSizes[1],
               fontFamily: theme.fonts.body,
               fontWeight: effectiveCanvasTypeFilter === 'regular' ? 600 : 400,
-              color: effectiveCanvasTypeFilter === 'regular' ? 'white' : theme.colors.text,
+              color: effectiveCanvasTypeFilter === 'regular' ? theme.colors.textOnPrimary : theme.colors.text,
               transition: 'all 0.2s ease',
             }}
             title="Static architecture .canvas files"
@@ -1020,7 +1020,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
               fontSize: theme.fontSizes[1],
               fontFamily: theme.fonts.body,
               fontWeight: effectiveCanvasTypeFilter === 'otel' ? 600 : 400,
-              color: effectiveCanvasTypeFilter === 'otel' ? 'white' : theme.colors.text,
+              color: effectiveCanvasTypeFilter === 'otel' ? theme.colors.textOnPrimary : theme.colors.text,
               transition: 'all 0.2s ease',
             }}
             title="Runtime validated .otel.canvas files"
