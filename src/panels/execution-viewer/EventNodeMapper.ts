@@ -38,10 +38,11 @@ export function mapEventToNodeId(
     return null;
   }
 
-  // Strategy 1: Match by event name in pv.eventRef or pv.event.name
+  // Strategy 1: Match by event name in pv.eventRef, pv.event.name, or top-level event.name (OTEL format)
   for (const node of canvas.nodes) {
     const nodePv = node.pv as PVNodeExtension | undefined;
-    const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
+    const topLevelEvent = (node as { event?: { name?: string } }).event?.name;
+    const nodeEventName = nodePv?.eventRef || nodePv?.event?.name || topLevelEvent;
     if (nodeEventName === event.name) {
       return node.id;
     }
@@ -95,7 +96,8 @@ export function buildEventToNodeMap(
 
   for (const node of canvas.nodes) {
     const nodePv = node.pv as PVNodeExtension | undefined;
-    const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
+    const topLevelEvent = (node as { event?: { name?: string } }).event?.name;
+    const nodeEventName = nodePv?.eventRef || nodePv?.event?.name || topLevelEvent;
     if (nodeEventName && !map.has(nodeEventName)) {
       map.set(nodeEventName, node.id);
     }
@@ -122,7 +124,8 @@ export function debugEventMapping(canvas: ExtendedCanvas | null): string {
   let eventCount = 0;
   for (const node of canvas.nodes) {
     const nodePv = node.pv as PVNodeExtension | undefined;
-    const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
+    const topLevelEvent = (node as { event?: { name?: string } }).event?.name;
+    const nodeEventName = nodePv?.eventRef || nodePv?.event?.name || topLevelEvent;
     if (nodeEventName) {
       lines.push(`Node: ${node.id}`);
       lines.push(`  - ${nodeEventName}`);

@@ -511,7 +511,9 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     const nodePv: PVNodeExtension | undefined = node.pv;
     // eventRef is the event name directly (string)
     // event.name is the event name within an event schema object
-    return nodePv?.eventRef || nodePv?.event?.name || null;
+    // Also check top-level event.name for OTEL node format (type: "otel-event")
+    const topLevelEvent = (node as { event?: { name?: string } }).event?.name;
+    return nodePv?.eventRef || nodePv?.event?.name || topLevelEvent || null;
   }, []);
 
   // Handle scenario hover - highlight nodes that have events matching the scenario
