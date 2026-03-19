@@ -15,13 +15,13 @@ graph TD
     subgraph "Panel Layer (Top Level)"
         TLP[TraceListPanel<br/>Shows traces list + config]
         TDP[TraceDetailsPanel<br/>Shows span details]
-        WSP[WorkflowScenariosPanel<br/>Shows workflow graph + execution]
+        CEP[CanvasEditorPanel<br/>Shows workflow graph + execution]
     end
 
     subgraph "Component Layer"
         TL[TraceList<br/>List view with grouping]
         TE[TraceExpansion<br/>Workflow tree expansion]
-        LTSV[LiveTraceSearchView<br/>Search overlay]
+        SL[ScenariosList<br/>Scenario selection]
         TD[TraceDetails<br/>Span tree viewer]
     end
 
@@ -37,12 +37,12 @@ graph TD
     TLP --> TL
     TLP --> TE
     TDP --> TD
-    WSP --> LTSV
-    WSP --> RT
+    CEP --> SL
+    CEP --> RT
 
     TL --> TE
     TL --> RT
-    LTSV --> RT
+    SL --> RT
     TD --> RT
 
     WM -.deprecated.-> RT
@@ -98,14 +98,15 @@ sequenceDiagram
   - Receives `RegisteredTrace` as prop
 - **Data Flow**: `selectedTrace` prop → `TraceDetails` component
 
-#### WorkflowScenariosPanel.tsx
-- **Role**: Main workflow graph visualization with execution overlay
+#### CanvasEditorPanel.tsx
+- **Role**: Main canvas/workflow graph visualization with execution overlay
 - **Dependencies**:
-  - Uses `LiveTraceSearchView` for trace search
   - Uses `GraphRenderer` for workflow visualization
-  - Uses `ScenariosList` for scenario selection
+  - Uses `ScenariosList` for scenario selection (when workflow provided)
+  - Uses `EventCarousel` for event navigation
 - **Data Flow**:
-  - `context.getSlice('telemetry')` → filters by scenario → overlays on graph
+  - `workflowTemplate` prop → enables scenarios panel
+  - `selectedTrace` prop → overlays execution data on graph
   - User selects scenario → filters traces → shows matches
 
 ---
@@ -142,7 +143,7 @@ sequenceDiagram
 
 #### LiveTraceSearchView.tsx
 - **Role**: Search/filter overlay for live trace selection
-- **Used By**: `WorkflowScenariosPanel`
+- **Used By**: Execution viewer components
 - **Key Functions**:
   - Filters traces by scenario ID
   - Text search across attributes
@@ -487,19 +488,9 @@ const scenarioIds = getMatchedScenarioIds(trace);
 
 ---
 
-#### 6. WorkflowScenariosPanel.tsx (4 errors)
+#### 6. CanvasEditorPanel.tsx (trace filtering)
 
-**Old Code Pattern:**
-```typescript
-const filteredTraces = traces.filter(
-  t => t.registryStatus === 'matched' &&
-       t.matchInfo?.scenarioId === selectedScenarioId
-);
-
-{trace.serviceName}
-```
-
-**New Code Pattern:**
+**Pattern for trace filtering:**
 ```typescript
 import { filterTracesByScenario, getServiceName } from '../utils/traceHelpers';
 
@@ -603,7 +594,7 @@ const mockTrace: RegisteredTrace = {
 ### Phase 4: Update Panels (Top-Down)
 8. Update `TraceDetailsPanel.tsx`
 9. Update `TraceListPanel.tsx`
-10. Update `WorkflowScenariosPanel.tsx`
+10. Update `CanvasEditorPanel.tsx`
 
 ### Phase 5: Verification
 11. Run typecheck
@@ -624,7 +615,7 @@ After migration, verify:
 - [ ] Scenario filtering works in LiveTraceSearchView
 - [ ] Search functionality still works
 - [ ] TraceDetails panel shows correct information
-- [ ] WorkflowScenariosPanel overlays execution data correctly
+- [ ] CanvasEditorPanel overlays execution data correctly
 - [ ] Mocks work in Storybook
 - [ ] No TypeScript errors
 - [ ] Build completes successfully

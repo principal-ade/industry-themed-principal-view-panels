@@ -146,7 +146,7 @@ const workflowScenariosCanvas: ExtendedCanvas = {
   pv: {
     name: 'Workflow Scenarios Panel',
     version: '1.0.0',
-    description: 'OTEL event schema for the WorkflowScenariosPanel component',
+    description: 'OTEL event schema for workflow scenarios',
   },
 };
 

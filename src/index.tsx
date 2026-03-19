@@ -1,5 +1,4 @@
 import { CanvasEditorPanel } from './panels/CanvasEditorPanel';
-import { WorkflowScenariosPanel } from './panels/WorkflowScenariosPanel';
 import { StoryboardListPanel } from './panels/StoryboardListPanel';
 import { TraceListPanel } from './panels/TraceListPanel';
 import type { PanelDefinition, PanelContextValue } from './types';
@@ -8,8 +7,6 @@ import { principalViewPanelTools } from './tools';
 // Re-export components for direct usage
 export { CanvasEditorPanel } from './panels/CanvasEditorPanel';
 export type { CanvasEditorPanelProps } from './panels/CanvasEditorPanel';
-export { WorkflowScenariosPanel } from './panels/WorkflowScenariosPanel';
-export type { WorkflowScenariosPanelProps } from './panels/WorkflowScenariosPanel';
 export { StoryboardListPanel } from './panels/StoryboardListPanel';
 export { TraceListPanel } from './panels/TraceListPanel';
 export { TraceDetailsPanel } from './panels/TraceDetailsPanel';
@@ -81,34 +78,6 @@ export const panels: PanelDefinition<any, any>[] = [
     onUnmount: async (_context: PanelContextValue) => {
       // eslint-disable-next-line no-console
       console.log('Canvas Editor Panel unmounting');
-    },
-  },
-  {
-    metadata: {
-      id: 'principal-ai.workflow-scenarios',
-      name: 'Workflow Scenarios',
-      icon: '⚡',
-      version: '0.1.0',
-      author: 'Principal AI',
-      description: 'Visualizes workflow scenarios with execution artifacts, templates, and playback controls',
-      slices: ['fileTree'],
-    },
-    component: WorkflowScenariosPanel,
-
-    onMount: async (context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log(
-        'Workflow Scenarios Panel mounted',
-        context.currentScope.repository?.path
-      );
-
-      // Note: This panel uses telemetry slice, not fileTree
-      // Telemetry is automatically managed by RepositoryPanelContext
-    },
-
-    onUnmount: async (_context: PanelContextValue) => {
-      // eslint-disable-next-line no-console
-      console.log('Workflow Scenarios Panel unmounting');
     },
   },
   {

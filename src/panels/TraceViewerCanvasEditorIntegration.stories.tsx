@@ -677,12 +677,11 @@ const meta = {
     docs: {
       description: {
         component:
-          'Integration story showing TraceListPanel with CanvasEditorPanel (instead of WorkflowScenariosPanel).\n\n' +
-          'This story tests the migration path from WorkflowScenariosPanel to CanvasEditorPanel.\n\n' +
+          'Integration story showing TraceListPanel with CanvasEditorPanel.\n\n' +
           '**Interactions:**\n' +
           '- Click trace ID or unmatched span → Shows TraceDetailsPanel\n' +
           '- Click matched span (green) → Shows CanvasEditorPanel with workflow scenarios\n\n' +
-          '**Key Difference from TraceViewerIntegration:**\n' +
+          '**Features:**\n' +
           '- Uses CanvasEditorPanel with `workflowTemplate` and `traceMatchInfo` props\n' +
           '- CanvasEditorPanel displays ScenariosList in left panel when workflow is provided',
       },

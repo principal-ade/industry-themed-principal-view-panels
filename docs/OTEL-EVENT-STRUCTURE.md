@@ -8,7 +8,6 @@ This document specifies the structure of OpenTelemetry (OTEL) trace events that 
 **Target Panels:**
 - StoryboardListPanel
 - CanvasEditorPanel
-- WorkflowScenariosPanel
 - ExecutionViewerPanel
 - Any panel that needs to visualize live telemetry
 

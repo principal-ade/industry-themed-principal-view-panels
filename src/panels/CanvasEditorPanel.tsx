@@ -759,7 +759,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   // Clear shouldFitToNodes after the fit happens (one-shot behavior)
   useEffect(() => {
     if (shouldFitToNodes) {
-      // Allow time for the fit animation to trigger, then reset (300ms matches WorkflowScenariosPanel)
+      // Allow time for the fit animation to trigger, then reset (300ms animation duration)
       const timer = setTimeout(() => setShouldFitToNodes(false), 300);
       return () => clearTimeout(timer);
     }

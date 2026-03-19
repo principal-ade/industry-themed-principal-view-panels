@@ -17,7 +17,7 @@ import {
   type CanvasNodeStatus,
 } from '@principal-ade/dynamic-file-tree';
 import type { FileTree, FileInfo, GitStatusWithFiles } from '@principal-ai/repository-abstraction';
-import type { WorkflowTemplate, DiscoveredTestTrace, WorkflowScenario, DiscoveredCanvasWithContent, PVNodeExtension } from '@principal-ai/principal-view-core';
+import type { WorkflowTemplate, DiscoveredTestTrace, WorkflowScenario, DiscoveredCanvasWithContent } from '@principal-ai/principal-view-core';
 import { getTracer, type Span } from '../telemetry';
 
 /**
@@ -422,7 +422,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     return match ? match[1] : null;
   };
 
-  // Helper to build execution-scenario map (similar to WorkflowScenariosPanel logic)
+  // Helper to build execution-scenario map
   const buildExecutionScenarioMap = (
     workflowTemplate: WorkflowTemplate,
     workflowTestTraces: DiscoveredTestTrace[]

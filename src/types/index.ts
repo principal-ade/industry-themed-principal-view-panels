@@ -74,22 +74,6 @@ export type CanvasEditorPanelPropsTyped = PanelComponentProps<
 >;
 
 /**
- * Typed context for WorkflowScenariosPanel
- */
-export interface WorkflowScenariosPanelContext {
-  fileTree: DataSlice<FileTree | null>;
-  telemetry: DataSlice<RegisteredTrace[]>;
-}
-
-/**
- * Typed panel props for WorkflowScenariosPanel
- */
-export type WorkflowScenariosPanelPropsTyped = PanelComponentProps<
-  PanelActions,
-  WorkflowScenariosPanelContext
->;
-
-/**
  * Typed context for StoryboardListPanel
  */
 export interface StoryboardListPanelContext {
@@ -237,7 +221,7 @@ export type MultiCanvasPanelPropsTyped = PanelComponentProps<
 /**
  * Payload for 'custom' event with action: 'openCanvas'
  * Emitted by TraceListPanel when a matched workflow span is clicked.
- * Used to navigate to WorkflowScenariosPanel with the appropriate context.
+ * Used to navigate to CanvasEditorPanel with workflow context.
  */
 export interface OpenCanvasPayload {
   action: 'openCanvas';
@@ -253,7 +237,7 @@ export interface OpenCanvasPayload {
   workflowPath?: string;
   /** Full workflow template with scenarios */
   workflow?: WorkflowTemplate;
-  /** How to open: 'detail' for WorkflowScenariosPanel, 'editor' for CanvasEditorPanel */
+  /** How to open: 'editor' for CanvasEditorPanel (legacy 'detail' also maps to editor) */
   openMode: 'detail' | 'editor';
   /** Storyboard ID containing the workflow */
   storyboardId: string;

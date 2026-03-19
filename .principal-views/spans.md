@@ -7,8 +7,8 @@ This canvas defines the span hierarchy patterns used across Principal View panel
 | Pattern | Description |
 |---------|-------------|
 | `multi-canvas-panel.render` | MultiCanvasPanel rendering lifecycle |
-| `workflow-scenarios-panel.session` | User session with WorkflowScenariosPanel |
-| `workflow-scenarios-panel.trace-analysis` | Trace analysis operations |
+| `canvas-editor-panel.session` | User session with CanvasEditorPanel |
+| `canvas-editor-panel.trace-analysis` | Trace analysis operations |
 
 ## Child Spans
 
@@ -16,7 +16,7 @@ This canvas defines the span hierarchy patterns used across Principal View panel
 - `canvas.load` - Loading individual canvas files
 - `layout.compute` - Computing layout positions
 
-### WorkflowScenariosPanel
+### CanvasEditorPanel
 - `scenario.interaction` - Scenario selection/hover events
 - `trace.playback` - Trace playback session
 - `trace.match` - Matching events to scenarios
