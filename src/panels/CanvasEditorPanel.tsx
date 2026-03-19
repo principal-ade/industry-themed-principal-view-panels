@@ -18,6 +18,7 @@ import { mapEventToNodeId } from './execution-viewer/EventNodeMapper';
 interface GraphPanelState {
   canvas: ExtendedCanvas | null;
   library: ComponentLibrary | null;
+  spansCanvas: ExtendedCanvas | null;
   loading: boolean;
   error: string | null;
   // Legend overlay
@@ -111,6 +112,20 @@ export interface CanvasEditorPanelProps extends CanvasEditorPanelPropsTyped {
    * When provided, displays a close button (X) in the header.
    */
   onClosePanel?: () => void;
+
+  /**
+   * Path to a .spans.canvas file (relative to repository root).
+   * When provided, span colors from this file are used to color event nodes.
+   * Span colors become the FILL color for nodes.
+   */
+  spansCanvasPath?: string | null;
+
+  /**
+   * Span pattern to use for coloring event nodes.
+   * Should match a spanPattern defined in the spansCanvas.
+   * When provided with spansCanvasPath, events are colored with the span's color.
+   */
+  workflowSpanPattern?: string | null;
 }
 
 /**
@@ -134,15 +149,22 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   selectedScenarioId: selectedScenarioIdProp,
   selectedTrace,
   onClosePanel,
+  spansCanvasPath,
+  workflowSpanPattern,
 }) => {
   const { theme } = useTheme();
 
   // Ref to GraphRenderer for getting pending changes
   const graphRef = useRef<GraphRendererHandle>(null);
 
+  // Track container dimensions for instant viewport positioning
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const [containerDimensions, setContainerDimensions] = useState<{ width: number; height: number } | null>(null);
+
   const [state, setState] = useState<GraphPanelState>({
     canvas: null,
     library: null,
+    spansCanvas: null,
     loading: true,
     error: null,
     showLegend: false,
@@ -162,6 +184,41 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     isSearchOpen: false,
     searchQuery: '',
   });
+
+  // Track container dimensions using ref callback + ResizeObserver
+  const observerRef = useRef<ResizeObserver | null>(null);
+
+  const containerRefCallback = useCallback((node: HTMLDivElement | null) => {
+    // Clean up old observer
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+
+    // Store ref for other uses
+    (canvasContainerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+
+    if (!node) return;
+
+    // Create observer immediately
+    observerRef.current = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) {
+        setContainerDimensions({ width, height });
+      }
+    });
+
+    observerRef.current.observe(node);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, []);
 
   // Track whether to fit viewport to active nodes (one-shot on scenario selection)
   const [shouldFitToNodes, setShouldFitToNodes] = useState(false);
@@ -211,7 +268,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   const loadConfiguration = useCallback(async () => {
     // Early return if required props are missing
     if (!canvasPath) {
-      setState(prev => ({ ...prev, canvas: null, library: null, loading: false, error: null }));
+      setState(prev => ({ ...prev, canvas: null, library: null, spansCanvas: null, loading: false, error: null }));
       return;
     }
 
@@ -266,10 +323,26 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         }
       }
 
+      // Load spans canvas if spansCanvasPath is provided
+      let spansCanvas: ExtendedCanvas | null = null;
+      if (spansCanvasPath) {
+        try {
+          const spansFullPath = `${repositoryPath}/${spansCanvasPath}`;
+          const spansContent = await readFile(spansFullPath);
+          if (spansContent && typeof spansContent === 'string') {
+            spansCanvas = ConfigLoader.parseCanvas(spansContent);
+          }
+        } catch (spansError) {
+          // Spans canvas loading is optional, don't fail the whole operation
+          console.warn('[PrincipalView] Failed to load spans canvas:', spansError);
+        }
+      }
+
       setState(prev => ({
         ...prev,
         canvas,
         library,
+        spansCanvas,
         loading: false,
         error: null,
         hasUnsavedChanges: false
@@ -280,11 +353,12 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         ...prev,
         canvas: null,
         library: null,
+        spansCanvas: null,
         loading: false,
         error: (error as Error).message
       }));
     }
-  }, [canvasPath]);
+  }, [canvasPath, spansCanvasPath]);
 
   // Toggle legend overlay
   const toggleLegend = useCallback(() => {
@@ -1034,29 +1108,25 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     };
   }, [events, workflowTemplate, state.selectedScenario, handleScenarioClick, handleScenarioDoubleClick, handleNarrativeEventClick]);
 
-  if (state.loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100%',
-        color: theme.colors.textMuted,
-        fontFamily: theme.fonts.body
-      }}>
-        <Loader size={24} style={{ animation: 'spin 1s linear infinite' }} />
-        <span style={{ marginLeft: theme.space[2] }}>Loading configuration...</span>
-      </div>
-    );
-  }
-
-  if (state.error) {
-    return <ErrorStateContent theme={theme} error={state.error} onRetry={() => loadConfiguration()} />;
-  }
-
-  if (!state.canvas) {
-    return <EmptyStateContent theme={theme} />;
-  }
+  // Determine what content to show in the canvas area
+  const canvasContent = state.loading ? (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      width: '100%',
+      color: theme.colors.textMuted,
+      fontFamily: theme.fonts.body
+    }}>
+      <Loader size={24} style={{ animation: 'spin 1s linear infinite' }} />
+      <span style={{ marginLeft: theme.space[2] }}>Loading configuration...</span>
+    </div>
+  ) : state.error ? (
+    <ErrorStateContent theme={theme} error={state.error} onRetry={() => loadConfiguration()} />
+  ) : !state.canvas ? (
+    <EmptyStateContent theme={theme} />
+  ) : null;
 
   return (
     <div style={{
@@ -1069,12 +1139,12 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       {/* Header */}
       <div style={{
         height: 39,
+        flexShrink: 0,
         borderBottom: `1px solid ${theme.colors.border}`,
         backgroundColor: theme.colors.background,
-        flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
-        boxSizing: 'content-box'
+        boxSizing: 'content-box',
       }}>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', gap: theme.space[3], minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2], minWidth: 0, flex: 1 }}>
@@ -1241,8 +1311,8 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         )}
       </div>
 
-      {/* Main content area - always use AnimatedResizableLayout, collapse left panel when no workflow */}
-      <div style={{ flex: 1, overflow: 'hidden' }}>
+      {/* Main content area - flex: 1 to fill remaining space, minHeight: 0 to allow shrinking */}
+      <div style={{ flex: '1 1 0%', minHeight: 0, overflow: 'hidden' }}>
         <AnimatedResizableLayout
           theme={theme}
           collapsed={!workflowTemplate}
@@ -1264,28 +1334,37 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
             )
           }
           rightPanel={
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: theme.colors.background, position: 'relative' }}>
-              {/* Canvas Area - must have explicit height for React Flow */}
-              <div style={{ flex: 1, position: 'relative', minHeight: 0, width: '100%', height: '100%' }}>
-                <GraphRenderer
-                  ref={graphRef}
-                  canvas={state.canvas}
-                  library={state.library ?? undefined}
-                  width="100%"
-                  height="100%"
-                  editable={state.isEditMode}
-                  onPendingChangesChange={(hasChanges) => {
-                    setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
-                  }}
-                  onCopy={handleCopyNodes}
-                  showBackground={state.showGridLines}
-                  backgroundVariant="lines"
-                  showControls={true}
-                  highlightedNodeId={state.highlightedNodeId}
-                  activeNodeIds={activeNodeIds}
-                  fitViewToNodeIds={fitViewToNodeIds}
-                  fitViewPadding={0.15}
-                />
+            <div ref={containerRefCallback} style={{ height: '100%', width: '100%', background: theme.colors.background, position: 'relative' }}>
+                {/* Show loading/error/empty states, or GraphRenderer when ready */}
+                {canvasContent ? (
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {canvasContent}
+                  </div>
+                ) : state.canvas ? (
+                  <GraphRenderer
+                    ref={graphRef}
+                    canvas={state.canvas}
+                    library={state.library ?? undefined}
+                    spansCanvas={state.spansCanvas ?? undefined}
+                    workflowSpanPattern={workflowSpanPattern ?? undefined}
+                    width="100%"
+                    height="100%"
+                    editable={state.isEditMode}
+                    onPendingChangesChange={(hasChanges) => {
+                      setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
+                    }}
+                    onCopy={handleCopyNodes}
+                    showBackground={state.showGridLines}
+                    backgroundVariant="lines"
+                    showControls={true}
+                    highlightedNodeId={state.highlightedNodeId}
+                    activeNodeIds={activeNodeIds}
+                    fitViewToNodeIds={fitViewToNodeIds}
+                    fitViewPadding={0.15}
+                    containerWidth={containerDimensions?.width}
+                    containerHeight={containerDimensions?.height}
+                  />
+                ) : null}
 
                 {/* Save/Discard Overlay - top right corner */}
                 {state.isEditMode && state.hasUnsavedChanges && (
@@ -1619,11 +1698,11 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                     </span>
                   </div>
                 )}
-              </div>
 
-              {/* Event Carousel - shown when scenario is selected */}
-              {state.selectedScenario && (
-                <EventCarousel
+                {/* Event Carousel - shown when scenario is selected */}
+                {state.selectedScenario && (
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30 }}>
+                    <EventCarousel
                   scenario={state.selectedScenario}
                   currentEventIndex={state.currentEventIndex}
                   onEventIndexChange={(index) => setState(prev => ({ ...prev, currentEventIndex: index }))}
@@ -1669,9 +1748,10 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                     });
                     return sources;
                   }}
-                  traceEvents={traceEvents}
-                />
-              )}
+                      traceEvents={traceEvents}
+                    />
+                  </div>
+                )}
             </div>
           }
         />

@@ -132,6 +132,25 @@ const DirectGraphRendererTemplate = () => {
   const graphRef = useRef<GraphRendererHandle>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Track container dimensions for instant viewport positioning
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerDimensions, setContainerDimensions] = useState<{ width: number; height: number } | null>(null);
+
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) {
+        setContainerDimensions({ width, height });
+      }
+    });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '12px 16px', background: '#fff', borderBottom: '1px solid #ddd' }}>
@@ -141,18 +160,18 @@ const DirectGraphRendererTemplate = () => {
         </div>
         {hasChanges && (
           <div style={{ marginTop: 8, padding: '6px 12px', background: '#fef3c7', borderRadius: 4, fontSize: 12 }}>
-            ⚠️ You have unsaved changes
+            You have unsaved changes
           </div>
         )}
       </div>
-      <div style={{ flex: 1, position: 'relative' }}>
+      <div ref={containerRef} style={{ flex: 1, position: 'relative', width: '100%', height: '100%' }}>
         <GraphRenderer
           ref={graphRef}
           canvas={sampleCanvas}
-          width={800}
-          height={500}
           editable={true}
           onPendingChangesChange={setHasChanges}
+          containerWidth={containerDimensions?.width}
+          containerHeight={containerDimensions?.height}
         />
       </div>
     </div>
@@ -589,41 +608,113 @@ const libraryColorCanvas = {
   },
 };
 
-/**
- * Tests that library.yaml nodeComponent colors are correctly applied to nodes.
- * Each node uses a nodeType that maps to a library component with a specific color.
- */
-const LibraryColorsTemplate = () => {
-  const graphRef = useRef<GraphRendererHandle>(null);
-
-  return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '12px 16px', background: '#fff', borderBottom: '1px solid #ddd' }}>
-        <div style={{ fontWeight: 600, marginBottom: 4 }}>Library Colors Test</div>
-        <div style={{ fontSize: 12, color: '#666' }}>
-          Tests that nodeComponent colors from library.yaml are applied via the library prop.
-          Each node should show the color defined in its nodeType's library component.
-        </div>
-        <div style={{ marginTop: 8, fontSize: 11, color: '#888' }}>
-          <strong>Expected:</strong> API=RED, Database=GREEN, Processor=BLUE, Gateway=PURPLE, Override=YELLOW (node.color wins)
-        </div>
-      </div>
-      <div style={{ flex: 1, position: 'relative' }}>
-        <GraphRenderer
-          ref={graphRef}
-          canvas={libraryColorCanvas}
-          library={libraryColorTestLibrary}
-          width={800}
-          height={500}
-        />
-      </div>
-    </div>
-  );
-};
+// Convert library to YAML string for mock file
+const libraryColorTestYaml = `
+version: "1.0.0"
+name: Color Test Library
+description: Library for testing color inheritance from library.yaml
+resources: {}
+nodeComponents:
+  api-service:
+    description: API Service - should be RED
+    shape: rectangle
+    color: "#EF4444"
+    icon: Server
+  database:
+    description: Database - should be GREEN
+    shape: circle
+    color: "#22C55E"
+    icon: Database
+  processor:
+    description: Processor - should be BLUE
+    shape: hexagon
+    color: "#3B82F6"
+    icon: Cpu
+  gateway:
+    description: Gateway - should be PURPLE
+    shape: diamond
+    color: "#A855F7"
+    icon: Network
+edgeComponents:
+  data-flow:
+    description: Data flow - should be ORANGE
+    style: solid
+    color: "#F97316"
+    directed: true
+  dependency:
+    description: Dependency - should be CYAN
+    style: dashed
+    color: "#06B6D4"
+    directed: true
+`;
 
 export const LibraryColors: Story = {
   args: {} as never,
-  render: () => <LibraryColorsTemplate />,
+  render: () => {
+    const fileTreeData = {
+      allFiles: [
+        {
+          path: '.principal-views/library-test.canvas',
+          relativePath: '.principal-views/library-test.canvas',
+          name: 'library-test.canvas',
+          content: JSON.stringify(libraryColorCanvas, null, 2),
+        },
+        {
+          path: '.principal-views/library.yaml',
+          relativePath: '.principal-views/library.yaml',
+          name: 'library.yaml',
+          content: libraryColorTestYaml,
+        },
+      ],
+    };
+
+    const mockSlices = new Map<string, DataSlice>();
+    mockSlices.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeData,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          slices: mockSlices,
+          getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+            return mockSlices.get(name) as DataSlice<T> | undefined;
+          },
+          hasSlice: (name: string) => mockSlices.has(name),
+          isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+          repositoryPath: '/mock/repository',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return file.content;
+          },
+          writeFile: async (path: string, content: string) => {
+            console.log('[Storybook Mock] Saved file:', path, content.length, 'bytes');
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+      >
+        {(props) => (
+          <CanvasEditorPanel
+            {...props}
+            canvasPath=".principal-views/library-test.canvas"
+            canvasName="Library Colors Test"
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
   parameters: {
     docs: {
       description: {
@@ -1256,6 +1347,7 @@ const spansCanvasData = {
       pv: {
         nodeType: 'span-convention',
         shape: 'hexagon' as const,
+        otel: { spanPattern: 'cli-command' },
       },
     },
     {
@@ -1270,6 +1362,7 @@ const spansCanvasData = {
       pv: {
         nodeType: 'span-convention',
         shape: 'hexagon' as const,
+        otel: { spanPattern: 'validate' },
       },
     },
     {
@@ -1284,6 +1377,7 @@ const spansCanvasData = {
       pv: {
         nodeType: 'span-convention',
         shape: 'hexagon' as const,
+        otel: { spanPattern: 'discover' },
       },
     },
     {
@@ -1298,6 +1392,7 @@ const spansCanvasData = {
       pv: {
         nodeType: 'span-convention',
         shape: 'hexagon' as const,
+        otel: { spanPattern: 'parse' },
       },
     },
     {
@@ -1312,6 +1407,7 @@ const spansCanvasData = {
       pv: {
         nodeType: 'span-convention',
         shape: 'hexagon' as const,
+        otel: { spanPattern: 'file' },
       },
     },
   ],
@@ -1386,46 +1482,93 @@ const spansLibrary: ComponentLibrary = {
   },
 };
 
-/**
- * Spans Canvas Story - Shows how .spans.canvas files render
- * Span conventions define telemetry span patterns with unique colors per span type
- */
-const SpansCanvasTemplate = () => {
-  const graphRef = useRef<GraphRendererHandle>(null);
-
-  return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '12px 16px', background: '#fff', borderBottom: '1px solid #ddd' }}>
-        <div style={{ fontWeight: 600, marginBottom: 4 }}>Spans Canvas (.spans.canvas)</div>
-        <div style={{ fontSize: 12, color: '#666' }}>
-          Span convention files define telemetry span patterns. Each span has its own color
-          which is used as the fill color for events within that span context.
-        </div>
-        <div style={{ marginTop: 8, fontSize: 11, color: '#888' }}>
-          <strong>Color Legend:</strong>{' '}
-          <span style={{ color: '#8B5CF6' }}>●</span> CLI{' '}
-          <span style={{ color: '#22C55E' }}>●</span> Validate{' '}
-          <span style={{ color: '#3B82F6' }}>●</span> Discover{' '}
-          <span style={{ color: '#F97316' }}>●</span> Parse{' '}
-          <span style={{ color: '#6B7280' }}>●</span> File
-        </div>
-      </div>
-      <div style={{ flex: 1, position: 'relative' }}>
-        <GraphRenderer
-          ref={graphRef}
-          canvas={spansCanvasData}
-          library={spansLibrary}
-          width={700}
-          height={500}
-        />
-      </div>
-    </div>
-  );
-};
+// Convert spans library to YAML string for mock file
+const spansLibraryYaml = `
+version: "1.0.0"
+name: Spans Library
+description: Library for rendering span conventions
+resources: {}
+nodeComponents:
+  span-convention:
+    description: Span convention defining a telemetry span pattern
+    shape: hexagon
+    color: "#06b6d4"
+    icon: Activity
+edgeComponents:
+  provides:
+    description: Parent span provides child span
+    style: solid
+    color: "#84cc16"
+    directed: true
+`;
 
 export const SpansCanvas: Story = {
   args: {} as never,
-  render: () => <SpansCanvasTemplate />,
+  render: () => {
+    const fileTreeData = {
+      allFiles: [
+        {
+          path: '.principal-views/cli.spans.canvas',
+          relativePath: '.principal-views/cli.spans.canvas',
+          name: 'cli.spans.canvas',
+          content: JSON.stringify(spansCanvasData, null, 2),
+        },
+        {
+          path: '.principal-views/library.yaml',
+          relativePath: '.principal-views/library.yaml',
+          name: 'library.yaml',
+          content: spansLibraryYaml,
+        },
+      ],
+    };
+
+    const mockSlices = new Map<string, DataSlice>();
+    mockSlices.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeData,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          slices: mockSlices,
+          getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+            return mockSlices.get(name) as DataSlice<T> | undefined;
+          },
+          hasSlice: (name: string) => mockSlices.has(name),
+          isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+          repositoryPath: '/mock/repository',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return file.content;
+          },
+          writeFile: async (path: string, content: string) => {
+            console.log('[Storybook Mock] Saved file:', path, content.length, 'bytes');
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+      >
+        {(props) => (
+          <CanvasEditorPanel
+            {...props}
+            canvasPath=".principal-views/cli.spans.canvas"
+            canvasName="CLI Span Conventions"
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
   parameters: {
     docs: {
       description: {
@@ -1486,6 +1629,7 @@ const otelEventsCanvas = {
         nodeType: 'event',
         shape: 'rectangle' as const,
         event: { name: 'command.start' },
+        otel: { scope: 'cli-package' }, // Red border
       },
     },
     {
@@ -1500,6 +1644,7 @@ const otelEventsCanvas = {
         nodeType: 'event',
         shape: 'rectangle' as const,
         event: { name: 'validate.begin' },
+        otel: { scope: 'core-package' }, // Blue border
       },
     },
     {
@@ -1514,6 +1659,7 @@ const otelEventsCanvas = {
         nodeType: 'event',
         shape: 'rectangle' as const,
         event: { name: 'validate.complete' },
+        otel: { scope: 'core-package' }, // Blue border
       },
     },
     {
@@ -1528,6 +1674,7 @@ const otelEventsCanvas = {
         nodeType: 'event',
         shape: 'rectangle' as const,
         event: { name: 'discover.files' },
+        otel: { scope: 'react-package' }, // Green border
       },
     },
     {
@@ -1542,6 +1689,7 @@ const otelEventsCanvas = {
         nodeType: 'event',
         shape: 'rectangle' as const,
         event: { name: 'command.end' },
+        otel: { scope: 'cli-package' }, // Red border
       },
     },
   ],
@@ -1559,126 +1707,110 @@ const otelEventsCanvas = {
   },
 };
 
-/**
- * Library with owned-scopes defining scope colors (for borders)
- */
-const scopeColorLibrary: ComponentLibrary = {
-  version: '1.0.0',
-  name: 'Scope Color Library',
-  description: 'Library demonstrating scope and span colors',
-  resources: {},
-  nodeComponents: {
-    event: {
-      description: 'OTEL event node',
-      shape: 'rectangle',
-      color: '#888888', // Default gray, overridden by span color
-    },
-  },
-  edgeComponents: {
-    triggers: {
-      description: 'Event triggers another event',
-      style: 'solid',
-      color: '#64748b',
-      directed: true,
-    },
-  },
-  // Scope colors become BORDER colors
-  'owned-scopes': {
-    'cli-package': {
-      color: '#EF4444', // Red border
-      description: 'CLI package scope',
-    },
-    'core-package': {
-      color: '#3B82F6', // Blue border
-      description: 'Core library scope',
-    },
-    'react-package': {
-      color: '#10B981', // Green border
-      description: 'React package scope',
-    },
-  },
-};
-
-/**
- * Scope/Span Color Contract Story
- * Demonstrates how scopeColor (border) and spanColor (fill) work together
- */
-const ScopeSpanColorContractTemplate = () => {
-  const graphRef = useRef<GraphRendererHandle>(null);
-
-  return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '12px 16px', background: '#fff', borderBottom: '1px solid #ddd' }}>
-        <div style={{ fontWeight: 600, marginBottom: 4 }}>Scope/Span Color Contract</div>
-        <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
-          Event nodes can have two color sources: scope (border) and span (fill).
-        </div>
-        <div style={{ display: 'flex', gap: 24, fontSize: 11 }}>
-          <div>
-            <strong>Scope → Border:</strong>
-            <div style={{ marginTop: 4, display: 'flex', gap: 8 }}>
-              <span><span style={{ color: '#EF4444' }}>■</span> cli-package</span>
-              <span><span style={{ color: '#3B82F6' }}>■</span> core-package</span>
-              <span><span style={{ color: '#10B981' }}>■</span> react-package</span>
-            </div>
-          </div>
-          <div>
-            <strong>Span → Fill:</strong>
-            <div style={{ marginTop: 4, display: 'flex', gap: 8 }}>
-              <span><span style={{ color: '#8B5CF6' }}>●</span> cli-command</span>
-              <span><span style={{ color: '#22C55E' }}>●</span> validate</span>
-              <span><span style={{ color: '#3B82F6' }}>●</span> discover</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div style={{ flex: 1, display: 'flex' }}>
-        {/* With span color (validate span) */}
-        <div style={{ flex: 1, borderRight: '1px solid #ddd', position: 'relative' }}>
-          <div style={{ padding: '8px', background: '#f0fdf4', fontSize: 11, textAlign: 'center' }}>
-            Span: <strong>validate</strong> (Green Fill) + Scope: <strong>cli-package</strong> (Red Border)
-          </div>
-          <GraphRenderer
-            ref={graphRef}
-            canvas={otelEventsCanvas}
-            library={scopeColorLibrary}
-            spansCanvas={spansCanvasData}
-            workflowSpanPattern="validate"
-            width={450}
-            height={400}
-          />
-        </div>
-        {/* With different span color (discover span) */}
-        <div style={{ flex: 1, position: 'relative' }}>
-          <div style={{ padding: '8px', background: '#eff6ff', fontSize: 11, textAlign: 'center' }}>
-            Span: <strong>discover</strong> (Blue Fill) + Scope: <strong>core-package</strong> (Blue Border)
-          </div>
-          <GraphRenderer
-            canvas={otelEventsCanvas}
-            library={{
-              ...scopeColorLibrary,
-              // Override to show different scope
-              'owned-scopes': {
-                'core-package': {
-                  color: '#3B82F6',
-                  description: 'Core library scope',
-                },
-              },
-            }}
-            spansCanvas={spansCanvasData}
-            workflowSpanPattern="discover"
-            width={450}
-            height={400}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
+// Library with scopes defining scope colors (for borders) - YAML format for mock file
+const scopeColorLibraryYaml = `
+version: "1.0.0"
+name: Scope Color Library
+description: Library demonstrating scope and span colors
+resources: {}
+nodeComponents:
+  event:
+    description: OTEL event node
+    shape: rectangle
+    color: "#888888"
+edgeComponents:
+  triggers:
+    description: Event triggers another event
+    style: solid
+    color: "#64748b"
+    directed: true
+scopes:
+  cli-package:
+    color: "#EF4444"
+    description: CLI package scope
+  core-package:
+    color: "#3B82F6"
+    description: Core library scope
+  react-package:
+    color: "#10B981"
+    description: React package scope
+`;
 
 export const ScopeSpanColorContract: Story = {
   args: {} as never,
-  render: () => <ScopeSpanColorContractTemplate />,
+  render: () => {
+    const fileTreeData = {
+      allFiles: [
+        {
+          path: '.principal-views/cli-events.otel.canvas',
+          relativePath: '.principal-views/cli-events.otel.canvas',
+          name: 'cli-events.otel.canvas',
+          content: JSON.stringify(otelEventsCanvas, null, 2),
+        },
+        {
+          path: '.principal-views/cli.spans.canvas',
+          relativePath: '.principal-views/cli.spans.canvas',
+          name: 'cli.spans.canvas',
+          content: JSON.stringify(spansCanvasData, null, 2),
+        },
+        {
+          path: '.principal-views/library.yaml',
+          relativePath: '.principal-views/library.yaml',
+          name: 'library.yaml',
+          content: scopeColorLibraryYaml,
+        },
+      ],
+    };
+
+    const mockSlices = new Map<string, DataSlice>();
+    mockSlices.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeData,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          slices: mockSlices,
+          getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+            return mockSlices.get(name) as DataSlice<T> | undefined;
+          },
+          hasSlice: (name: string) => mockSlices.has(name),
+          isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+          repositoryPath: '/mock/repository',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return file.content;
+          },
+          writeFile: async (path: string, content: string) => {
+            console.log('[Storybook Mock] Saved file:', path, content.length, 'bytes');
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+      >
+        {(props) => (
+          <CanvasEditorPanel
+            {...props}
+            canvasPath=".principal-views/cli-events.otel.canvas"
+            canvasName="Scope/Span Color Contract"
+            spansCanvasPath=".principal-views/cli.spans.canvas"
+            workflowSpanPattern="validate"
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
   parameters: {
     docs: {
       description: {
@@ -1688,7 +1820,7 @@ export const ScopeSpanColorContract: Story = {
 This story demonstrates the color contract for event nodes:
 
 **Color Sources:**
-1. **Scope Color → Border** (from library.yaml \`owned-scopes\`)
+1. **Scope Color → Border** (from library.yaml \`scopes\`)
    - Represents which package/module owns the event
    - Applied as the node's stroke/border color
 
@@ -1702,7 +1834,7 @@ This story demonstrates the color contract for event nodes:
    - \`spansCanvas\` - the .spans.canvas file with span colors
    - \`workflowSpanPattern\` - which span context to use
 3. The renderer builds a color map and injects \`spanColor\` into each node
-4. \`scopeColor\` comes from the library's \`owned-scopes\` based on file location
+4. \`scopeColor\` comes from the library's \`scopes\` based on \`pv.otel.scope\`
 
 **Benefits:**
 - Events can be recolored dynamically based on workflow context
@@ -1817,37 +1949,70 @@ const newOtelFormatCanvas: ExtendedCanvas = {
   },
 } as ExtendedCanvas;
 
-const NewOtelFormatTemplate = () => {
-  const graphRef = useRef<GraphRendererHandle>(null);
-
-  return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '12px 16px', background: '#fff', borderBottom: '1px solid #ddd' }}>
-        <div style={{ fontWeight: 600, marginBottom: 4 }}>New OTEL Node Format Test</div>
-        <div style={{ fontSize: 12, color: '#666' }}>
-          Tests nodes with <code>type: "otel-event"</code> and top-level <code>label</code> and <code>event</code> fields.
-          <br />
-          Nodes should show: <strong>Label</strong> (e.g., "User Login") with <strong>event.name</strong> below (e.g., "auth.user.login")
-        </div>
-      </div>
-      <div style={{ flex: 1, position: 'relative' }}>
-        <GraphRenderer
-          ref={graphRef}
-          canvas={newOtelFormatCanvas}
-          editable={false}
-        />
-      </div>
-    </div>
-  );
-};
-
 /**
  * Tests the new OTEL node format after migration.
  * Nodes should display their label (not ID) and show event.name underneath.
  */
 export const NewOtelFormat: Story = {
   args: {} as never,
-  render: () => <NewOtelFormatTemplate />,
+  render: () => {
+    const fileTreeData = {
+      allFiles: [
+        {
+          path: '.principal-views/auth-flow.otel.canvas',
+          relativePath: '.principal-views/auth-flow.otel.canvas',
+          name: 'auth-flow.otel.canvas',
+          content: JSON.stringify(newOtelFormatCanvas, null, 2),
+        },
+      ],
+    };
+
+    const mockSlices = new Map<string, DataSlice>();
+    mockSlices.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeData,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          slices: mockSlices,
+          getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+            return mockSlices.get(name) as DataSlice<T> | undefined;
+          },
+          hasSlice: (name: string) => mockSlices.has(name),
+          isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+          repositoryPath: '/mock/repository',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (!file || !file.content) {
+              throw new Error(`File not found: ${path}`);
+            }
+            return file.content;
+          },
+          // Read-only mode - no writeFile
+          writeFile: undefined,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any}
+      >
+        {(props) => (
+          <CanvasEditorPanel
+            {...props}
+            canvasPath=".principal-views/auth-flow.otel.canvas"
+            canvasName="Auth Flow - New OTEL Format"
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
   parameters: {
     docs: {
       description: {

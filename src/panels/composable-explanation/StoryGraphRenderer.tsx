@@ -73,6 +73,25 @@ export const StoryGraphRenderer: React.FC<StoryGraphRendererProps> = ({
   const prevStepIndexRef = useRef(currentStepIndex);
   const [shouldFitView, setShouldFitView] = useState(false);
 
+  // Track container dimensions for instant viewport positioning
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerDimensions, setContainerDimensions] = useState<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) {
+        setContainerDimensions({ width, height });
+      }
+    });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
   // Get current step
   const currentStep = steps[currentStepIndex];
 
@@ -198,6 +217,7 @@ export const StoryGraphRenderer: React.FC<StoryGraphRendererProps> = ({
 
   return (
     <div
+      ref={containerRef}
       style={{
         width: '100%',
         height: '100%',
@@ -244,6 +264,8 @@ export const StoryGraphRenderer: React.FC<StoryGraphRendererProps> = ({
           fitViewToNodeIds={shouldFitView ? activeNodeIds || undefined : undefined}
           fitViewPadding={0.2}
           onNodeClick={handleNodeClick}
+          containerWidth={containerDimensions?.width}
+          containerHeight={containerDimensions?.height}
         />
       </motion.div>
 
