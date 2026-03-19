@@ -1723,3 +1723,168 @@ This story demonstrates the color contract for event nodes:
     },
   },
 };
+
+/**
+ * Canvas with new OTEL node format (type: "otel-event" with top-level fields)
+ * This tests the migrated node format where:
+ * - type is "otel-event" (not "text")
+ * - label is at top level (not extracted from text)
+ * - event is at top level (not in pv.event)
+ */
+const newOtelFormatCanvas: ExtendedCanvas = {
+  nodes: [
+    {
+      id: 'user-login',
+      type: 'otel-event',
+      x: 100,
+      y: 100,
+      width: 200,
+      height: 80,
+      color: '#6366f1',
+      label: 'User Login',
+      event: {
+        name: 'auth.user.login',
+        attributes: {
+          'user.id': 'string',
+          'auth.method': 'string',
+        },
+      },
+      otel: {
+        status: 'implemented',
+      },
+    },
+    {
+      id: 'session-created',
+      type: 'otel-event',
+      x: 350,
+      y: 100,
+      width: 200,
+      height: 80,
+      color: '#10b981',
+      label: 'Session Created',
+      event: {
+        name: 'auth.session.created',
+        attributes: {
+          'session.id': 'string',
+          'session.ttl': 'number',
+        },
+      },
+      otel: {
+        status: 'approved',
+      },
+    },
+    {
+      id: 'token-issued',
+      type: 'otel-event',
+      x: 600,
+      y: 100,
+      width: 200,
+      height: 80,
+      color: '#f59e0b',
+      label: 'Token Issued',
+      event: {
+        name: 'auth.token.issued',
+        attributes: {
+          'token.type': 'string',
+          'token.expires_at': 'string',
+        },
+      },
+      otel: {
+        status: 'draft',
+      },
+    },
+  ],
+  edges: [
+    {
+      id: 'login-to-session',
+      fromNode: 'user-login',
+      toNode: 'session-created',
+      fromSide: 'right',
+      toSide: 'left',
+    },
+    {
+      id: 'session-to-token',
+      fromNode: 'session-created',
+      toNode: 'token-issued',
+      fromSide: 'right',
+      toSide: 'left',
+    },
+  ],
+  pv: {
+    name: 'Auth Flow - New OTEL Format',
+    version: '1.0.0',
+    description: 'Tests the new OTEL node format with top-level label and event fields',
+  },
+} as ExtendedCanvas;
+
+const NewOtelFormatTemplate = () => {
+  const graphRef = useRef<GraphRendererHandle>(null);
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '12px 16px', background: '#fff', borderBottom: '1px solid #ddd' }}>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>New OTEL Node Format Test</div>
+        <div style={{ fontSize: 12, color: '#666' }}>
+          Tests nodes with <code>type: "otel-event"</code> and top-level <code>label</code> and <code>event</code> fields.
+          <br />
+          Nodes should show: <strong>Label</strong> (e.g., "User Login") with <strong>event.name</strong> below (e.g., "auth.user.login")
+        </div>
+      </div>
+      <div style={{ flex: 1, position: 'relative' }}>
+        <GraphRenderer
+          ref={graphRef}
+          canvas={newOtelFormatCanvas}
+          editable={false}
+        />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Tests the new OTEL node format after migration.
+ * Nodes should display their label (not ID) and show event.name underneath.
+ */
+export const NewOtelFormat: Story = {
+  args: {} as never,
+  render: () => <NewOtelFormatTemplate />,
+  parameters: {
+    docs: {
+      description: {
+        story: `
+**New OTEL Node Format**
+
+This story tests the migrated OTEL node format where nodes use semantic types:
+
+**Old Format (Legacy):**
+\`\`\`json
+{
+  "id": "user-login",
+  "type": "text",
+  "text": "# User Login",
+  "pv": {
+    "nodeType": "event",
+    "event": { "name": "auth.user.login" }
+  }
+}
+\`\`\`
+
+**New Format (Migrated):**
+\`\`\`json
+{
+  "id": "user-login",
+  "type": "otel-event",
+  "label": "User Login",
+  "event": { "name": "auth.user.login" }
+}
+\`\`\`
+
+**Expected Behavior:**
+- Node displays "User Login" (the label), NOT "user-login" (the id)
+- Below the label, shows "auth.user.login" (the event.name) in smaller text
+- Status badges show based on otel.status (draft/approved/implemented)
+        `,
+      },
+    },
+  },
+};

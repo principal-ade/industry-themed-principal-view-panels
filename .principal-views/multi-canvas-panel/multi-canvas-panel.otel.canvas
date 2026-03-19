@@ -2,528 +2,498 @@
   "nodes": [
     {
       "id": "props-received",
-      "type": "text",
-      "text": "# Props Received\n\nMultiCanvasPanel receives props and determines operation mode",
+      "type": "otel-event",
       "x": 0,
       "y": 0,
       "width": 300,
       "height": 100,
       "color": "#6366f1",
-      "pv": {
-        "event": {
-          "name": "panel.props.received",
-          "attributes": {
-            "mode": "string",
-            "canvas.count": "number"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event",
-        "dataSchema": {
-          "mode": {
-            "type": "string",
-            "required": true,
-            "description": "Operation mode of the panel",
-            "placeholder": "static"
-          },
-          "canvas.count": {
-            "type": "number",
-            "required": true,
-            "description": "Number of canvases to display",
-            "placeholder": "3",
-            "displayInLabel": false
-          }
+      "label": "Props Received",
+      "event": {
+        "name": "panel.props.received",
+        "attributes": {
+          "mode": "string",
+          "canvas.count": "number"
         }
+      },
+      "dataSchema": {
+        "mode": {
+          "type": "string",
+          "required": true,
+          "description": "Operation mode of the panel",
+          "placeholder": "static"
+        },
+        "canvas.count": {
+          "type": "number",
+          "required": true,
+          "description": "Number of canvases to display",
+          "placeholder": "3",
+          "displayInLabel": false
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "static-mode",
-      "type": "text",
-      "text": "# Static Layout Mode\n\nLayout prop provided directly with pre-built canvas data (used in Storybook)",
+      "type": "otel-event",
       "x": 400,
       "y": -100,
       "width": 300,
       "height": 120,
       "color": "#10b981",
-      "pv": {
-        "event": {
-          "name": "panel.mode.static",
-          "attributes": {
-            "placement.count": "number"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event",
-        "dataSchema": {
-          "placement.count": {
-            "type": "number",
-            "required": true,
-            "description": "Number of canvas placements in the layout",
-            "placeholder": "4"
-          }
+      "label": "Static Layout Mode",
+      "event": {
+        "name": "panel.mode.static",
+        "attributes": {
+          "placement.count": "number"
         }
+      },
+      "dataSchema": {
+        "placement.count": {
+          "type": "number",
+          "required": true,
+          "description": "Number of canvas placements in the layout",
+          "placeholder": "4"
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "dynamic-mode",
-      "type": "text",
-      "text": "# Dynamic Loading Mode\n\ncanvasInfos prop with paths to load from files (production use)",
+      "type": "otel-event",
       "x": 400,
       "y": 100,
       "width": 300,
       "height": 120,
       "color": "#f59e0b",
-      "pv": {
-        "event": {
-          "name": "panel.mode.dynamic",
-          "attributes": {
-            "canvas.paths": "string[]"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event",
-        "dataSchema": {
-          "canvas.paths": {
-            "type": "array",
-            "required": true,
-            "description": "Paths to canvas files to load",
-            "placeholder": "[\"canvas1.canvas\", \"canvas2.canvas\"]"
-          }
+      "label": "Dynamic Loading Mode",
+      "event": {
+        "name": "panel.mode.dynamic",
+        "attributes": {
+          "canvas.paths": "string[]"
         }
+      },
+      "dataSchema": {
+        "canvas.paths": {
+          "type": "array",
+          "required": true,
+          "description": "Paths to canvas files to load",
+          "placeholder": "[\"canvas1.canvas\", \"canvas2.canvas\"]"
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "loading-started",
-      "type": "text",
-      "text": "# Loading Started\n\nBegins loading canvas files from repository",
+      "type": "otel-event",
       "x": 800,
       "y": 100,
       "width": 280,
       "height": 100,
       "color": "#8b5cf6",
-      "pv": {
-        "event": {
-          "name": "canvas.loading.started",
-          "attributes": {
-            "canvas.count": "number",
-            "repository.path": "string"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event",
-        "dataSchema": {
-          "canvas.count": {
-            "type": "number",
-            "required": true,
-            "description": "Number of canvases being loaded",
-            "placeholder": "3"
-          },
-          "repository.path": {
-            "type": "string",
-            "required": true,
-            "description": "Root path of the repository",
-            "placeholder": "/path/to/repo"
-          }
+      "label": "Loading Started",
+      "event": {
+        "name": "canvas.loading.started",
+        "attributes": {
+          "canvas.count": "number",
+          "repository.path": "string"
         }
+      },
+      "dataSchema": {
+        "canvas.count": {
+          "type": "number",
+          "required": true,
+          "description": "Number of canvases being loaded",
+          "placeholder": "3"
+        },
+        "repository.path": {
+          "type": "string",
+          "required": true,
+          "description": "Root path of the repository",
+          "placeholder": "/path/to/repo"
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "file-read",
-      "type": "text",
-      "text": "# File Read\n\nReads canvas file using actions.readFile",
+      "type": "otel-event",
       "x": 1150,
       "y": 0,
       "width": 280,
       "height": 100,
       "color": "#06b6d4",
-      "pv": {
-        "event": {
-          "name": "canvas.file.read",
-          "attributes": {
-            "file.path": "string",
-            "file.size": "number"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event",
-        "dataSchema": {
-          "file.path": {
-            "type": "string",
-            "required": true,
-            "description": "Path to the canvas file being read",
-            "placeholder": "architecture.canvas"
-          },
-          "file.size": {
-            "type": "number",
-            "required": false,
-            "description": "Size of the file in bytes",
-            "placeholder": "4096",
-            "displayInLabel": false
-          }
+      "label": "File Read",
+      "event": {
+        "name": "canvas.file.read",
+        "attributes": {
+          "file.path": "string",
+          "file.size": "number"
         }
+      },
+      "dataSchema": {
+        "file.path": {
+          "type": "string",
+          "required": true,
+          "description": "Path to the canvas file being read",
+          "placeholder": "architecture.canvas"
+        },
+        "file.size": {
+          "type": "number",
+          "required": false,
+          "description": "Size of the file in bytes",
+          "placeholder": "4096",
+          "displayInLabel": false
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "canvas-parsed",
-      "type": "text",
-      "text": "# Canvas Parsed\n\nConfigLoader.parseCanvas extracts ExtendedCanvas from file content",
+      "type": "otel-event",
       "x": 1150,
       "y": 140,
       "width": 280,
       "height": 120,
       "color": "#06b6d4",
-      "pv": {
-        "event": {
-          "name": "canvas.parsed",
-          "attributes": {
-            "canvas.id": "string",
-            "node.count": "number",
-            "edge.count": "number"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event",
-        "dataSchema": {
-          "canvas.id": {
-            "type": "string",
-            "required": true,
-            "description": "Identifier of the parsed canvas",
-            "placeholder": "my-canvas"
-          },
-          "node.count": {
-            "type": "number",
-            "required": true,
-            "description": "Number of nodes in the canvas",
-            "placeholder": "12"
-          },
-          "edge.count": {
-            "type": "number",
-            "required": false,
-            "description": "Number of edges in the canvas",
-            "placeholder": "8",
-            "displayInLabel": false
-          }
+      "label": "Canvas Parsed",
+      "event": {
+        "name": "canvas.parsed",
+        "attributes": {
+          "canvas.id": "string",
+          "node.count": "number",
+          "edge.count": "number"
         }
+      },
+      "dataSchema": {
+        "canvas.id": {
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the parsed canvas",
+          "placeholder": "my-canvas"
+        },
+        "node.count": {
+          "type": "number",
+          "required": true,
+          "description": "Number of nodes in the canvas",
+          "placeholder": "12"
+        },
+        "edge.count": {
+          "type": "number",
+          "required": false,
+          "description": "Number of edges in the canvas",
+          "placeholder": "8",
+          "displayInLabel": false
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "loading-complete",
-      "type": "text",
-      "text": "# Loading Complete\n\nAll canvases loaded successfully",
+      "type": "otel-event",
       "x": 800,
       "y": 300,
       "width": 280,
       "height": 100,
       "color": "#10b981",
-      "pv": {
-        "event": {
-          "name": "canvas.loading.complete",
-          "attributes": {
-            "canvas.loaded.count": "number",
-            "canvas.failed.count": "number"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event",
-        "dataSchema": {
-          "canvas.loaded.count": {
-            "type": "number",
-            "required": true,
-            "description": "Number of canvases successfully loaded",
-            "placeholder": "3"
-          },
-          "canvas.failed.count": {
-            "type": "number",
-            "required": false,
-            "description": "Number of canvases that failed to load",
-            "placeholder": "0"
-          }
+      "label": "Loading Complete",
+      "event": {
+        "name": "canvas.loading.complete",
+        "attributes": {
+          "canvas.loaded.count": "number",
+          "canvas.failed.count": "number"
         }
+      },
+      "dataSchema": {
+        "canvas.loaded.count": {
+          "type": "number",
+          "required": true,
+          "description": "Number of canvases successfully loaded",
+          "placeholder": "3"
+        },
+        "canvas.failed.count": {
+          "type": "number",
+          "required": false,
+          "description": "Number of canvases that failed to load",
+          "placeholder": "0"
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "loading-error",
-      "type": "text",
-      "text": "# Loading Error\n\nCritical error during loading (missing readFile or repositoryPath)",
+      "type": "otel-event",
       "x": 1150,
       "y": 300,
       "width": 280,
       "height": 120,
       "color": "#ef4444",
-      "pv": {
-        "event": {
-          "name": "canvas.loading.error",
-          "attributes": {
-            "error.type": "string",
-            "error.message": "string"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event",
-        "dataSchema": {
-          "error.type": {
-            "type": "string",
-            "required": true,
-            "description": "Type of error that occurred",
-            "placeholder": "FILE_NOT_FOUND"
-          },
-          "error.message": {
-            "type": "string",
-            "required": true,
-            "description": "Human-readable error message",
-            "placeholder": "Canvas file not found"
-          }
+      "label": "Loading Error",
+      "event": {
+        "name": "canvas.loading.error",
+        "attributes": {
+          "error.type": "string",
+          "error.message": "string"
         }
+      },
+      "dataSchema": {
+        "error.type": {
+          "type": "string",
+          "required": true,
+          "description": "Type of error that occurred",
+          "placeholder": "FILE_NOT_FOUND"
+        },
+        "error.message": {
+          "type": "string",
+          "required": true,
+          "description": "Human-readable error message",
+          "placeholder": "Canvas file not found"
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "layout-created",
-      "type": "text",
-      "text": "# Layout Created\n\ncreateMultiCanvasLayout generates placements with positions",
+      "type": "otel-event",
       "x": 400,
       "y": 300,
       "width": 280,
       "height": 120,
       "color": "#84cc16",
-      "pv": {
-        "event": {
-          "name": "layout.created",
-          "attributes": {
-            "direction": "string",
-            "gap": "number",
-            "columns": "number",
-            "placement.count": "number"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event",
-        "dataSchema": {
-          "direction": {
-            "type": "string",
-            "required": true,
-            "description": "Layout direction: grid, vertical, or horizontal",
-            "placeholder": "grid"
-          },
-          "gap": {
-            "type": "number",
-            "required": true,
-            "description": "Gap between canvases in pixels",
-            "placeholder": "20",
-            "displayInLabel": false
-          },
-          "columns": {
-            "type": "number",
-            "required": false,
-            "description": "Number of columns for grid layout",
-            "placeholder": "2",
-            "displayInLabel": false
-          },
-          "placement.count": {
-            "type": "number",
-            "required": true,
-            "description": "Total number of canvas placements",
-            "placeholder": "4"
-          }
+      "label": "Layout Created",
+      "event": {
+        "name": "layout.created",
+        "attributes": {
+          "direction": "string",
+          "gap": "number",
+          "columns": "number",
+          "placement.count": "number"
         }
+      },
+      "dataSchema": {
+        "direction": {
+          "type": "string",
+          "required": true,
+          "description": "Layout direction: grid, vertical, or horizontal",
+          "placeholder": "grid"
+        },
+        "gap": {
+          "type": "number",
+          "required": true,
+          "description": "Gap between canvases in pixels",
+          "placeholder": "20",
+          "displayInLabel": false
+        },
+        "columns": {
+          "type": "number",
+          "required": false,
+          "description": "Number of columns for grid layout",
+          "placeholder": "2",
+          "displayInLabel": false
+        },
+        "placement.count": {
+          "type": "number",
+          "required": true,
+          "description": "Total number of canvas placements",
+          "placeholder": "4"
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "grid-layout",
-      "type": "text",
-      "text": "# Grid Layout\n\n2-column grid with uniform cell sizing",
+      "type": "otel-event",
       "x": 100,
       "y": 480,
       "width": 240,
       "height": 100,
       "color": "#ec4899",
-      "pv": {
-        "event": {
-          "name": "layout.grid",
-          "attributes": {
-            "cell.width": "number",
-            "cell.height": "number",
-            "columns": "number"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event"
+      "label": "Grid Layout",
+      "event": {
+        "name": "layout.grid",
+        "attributes": {
+          "cell.width": "number",
+          "cell.height": "number",
+          "columns": "number"
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "vertical-layout",
-      "type": "text",
-      "text": "# Vertical Layout\n\nCanvases stacked top to bottom",
+      "type": "otel-event",
       "x": 380,
       "y": 480,
       "width": 240,
       "height": 100,
       "color": "#a855f7",
-      "pv": {
-        "event": {
-          "name": "layout.vertical",
-          "attributes": {
-            "total.height": "number"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event"
+      "label": "Vertical Layout",
+      "event": {
+        "name": "layout.vertical",
+        "attributes": {
+          "total.height": "number"
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "horizontal-layout",
-      "type": "text",
-      "text": "# Horizontal Layout\n\nCanvases side by side",
+      "type": "otel-event",
       "x": 660,
       "y": 480,
       "width": 240,
       "height": 100,
       "color": "#0ea5e9",
-      "pv": {
-        "event": {
-          "name": "layout.horizontal",
-          "attributes": {
-            "total.width": "number"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event"
+      "label": "Horizontal Layout",
+      "event": {
+        "name": "layout.horizontal",
+        "attributes": {
+          "total.width": "number"
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "renderer-mounted",
-      "type": "text",
-      "text": "# Renderer Mounted\n\nMultiCanvasRenderer displays unified view with all canvases",
+      "type": "otel-event",
       "x": 400,
       "y": 640,
       "width": 300,
       "height": 120,
       "color": "#10b981",
-      "pv": {
-        "event": {
-          "name": "renderer.mounted",
-          "attributes": {
-            "show.groups": "boolean",
-            "show.minimap": "boolean",
-            "show.controls": "boolean",
-            "show.background": "boolean",
-            "background.variant": "string"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event",
-        "dataSchema": {
-          "show.groups": {
-            "type": "boolean",
-            "required": true,
-            "description": "Whether to show group nodes",
-            "placeholder": "true",
-            "displayInLabel": false
-          },
-          "show.minimap": {
-            "type": "boolean",
-            "required": true,
-            "description": "Whether to show the minimap",
-            "placeholder": "true"
-          },
-          "show.controls": {
-            "type": "boolean",
-            "required": true,
-            "description": "Whether to show zoom/pan controls",
-            "placeholder": "true",
-            "displayInLabel": false
-          },
-          "show.background": {
-            "type": "boolean",
-            "required": true,
-            "description": "Whether to show background pattern",
-            "placeholder": "true"
-          },
-          "background.variant": {
-            "type": "string",
-            "required": false,
-            "description": "Background pattern variant: dots, lines, cross",
-            "placeholder": "dots",
-            "displayInLabel": false
-          }
+      "label": "Renderer Mounted",
+      "event": {
+        "name": "renderer.mounted",
+        "attributes": {
+          "show.groups": "boolean",
+          "show.minimap": "boolean",
+          "show.controls": "boolean",
+          "show.background": "boolean",
+          "background.variant": "string"
         }
+      },
+      "dataSchema": {
+        "show.groups": {
+          "type": "boolean",
+          "required": true,
+          "description": "Whether to show group nodes",
+          "placeholder": "true",
+          "displayInLabel": false
+        },
+        "show.minimap": {
+          "type": "boolean",
+          "required": true,
+          "description": "Whether to show the minimap",
+          "placeholder": "true"
+        },
+        "show.controls": {
+          "type": "boolean",
+          "required": true,
+          "description": "Whether to show zoom/pan controls",
+          "placeholder": "true",
+          "displayInLabel": false
+        },
+        "show.background": {
+          "type": "boolean",
+          "required": true,
+          "description": "Whether to show background pattern",
+          "placeholder": "true"
+        },
+        "background.variant": {
+          "type": "string",
+          "required": false,
+          "description": "Background pattern variant: dots, lines, cross",
+          "placeholder": "dots",
+          "displayInLabel": false
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "node-clicked",
-      "type": "text",
-      "text": "# Node Clicked\n\nUser clicks a node in one of the canvases",
+      "type": "otel-event",
       "x": 800,
       "y": 640,
       "width": 280,
       "height": 100,
       "color": "#f59e0b",
-      "pv": {
-        "event": {
-          "name": "node.clicked",
-          "attributes": {
-            "node.id": "string",
-            "canvas.id": "string"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event",
-        "dataSchema": {
-          "node.id": {
-            "type": "string",
-            "required": true,
-            "description": "ID of the clicked node",
-            "placeholder": "node-1"
-          },
-          "canvas.id": {
-            "type": "string",
-            "required": false,
-            "description": "ID of the canvas containing the node",
-            "placeholder": "canvas-1"
-          }
+      "label": "Node Clicked",
+      "event": {
+        "name": "node.clicked",
+        "attributes": {
+          "node.id": "string",
+          "canvas.id": "string"
         }
+      },
+      "dataSchema": {
+        "node.id": {
+          "type": "string",
+          "required": true,
+          "description": "ID of the clicked node",
+          "placeholder": "node-1"
+        },
+        "canvas.id": {
+          "type": "string",
+          "required": false,
+          "description": "ID of the canvas containing the node",
+          "placeholder": "canvas-1"
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     },
     {
       "id": "empty-state",
-      "type": "text",
-      "text": "# Empty State\n\nNo canvases loaded successfully",
+      "type": "otel-event",
       "x": 1150,
       "y": 480,
       "width": 240,
       "height": 100,
       "color": "#64748b",
-      "pv": {
-        "event": {
-          "name": "panel.empty",
-          "attributes": {
-            "reason": "string"
-          }
-        },
-        "references": ["src/panels/MultiCanvasPanel.tsx"],
-        "status": "draft",
-        "nodeType": "event",
-        "dataSchema": {
-          "reason": {
-            "type": "string",
-            "required": true,
-            "description": "Reason for the empty state",
-            "placeholder": "No canvases loaded"
-          }
+      "label": "Empty State",
+      "event": {
+        "name": "panel.empty",
+        "attributes": {
+          "reason": "string"
         }
+      },
+      "dataSchema": {
+        "reason": {
+          "type": "string",
+          "required": true,
+          "description": "Reason for the empty state",
+          "placeholder": "No canvases loaded"
+        }
+      },
+      "otel": {
+        "status": "draft"
       }
     }
   ],

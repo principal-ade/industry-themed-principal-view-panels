@@ -2,119 +2,119 @@
   "nodes": [
     {
       "id": "multi-canvas-panel.render",
-      "type": "text",
-      "text": "# multi-canvas-panel.render\n\nRoot span for MultiCanvasPanel rendering lifecycle",
+      "type": "otel-span-convention",
       "x": -98,
       "y": -40,
       "width": 320,
       "height": 100,
       "color": "#6366f1",
-      "pv": {
-        "nodeType": "span-convention"
+      "label": "Multi Canvas Panel Render",
+      "otel": {
+        "spanPattern": "multi-canvas-panel.render"
       }
     },
     {
       "id": "canvas.load",
-      "type": "text",
-      "text": "# canvas.load\n\nChild span for loading individual canvas files",
+      "type": "otel-span-convention",
       "x": -241,
       "y": 282,
       "width": 280,
       "height": 100,
       "color": "#8b5cf6",
-      "pv": {
-        "nodeType": "span-convention"
+      "label": "Canvas Load",
+      "otel": {
+        "spanPattern": "canvas.load"
       }
     },
     {
       "id": "layout.compute",
-      "type": "text",
-      "text": "# layout.compute\n\nChild span for computing canvas layout positions",
+      "type": "otel-span-convention",
       "x": 80,
       "y": 282,
       "width": 280,
       "height": 100,
       "color": "#10b981",
-      "pv": {
-        "nodeType": "span-convention"
+      "label": "Layout Compute",
+      "otel": {
+        "spanPattern": "layout.compute"
       }
     },
     {
       "id": "workflow-scenarios-panel.session",
-      "type": "text",
-      "text": "# workflow-scenarios-panel.session\n\nRoot span for WorkflowScenariosPanel user session",
+      "type": "otel-span-convention",
       "x": 509,
       "y": -40,
       "width": 340,
       "height": 100,
       "color": "#f59e0b",
-      "pv": {
-        "nodeType": "span-convention"
+      "label": "Workflow Scenarios Session",
+      "otel": {
+        "spanPattern": "workflow-scenarios-panel.session"
       }
     },
     {
       "id": "scenario.interaction",
-      "type": "text",
-      "text": "# scenario.interaction\n\nChild span for scenario selection and hover events",
+      "type": "otel-span-convention",
       "x": 395,
       "y": 280,
       "width": 280,
       "height": 100,
       "color": "#ec4899",
-      "pv": {
-        "nodeType": "span-convention"
+      "label": "Scenario Interaction",
+      "otel": {
+        "spanPattern": "scenario.interaction"
       }
     },
     {
       "id": "trace.playback",
-      "type": "text",
-      "text": "# trace.playback\n\nChild span for trace playback session",
+      "type": "otel-span-convention",
       "x": 694,
       "y": 280,
       "width": 280,
       "height": 100,
       "color": "#84cc16",
-      "pv": {
-        "nodeType": "span-convention"
+      "label": "Trace Playback",
+      "otel": {
+        "spanPattern": "trace.playback"
       }
     },
     {
       "id": "workflow-scenarios-panel.trace-analysis",
-      "type": "text",
-      "text": "# workflow-scenarios-panel.trace-analysis\n\nRoot span for trace analysis operations",
+      "type": "otel-span-convention",
       "x": 1132,
       "y": -38,
       "width": 340,
       "height": 100,
       "color": "#06b6d4",
-      "pv": {
-        "nodeType": "span-convention"
+      "label": "Trace Analysis",
+      "otel": {
+        "spanPattern": "workflow-scenarios-panel.trace-analysis"
       }
     },
     {
       "id": "trace.match",
-      "type": "text",
-      "text": "# trace.match\n\nChild span for matching trace events to canvas nodes",
+      "type": "otel-span-convention",
       "x": 1330,
       "y": 281,
       "width": 280,
       "height": 100,
       "color": "#0ea5e9",
-      "pv": {
-        "nodeType": "span-convention"
+      "label": "Trace Match",
+      "otel": {
+        "spanPattern": "trace.match"
       }
     },
     {
       "id": "coverage.compute",
-      "type": "text",
-      "text": "# coverage.compute\n\nChild span for computing trace coverage metrics",
+      "type": "otel-span-convention",
       "x": 1008,
       "y": 280,
       "width": 280,
       "height": 100,
       "color": "#a855f7",
-      "pv": {
-        "nodeType": "span-convention"
+      "label": "Coverage Compute",
+      "otel": {
+        "spanPattern": "coverage.compute"
       }
     }
   ],
