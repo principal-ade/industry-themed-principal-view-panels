@@ -15,6 +15,9 @@ import { StoryboardWorkflowsTreeCore, hasWorkflowContent } from '@principal-ade/
 import type { StoryboardWorkflowNodeData, StoryboardFilterMode, WorkflowScenarioStatus } from '@principal-ade/dynamic-file-tree';
 import yaml from 'js-yaml';
 import { isTraceMatched } from '../utils/traceHelpers';
+import { useTracePatterns } from '../hooks/useTracePatterns';
+import { matchTracesToPatterns } from '../utils/tracePatternMatching';
+import type { PatternMatchResult } from '../types/tracePatterns';
 
 type TabView = 'traces' | 'configuration' | 'schematics';
 type TraceFilterMode = 'all' | 'known' | 'unknown';
@@ -168,6 +171,47 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
   // Key format: "workflowId/scenarioId", value: true = visible (eye open), false = hidden (eye closed)
   const [scenarioVisibilityMap, setScenarioVisibilityMap] = useState<Record<string, boolean>>({});
 
+  // Pattern visibility state (for trace patterns filterDefault)
+  // Key format: patternId, value: true = visible
+  const [patternVisibilityMap, setPatternVisibilityMap] = useState<Record<string, boolean>>({});
+
+  // Load trace patterns
+  const repositoryPath = context.currentScope?.repository?.path;
+  const readFile = (actions as { readFile?: (path: string) => Promise<string> }).readFile;
+  const writeFile = context.adapters?.fileSystem?.writeFile;
+
+  const {
+    patterns: tracePatterns,
+    isLoading: _patternsLoading,
+    savePattern,
+  } = useTracePatterns({
+    repositoryPath,
+    readFile,
+    writeFile: writeFile
+      ? async (path: string, content: string) => {
+          await writeFile(path, content);
+        }
+      : undefined,
+  });
+
+  // Match traces against patterns
+  const patternMatches = React.useMemo(() => {
+    if (tracePatterns.length === 0) return new Map<string, PatternMatchResult>();
+    // Only match unmatched traces (no workflow matches)
+    const unmatchedTraces = traces.filter((trace) => !isTraceMatched(trace));
+    return matchTracesToPatterns(unmatchedTraces, tracePatterns);
+  }, [traces, tracePatterns]);
+
+  // Initialize pattern visibility from filterDefault when patterns load
+  React.useEffect(() => {
+    const initialVisibility: Record<string, boolean> = {};
+    tracePatterns.forEach((pattern) => {
+      // filterDefault: true means hidden by default, so visibility is inverted
+      initialVisibility[pattern.id] = !pattern.filterDefault;
+    });
+    setPatternVisibilityMap(initialVisibility);
+  }, [tracePatterns]);
+
   // Initialize visibility map from scenario filterDefault values when versionSnapshots change
   React.useEffect(() => {
     const initialVisibility: Record<string, boolean> = {};
@@ -243,13 +287,15 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
     [actions, versionSnapshots]
   );
 
-  // Filter traces based on scenario visibility and trace filter mode
-  // Traces matching only hidden scenarios are filtered out
+  // Filter traces based on scenario visibility, pattern visibility, and trace filter mode
+  // Traces matching only hidden scenarios or hidden patterns are filtered out
   const filteredTraces = React.useMemo(() => {
     return traces.filter(trace => {
       const hasScenarioMatches = trace.scenarioMatches && trace.scenarioMatches.length > 0;
       // A trace is "known" if it has scenario matches OR storyboard matches (workflow-level match)
       const isKnown = isTraceMatched(trace);
+      // Check if trace matches a pattern
+      const patternMatch = patternMatches.get(trace.traceId);
 
       // Apply trace filter mode first
       if (traceFilterMode === 'known' && !isKnown) {
@@ -259,7 +305,15 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
         return false; // Hide matched traces when filtering for "unknown"
       }
 
-      // No scenario matches = show (passes filter mode check above)
+      // Check pattern visibility for unmatched traces
+      if (!isKnown && patternMatch) {
+        // This trace matches a pattern - check if pattern is visible
+        if (patternVisibilityMap[patternMatch.patternId] === false) {
+          return false; // Hide traces matching hidden patterns
+        }
+      }
+
+      // No scenario matches = show (passes filter mode and pattern visibility checks above)
       if (!hasScenarioMatches) {
         return true;
       }
@@ -271,7 +325,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
         return scenarioVisibilityMap[key] !== false;
       });
     });
-  }, [traces, scenarioVisibilityMap, traceFilterMode]);
+  }, [traces, scenarioVisibilityMap, traceFilterMode, patternMatches, patternVisibilityMap]);
 
   // Configuration tab state
   const [resources, setResources] = useState<Record<string, string>>({});
@@ -1185,6 +1239,8 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
               }
               scenarioVisibilityMap={scenarioVisibilityMap}
               onScenarioVisibilityToggle={handleScenarioVisibilityToggle}
+              patternMatches={patternMatches}
+              onSaveAsPattern={savePattern}
             />
           </div>
         </div>

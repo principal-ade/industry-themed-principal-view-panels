@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { TraceList } from './TraceList';
 import { ThemeProvider, useTheme } from '@principal-ade/industry-theme';
 import type { RegisteredTrace } from '../types/otel';
+import type { PatternMatchResult, TracePattern } from '../types/tracePatterns';
 import {
   generateRandomTraces,
   generateCheckoutTrace,
@@ -466,5 +467,172 @@ export const LowCoverageExpansion: Story = {
         />
       </div>
     );
+  },
+};
+
+/**
+ * Pattern Matching Demo
+ *
+ * Shows traces with pattern matches (cyan badges) and the "Save Pattern" button
+ * for unmatched traces. This demonstrates the trace pattern catalog feature.
+ */
+const PatternMatchingComponent = () => {
+  const { theme } = useTheme();
+  const [expandedTraceIds, setExpandedTraceIds] = useState<Set<string>>(new Set());
+  const [savedPatterns, setSavedPatterns] = useState<TracePattern[]>([]);
+
+  // Create a mix of traces - some unmatched (will show pattern features)
+  const { traces, patternMatches, debugInfo } = useMemo(() => {
+    // Generate unmatched traces (no workflow matches)
+    const unmatchedTrace1 = generateCheckoutTrace(false);
+    const unmatchedTrace2 = generateAuthErrorTrace(false);
+    const unmatchedTrace3 = generateComplexTrace(false);
+
+    // Generate matched trace (has workflow matches)
+    const matchedTrace = generateCheckoutTrace(true);
+
+    const combinedResourceSpans = {
+      resourceSpans: [
+        ...unmatchedTrace1.resourceSpans,
+        ...unmatchedTrace2.resourceSpans,
+        ...unmatchedTrace3.resourceSpans,
+        ...matchedTrace.resourceSpans,
+      ],
+    };
+
+    const allTraces = convertToRegisteredTraces(combinedResourceSpans);
+
+    // Create mock pattern matches for some unmatched traces
+    const mockPatternMatches = new Map<string, PatternMatchResult>();
+
+    // Find unmatched traces and add pattern matches to some of them
+    const unmatchedTraces = allTraces.filter(
+      (t) => !t.scenarioMatches?.length && !t.storyboardMatches?.length
+    );
+
+    const debug = {
+      totalTraces: allTraces.length,
+      unmatchedCount: unmatchedTraces.length,
+      matchedCount: allTraces.length - unmatchedTraces.length,
+      patternMatchCount: 0,
+    };
+
+    if (unmatchedTraces.length > 0) {
+      // First unmatched trace matches a pattern
+      mockPatternMatches.set(unmatchedTraces[0].traceId, {
+        pattern: {
+          id: 'pattern-http-client',
+          name: 'HTTP Client Request',
+          description: 'Standard outbound HTTP call pattern',
+          rootSpans: [{ name: 'HTTP GET', children: [{ name: 'dns.lookup' }] }],
+          filterDefault: false,
+        },
+        patternId: 'pattern-http-client',
+        patternName: 'HTTP Client Request',
+        confidence: 1.0,
+      });
+      debug.patternMatchCount++;
+
+      // Second unmatched trace matches a different pattern
+      if (unmatchedTraces.length > 1) {
+        mockPatternMatches.set(unmatchedTraces[1].traceId, {
+          pattern: {
+            id: 'pattern-db-query',
+            name: 'Database Query',
+            description: 'PostgreSQL query pattern',
+            rootSpans: [{ name: 'pg.query' }],
+            filterDefault: false,
+          },
+          patternId: 'pattern-db-query',
+          patternName: 'Database Query',
+          confidence: 1.0,
+        });
+        debug.patternMatchCount++;
+      }
+      // Third unmatched trace has NO pattern - will show "Save Pattern" button
+    }
+
+    return { traces: allTraces, patternMatches: mockPatternMatches, debugInfo: debug };
+  }, []);
+
+  const handleTraceClick = (trace: RegisteredTrace) => {
+    setExpandedTraceIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(trace.traceId)) {
+        newSet.delete(trace.traceId);
+      } else {
+        newSet.add(trace.traceId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSaveAsPattern = async (pattern: TracePattern) => {
+    console.log('Saving pattern:', pattern);
+    setSavedPatterns((prev) => [...prev, pattern]);
+    alert(`Pattern "${pattern.name}" saved!\n\nID: ${pattern.id}\nRoot spans: ${pattern.rootSpans.map((s) => s.name).join(', ')}`);
+  };
+
+  return (
+    <div style={{ height: '100%', width: '100%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Info banner */}
+      <div
+        style={{
+          padding: '12px 16px',
+          background: '#06b6d415',
+          border: '1px solid #06b6d440',
+          borderRadius: '4px',
+          color: '#06b6d4',
+          fontSize: '14px',
+        }}
+      >
+        <strong>Pattern Matching Demo:</strong> Traces with cyan badges match known patterns.
+        Unmatched traces (gray badge) show a "Save Pattern" button.
+        <div style={{ marginTop: '8px', fontFamily: 'monospace', fontSize: '12px' }}>
+          Debug: {debugInfo.totalTraces} traces total, {debugInfo.unmatchedCount} unmatched,{' '}
+          {debugInfo.patternMatchCount} with pattern matches
+        </div>
+        <div style={{ marginTop: '8px' }}>
+          Look for: <span style={{ background: '#06b6d4', color: 'white', padding: '2px 6px', borderRadius: '3px', marginRight: '8px' }}>cyan pattern badges</span>
+          and <span style={{ color: '#06b6d4' }}>Save Pattern</span> buttons on trace cards
+        </div>
+        {savedPatterns.length > 0 && (
+          <div style={{ marginTop: '8px' }}>
+            Saved patterns: {savedPatterns.map((p) => p.name).join(', ')}
+          </div>
+        )}
+      </div>
+
+      {/* Trace list */}
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <TraceList
+          traces={traces}
+          theme={theme}
+          onTraceClick={handleTraceClick}
+          expandedTraceIds={expandedTraceIds}
+          patternMatches={patternMatches}
+          onSaveAsPattern={handleSaveAsPattern}
+        />
+      </div>
+    </div>
+  );
+};
+
+export const PatternMatching: Story = {
+  render: () => <PatternMatchingComponent />,
+  parameters: {
+    docs: {
+      description: {
+        story: `
+Demonstrates the trace pattern catalog feature:
+
+- **Cyan badge**: Traces that match a known pattern show a badge with the pattern name
+- **Save Pattern button**: Unmatched traces without a pattern show a button to save their structure as a new pattern
+- **Pattern visibility**: Patterns can have \`filterDefault: true\` to hide matching traces by default
+
+This feature helps identify recurring telemetry shapes that don't match any workflow definition.
+        `,
+      },
+    },
   },
 };

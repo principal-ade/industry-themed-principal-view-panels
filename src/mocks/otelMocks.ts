@@ -850,7 +850,18 @@ export function convertToRegisteredTraces(
         matchType: 'full' as const,
       }] : [],
       storyboardMatches: [],
-      unmatchedSpans: { spans: [] },
+      // For unmatched traces, populate unmatchedSpans with all spans
+      unmatchedSpans: {
+        spans: hasMatchInfo ? [] : spans.map(span => ({
+          spanId: span.spanId,
+          parentSpanId: span.parentSpanId,
+          spanName: span.name,
+          timestamp: parseNanoTime(span.startTimeUnixNano),
+          duration: parseNanoTime(span.endTimeUnixNano) - parseNanoTime(span.startTimeUnixNano),
+          reason: 'No workflow match',
+          scopeName: firstScopeName,
+        })),
+      },
       otlpData: {
         resourceSpans: resourceSpans.resourceSpans,
       },

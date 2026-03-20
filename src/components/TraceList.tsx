@@ -1,9 +1,219 @@
 import React, { useMemo, useState } from 'react';
-import { Search, Trash2, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Search, Trash2, X, Bookmark, BookmarkPlus } from 'lucide-react';
 import type { Theme } from '@principal-ade/industry-theme';
 import type { RegisteredTrace } from '../types/otel';
 import { TraceExpansion } from './TraceExpansion';
-import { getPrimaryScope } from '../utils/traceHelpers';
+import { getPrimaryScope, isTraceMatched } from '../utils/traceHelpers';
+import type { PatternMatchResult, TracePattern, SpanPattern } from '../types/tracePatterns';
+import { createPatternFromTrace, extractTraceFingerprint } from '../utils/tracePatternMatching';
+
+/**
+ * Modal for saving a trace as a pattern
+ */
+interface SavePatternModalProps {
+  trace: RegisteredTrace;
+  theme: Theme;
+  onSave: (name: string, description: string) => void;
+  onCancel: () => void;
+  isSaving: boolean;
+}
+
+const SavePatternModal: React.FC<SavePatternModalProps> = ({
+  trace,
+  theme,
+  onSave,
+  onCancel,
+  isSaving,
+}) => {
+  const [name, setName] = useState(trace.name || 'New Pattern');
+  const [description, setDescription] = useState('');
+
+  // Extract fingerprint for preview
+  const fingerprint = useMemo(() => extractTraceFingerprint(trace), [trace]);
+
+  const renderSpanPattern = (pattern: SpanPattern, depth: number = 0): React.ReactNode => (
+    <div key={`${pattern.name}-${depth}`} style={{ marginLeft: depth * 16 }}>
+      <code style={{
+        fontSize: theme.fontSizes[0],
+        color: theme.colors.text,
+        fontFamily: theme.fonts.monospace,
+      }}>
+        {pattern.name}
+      </code>
+      {pattern.children?.map((child, i) => renderSpanPattern(child, depth + 1))}
+    </div>
+  );
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.6)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+      }}
+      onClick={onCancel}
+    >
+      <div
+        style={{
+          background: theme.colors.background,
+          border: `1px solid ${theme.colors.border}`,
+          borderRadius: '8px',
+          padding: '24px',
+          width: '400px',
+          maxWidth: '90vw',
+          maxHeight: '80vh',
+          overflow: 'auto',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 style={{
+          margin: '0 0 16px 0',
+          fontFamily: theme.fonts.heading,
+          fontSize: theme.fontSizes[3],
+          color: theme.colors.text,
+        }}>
+          Save as Pattern
+        </h3>
+
+        {/* Name input */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '4px',
+            fontSize: theme.fontSizes[1],
+            fontFamily: theme.fonts.body,
+            color: theme.colors.textSecondary,
+          }}>
+            Pattern Name
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoFocus
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              fontSize: theme.fontSizes[2],
+              fontFamily: theme.fonts.body,
+              background: theme.colors.backgroundSecondary,
+              color: theme.colors.text,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: '4px',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+
+        {/* Description input */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '4px',
+            fontSize: theme.fontSizes[1],
+            fontFamily: theme.fonts.body,
+            color: theme.colors.textSecondary,
+          }}>
+            Description (optional)
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What does this pattern represent?"
+            rows={2}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              fontSize: theme.fontSizes[1],
+              fontFamily: theme.fonts.body,
+              background: theme.colors.backgroundSecondary,
+              color: theme.colors.text,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: '4px',
+              outline: 'none',
+              boxSizing: 'border-box',
+              resize: 'vertical',
+            }}
+          />
+        </div>
+
+        {/* Fingerprint preview */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: theme.fontSizes[1],
+            fontFamily: theme.fonts.body,
+            color: theme.colors.textSecondary,
+          }}>
+            Span Structure ({trace.spanCount} spans)
+          </label>
+          <div style={{
+            padding: '12px',
+            background: theme.colors.backgroundSecondary,
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: '4px',
+            maxHeight: '150px',
+            overflow: 'auto',
+          }}>
+            {fingerprint.length > 0 ? (
+              fingerprint.map((pattern, i) => renderSpanPattern(pattern, 0))
+            ) : (
+              <span style={{ color: theme.colors.textMuted, fontSize: theme.fontSizes[1] }}>
+                No spans to capture
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onCancel}
+            style={{
+              padding: '8px 16px',
+              fontSize: theme.fontSizes[1],
+              fontFamily: theme.fonts.body,
+              color: theme.colors.textSecondary,
+              background: 'transparent',
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSave(name, description)}
+            disabled={isSaving || !name.trim()}
+            style={{
+              padding: '8px 16px',
+              fontSize: theme.fontSizes[1],
+              fontFamily: theme.fonts.body,
+              color: 'white',
+              background: '#06b6d4',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: isSaving || !name.trim() ? 'not-allowed' : 'pointer',
+              opacity: isSaving || !name.trim() ? 0.5 : 1,
+            }}
+          >
+            {isSaving ? 'Saving...' : 'Save Pattern'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export interface TraceListProps {
   traces: RegisteredTrace[];
@@ -20,6 +230,10 @@ export interface TraceListProps {
   scenarioVisibilityMap?: Record<string, boolean>;
   /** Callback when scenario visibility is toggled */
   onScenarioVisibilityToggle?: (scenarioKey: string, isVisible: boolean) => void;
+  /** Map of trace IDs to their pattern matches */
+  patternMatches?: Map<string, PatternMatchResult>;
+  /** Callback to save a trace as a new pattern */
+  onSaveAsPattern?: (pattern: TracePattern) => Promise<void>;
 }
 
 /**
@@ -45,8 +259,43 @@ export const TraceList: React.FC<TraceListProps> = ({
   emptyMessage = 'No traces available',
   scenarioVisibilityMap,
   onScenarioVisibilityToggle,
+  patternMatches,
+  onSaveAsPattern,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [savingPatternForTraceId, setSavingPatternForTraceId] = useState<string | null>(null);
+  const [modalTraceId, setModalTraceId] = useState<string | null>(null);
+
+  // Find trace for modal
+  const modalTrace = modalTraceId ? traces.find(t => t.traceId === modalTraceId) : null;
+
+  // Open modal
+  const handleOpenSavePatternModal = (trace: RegisteredTrace, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setModalTraceId(trace.traceId);
+  };
+
+  // Save pattern from modal
+  const handleSavePattern = async (name: string, description: string) => {
+    if (!onSaveAsPattern || !modalTrace) return;
+
+    setSavingPatternForTraceId(modalTrace.traceId);
+    try {
+      const pattern = createPatternFromTrace(modalTrace, name, description);
+      await onSaveAsPattern(pattern);
+      setModalTraceId(null);
+    } catch (err) {
+      console.error('[TraceList] Failed to save pattern:', err);
+    } finally {
+      setSavingPatternForTraceId(null);
+    }
+  };
+
+  // Cancel modal
+  const handleCancelModal = () => {
+    setModalTraceId(null);
+  };
 
   // Filter and sort traces by search query (most recent first)
   const filteredTraces = useMemo(() => {
@@ -403,6 +652,46 @@ export const TraceList: React.FC<TraceListProps> = ({
                         </span>
                       );
                     })()}
+                    {/* Pattern badge for unmatched traces */}
+                    {(() => {
+                      const patternMatch = patternMatches?.get(trace.traceId);
+                      if (!patternMatch) return null;
+
+                      // Use a distinct color (cyan/teal) for pattern badges
+                      const patternColor = '#06b6d4';
+
+                      return (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: theme.space[1],
+                            padding: '2px 8px',
+                            fontFamily: theme.fonts.body,
+                            fontSize: theme.fontSizes[1],
+                            backgroundColor: `${patternColor}15`,
+                            color: patternColor,
+                            border: `1px solid ${patternColor}40`,
+                            borderRadius: '3px',
+                            fontWeight: theme.fontWeights.medium,
+                            overflow: 'hidden',
+                            minWidth: 0,
+                          }}
+                          title={`Matches pattern: ${patternMatch.patternName}`}
+                        >
+                          <Bookmark size={12} />
+                          <span
+                            style={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {patternMatch.patternName}
+                          </span>
+                        </span>
+                      );
+                    })()}
                     {(() => {
                       const matchedSpanCount = trace.scenarioMatches?.reduce(
                         (sum, match) => sum + match.matchedSpans.length,
@@ -467,6 +756,36 @@ export const TraceList: React.FC<TraceListProps> = ({
                   >
                     {truncateTraceId(trace.traceId)}
                   </code>
+                  {/* Save as Pattern button - only for unmatched traces without an existing pattern match */}
+                  {onSaveAsPattern && !isTraceMatched(trace) && !patternMatches?.has(trace.traceId) && (
+                    <button
+                      onClick={(e) => handleOpenSavePatternModal(trace, e)}
+                      title="Save trace structure as a reusable pattern"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: theme.space[1],
+                        padding: '2px 6px',
+                        fontSize: theme.fontSizes[0],
+                        fontFamily: theme.fonts.body,
+                        color: '#06b6d4',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: theme.radii[1],
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#06b6d410';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      <BookmarkPlus size={12} />
+                      Save Pattern
+                    </button>
+                  )}
                   {onRemoveTrace && (
                     <button
                       onClick={(e) => {
@@ -531,6 +850,18 @@ export const TraceList: React.FC<TraceListProps> = ({
           ))
         )}
       </div>
+
+      {/* Save Pattern Modal - rendered via portal */}
+      {modalTrace && createPortal(
+        <SavePatternModal
+          trace={modalTrace}
+          theme={theme}
+          onSave={handleSavePattern}
+          onCancel={handleCancelModal}
+          isSaving={savingPatternForTraceId === modalTrace.traceId}
+        />,
+        document.body
+      )}
     </div>
   );
 };

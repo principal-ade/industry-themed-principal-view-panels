@@ -46,6 +46,14 @@ import type { FileTree, GitStatusWithFiles } from '@principal-ai/repository-abst
 import type { VersionSnapshot, WorkflowTemplate } from '@principal-ai/principal-view-core';
 import type { RegisteredTrace } from './otel';
 
+// Re-export trace pattern types
+export type {
+  TracePattern,
+  SpanPattern,
+  PatternMatchResult,
+  TracePatternsFile,
+} from './tracePatterns';
+
 // ============================================================================
 // Typed Panel Interfaces (v0.4.2+)
 // ============================================================================
