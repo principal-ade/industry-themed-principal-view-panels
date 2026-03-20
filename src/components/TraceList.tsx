@@ -42,7 +42,7 @@ const SavePatternModal: React.FC<SavePatternModalProps> = ({
       }}>
         {pattern.name}
       </code>
-      {pattern.children?.map((child, i) => renderSpanPattern(child, depth + 1))}
+      {pattern.children?.map((child) => renderSpanPattern(child, depth + 1))}
     </div>
   );
 
@@ -167,7 +167,7 @@ const SavePatternModal: React.FC<SavePatternModalProps> = ({
             overflow: 'auto',
           }}>
             {fingerprint.length > 0 ? (
-              fingerprint.map((pattern, i) => renderSpanPattern(pattern, 0))
+              fingerprint.map((pattern) => renderSpanPattern(pattern, 0))
             ) : (
               <span style={{ color: theme.colors.textMuted, fontSize: theme.fontSizes[1] }}>
                 No spans to capture

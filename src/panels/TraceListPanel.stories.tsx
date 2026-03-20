@@ -1685,3 +1685,105 @@ export const WithScenarioVisibilityToggle: Story = {
     },
   },
 };
+
+// Mock patterns for the patterns story
+const mockPatternsYaml = `
+version: "1.0.0"
+patterns:
+  - id: "pattern-http-client"
+    name: "HTTP Client Request"
+    description: "Standard outbound HTTP call with DNS lookup"
+    filterDefault: false
+    rootSpans:
+      - name: "HTTP GET"
+        children:
+          - name: "dns.lookup"
+          - name: "tcp.connect"
+  - id: "pattern-db-query"
+    name: "Database Query"
+    description: "PostgreSQL query pattern"
+    filterDefault: true
+    rootSpans:
+      - name: "pg.query"
+        children:
+          - name: "pg.connect"
+          - name: "pg.execute"
+  - id: "pattern-cache-check"
+    name: "Cache Check"
+    description: "Redis cache lookup pattern"
+    filterDefault: false
+    rootSpans:
+      - name: "redis.get"
+`;
+
+/**
+ * With Patterns in Manifest Tab
+ *
+ * Demonstrates the trace patterns feature in the Manifest tab:
+ * - Shows saved patterns with expand/collapse
+ * - Eye icon to toggle visibility (filters matching traces)
+ * - Trash icon to delete patterns
+ * - Span structure preview when expanded
+ */
+export const WithPatternsInManifest: Story = {
+  render: () => {
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          currentScope: {
+            repository: {
+              path: '/mock/repo',
+            },
+          },
+          schematics: {
+            scope: 'repository' as const,
+            name: 'schematics',
+            data: mockSchematicsWithFilterDefault,
+            loading: false,
+            error: null,
+            refresh: async () => {},
+          },
+          telemetry: {
+            scope: 'repository' as const,
+            name: 'telemetry',
+            data: mockTracesForSchematics,
+            loading: false,
+            error: null,
+            refresh: async () => {},
+          },
+        }}
+        actionsOverrides={{
+          readFile: async (path: string) => {
+            console.log('[Mock] readFile:', path);
+            if (path.includes('trace-patterns.yaml')) {
+              return mockPatternsYaml;
+            }
+            throw new Error('File not found');
+          },
+        }}
+      >
+        {(props) => <TraceListPanel {...props} />}
+      </MockPanelProvider>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `Demonstrates trace patterns in the Manifest tab.
+
+**How to use:**
+1. Click the **Manifest** tab
+2. See the **Patterns** section at the top with 3 mock patterns
+3. Click a pattern row to expand and see the span structure
+4. Use the eye icon to toggle visibility (filters matching traces)
+5. Use the trash icon to delete (logged to console)
+
+**Mock patterns:**
+- HTTP Client Request (visible)
+- Database Query (hidden by default)
+- Cache Check (visible)
+`,
+      },
+    },
+  },
+};

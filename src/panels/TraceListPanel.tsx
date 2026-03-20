@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Activity, Settings, GitBranch } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { Activity, Settings, GitBranch, Bookmark, ChevronDown, ChevronRight, Eye, EyeOff, Trash2 } from 'lucide-react';
 import type { TraceListPanelPropsTyped, TraceListPanelAction } from '../types';
 import type { PanelEvent } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
@@ -17,10 +17,35 @@ import yaml from 'js-yaml';
 import { isTraceMatched } from '../utils/traceHelpers';
 import { useTracePatterns } from '../hooks/useTracePatterns';
 import { matchTracesToPatterns } from '../utils/tracePatternMatching';
-import type { PatternMatchResult } from '../types/tracePatterns';
+import type { PatternMatchResult, SpanPattern } from '../types/tracePatterns';
 
 type TabView = 'traces' | 'configuration' | 'schematics';
 type TraceFilterMode = 'all' | 'known' | 'unknown';
+
+/**
+ * Helper component to render span pattern tree
+ */
+const SpanPatternTree: React.FC<{
+  pattern: SpanPattern;
+  theme: ReturnType<typeof useTheme>['theme'];
+  depth: number;
+}> = ({ pattern, theme, depth }) => (
+  <div style={{ marginLeft: depth * 16 }}>
+    <code style={{
+      fontFamily: theme.fonts.monospace,
+      fontSize: theme.fontSizes[0],
+      color: theme.colors.text,
+    }}>
+      {pattern.name}
+      {pattern.nameMatch && pattern.nameMatch !== 'exact' && (
+        <span style={{ color: theme.colors.textMuted }}> ({pattern.nameMatch})</span>
+      )}
+    </code>
+    {pattern.children?.map((child, i) => (
+      <SpanPatternTree key={i} pattern={child} theme={theme} depth={depth + 1} />
+    ))}
+  </div>
+);
 
 /**
  * TraceListPanel - Panel for displaying OpenTelemetry traces
@@ -175,6 +200,9 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
   // Key format: patternId, value: true = visible
   const [patternVisibilityMap, setPatternVisibilityMap] = useState<Record<string, boolean>>({});
 
+  // Expanded patterns in manifest tab
+  const [expandedPatternIds, setExpandedPatternIds] = useState<Set<string>>(new Set());
+
   // Load trace patterns
   const repositoryPath = context.currentScope?.repository?.path;
   const readFile = (actions as { readFile?: (path: string) => Promise<string> }).readFile;
@@ -184,6 +212,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
     patterns: tracePatterns,
     isLoading: _patternsLoading,
     savePattern,
+    removePattern,
   } = useTracePatterns({
     repositoryPath,
     readFile,
@@ -286,6 +315,71 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
     },
     [actions, versionSnapshots]
   );
+
+  // Handle pattern visibility toggle
+  const handlePatternVisibilityToggle = React.useCallback(
+    async (patternId: string, isVisible: boolean) => {
+      // Update local state
+      setPatternVisibilityMap(prev => ({
+        ...prev,
+        [patternId]: isVisible,
+      }));
+
+      // Update the pattern's filterDefault in the file
+      const pattern = tracePatterns.find(p => p.id === patternId);
+      if (pattern && savePattern) {
+        try {
+          await savePattern({
+            ...pattern,
+            filterDefault: !isVisible, // filterDefault is inverse of visibility
+          });
+        } catch (error) {
+          console.error('[TraceListPanel] Failed to update pattern filterDefault:', error);
+          // Revert on error
+          setPatternVisibilityMap(prev => ({
+            ...prev,
+            [patternId]: !isVisible,
+          }));
+        }
+      }
+    },
+    [tracePatterns, savePattern]
+  );
+
+  // Handle pattern expand/collapse
+  const handlePatternClick = React.useCallback((patternId: string) => {
+    setExpandedPatternIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(patternId)) {
+        newSet.delete(patternId);
+      } else {
+        newSet.add(patternId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Handle pattern deletion
+  const handlePatternDelete = React.useCallback(
+    async (patternId: string) => {
+      if (!removePattern) return;
+      try {
+        await removePattern(patternId);
+      } catch (error) {
+        console.error('[TraceListPanel] Failed to delete pattern:', error);
+      }
+    },
+    [removePattern]
+  );
+
+  // Count traces matching each pattern
+  const patternTraceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    patternMatches.forEach((match) => {
+      counts[match.patternId] = (counts[match.patternId] || 0) + 1;
+    });
+    return counts;
+  }, [patternMatches]);
 
   // Filter traces based on scenario visibility, pattern visibility, and trace filter mode
   // Traces matching only hidden scenarios or hidden patterns are filtered out
@@ -1662,6 +1756,173 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                       >
                         {label}
                       </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Patterns section */}
+              {tracePatterns.length > 0 && (
+                <div style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      backgroundColor: theme.colors.backgroundSecondary,
+                    }}
+                  >
+                    <Bookmark size={16} color="#06b6d4" />
+                    <span style={{
+                      fontFamily: theme.fonts.body,
+                      fontSize: theme.fontSizes[2],
+                      fontWeight: theme.fontWeights.medium,
+                      color: theme.colors.text,
+                    }}>
+                      Patterns ({tracePatterns.length})
+                    </span>
+                  </div>
+                  {tracePatterns.map((pattern) => {
+                    const isExpanded = expandedPatternIds.has(pattern.id);
+                    const isVisible = patternVisibilityMap[pattern.id] !== false;
+                    const traceCount = patternTraceCounts[pattern.id] || 0;
+
+                    return (
+                      <div key={pattern.id}>
+                        {/* Pattern row */}
+                        <div
+                          onClick={() => handlePatternClick(pattern.id)}
+                          style={{
+                            padding: '10px 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            backgroundColor: isExpanded ? `${theme.colors.primary}10` : 'transparent',
+                            borderLeft: isExpanded ? `2px solid ${theme.colors.primary}` : '2px solid transparent',
+                            transition: 'background-color 0.15s',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isExpanded) e.currentTarget.style.backgroundColor = `${theme.colors.primary}05`;
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isExpanded) e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          {isExpanded ? (
+                            <ChevronDown size={14} color={theme.colors.textSecondary} />
+                          ) : (
+                            <ChevronRight size={14} color={theme.colors.textSecondary} />
+                          )}
+                          <span style={{
+                            flex: 1,
+                            fontFamily: theme.fonts.body,
+                            fontSize: theme.fontSizes[1],
+                            color: theme.colors.text,
+                          }}>
+                            {pattern.name}
+                          </span>
+                          {traceCount > 0 && (
+                            <span style={{
+                              padding: '2px 6px',
+                              fontSize: theme.fontSizes[0],
+                              fontFamily: theme.fonts.body,
+                              backgroundColor: `#06b6d415`,
+                              color: '#06b6d4',
+                              borderRadius: '3px',
+                            }}>
+                              {traceCount} {traceCount === 1 ? 'trace' : 'traces'}
+                            </span>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePatternVisibilityToggle(pattern.id, !isVisible);
+                            }}
+                            title={isVisible ? 'Hide matching traces' : 'Show matching traces'}
+                            style={{
+                              padding: '4px',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              opacity: 0.6,
+                              transition: 'opacity 0.15s',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; }}
+                          >
+                            {isVisible ? (
+                              <Eye size={14} color={theme.colors.textSecondary} />
+                            ) : (
+                              <EyeOff size={14} color={theme.colors.textMuted} />
+                            )}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Delete pattern "${pattern.name}"?`)) {
+                                handlePatternDelete(pattern.id);
+                              }
+                            }}
+                            title="Delete pattern"
+                            style={{
+                              padding: '4px',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              opacity: 0.6,
+                              transition: 'opacity 0.15s',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; }}
+                          >
+                            <Trash2 size={14} color={theme.colors.error} />
+                          </button>
+                        </div>
+
+                        {/* Expanded details */}
+                        {isExpanded && (
+                          <div style={{
+                            padding: '12px 16px 12px 40px',
+                            backgroundColor: theme.colors.backgroundSecondary,
+                            borderTop: `1px solid ${theme.colors.border}`,
+                          }}>
+                            {pattern.description && (
+                              <div style={{
+                                marginBottom: '12px',
+                                fontFamily: theme.fonts.body,
+                                fontSize: theme.fontSizes[1],
+                                color: theme.colors.textSecondary,
+                              }}>
+                                {pattern.description}
+                              </div>
+                            )}
+                            <div style={{
+                              fontFamily: theme.fonts.body,
+                              fontSize: theme.fontSizes[0],
+                              color: theme.colors.textMuted,
+                              marginBottom: '8px',
+                            }}>
+                              Span Structure:
+                            </div>
+                            <div style={{
+                              padding: '8px 12px',
+                              backgroundColor: theme.colors.background,
+                              borderRadius: '4px',
+                              border: `1px solid ${theme.colors.border}`,
+                            }}>
+                              {pattern.rootSpans.map((spanPattern, i) => (
+                                <SpanPatternTree key={i} pattern={spanPattern} theme={theme} depth={0} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
