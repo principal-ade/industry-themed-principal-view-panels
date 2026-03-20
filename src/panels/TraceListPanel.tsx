@@ -1129,7 +1129,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
         )}
         <button
           onClick={() => setActiveTab('schematics')}
-          title="Coverage"
+          title="Manifest"
           style={{
             flex: 1,
             height: '100%',
@@ -1150,7 +1150,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
             gap: '6px',
           }}
         >
-          {isCompactTabs ? <GitBranch size={16} /> : 'Coverage'}
+          {isCompactTabs ? <GitBranch size={16} /> : 'Manifest'}
         </button>
       </div>
 
@@ -1234,7 +1234,7 @@ export const TraceListPanel: React.FC<TraceListPanelPropsTyped> = ({
                       ? 'No known traces. Switch to "All" or "Unknown" to see unmatched traces.'
                       : traceFilterMode === 'unknown'
                         ? 'No unknown traces. All traces have been matched to scenarios.'
-                        : 'All traces filtered by scenario visibility. Toggle scenarios in Coverage tab.'
+                        : 'All traces filtered by scenario visibility. Toggle scenarios in Manifest tab.'
                     : undefined
               }
               scenarioVisibilityMap={scenarioVisibilityMap}

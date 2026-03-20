@@ -14,7 +14,7 @@ import { createPatternFromTrace, extractTraceFingerprint } from '../utils/traceP
 interface SavePatternModalProps {
   trace: RegisteredTrace;
   theme: Theme;
-  onSave: (name: string, description: string) => void;
+  onSave: (name: string, description: string, hideByDefault: boolean) => void;
   onCancel: () => void;
   isSaving: boolean;
 }
@@ -28,6 +28,7 @@ const SavePatternModal: React.FC<SavePatternModalProps> = ({
 }) => {
   const [name, setName] = useState(trace.name || 'New Pattern');
   const [description, setDescription] = useState('');
+  const [hideByDefault, setHideByDefault] = useState(true);
 
   // Extract fingerprint for preview
   const fingerprint = useMemo(() => extractTraceFingerprint(trace), [trace]);
@@ -175,6 +176,37 @@ const SavePatternModal: React.FC<SavePatternModalProps> = ({
           </div>
         </div>
 
+        {/* Hide by default checkbox */}
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            fontSize: theme.fontSizes[1],
+            fontFamily: theme.fonts.body,
+            color: theme.colors.text,
+          }}>
+            <input
+              type="checkbox"
+              checked={hideByDefault}
+              onChange={(e) => setHideByDefault(e.target.checked)}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+            Hide matching traces by default
+          </label>
+          <div style={{
+            marginTop: '4px',
+            marginLeft: '24px',
+            fontSize: theme.fontSizes[0],
+            color: theme.colors.textSecondary,
+          }}>
+            {hideByDefault
+              ? 'Traces matching this pattern will be filtered out of the list'
+              : 'Traces will remain visible but show the pattern badge'}
+          </div>
+        </div>
+
         {/* Actions */}
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           <button
@@ -193,7 +225,7 @@ const SavePatternModal: React.FC<SavePatternModalProps> = ({
             Cancel
           </button>
           <button
-            onClick={() => onSave(name, description)}
+            onClick={() => onSave(name, description, hideByDefault)}
             disabled={isSaving || !name.trim()}
             style={{
               padding: '8px 16px',
@@ -277,12 +309,12 @@ export const TraceList: React.FC<TraceListProps> = ({
   };
 
   // Save pattern from modal
-  const handleSavePattern = async (name: string, description: string) => {
+  const handleSavePattern = async (name: string, description: string, hideByDefault: boolean) => {
     if (!onSaveAsPattern || !modalTrace) return;
 
     setSavingPatternForTraceId(modalTrace.traceId);
     try {
-      const pattern = createPatternFromTrace(modalTrace, name, description);
+      const pattern = createPatternFromTrace(modalTrace, name, description, hideByDefault);
       await onSaveAsPattern(pattern);
       setModalTraceId(null);
     } catch (err) {
