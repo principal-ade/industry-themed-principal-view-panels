@@ -5,7 +5,7 @@ import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import { ConfigLoader } from './principal-view/ConfigLoader';
 import type { DataSlice, PanelEvent } from '../types';
-import { GraphRenderer, type GraphRendererHandle } from '@principal-ai/principal-view-react';
+import { GraphRenderer, type GraphRendererHandle, type WorkflowChip } from '@principal-ai/principal-view-react';
 import type { ComponentLibrary, WorkflowTemplate, ExtendedCanvas } from '@principal-ai/principal-view-core';
 
 /**
@@ -2048,6 +2048,305 @@ This story tests the migrated OTEL node format where nodes use semantic types:
 - Node displays "User Login" (the label), NOT "user-login" (the id)
 - Below the label, shows "auth.user.login" (the event.name) in smaller text
 - Status badges show based on otel.status (draft/approved/implemented)
+        `,
+      },
+    },
+  },
+};
+
+// ============================================================================
+// Span Workflow Chips Story - Shows workflow chips on span convention nodes
+// ============================================================================
+
+/**
+ * Sample spans.canvas with the new otel-span-convention node type
+ * This uses the new format that triggers OtelSpanConventionNode rendering
+ */
+const spanWorkflowChipsCanvas: ExtendedCanvas = {
+  nodes: [
+    {
+      id: 'multi-canvas-panel.render',
+      type: 'otel-span-convention',
+      x: 100,
+      y: 50,
+      width: 280,
+      height: 120,
+      color: '#6366f1',
+      label: 'Multi Canvas Panel Render',
+      otel: {
+        spanPattern: 'multi-canvas-panel.render',
+        status: 'implemented',
+      },
+    },
+    {
+      id: 'canvas.load',
+      type: 'otel-span-convention',
+      x: 50,
+      y: 220,
+      width: 200,
+      height: 100,
+      color: '#8b5cf6',
+      label: 'Canvas Load',
+      otel: {
+        spanPattern: 'canvas.load',
+        status: 'implemented',
+      },
+    },
+    {
+      id: 'canvas.parse',
+      type: 'otel-span-convention',
+      x: 280,
+      y: 220,
+      width: 200,
+      height: 100,
+      color: '#a855f7',
+      label: 'Canvas Parse',
+      otel: {
+        spanPattern: 'canvas.parse',
+        status: 'approved',
+      },
+    },
+    {
+      id: 'workflow.match',
+      type: 'otel-span-convention',
+      x: 50,
+      y: 370,
+      width: 200,
+      height: 100,
+      color: '#22c55e',
+      label: 'Workflow Match',
+      otel: {
+        spanPattern: 'workflow.match',
+        status: 'draft',
+      },
+    },
+    {
+      id: 'trace.correlate',
+      type: 'otel-span-convention',
+      x: 280,
+      y: 370,
+      width: 200,
+      height: 100,
+      color: '#f59e0b',
+      label: 'Trace Correlate',
+      otel: {
+        spanPattern: 'trace.correlate',
+        status: 'draft',
+      },
+    },
+  ],
+  edges: [
+    {
+      id: 'edge-render-load',
+      fromNode: 'multi-canvas-panel.render',
+      toNode: 'canvas.load',
+      fromSide: 'bottom',
+      toSide: 'top',
+      label: 'child',
+    },
+    {
+      id: 'edge-render-parse',
+      fromNode: 'multi-canvas-panel.render',
+      toNode: 'canvas.parse',
+      fromSide: 'bottom',
+      toSide: 'top',
+      label: 'child',
+    },
+    {
+      id: 'edge-load-match',
+      fromNode: 'canvas.load',
+      toNode: 'workflow.match',
+      fromSide: 'bottom',
+      toSide: 'top',
+      label: 'child',
+    },
+    {
+      id: 'edge-parse-correlate',
+      fromNode: 'canvas.parse',
+      toNode: 'trace.correlate',
+      fromSide: 'bottom',
+      toSide: 'top',
+      label: 'child',
+    },
+  ],
+  pv: {
+    name: 'Span Workflow Chips Demo',
+    version: '1.0.0',
+    description: 'Demonstrates workflow chips on span convention nodes',
+  },
+} as ExtendedCanvas;
+
+/**
+ * Span Workflow Chips - Demonstrates workflow chips on otel-span-convention nodes
+ *
+ * This story shows how span convention nodes (hexagons) display small workflow chips
+ * below the span pattern identifier, indicating which workflows use each span.
+ */
+export const SpanWorkflowChips: Story = {
+  args: {} as never,
+  render: () => {
+    const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
+
+    // Mock workflow chips for each span
+    const workflowChipsMap: Record<string, WorkflowChip[]> = {
+      'multi-canvas-panel.render': [
+        { id: 'panel-lifecycle', label: 'panel-lifecycle', color: '#3b82f6' },
+        { id: 'panel-usage', label: 'panel-usage', color: '#8b5cf6' },
+      ],
+      'canvas.load': [
+        { id: 'panel-lifecycle', label: 'panel-lifecycle', color: '#3b82f6' },
+        { id: 'canvas-loading', label: 'canvas-loading', color: '#10b981' },
+        { id: 'error-handling', label: 'error-handling', color: '#ef4444' },
+      ],
+      'canvas.parse': [
+        { id: 'panel-lifecycle', label: 'panel-lifecycle', color: '#3b82f6' },
+      ],
+      'workflow.match': [
+        { id: 'trace-analysis', label: 'trace-analysis', color: '#f59e0b' },
+        { id: 'scenario-matching', label: 'scenario-matching', color: '#06b6d4' },
+      ],
+      'trace.correlate': [
+        { id: 'trace-analysis', label: 'trace-analysis', color: '#f59e0b' },
+      ],
+    };
+
+    // Inject workflow chips into canvas nodes
+    const canvasWithChips = {
+      ...spanWorkflowChipsCanvas,
+      nodes: spanWorkflowChipsCanvas.nodes?.map((node) => {
+        const spanPattern = (node as { otel?: { spanPattern?: string } }).otel?.spanPattern;
+        const chips = spanPattern ? workflowChipsMap[spanPattern] : undefined;
+        return {
+          ...node,
+          // Inject workflow chips into node data
+          workflowChips: chips,
+          onWorkflowChipClick: (chipId: string) => {
+            console.log('Workflow chip clicked:', chipId);
+            setSelectedWorkflowId(selectedWorkflowId === chipId ? null : chipId);
+          },
+          selectedWorkflowId,
+        };
+      }),
+    };
+
+    const fileTreeData = {
+      allFiles: [
+        {
+          path: '.principal-views/demo.spans.canvas',
+          relativePath: '.principal-views/demo.spans.canvas',
+          name: 'demo.spans.canvas',
+          content: JSON.stringify(canvasWithChips, null, 2),
+        },
+      ],
+    };
+
+    const mockSlices = new Map<string, DataSlice>();
+    mockSlices.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeData,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Info banner */}
+        <div
+          style={{
+            padding: '12px 16px',
+            background: '#1e1b4b',
+            borderBottom: '1px solid #4338ca',
+            color: '#c7d2fe',
+            fontSize: 13,
+          }}
+        >
+          <strong style={{ color: '#a5b4fc' }}>Span Workflow Chips Demo</strong>
+          <span style={{ marginLeft: 12, opacity: 0.8 }}>
+            Hexagon nodes show workflow chips below the span pattern.
+            {selectedWorkflowId && (
+              <span style={{ marginLeft: 8, color: '#34d399' }}>
+                Selected: {selectedWorkflowId}
+              </span>
+            )}
+          </span>
+        </div>
+
+        {/* Canvas */}
+        <div style={{ flex: 1 }}>
+          <MockPanelProvider
+            contextOverrides={{
+              slices: mockSlices,
+              getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+                return mockSlices.get(name) as DataSlice<T> | undefined;
+              },
+              hasSlice: (name: string) => mockSlices.has(name),
+              isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+              repositoryPath: '/mock/repository',
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any}
+            actionsOverrides={{
+              readFile: async (path: string) => {
+                const fileName = path.split('/').pop() || '';
+                const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+                if (!file || !file.content) {
+                  throw new Error(`File not found: ${path}`);
+                }
+                return file.content;
+              },
+              writeFile: undefined,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any}
+          >
+            {(props) => (
+              <CanvasEditorPanel
+                {...props}
+                canvasPath=".principal-views/demo.spans.canvas"
+                canvasName="Span Workflow Chips"
+              />
+            )}
+          </MockPanelProvider>
+        </div>
+      </div>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+**Span Workflow Chips**
+
+This story demonstrates workflow chips displayed on \`otel-span-convention\` nodes (hexagons).
+
+**Features:**
+- Small pill-shaped chips below the span pattern identifier
+- Each chip represents a workflow that uses this span
+- Chips are color-coded by workflow
+- Maximum 3 chips visible, then "+N more" overflow
+- Click handling ready for Phase 2 selection/highlighting
+
+**Node Structure:**
+\`\`\`json
+{
+  "id": "canvas.load",
+  "type": "otel-span-convention",
+  "label": "Canvas Load",
+  "otel": {
+    "spanPattern": "canvas.load",
+    "status": "implemented"
+  },
+  "workflowChips": [
+    { "id": "panel-lifecycle", "label": "panel-lifecycle", "color": "#3b82f6" },
+    { "id": "canvas-loading", "label": "canvas-loading", "color": "#10b981" }
+  ]
+}
+\`\`\`
+
+**Phase 2 (Future):**
+- Clicking a chip will highlight all spans participating in that workflow
+- Non-participating spans will dim to 10% opacity
+- Edges between non-active nodes will be hidden
         `,
       },
     },

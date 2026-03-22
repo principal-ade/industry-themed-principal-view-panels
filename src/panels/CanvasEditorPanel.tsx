@@ -1311,8 +1311,8 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         )}
       </div>
 
-      {/* Main content area - flex: 1 to fill remaining space, minHeight: 0 to allow shrinking */}
-      <div style={{ flex: '1 1 0%', minHeight: 0, overflow: 'hidden' }}>
+      {/* Main content area - flex container to allow children to use flex: 1 */}
+      <div style={{ flex: '1 1 0%', minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <AnimatedResizableLayout
           theme={theme}
           collapsed={!workflowTemplate}
