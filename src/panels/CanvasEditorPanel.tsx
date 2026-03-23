@@ -814,10 +814,35 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   // otherwise GraphRenderer's default fitView effect triggers and fits to ALL nodes.
   // The fitCounter forces new array references when we want to trigger a new fit animation.
   const fitViewToNodeIds = useMemo(() => {
-    // Priority 1: If a single node is focused (from event navigation), always return it
-    // This keeps the view stable on that node (GraphRenderer won't re-fit to same value)
-    if (state.focusedNodeId) {
-      return [state.focusedNodeId];
+    // Priority 1: If a node is focused (from event navigation), include it plus adjacent scenario nodes
+    if (state.focusedNodeId && state.selectedScenario) {
+      const eventNames = Object.keys(state.selectedScenario.template.events || {});
+      const currentIndex = state.currentEventIndex;
+      const nodeIds: string[] = [state.focusedNodeId];
+
+      // Add previous event's node if exists
+      if (currentIndex > 0) {
+        const prevEventName = eventNames[currentIndex - 1];
+        if (prevEventName) {
+          const prevNodeId = mapEventToNodeId({ name: prevEventName, time: 0, attributes: {} }, state.canvas);
+          if (prevNodeId && !nodeIds.includes(prevNodeId)) {
+            nodeIds.push(prevNodeId);
+          }
+        }
+      }
+
+      // Add next event's node if exists
+      if (currentIndex < eventNames.length - 1) {
+        const nextEventName = eventNames[currentIndex + 1];
+        if (nextEventName) {
+          const nextNodeId = mapEventToNodeId({ name: nextEventName, time: 0, attributes: {} }, state.canvas);
+          if (nextNodeId && !nodeIds.includes(nextNodeId)) {
+            nodeIds.push(nextNodeId);
+          }
+        }
+      }
+
+      return nodeIds;
     }
     // Priority 2: If we have active nodes (hover/selection) and no focused node, fit to them
     // This prevents the fit-to-all fallback when shouldFitToNodes resets
@@ -830,7 +855,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     }
     return undefined;
   // eslint-disable-next-line react-hooks/exhaustive-deps -- fitCounter intentionally forces new array reference for fit animations
-  }, [shouldFitToNodes, activeNodeIds, state.canvas?.nodes, state.focusedNodeId, fitCounter]);
+  }, [shouldFitToNodes, activeNodeIds, state.canvas, state.focusedNodeId, state.selectedScenario, state.currentEventIndex, fitCounter]);
 
   // Clear shouldFitToNodes after the fit happens (one-shot behavior)
   useEffect(() => {
@@ -1334,7 +1359,9 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
             )
           }
           rightPanel={
-            <div ref={containerRefCallback} style={{ height: '100%', width: '100%', background: theme.colors.background, position: 'relative' }}>
+            <div ref={containerRefCallback} style={{ height: '100%', width: '100%', background: theme.colors.background, display: 'flex', flexDirection: 'column' }}>
+              {/* Canvas area - shrinks when carousel is visible */}
+              <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
                 {/* Show loading/error/empty states, or GraphRenderer when ready */}
                 {canvasContent ? (
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1698,11 +1725,11 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                     </span>
                   </div>
                 )}
+              </div>
 
-                {/* Event Carousel - shown when scenario is selected */}
-                {state.selectedScenario && (
-                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30 }}>
-                    <EventCarousel
+              {/* Event Carousel - shown when scenario is selected */}
+              {state.selectedScenario && (
+                  <EventCarousel
                   scenario={state.selectedScenario}
                   currentEventIndex={state.currentEventIndex}
                   onEventIndexChange={(index) => setState(prev => ({ ...prev, currentEventIndex: index }))}
@@ -1750,7 +1777,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                   }}
                       traceEvents={traceEvents}
                     />
-                  </div>
                 )}
             </div>
           }

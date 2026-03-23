@@ -165,8 +165,9 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
         backgroundColor: theme.colors.backgroundSecondary,
         borderTop: `1px solid ${theme.colors.border}`,
         flexShrink: 0,
-        height: isExpanded ? '50%' : '200px',
-        minHeight: isExpanded ? '200px' : '200px',
+        height: isExpanded ? undefined : '200px',
+        flex: isExpanded ? '1 1 auto' : '0 0 200px',
+        maxHeight: '50%',
       }}
     >
       {/* Header */}
