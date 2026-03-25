@@ -716,10 +716,15 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   // Copy path to clipboard and close menu
   const handleCopyPath = useCallback(async () => {
     if (!contextMenu) return;
-    const path = getNodeFilePath(contextMenu.node);
-    if (path) {
+    const relativePath = getNodeFilePath(contextMenu.node);
+    if (relativePath) {
       try {
-        await navigator.clipboard.writeText(path);
+        // Build absolute path using the file tree root
+        const rootPath = fileTreeData?.root?.path ?? '';
+        const absolutePath = rootPath && !relativePath.startsWith('/')
+          ? `${rootPath}/${relativePath}`
+          : relativePath;
+        await navigator.clipboard.writeText(absolutePath);
         setContextMenuCopied(true);
         setTimeout(() => {
           setContextMenu(null);
@@ -730,7 +735,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
         setContextMenu(null);
       }
     }
-  }, [contextMenu, getNodeFilePath]);
+  }, [contextMenu, getNodeFilePath, fileTreeData]);
 
   // Close context menu on click outside or escape
   useEffect(() => {
