@@ -809,6 +809,64 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     return null;
   }, [state.canvas, state.hoveredScenarioEventNames, state.selectedScenario, workflowTemplate, getNodeEventName, state.isSearchOpen, searchMatchedNodeIds]);
 
+  // Build a map from event names to node IDs for sequence edge mapping
+  const eventNameToNodeId = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!state.canvas?.nodes) return map;
+
+    for (const node of state.canvas.nodes) {
+      const eventName = getNodeEventName(node);
+      if (eventName) {
+        map.set(eventName, node.id);
+      }
+    }
+    return map;
+  }, [state.canvas?.nodes, getNodeEventName]);
+
+  // Compute scenarioEdges for sequence numbering on edges when a scenario is selected
+  const scenarioEdges = useMemo((): Array<{ fromSpan: string; toSpan: string; sequenceNumber: number }> | undefined => {
+    if (!state.selectedScenario?.template?.events || !state.canvas?.nodes) return undefined;
+
+    try {
+      // Get event names from the scenario in order
+      const eventNames = Object.keys(state.selectedScenario.template.events);
+      if (eventNames.length < 2) return undefined;
+
+      // Build edges from consecutive events, mapping event names to node IDs
+      const edges: Array<{ fromSpan: string; toSpan: string; sequenceNumber: number }> = [];
+      const seenEdges = new Set<string>();
+      let sequenceNumber = 0;
+
+      for (let i = 0; i < eventNames.length - 1; i++) {
+        const fromEventName = eventNames[i];
+        const toEventName = eventNames[i + 1];
+
+        // Map event names to node IDs
+        const fromNodeId = eventNameToNodeId.get(fromEventName);
+        const toNodeId = eventNameToNodeId.get(toEventName);
+
+        if (fromNodeId && toNodeId && fromNodeId !== toNodeId) {
+          const edgeKey = `${fromNodeId}->${toNodeId}`;
+
+          if (!seenEdges.has(edgeKey)) {
+            seenEdges.add(edgeKey);
+            sequenceNumber++;
+            edges.push({
+              fromSpan: fromNodeId,  // GraphRenderer expects these as node IDs
+              toSpan: toNodeId,
+              sequenceNumber,
+            });
+          }
+        }
+      }
+
+      return edges.length > 0 ? edges : undefined;
+    } catch (error) {
+      console.warn('[CanvasEditorPanel] Failed to derive scenario edges:', error);
+      return undefined;
+    }
+  }, [state.selectedScenario, state.canvas?.nodes, eventNameToNodeId]);
+
   // Compute fitViewToNodeIds - controls which nodes GraphRenderer fits to
   // IMPORTANT: We must keep returning activeNodeIds even after shouldFitToNodes resets,
   // otherwise GraphRenderer's default fitView effect triggers and fits to ALL nodes.
@@ -1390,6 +1448,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                     fitViewPadding={0.15}
                     containerWidth={containerDimensions?.width}
                     containerHeight={containerDimensions?.height}
+                    scenarioEdges={scenarioEdges}
                   />
                 ) : null}
 
