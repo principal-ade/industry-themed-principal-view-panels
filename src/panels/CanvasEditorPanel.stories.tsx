@@ -2352,3 +2352,313 @@ This story demonstrates workflow chips displayed on \`otel-span-convention\` nod
     },
   },
 };
+
+// ============================================================================
+// EventRef Highlighting Story - Tests node highlighting with eventRef format
+// ============================================================================
+
+/**
+ * Canvas with nodes using top-level eventRef format (not nested in event.name or pv.event.name)
+ * This is the format used in .workflow.json files that reference canvas nodes.
+ *
+ * IMPORTANT: This tests the fix for eventRef highlighting that was missing in
+ * EventNodeMapper - it now uses getNodeEventName() from core which handles all 4 formats:
+ * 1. node.event.name - new OtelEventNode format
+ * 2. node.eventRef - top-level eventRef (THIS FORMAT)
+ * 3. node.pv.event.name - PV extension format
+ * 4. node.pv.eventRef - PV eventRef format
+ */
+const eventRefCanvas: ExtendedCanvas = {
+  nodes: [
+    {
+      id: 'auth-started-node',
+      type: 'text' as const,
+      x: 100,
+      y: 50,
+      width: 200,
+      height: 80,
+      text: 'Auth Started',
+      color: '#3b82f6',
+      eventRef: 'auth.started', // TOP-LEVEL eventRef format
+      pv: {
+        nodeType: 'event',
+        shape: 'rectangle' as const,
+        icon: 'User',
+      },
+    },
+    {
+      id: 'auth-validated-node',
+      type: 'text' as const,
+      x: 100,
+      y: 180,
+      width: 200,
+      height: 80,
+      text: 'Credentials Validated',
+      color: '#10b981',
+      eventRef: 'auth.validated', // TOP-LEVEL eventRef format
+      pv: {
+        nodeType: 'event',
+        shape: 'rectangle' as const,
+        icon: 'Check',
+      },
+    },
+    {
+      id: 'auth-session-created-node',
+      type: 'text' as const,
+      x: 100,
+      y: 310,
+      width: 200,
+      height: 80,
+      text: 'Session Created',
+      color: '#8b5cf6',
+      eventRef: 'auth.session.created', // TOP-LEVEL eventRef format
+      pv: {
+        nodeType: 'event',
+        shape: 'rectangle' as const,
+        icon: 'Key',
+      },
+    },
+    {
+      id: 'auth-failed-node',
+      type: 'text' as const,
+      x: 350,
+      y: 180,
+      width: 200,
+      height: 80,
+      text: 'Auth Failed',
+      color: '#ef4444',
+      eventRef: 'auth.failed', // TOP-LEVEL eventRef format
+      pv: {
+        nodeType: 'event',
+        shape: 'rectangle' as const,
+        icon: 'X',
+      },
+    },
+  ],
+  edges: [
+    { id: 'e1', fromNode: 'auth-started-node', toNode: 'auth-validated-node', pv: { edgeType: 'flow' } },
+    { id: 'e2', fromNode: 'auth-started-node', toNode: 'auth-failed-node', pv: { edgeType: 'error' } },
+    { id: 'e3', fromNode: 'auth-validated-node', toNode: 'auth-session-created-node', pv: { edgeType: 'flow' } },
+  ],
+  pv: {
+    version: '1.0.0',
+    name: 'Auth Flow - eventRef Format',
+    description: 'Tests node highlighting with top-level eventRef format',
+    edgeTypes: {
+      flow: { style: 'solid' as const, color: '#64748b', directed: true },
+      error: { style: 'dashed' as const, color: '#ef4444', directed: true },
+    },
+  },
+} as ExtendedCanvas;
+
+/**
+ * Workflow template that references events by their eventRef names
+ */
+const eventRefWorkflow: WorkflowTemplate = {
+  version: '1.0.0',
+  canvas: 'auth-flow.canvas',
+  name: 'Auth Flow Workflow',
+  description: 'Tests eventRef highlighting',
+  mode: 'timeline' as const,
+  scenarioSelection: 'first-match' as const,
+  scenarios: [
+    {
+      id: 'success-flow',
+      priority: 1,
+      description: 'Successful authentication',
+      template: {
+        introduction: 'User Authentication - Success Path',
+        events: {
+          'auth.started': 'User initiated authentication',
+          'auth.validated': 'Credentials validated successfully',
+          'auth.session.created': 'Session created for user',
+        },
+        summary: 'User authenticated successfully.',
+      },
+    },
+    {
+      id: 'failure-flow',
+      priority: 2,
+      description: 'Failed authentication',
+      template: {
+        introduction: 'User Authentication - Failure Path',
+        events: {
+          'auth.started': 'User initiated authentication',
+          'auth.failed': 'Authentication failed - invalid credentials',
+        },
+        summary: 'Authentication failed.',
+      },
+    },
+  ],
+};
+
+/**
+ * EventRef Highlighting - Tests that nodes with top-level eventRef are highlighted
+ * when selecting workflow scenarios.
+ *
+ * This story verifies the fix for the highlighting issue where:
+ * - EventNodeMapper.ts was not checking top-level eventRef
+ * - Now uses getNodeEventName() from core which handles all 4 event reference formats
+ */
+export const EventRefHighlighting: Story = {
+  args: {} as never,
+  render: () => {
+    const [eventLog, setEventLog] = useState<Array<{ timestamp: string; action: string }>>([]);
+
+    const fileTreeData = {
+      allFiles: [
+        {
+          path: '.principal-views/auth-flow.canvas',
+          relativePath: '.principal-views/auth-flow.canvas',
+          name: 'auth-flow.canvas',
+          content: JSON.stringify(eventRefCanvas, null, 2),
+        },
+      ],
+    };
+
+    const mockSlices = new Map<string, DataSlice>();
+    mockSlices.set('fileTree', {
+      scope: 'repository',
+      name: 'fileTree',
+      data: fileTreeData,
+      loading: false,
+      error: null,
+      refresh: async () => {},
+    });
+
+    // Log when scenarios are selected
+    const handleScenarioSelect = (scenarioId: string) => {
+      const timestamp = new Date().toLocaleTimeString();
+      setEventLog(prev => [{ timestamp, action: `Selected: ${scenarioId}` }, ...prev].slice(0, 10));
+    };
+
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Test Instructions Banner */}
+        <div
+          style={{
+            padding: '12px 16px',
+            background: '#1e3a5f',
+            borderBottom: '1px solid #2563eb',
+            color: '#93c5fd',
+            fontSize: 13,
+          }}
+        >
+          <strong style={{ color: '#60a5fa' }}>EventRef Highlighting Test</strong>
+          <div style={{ marginTop: 4, opacity: 0.9, fontSize: 12 }}>
+            <strong>Test Steps:</strong>
+            <ol style={{ margin: '4px 0 0 16px', padding: 0 }}>
+              <li>Click the workflow dropdown (scenarios list)</li>
+              <li>Select "success-flow" scenario</li>
+              <li>Verify that 3 nodes highlight: Auth Started, Credentials Validated, Session Created</li>
+              <li>Select "failure-flow" scenario</li>
+              <li>Verify that 2 nodes highlight: Auth Started, Auth Failed</li>
+            </ol>
+            <div style={{ marginTop: 8, color: '#fbbf24' }}>
+              If nodes don't highlight, the eventRef mapping is broken.
+            </div>
+          </div>
+        </div>
+
+        {/* Canvas Panel */}
+        <div style={{ flex: 1 }}>
+          <MockPanelProvider
+            contextOverrides={{
+              slices: mockSlices,
+              getSlice: <T,>(name: string): DataSlice<T> | undefined => {
+                return mockSlices.get(name) as DataSlice<T> | undefined;
+              },
+              hasSlice: (name: string) => mockSlices.has(name),
+              isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
+              repositoryPath: '/mock/repository',
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any}
+            actionsOverrides={{
+              readFile: async (path: string) => {
+                const fileName = path.split('/').pop() || '';
+                const file = fileTreeData.allFiles.find((f) => f.path === fileName || f.name === fileName || f.path.endsWith(fileName));
+                if (!file || !file.content) {
+                  throw new Error(`File not found: ${path}`);
+                }
+                return file.content;
+              },
+              writeFile: undefined,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any}
+          >
+            {(props) => (
+              <CanvasEditorPanel
+                {...props}
+                canvasPath=".principal-views/auth-flow.canvas"
+                canvasName="Auth Flow - eventRef Test"
+                workflowTemplate={eventRefWorkflow}
+              />
+            )}
+          </MockPanelProvider>
+        </div>
+
+        {/* Event Log */}
+        {eventLog.length > 0 && (
+          <div
+            style={{
+              padding: 8,
+              background: '#0a0a0a',
+              borderTop: '1px solid #333',
+              maxHeight: 100,
+              overflow: 'auto',
+              fontSize: 11,
+              fontFamily: 'monospace',
+              color: '#888',
+            }}
+          >
+            {eventLog.map((entry, i) => (
+              <div key={i}>
+                <span style={{ color: '#666' }}>{entry.timestamp}</span>{' '}
+                <span style={{ color: '#22c55e' }}>{entry.action}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: `
+**EventRef Highlighting Test**
+
+This story tests that node highlighting works correctly with the top-level \`eventRef\` format.
+
+**Background:**
+The EventNodeMapper was only checking 3 of 4 event reference formats:
+1. ✅ \`node.event.name\` - OtelEventNode format
+2. ❌ \`node.eventRef\` - TOP-LEVEL eventRef (was MISSING!)
+3. ✅ \`node.pv.event.name\` - PV extension format
+4. ✅ \`node.pv.eventRef\` - PV eventRef format
+
+**The Fix:**
+EventNodeMapper now uses \`getNodeEventName()\` from \`@principal-ai/principal-view-core\`
+which handles all 4 formats correctly.
+
+**How to Test:**
+1. Select "success-flow" scenario from the workflow dropdown
+2. Three nodes should highlight (Auth Started, Credentials Validated, Session Created)
+3. Select "failure-flow" scenario
+4. Two nodes should highlight (Auth Started, Auth Failed)
+
+**Canvas Format Being Tested:**
+\`\`\`json
+{
+  "id": "auth-started-node",
+  "type": "text",
+  "text": "Auth Started",
+  "eventRef": "auth.started",  // <-- TOP-LEVEL eventRef
+  "pv": { "nodeType": "event" }
+}
+\`\`\`
+        `,
+      },
+    },
+  },
+};

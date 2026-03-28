@@ -3,7 +3,8 @@ import type { CanvasEditorPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
-import type { ExtendedCanvas, ExtendedCanvasNode, PVNodeExtension, ComponentLibrary, WorkflowTemplate, WorkflowScenario, OtelAttributes, OtelEvent } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas, PVNodeExtension, ComponentLibrary, WorkflowTemplate, WorkflowScenario, OtelAttributes, OtelEvent } from '@principal-ai/principal-view-core';
+import { getNodeEventName } from '@principal-ai/principal-view-core';
 import { getSpansFromTrace, type RegisteredTrace } from '../types/otel';
 import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import { ConfigLoader } from './principal-view/ConfigLoader';
@@ -580,15 +581,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     setState(prev => ({ ...prev, hasUnsavedChanges: false }));
   }, [loadConfiguration]);
 
-  // Helper to extract event name from node (handles both event.name and eventRef)
-  const getNodeEventName = useCallback((node: ExtendedCanvasNode): string | null => {
-    const nodePv: PVNodeExtension | undefined = node.pv;
-    // eventRef is the event name directly (string)
-    // event.name is the event name within an event schema object
-    // Also check top-level event.name for OTEL node format (type: "otel-event")
-    const topLevelEvent = (node as { event?: { name?: string } }).event?.name;
-    return nodePv?.eventRef || nodePv?.event?.name || topLevelEvent || null;
-  }, []);
 
   // Handle scenario hover - highlight nodes that have events matching the scenario
   const handleScenarioHover = useCallback((eventNames: string[] | null) => {
@@ -807,7 +799,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     }
 
     return null;
-  }, [state.canvas, state.hoveredScenarioEventNames, state.selectedScenario, workflowTemplate, getNodeEventName, state.isSearchOpen, searchMatchedNodeIds]);
+  }, [state.canvas, state.hoveredScenarioEventNames, state.selectedScenario, workflowTemplate, state.isSearchOpen, searchMatchedNodeIds]);
 
   // Build a map from event names to node IDs for sequence edge mapping
   const eventNameToNodeId = useMemo(() => {
@@ -821,7 +813,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       }
     }
     return map;
-  }, [state.canvas?.nodes, getNodeEventName]);
+  }, [state.canvas?.nodes]);
 
   // Compute scenarioEdges for sequence numbering on edges when a scenario is selected
   const scenarioEdges = useMemo((): Array<{ fromSpan: string; toSpan: string; sequenceNumber: number }> | undefined => {

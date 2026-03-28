@@ -6,8 +6,8 @@
  * should be highlighted when an event is played back.
  */
 
-import type { ExtendedCanvas, PVNodeExtension } from '@principal-ai/principal-view-core';
-import type { OtelAttributes } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas, OtelAttributes } from '@principal-ai/principal-view-core';
+import { getNodeEventName } from '@principal-ai/principal-view-core';
 
 /**
  * Event from execution artifact
@@ -15,16 +15,16 @@ import type { OtelAttributes } from '@principal-ai/principal-view-core';
 export interface ExecutionEvent {
   name: string;
   time: number;
+  /** Kept for API compatibility - not currently used for matching */
   attributes?: OtelAttributes;
 }
 
 /**
  * Maps an execution event to a canvas node ID.
  *
- * Strategy:
- * 1. Primary: Match event name to node's pv.event.name
- * 2. Fallback: Match event attributes to node's pv.otel.resourceMatch
- * 3. Default: Return null (no highlight)
+ * Matches by event name using the canonical getNodeEventName() from core,
+ * which supports all event reference formats (pv.event.name, pv.eventRef,
+ * top-level event.name, top-level eventRef).
  *
  * @param event - The execution event to map
  * @param canvas - The canvas containing nodes with OTEL metadata
@@ -38,43 +38,13 @@ export function mapEventToNodeId(
     return null;
   }
 
-  // Strategy 1: Match by event name in pv.eventRef, pv.event.name, or top-level event.name (OTEL format)
   for (const node of canvas.nodes) {
-    const nodePv = node.pv as PVNodeExtension | undefined;
-    const topLevelEvent = (node as { event?: { name?: string } }).event?.name;
-    const nodeEventName = nodePv?.eventRef || nodePv?.event?.name || topLevelEvent;
+    const nodeEventName = getNodeEventName(node);
     if (nodeEventName === event.name) {
       return node.id;
     }
   }
 
-  // Strategy 2: Match by resourceMatch attributes
-  if (event.attributes) {
-    for (const node of canvas.nodes) {
-      const resourceMatch = (node.pv as PVNodeExtension | undefined)?.resourceMatch;
-      if (resourceMatch && typeof resourceMatch === 'object') {
-        // Check if all resourceMatch conditions are satisfied by event attributes
-        const matches = Object.entries(resourceMatch).every(([key, pattern]) => {
-          const value = event.attributes?.[key];
-          if (value === undefined) return false;
-
-          // Handle wildcard patterns
-          if (typeof pattern === 'string' && pattern === '*') {
-            return true;
-          }
-
-          // Exact match
-          return value === pattern;
-        });
-
-        if (matches) {
-          return node.id;
-        }
-      }
-    }
-  }
-
-  // Strategy 3: No match found
   return null;
 }
 
@@ -95,9 +65,7 @@ export function buildEventToNodeMap(
   }
 
   for (const node of canvas.nodes) {
-    const nodePv = node.pv as PVNodeExtension | undefined;
-    const topLevelEvent = (node as { event?: { name?: string } }).event?.name;
-    const nodeEventName = nodePv?.eventRef || nodePv?.event?.name || topLevelEvent;
+    const nodeEventName = getNodeEventName(node);
     if (nodeEventName && !map.has(nodeEventName)) {
       map.set(nodeEventName, node.id);
     }
@@ -123,9 +91,7 @@ export function debugEventMapping(canvas: ExtendedCanvas | null): string {
 
   let eventCount = 0;
   for (const node of canvas.nodes) {
-    const nodePv = node.pv as PVNodeExtension | undefined;
-    const topLevelEvent = (node as { event?: { name?: string } }).event?.name;
-    const nodeEventName = nodePv?.eventRef || nodePv?.event?.name || topLevelEvent;
+    const nodeEventName = getNodeEventName(node);
     if (nodeEventName) {
       lines.push(`Node: ${node.id}`);
       lines.push(`  - ${nodeEventName}`);
