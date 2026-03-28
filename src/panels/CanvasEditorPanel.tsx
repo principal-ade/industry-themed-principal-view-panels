@@ -205,11 +205,16 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     observerRef.current = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
       if (width > 0 && height > 0) {
+        console.info('[CanvasEditorPanel] ResizeObserver dimensions:', { width, height, canvasPath });
         setContainerDimensions({ width, height });
       }
     });
 
     observerRef.current.observe(node);
+
+    // Log initial dimensions
+    const rect = node.getBoundingClientRect();
+    console.info('[CanvasEditorPanel] Initial container rect:', { width: rect.width, height: rect.height, canvasPath });
   }, []);
 
   // Cleanup on unmount
@@ -1418,30 +1423,40 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                     {canvasContent}
                   </div>
                 ) : state.canvas ? (
-                  <GraphRenderer
-                    ref={graphRef}
-                    canvas={state.canvas}
-                    library={state.library ?? undefined}
-                    spansCanvas={state.spansCanvas ?? undefined}
-                    workflowSpanPattern={workflowSpanPattern ?? undefined}
-                    width="100%"
-                    height="100%"
-                    editable={state.isEditMode}
-                    onPendingChangesChange={(hasChanges) => {
-                      setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
-                    }}
-                    onCopy={handleCopyNodes}
-                    showBackground={state.showGridLines}
-                    backgroundVariant="lines"
-                    showControls={true}
-                    highlightedNodeId={state.highlightedNodeId}
-                    activeNodeIds={activeNodeIds}
-                    fitViewToNodeIds={fitViewToNodeIds}
-                    fitViewPadding={0.15}
-                    containerWidth={containerDimensions?.width}
-                    containerHeight={containerDimensions?.height}
-                    scenarioEdges={scenarioEdges}
-                  />
+                  (() => {
+                    console.info('[CanvasEditorPanel] Rendering GraphRenderer with dimensions:', {
+                      containerWidth: containerDimensions?.width,
+                      containerHeight: containerDimensions?.height,
+                      fitViewToNodeIds: fitViewToNodeIds?.length,
+                      canvasPath,
+                    });
+                    return (
+                      <GraphRenderer
+                        ref={graphRef}
+                        canvas={state.canvas}
+                        library={state.library ?? undefined}
+                        spansCanvas={state.spansCanvas ?? undefined}
+                        workflowSpanPattern={workflowSpanPattern ?? undefined}
+                        width="100%"
+                        height="100%"
+                        editable={state.isEditMode}
+                        onPendingChangesChange={(hasChanges) => {
+                          setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
+                        }}
+                        onCopy={handleCopyNodes}
+                        showBackground={state.showGridLines}
+                        backgroundVariant="lines"
+                        showControls={true}
+                        highlightedNodeId={state.highlightedNodeId}
+                        activeNodeIds={activeNodeIds}
+                        fitViewToNodeIds={fitViewToNodeIds}
+                        fitViewPadding={0.15}
+                        containerWidth={containerDimensions?.width}
+                        containerHeight={containerDimensions?.height}
+                        scenarioEdges={scenarioEdges}
+                      />
+                    );
+                  })()
                 ) : null}
 
                 {/* Save/Discard Overlay - top right corner */}
