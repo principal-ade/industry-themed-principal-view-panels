@@ -231,6 +231,51 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   // Counter to force new array reference when re-fitting to same nodes
   const [fitCounter, setFitCounter] = useState(0);
 
+  // Track dimensions for re-fit detection when container size stabilizes
+  const initialDimensionsRef = useRef<{ width: number; height: number } | null>(null);
+  const dimensionStabilizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Detect when dimensions stabilize after significant change and trigger re-fit
+  useEffect(() => {
+    if (!containerDimensions || !state.canvas) return;
+
+    // Clear any pending stabilization timer
+    if (dimensionStabilizeTimerRef.current) {
+      clearTimeout(dimensionStabilizeTimerRef.current);
+    }
+
+    // If we don't have initial dimensions yet, record them
+    if (!initialDimensionsRef.current) {
+      initialDimensionsRef.current = containerDimensions;
+      return;
+    }
+
+    const initial = initialDimensionsRef.current;
+    const widthChange = Math.abs(containerDimensions.width - initial.width);
+
+    // If width changed significantly (>100px), wait for stabilization then re-fit
+    if (widthChange > 100) {
+      dimensionStabilizeTimerRef.current = setTimeout(() => {
+        console.info('[CanvasEditorPanel] Dimensions stabilized after significant change, triggering re-fit:', {
+          initial: initial.width,
+          final: containerDimensions.width,
+          change: widthChange,
+        });
+        // Update initial dimensions to current
+        initialDimensionsRef.current = containerDimensions;
+        // Trigger re-fit
+        setFitCounter(c => c + 1);
+        setShouldFitToNodes(true);
+      }, 150); // Wait 150ms for dimensions to stabilize
+    }
+
+    return () => {
+      if (dimensionStabilizeTimerRef.current) {
+        clearTimeout(dimensionStabilizeTimerRef.current);
+      }
+    };
+  }, [containerDimensions, state.canvas]);
+
   // Track whether the event carousel is expanded
   const [isCarouselExpanded, setIsCarouselExpanded] = useState(false);
 
