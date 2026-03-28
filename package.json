@@ -65,7 +65,7 @@
     "react-dom": ">=19.0.0"
   },
   "dependencies": {
-    "@principal-ade/panels": "^1.0.68",
+    "@principal-ade/panels": "^1.0.81",
     "@principal-ai/principal-view-react": "^0.14.14",
     "@xyflow/react": "^12.0.0",
     "clsx": "^2.1.1",
