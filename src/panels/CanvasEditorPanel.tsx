@@ -205,16 +205,11 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     observerRef.current = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
       if (width > 0 && height > 0) {
-        console.info('[CanvasEditorPanel] ResizeObserver dimensions:', { width, height, canvasPath });
         setContainerDimensions({ width, height });
       }
     });
 
     observerRef.current.observe(node);
-
-    // Log initial dimensions
-    const rect = node.getBoundingClientRect();
-    console.info('[CanvasEditorPanel] Initial container rect:', { width: rect.width, height: rect.height, canvasPath });
   }, []);
 
   // Cleanup on unmount
@@ -256,17 +251,12 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     // If width changed significantly (>100px), wait for stabilization then re-fit
     if (widthChange > 100) {
       dimensionStabilizeTimerRef.current = setTimeout(() => {
-        console.info('[CanvasEditorPanel] Dimensions stabilized after significant change, triggering re-fit:', {
-          initial: initial.width,
-          final: containerDimensions.width,
-          change: widthChange,
-        });
         // Update initial dimensions to current
         initialDimensionsRef.current = containerDimensions;
         // Trigger re-fit
         setFitCounter(c => c + 1);
         setShouldFitToNodes(true);
-      }, 150); // Wait 150ms for dimensions to stabilize
+      }, 100); // Wait 100ms for dimensions to stabilize
     }
 
     return () => {
@@ -1473,15 +1463,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                     <Loader className="animate-spin" size={24} style={{ opacity: 0.5 }} />
                   </div>
                 ) : (state.canvas && containerDimensions?.width && containerDimensions?.height) ? (
-                  (() => {
-                    console.info('[CanvasEditorPanel] Rendering GraphRenderer with dimensions:', {
-                      containerWidth: containerDimensions.width,
-                      containerHeight: containerDimensions.height,
-                      fitViewToNodeIds: fitViewToNodeIds?.length,
-                      canvasPath,
-                    });
-                    return (
-                      <GraphRenderer
+                  <GraphRenderer
                         ref={graphRef}
                         canvas={state.canvas}
                         library={state.library ?? undefined}
@@ -1505,8 +1487,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                         containerHeight={containerDimensions.height}
                         scenarioEdges={scenarioEdges}
                       />
-                    );
-                  })()
                 ) : null}
 
                 {/* Save/Discard Overlay - top right corner */}
