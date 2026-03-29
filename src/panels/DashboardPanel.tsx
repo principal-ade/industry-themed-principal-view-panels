@@ -1,0 +1,271 @@
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
+import { useTheme } from '@principal-ade/industry-theme';
+import { usePanelFocusListener } from '@principal-ade/panel-layouts';
+import { DashboardRenderer, MockDataProvider } from '@principal-ai/principal-view-react';
+import type {
+  DashboardDefinition,
+  MetricSource,
+  TimeRange,
+  RefreshInterval,
+  DiscoveredCanvas,
+} from '@principal-ai/principal-view-core';
+import { Loader2 } from 'lucide-react';
+
+export interface DashboardPanelProps extends PanelComponentProps {
+  /**
+   * The discovered dashboard canvas to display.
+   * Must be a DiscoveredCanvas with type 'dashboard'.
+   */
+  selectedDashboard?: DiscoveredCanvas | null;
+
+  /**
+   * Optional pre-loaded dashboard definition.
+   * If provided, skips file loading.
+   */
+  dashboardDefinition?: DashboardDefinition | null;
+
+  /**
+   * Callback when a metric source link is clicked.
+   * Use this to navigate to the referenced workflow/canvas.
+   */
+  onSourceClick?: (source: MetricSource) => void;
+
+  /**
+   * Callback when a metric panel is clicked.
+   */
+  onMetricClick?: (metricId: string) => void;
+}
+
+/**
+ * DashboardPanel - Panel for displaying observability dashboards
+ *
+ * This panel renders a dashboard from a .dashboard.json file, showing:
+ * - Metric cards with current values and trends
+ * - Charts (line, bar, histogram)
+ * - Time range selector
+ * - Links to external tools (Grafana, Datadog, runbooks)
+ *
+ * Usage:
+ * - Pass `selectedDashboard` (DiscoveredCanvas) to load from file
+ * - Or pass `dashboardDefinition` directly if already loaded
+ */
+export const DashboardPanel: React.FC<DashboardPanelProps> = ({
+  context: _context,
+  actions,
+  events,
+  selectedDashboard,
+  dashboardDefinition: propDashboard,
+  onSourceClick,
+  onMetricClick,
+}) => {
+  const { theme } = useTheme();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // State for loaded dashboard
+  const [dashboard, setDashboard] = useState<DashboardDefinition | null>(propDashboard ?? null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Time range state
+  const [timeRange, setTimeRange] = useState<TimeRange>({ preset: 'last_1h' });
+  const [refreshInterval, setRefreshInterval] = useState<RefreshInterval>('off');
+
+  usePanelFocusListener('dashboard', events, () => panelRef.current?.focus());
+
+  // Load dashboard from file when selectedDashboard changes
+  useEffect(() => {
+    if (propDashboard) {
+      setDashboard(propDashboard);
+      setError(null);
+      return;
+    }
+
+    if (!selectedDashboard) {
+      setDashboard(null);
+      return;
+    }
+
+    if (selectedDashboard.type !== 'dashboard') {
+      setError(`Invalid canvas type: expected 'dashboard', got '${selectedDashboard.type}'`);
+      return;
+    }
+
+    const loadDashboard = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const readFile = (actions as { readFile?: (path: string) => Promise<string> }).readFile;
+        if (!readFile) {
+          throw new Error('readFile action not available');
+        }
+
+        const content = await readFile(selectedDashboard.path);
+        const parsed = JSON.parse(content) as DashboardDefinition;
+        setDashboard(parsed);
+      } catch (err) {
+        console.error('Failed to load dashboard:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+        setDashboard(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, [selectedDashboard, propDashboard, actions]);
+
+  // Handle source clicks - emit event or call callback
+  const handleSourceClick = useCallback(
+    (source: MetricSource) => {
+      if (onSourceClick) {
+        onSourceClick(source);
+      } else if (events?.emit) {
+        // Emit navigation event for the host to handle
+        events.emit({
+          type: 'dashboard:source-click',
+          source: 'dashboard-panel',
+          timestamp: Date.now(),
+          payload: {
+            source,
+            storyboard: source.storyboard,
+            workflow: source.workflow,
+            nodes: source.nodes,
+          },
+        });
+      }
+    },
+    [onSourceClick, events]
+  );
+
+  // Handle metric clicks
+  const handleMetricClick = useCallback(
+    (metricId: string) => {
+      if (onMetricClick) {
+        onMetricClick(metricId);
+      } else if (events?.emit) {
+        events.emit({
+          type: 'dashboard:metric-click',
+          source: 'dashboard-panel',
+          timestamp: Date.now(),
+          payload: { metricId },
+        });
+      }
+    },
+    [onMetricClick, events]
+  );
+
+  // Create mock data provider for now (will be replaced with real data)
+  const dataProvider = useMemo(() => {
+    if (!dashboard) return undefined;
+    return new MockDataProvider(dashboard);
+  }, [dashboard]);
+
+  // Render loading state
+  if (loading) {
+    return (
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        style={{
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.colors.background,
+          color: theme.colors.textSecondary,
+          outline: 'none',
+        }}
+      >
+        <Loader2
+          size={24}
+          style={{
+            animation: 'spin 1s linear infinite',
+            marginRight: theme.space[2],
+          }}
+        />
+        Loading dashboard...
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  // Render error state
+  if (error) {
+    return (
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        style={{
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.colors.background,
+          color: theme.colors.error,
+          padding: theme.space[4],
+          outline: 'none',
+        }}
+      >
+        <div style={{ fontSize: theme.fontSizes[3], marginBottom: theme.space[2] }}>
+          Failed to load dashboard
+        </div>
+        <div style={{ fontSize: theme.fontSizes[1], color: theme.colors.textSecondary }}>
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  // Render empty state
+  if (!dashboard) {
+    return (
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        style={{
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.colors.background,
+          color: theme.colors.textSecondary,
+          fontSize: theme.fontSizes[3],
+          outline: 'none',
+        }}
+      >
+        Select a dashboard to view
+      </div>
+    );
+  }
+
+  // Render dashboard
+  return (
+    <div
+      ref={panelRef}
+      tabIndex={-1}
+      style={{
+        height: '100%',
+        width: '100%',
+        overflow: 'auto',
+        outline: 'none',
+      }}
+    >
+      <DashboardRenderer
+        dashboard={dashboard}
+        dataProvider={dataProvider}
+        timeRange={timeRange}
+        onTimeRangeChange={setTimeRange}
+        refreshInterval={refreshInterval}
+        onRefreshIntervalChange={setRefreshInterval}
+        onMetricClick={handleMetricClick}
+        onSourceClick={handleSourceClick}
+      />
+    </div>
+  );
+};

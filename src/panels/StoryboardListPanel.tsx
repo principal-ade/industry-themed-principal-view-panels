@@ -549,7 +549,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     // Architecture canvases: regular, scopes, resources, spans
     filtered = filtered.filter((storyboard) => {
       if (effectiveCanvasTypeFilter === 'regular') {
-        const architectureTypes = ['regular', 'scopes', 'resources', 'spans'];
+        const architectureTypes = ['regular', 'scopes', 'resources', 'spans', 'dashboard'];
         return architectureTypes.includes(storyboard.canvas.type);
       }
       return storyboard.canvas.type === effectiveCanvasTypeFilter;

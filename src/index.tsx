@@ -10,6 +10,8 @@ export type { CanvasEditorPanelProps } from './panels/CanvasEditorPanel';
 export { StoryboardListPanel } from './panels/StoryboardListPanel';
 export { TraceListPanel } from './panels/TraceListPanel';
 export { TraceDetailsPanel } from './panels/TraceDetailsPanel';
+export { DashboardPanel } from './panels/DashboardPanel';
+export type { DashboardPanelProps } from './panels/DashboardPanel';
 export { MultiCanvasPanel, createMultiCanvasLayout } from './panels/MultiCanvasPanel';
 export type { MultiCanvasPanelProps, CanvasInfo } from './panels/MultiCanvasPanel';
 
