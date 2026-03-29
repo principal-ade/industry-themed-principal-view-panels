@@ -1040,3 +1040,242 @@ export const WithMultipleMatches: Story = {
     return <MultipleMatchWrapper />;
   },
 };
+
+/**
+ * Simulates opening CanvasEditorPanel in a tabbed container (like TabbedTerminalPanel).
+ * This reproduces the issue where opening a canvas from StoryboardListPanel into a tab
+ * causes dimension changes that affect the canvas fit.
+ */
+export const WithTabbedContainer: Story = {
+  render: () => {
+    interface TabDefinition {
+      id: string;
+      label: string;
+      type: 'terminal' | 'canvas';
+      canvasState?: EditorPanelState;
+    }
+
+    const TabbedContainerWrapper: React.FC = () => {
+      const [tabs, setTabs] = useState<TabDefinition[]>([
+        { id: 'terminal-1', label: 'Terminal 1', type: 'terminal' },
+      ]);
+      const [activeTabId, setActiveTabId] = useState('terminal-1');
+      const [dimensionHistory, setDimensionHistory] = useState<{ w: number; h: number }[]>([]);
+      const canvasContainerRef = React.useRef<HTMLDivElement>(null);
+
+      // Track dimensions of the canvas container
+      useEffect(() => {
+        if (!canvasContainerRef.current) return;
+        const observer = new ResizeObserver(([entry]) => {
+          const w = Math.round(entry.contentRect.width);
+          const h = Math.round(entry.contentRect.height);
+          setDimensionHistory(prev => {
+            const last = prev[prev.length - 1];
+            if (!last || last.w !== w || last.h !== h) {
+              console.log('[TabbedContainer] Dimension change:', { w, h });
+              return [...prev.slice(-20), { w, h }];
+            }
+            return prev;
+          });
+        });
+        observer.observe(canvasContainerRef.current);
+        return () => observer.disconnect();
+      }, [activeTabId]);
+
+      const mockReadFile = async (path: string) => {
+        if (path.endsWith('.otel.canvas') || path.endsWith('.canvas')) {
+          const storyboardName = path.split('/').slice(-2, -1)[0] || 'mock-canvas';
+          return JSON.stringify(createMockCanvas(storyboardName));
+        }
+        if (path.endsWith('.workflow.json')) {
+          const workflowName = path.split('/').slice(-2, -1)[0] || 'mock-workflow';
+          const storyboardName = path.split('/').slice(-3, -2)[0] || 'mock-storyboard';
+          return JSON.stringify(createMockWorkflowTemplate(workflowName, storyboardName));
+        }
+        return '{}';
+      };
+
+      // Open canvas in new tab (simulates what happens in electron app)
+      const openCanvasInTab = (canvasState: EditorPanelState) => {
+        const tabId = `canvas-${Date.now()}`;
+        const newTab: TabDefinition = {
+          id: tabId,
+          label: canvasState.canvasName || 'Canvas',
+          type: 'canvas',
+          canvasState,
+        };
+        setTabs(prev => [...prev, newTab]);
+        setActiveTabId(tabId);
+      };
+
+      const closeTab = (tabId: string) => {
+        setTabs(prev => prev.filter(t => t.id !== tabId));
+        if (activeTabId === tabId) {
+          setActiveTabId(tabs[0]?.id || '');
+        }
+      };
+
+      const { theme } = useTheme();
+      const activeTab = tabs.find(t => t.id === activeTabId);
+
+      return (
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          {/* Debug info */}
+          <div style={{
+            padding: '8px 12px',
+            background: dimensionHistory.some((d, i, arr) => i > 0 && Math.abs(arr[i-1].w - d.w) > 50) ? '#fff3e0' : '#e8f5e9',
+            borderBottom: '1px solid #333',
+            fontFamily: 'monospace',
+            fontSize: '11px',
+            flexShrink: 0,
+          }}>
+            <div>Canvas dimensions: {dimensionHistory.slice(-5).map(d => `${d.w}x${d.h}`).join(' → ')}</div>
+          </div>
+
+          {/* Tab bar */}
+          <div style={{
+            display: 'flex',
+            background: theme.colors.surface,
+            borderBottom: `1px solid ${theme.colors.border}`,
+            padding: '4px 8px',
+            gap: '4px',
+            flexShrink: 0,
+          }}>
+            {tabs.map(tab => (
+              <div
+                key={tab.id}
+                onClick={() => setActiveTabId(tab.id)}
+                style={{
+                  padding: '6px 12px',
+                  background: activeTabId === tab.id ? theme.colors.background : 'transparent',
+                  color: activeTabId === tab.id ? theme.colors.text : theme.colors.textMuted,
+                  borderRadius: '4px 4px 0 0',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '13px',
+                }}
+              >
+                <span>{tab.type === 'terminal' ? '>' : '◇'}</span>
+                <span>{tab.label}</span>
+                {tab.type === 'canvas' && (
+                  <span
+                    onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
+                    style={{ opacity: 0.5, cursor: 'pointer' }}
+                  >×</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <MockPanelProvider
+              contextOverrides={{
+                fileTree: {
+                  scope: 'repository' as const,
+                  name: 'fileTree',
+                  data: mockFileTree,
+                  loading: false,
+                  error: null,
+                  refresh: async () => {},
+                },
+                repositoryPath: '/mock/repository',
+              }}
+              actionsOverrides={{
+                readFile: mockReadFile,
+                writeFile: async () => {},
+              }}
+            >
+              {(props) => (
+                <>
+                  {/* Terminal tabs - show mock terminal */}
+                  {activeTab?.type === 'terminal' && (
+                    <div style={{
+                      flex: 1,
+                      background: '#1a1a1a',
+                      color: '#00ff00',
+                      padding: '12px',
+                      fontFamily: 'monospace',
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }}>
+                      <div style={{ marginBottom: '12px' }}>
+                        Mock Terminal - Click a workflow in the sidebar to open it in a new tab
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <AnimatedResizableLayout
+                          leftPanel={
+                            <StoryboardListPanel
+                              {...props}
+                              onNodeClick={(node) => {
+                                if (node.type === 'workflow') {
+                                  openCanvasInTab({
+                                    canvasPath: node.canvasPath,
+                                    canvasName: node.canvasName,
+                                    workflowId: node.workflowId,
+                                    workflowPath: node.workflowPath,
+                                    workflowTemplate: node.workflow,
+                                  });
+                                } else if (node.type === 'canvas') {
+                                  openCanvasInTab({
+                                    canvasPath: node.path,
+                                    canvasName: node.name,
+                                  });
+                                }
+                              }}
+                            />
+                          }
+                          rightPanel={
+                            <div style={{
+                              height: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: theme.colors.textMuted,
+                            }}>
+                              Select a canvas or workflow to open in a new tab
+                            </div>
+                          }
+                          defaultSize={30}
+                          minSize={20}
+                          theme={theme}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Canvas tabs */}
+                  {activeTab?.type === 'canvas' && activeTab.canvasState && (
+                    <div
+                      ref={canvasContainerRef}
+                      style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
+                    >
+                      <CanvasEditorPanel
+                        {...props}
+                        canvasPath={activeTab.canvasState.canvasPath}
+                        canvasName={activeTab.canvasState.canvasName}
+                        workflowTemplate={activeTab.canvasState.workflowTemplate}
+                        selectedWorkflowId={activeTab.canvasState.workflowId}
+                        workflowPath={activeTab.canvasState.workflowPath}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </MockPanelProvider>
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <ThemeProvider>
+        <div style={{ width: '100vw', height: '100vh', background: '#0a0a0a' }}>
+          <TabbedContainerWrapper />
+        </div>
+      </ThemeProvider>
+    );
+  },
+};

@@ -1467,11 +1467,16 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {canvasContent}
                   </div>
-                ) : state.canvas ? (
+                ) : (state.canvas && !containerDimensions) ? (
+                  // Canvas loaded but waiting for container dimensions (happens when mounted hidden)
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Loader className="animate-spin" size={24} style={{ opacity: 0.5 }} />
+                  </div>
+                ) : (state.canvas && containerDimensions?.width && containerDimensions?.height) ? (
                   (() => {
                     console.info('[CanvasEditorPanel] Rendering GraphRenderer with dimensions:', {
-                      containerWidth: containerDimensions?.width,
-                      containerHeight: containerDimensions?.height,
+                      containerWidth: containerDimensions.width,
+                      containerHeight: containerDimensions.height,
                       fitViewToNodeIds: fitViewToNodeIds?.length,
                       canvasPath,
                     });
@@ -1496,8 +1501,8 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                         activeNodeIds={activeNodeIds}
                         fitViewToNodeIds={fitViewToNodeIds}
                         fitViewPadding={0.15}
-                        containerWidth={containerDimensions?.width}
-                        containerHeight={containerDimensions?.height}
+                        containerWidth={containerDimensions.width}
+                        containerHeight={containerDimensions.height}
                         scenarioEdges={scenarioEdges}
                       />
                     );
