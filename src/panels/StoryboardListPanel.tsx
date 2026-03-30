@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import type { StoryboardListPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
-import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check, Network, Layers } from 'lucide-react';
+import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check, Network, Layers, Filter, ChevronDown } from 'lucide-react';
 import { useCanvasWorkflowData } from './canvas-list/hooks/useCanvasWorkflowData';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
 import { StoryboardLoadingGraph } from './canvas-list/components/StoryboardLoadingGraph';
@@ -17,7 +17,7 @@ import {
   type CanvasNodeStatus,
 } from '@principal-ade/dynamic-file-tree';
 import type { FileTree, FileInfo, GitStatusWithFiles } from '@principal-ai/repository-abstraction';
-import type { WorkflowTemplate, DiscoveredTestTrace, WorkflowScenario, DiscoveredCanvasWithContent } from '@principal-ai/principal-view-core';
+import type { WorkflowTemplate, DiscoveredTestTrace, WorkflowScenario, DiscoveredCanvasWithContent, ReferencedSpan } from '@principal-ai/principal-view-core';
 import { getTracer, type Span } from '../telemetry';
 
 /**
@@ -256,6 +256,9 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   const [showHelp, setShowHelp] = useState(false);
   const [cliCommandCopied, setCliCommandCopied] = useState(false);
   const [canvasTypeFilter, setCanvasTypeFilter] = useState<'otel' | 'regular' | null>(null);
+  const [spanConventionFilter, setSpanConventionFilter] = useState<string | null>(null);
+  const [showSpanFilterDropdown, setShowSpanFilterDropdown] = useState(false);
+  const spanFilterRef = useRef<HTMLDivElement>(null);
 
   // Context menu state for copying file paths
   const [contextMenu, setContextMenu] = useState<{
@@ -356,6 +359,31 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     const architectureTypes = ['regular', 'scopes', 'resources', 'spans'];
     const regular = storyboards.filter(sb => architectureTypes.includes(sb.canvas.type)).length;
     return { otelCount: otel, staticCount: regular };
+  }, [storyboards]);
+
+  // Collect unique span conventions from all OTEL workflows
+  // Uses referencedSpans from DiscoveredWorkflow (populated when includeContent: true)
+  // Returns array of { pattern, label } for display in filter dropdown
+  const uniqueSpanConventions = useMemo(() => {
+    const spanMap = new Map<string, string | undefined>(); // pattern -> label
+    for (const storyboard of storyboards) {
+      if (storyboard.canvas.type !== 'otel') continue;
+      for (const workflow of storyboard.workflows) {
+        const referencedSpans = (workflow as { referencedSpans?: ReferencedSpan[] }).referencedSpans;
+        if (referencedSpans) {
+          for (const span of referencedSpans) {
+            // Keep the label if we have one (don't overwrite with undefined)
+            if (!spanMap.has(span.pattern) || span.label) {
+              spanMap.set(span.pattern, span.label);
+            }
+          }
+        }
+      }
+    }
+    // Convert to array and sort by label (or pattern if no label)
+    return Array.from(spanMap.entries())
+      .map(([pattern, label]) => ({ pattern, label }))
+      .sort((a, b) => (a.label || a.pattern).localeCompare(b.label || b.pattern));
   }, [storyboards]);
 
   // Telemetry for panel lifecycle and user interactions
@@ -541,7 +569,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     return statusMap;
   }, [storyboards]);
 
-  // Filter storyboards by search query and canvas type
+  // Filter storyboards by search query, canvas type, and span convention
   const filteredStoryboards = useMemo(() => {
     let filtered = storyboards;
 
@@ -554,6 +582,17 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
       }
       return storyboard.canvas.type === effectiveCanvasTypeFilter;
     });
+
+    // Filter by span convention (only applies to OTEL workflows)
+    if (spanConventionFilter && effectiveCanvasTypeFilter === 'otel') {
+      filtered = filtered.filter((storyboard) => {
+        // Check if any workflow in this storyboard references the selected span convention
+        return storyboard.workflows.some((workflow) => {
+          const referencedSpans = (workflow as { referencedSpans?: ReferencedSpan[] }).referencedSpans;
+          return referencedSpans?.some((span) => span.pattern === spanConventionFilter);
+        });
+      });
+    }
 
     // Filter by search query
     if (searchQuery.trim()) {
@@ -576,7 +615,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     }
 
     return filtered;
-  }, [storyboards, searchQuery, effectiveCanvasTypeFilter]);
+  }, [storyboards, searchQuery, effectiveCanvasTypeFilter, spanConventionFilter]);
 
   // Extract canvases for static canvas view (when canvasTypeFilter === 'regular')
   const filteredCanvases = useMemo(() => {
@@ -757,6 +796,27 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [contextMenu]);
+
+  // Close span filter dropdown on click outside or escape
+  useEffect(() => {
+    if (!showSpanFilterDropdown) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (spanFilterRef.current && !spanFilterRef.current.contains(e.target as Node)) {
+        setShowSpanFilterDropdown(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowSpanFilterDropdown(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showSpanFilterDropdown]);
 
   // Keep ref updated for programmatic access from event handlers
   useEffect(() => {
@@ -1033,6 +1093,143 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             OTEL Workflows
           </button>
         </div>
+
+        {/* Span convention filter - only show for OTEL workflows when conventions exist */}
+        {effectiveCanvasTypeFilter === 'otel' && uniqueSpanConventions.length > 0 && (
+          <div
+            ref={spanFilterRef}
+            style={{ position: 'relative' }}
+          >
+            <button
+              onClick={() => setShowSpanFilterDropdown(!showSpanFilterDropdown)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                padding: '8px 12px',
+                background: spanConventionFilter ? theme.colors.primary : theme.colors.backgroundSecondary,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radii[2],
+                cursor: 'pointer',
+                fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
+                color: spanConventionFilter ? theme.colors.textOnPrimary : theme.colors.text,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Filter size={14} />
+                <span>
+                  {spanConventionFilter
+                    ? `Surface: ${uniqueSpanConventions.find(s => s.pattern === spanConventionFilter)?.label || spanConventionFilter}`
+                    : 'Filter by Surface'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {spanConventionFilter && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSpanConventionFilter(null);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '2px',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      borderRadius: '4px',
+                    }}
+                    title="Clear filter"
+                  >
+                    <X size={14} color={spanConventionFilter ? theme.colors.textOnPrimary : theme.colors.textSecondary} />
+                  </button>
+                )}
+                <ChevronDown
+                  size={14}
+                  style={{
+                    transform: showSpanFilterDropdown ? 'rotate(180deg)' : 'none',
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </div>
+            </button>
+
+            {/* Dropdown menu */}
+            {showSpanFilterDropdown && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  marginTop: '4px',
+                  background: theme.colors.background,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.radii[2],
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  zIndex: 100,
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                }}
+              >
+                {uniqueSpanConventions.map((span) => (
+                  <button
+                    key={span.pattern}
+                    onClick={() => {
+                      setSpanConventionFilter(span.pattern === spanConventionFilter ? null : span.pattern);
+                      setShowSpanFilterDropdown(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      gap: '2px',
+                      padding: '8px 12px',
+                      background: span.pattern === spanConventionFilter ? theme.colors.backgroundTertiary : 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (span.pattern !== spanConventionFilter) {
+                        e.currentTarget.style.background = theme.colors.backgroundSecondary;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (span.pattern !== spanConventionFilter) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    <span style={{
+                      fontSize: theme.fontSizes[1],
+                      fontFamily: theme.fonts.body,
+                      color: theme.colors.text,
+                    }}>
+                      {span.label || span.pattern}
+                    </span>
+                    {span.label && (
+                      <span style={{
+                        fontSize: theme.fontSizes[0],
+                        fontFamily: theme.fonts.monospace,
+                        color: theme.colors.textMuted,
+                      }}>
+                        {span.pattern}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Search input - only show if there are 10 or more storyboards */}
         {storyboards.length >= 10 && (

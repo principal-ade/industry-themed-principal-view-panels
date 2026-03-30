@@ -105,9 +105,23 @@ const createStoryboardFiles = (storyboardName: string, workflows: Array<{ name: 
   return files;
 };
 
+// Create spans.canvas file for span convention definitions with labels
+const createSpansCanvasFile = () => [{
+  name: 'architecture.spans.canvas',
+  relativePath: '.principal-views/architecture.spans.canvas',
+  path: '.principal-views/architecture.spans.canvas',
+  extension: '.canvas',
+  size: 2048,
+  lastModified: new Date('2024-01-10'),
+  isDirectory: false,
+}];
+
 // Build mock file tree with both static and runtime-validated canvas files
 const buildMockFileTree = (): FileTree => {
   const allFiles = [
+    // Spans canvas with span convention definitions (provides labels for filter)
+    ...createSpansCanvasFile(),
+
     // Static canvas files (documentation/design - .canvas files, no workflows)
     ...createStaticCanvasFile('architecture', true),        // with markdown
     ...createStaticCanvasFile('system-overview', true),     // with markdown
@@ -161,6 +175,95 @@ const createMockFileTreeSlice = (fileTreeData: FileTree | null, loading = false)
 const createMockReadFile = (fileTreeData: FileTree | null) => async (path: string) => {
   console.log('[Mock readFile] Called with path:', path);
 
+  // Return spans.canvas with otel-span-convention nodes (provides labels for filter)
+  if (path.endsWith('.spans.canvas')) {
+    const content = JSON.stringify({
+      pv: {
+        name: 'Span Conventions',
+        version: '1.0.0',
+        description: 'Defines span naming conventions for the application',
+      },
+      nodes: [
+        // Authentication flow spans
+        {
+          id: 'auth-session',
+          type: 'otel-span-convention',
+          label: 'Auth Session',
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 80,
+          otel: { spanPattern: 'authentication-flow.session' },
+        },
+        {
+          id: 'auth-happy-path',
+          type: 'otel-span-convention',
+          label: 'Login Success Flow',
+          x: 0,
+          y: 100,
+          width: 200,
+          height: 80,
+          otel: { spanPattern: 'authentication-flow.happy-path.process' },
+        },
+        {
+          id: 'auth-error-handling',
+          type: 'otel-span-convention',
+          label: 'Login Error Handling',
+          x: 0,
+          y: 200,
+          width: 200,
+          height: 80,
+          otel: { spanPattern: 'authentication-flow.error-handling.process' },
+        },
+        // Payment processing spans
+        {
+          id: 'payment-session',
+          type: 'otel-span-convention',
+          label: 'Payment Session',
+          x: 300,
+          y: 0,
+          width: 200,
+          height: 80,
+          otel: { spanPattern: 'payment-processing.session' },
+        },
+        {
+          id: 'payment-success',
+          type: 'otel-span-convention',
+          label: 'Payment Success',
+          x: 300,
+          y: 100,
+          width: 200,
+          height: 80,
+          otel: { spanPattern: 'payment-processing.successful-payment.process' },
+        },
+        // User registration spans
+        {
+          id: 'registration-session',
+          type: 'otel-span-convention',
+          label: 'Registration Session',
+          x: 600,
+          y: 0,
+          width: 200,
+          height: 80,
+          otel: { spanPattern: 'user-registration.session' },
+        },
+        {
+          id: 'registration-new-user',
+          type: 'otel-span-convention',
+          label: 'New User Signup',
+          x: 600,
+          y: 100,
+          width: 200,
+          height: 80,
+          otel: { spanPattern: 'user-registration.new-user.process' },
+        },
+      ],
+      edges: [],
+    });
+    console.log('[Mock readFile] Returning spans.canvas content with span conventions');
+    return content;
+  }
+
   // Return proper canvas JSON for .canvas and .otel.canvas files
   if (path.endsWith('.canvas') || path.endsWith('.otel.canvas')) {
     const pathParts = path.split('/');
@@ -195,12 +298,38 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
   // Return workflow JSON for .workflow.json files
   if (path.endsWith('.workflow.json')) {
     const workflowName = path.split('/').slice(-2)[0] || 'Mock Workflow';
+    // Extract storyboard name from path to create unique span patterns
+    const pathParts = path.split('/');
+    const storyboardName = pathParts[1] || 'unknown';
+
+    // Create mock workflow with rootSpan and scenarios that reference spans
+    // This allows testing the span convention filter
+    // Note: Labels come from spans.canvas during discovery, not from workflow files
+    const rootSpan = `${storyboardName}.session`;
+    const childSpan = `${storyboardName}.${workflowName}.process`;
+
     const content = JSON.stringify({
       name: workflowName,
       description: `Mock workflow for ${workflowName}`,
-      scenarios: [],
+      rootSpan,
+      scenarios: [
+        {
+          id: 'success',
+          name: 'Success',
+          template: {
+            events: {
+              'workflow.started': 'Workflow started',
+              'process.completed': {
+                span: childSpan,
+                template: 'Processing completed',
+              },
+              'workflow.ended': 'Workflow ended',
+            },
+          },
+        },
+      ],
     });
-    console.log('[Mock readFile] Returning workflow content for:', workflowName);
+    console.log('[Mock readFile] Returning workflow content for:', workflowName, 'with rootSpan:', rootSpan);
     return content;
   }
 

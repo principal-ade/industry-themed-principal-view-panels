@@ -87,7 +87,7 @@
     "@principal-ade/panel-layouts": "0.4.0",
     "@principal-ade/utcp-panel-event": "^0.1.0",
     "@principal-ai/codebase-composition": "^0.2.43",
-    "@principal-ai/principal-view-core": "0.26.11",
+    "@principal-ai/principal-view-core": "0.26.14",
     "@principal-ai/repository-abstraction": "^0.5.7",
     "@principal-ai/storybook-addon-otel": "^0.3.22",
     "@storybook/addon-docs": "10.1.2",

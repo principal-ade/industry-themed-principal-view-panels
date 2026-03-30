@@ -86,10 +86,8 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
       return;
     }
 
-    if (selectedDashboard.type !== 'dashboard') {
-      setError(`Invalid canvas type: expected 'dashboard', got '${selectedDashboard.type}'`);
-      return;
-    }
+    // Dashboards are their own type (DiscoveredDashboard), not a CanvasType
+    // No type check needed here
 
     const loadDashboard = async () => {
       setLoading(true);
