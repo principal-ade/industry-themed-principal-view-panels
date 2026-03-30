@@ -4,7 +4,8 @@ import {
   CanvasDiscovery,
   type DiscoveredCanvas,
   type DiscoveredStoryboard,
-  type DiscoveredTestTrace
+  type DiscoveredTestTrace,
+  type DiscoveredDashboard,
 } from '@principal-ai/principal-view-core';
 import type { FileTree } from '@principal-ai/repository-abstraction';
 
@@ -21,6 +22,7 @@ interface UseCanvasDataReturn {
   canvases: DiscoveredCanvas[];
   storyboards: DiscoveredStoryboard[];
   testTraces: DiscoveredTestTrace[];
+  dashboards: DiscoveredDashboard[];
   isLoading: boolean;
   error: string | null;
   refreshCanvases: () => Promise<void>;
@@ -32,6 +34,7 @@ interface UseCanvasDataReturn {
 const EMPTY_CANVAS_ARRAY: DiscoveredCanvas[] = [];
 const EMPTY_STORYBOARDS_ARRAY: DiscoveredStoryboard[] = [];
 const EMPTY_TEST_TRACES_ARRAY: DiscoveredTestTrace[] = [];
+const EMPTY_DASHBOARDS_ARRAY: DiscoveredDashboard[] = [];
 
 /**
  * Hook to discover and load canvas files from the file tree
@@ -44,6 +47,7 @@ export const useCanvasData = ({
   const [canvases, setCanvases] = useState<DiscoveredCanvas[]>(EMPTY_CANVAS_ARRAY);
   const [storyboards, setStoryboards] = useState<DiscoveredStoryboard[]>(EMPTY_STORYBOARDS_ARRAY);
   const [testTraces, setTestTraces] = useState<DiscoveredTestTrace[]>(EMPTY_TEST_TRACES_ARRAY);
+  const [dashboards, setDashboards] = useState<DiscoveredDashboard[]>(EMPTY_DASHBOARDS_ARRAY);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,6 +109,7 @@ export const useCanvasData = ({
       setCanvases(sortedCanvases);
       setStoryboards(result.storyboards);
       setTestTraces(result.testTraces);
+      setDashboards(result.dashboards);
 
       // Update tracking ref
       lastLoadedSha.current = fileTreeSha;
@@ -134,6 +139,7 @@ export const useCanvasData = ({
     canvases,
     storyboards,
     testTraces,
+    dashboards,
     isLoading,
     error,
     refreshCanvases,

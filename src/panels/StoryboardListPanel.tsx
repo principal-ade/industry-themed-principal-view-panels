@@ -259,6 +259,9 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   const [spanConventionFilter, setSpanConventionFilter] = useState<string | null>(null);
   const [showSpanFilterDropdown, setShowSpanFilterDropdown] = useState(false);
   const spanFilterRef = useRef<HTMLDivElement>(null);
+  const [scopeFilter, setScopeFilter] = useState<string | null>(null);
+  const [showScopeFilterDropdown, setShowScopeFilterDropdown] = useState(false);
+  const scopeFilterRef = useRef<HTMLDivElement>(null);
 
   // Context menu state for copying file paths
   const [contextMenu, setContextMenu] = useState<{
@@ -272,7 +275,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   // Load storyboard data from discovery system
   // Storyboards come directly from the discovery system (no transformation needed)
   // Also load full workflow templates for sending complete data when workflows are clicked
-  const { storyboards, workflows, testTraces, isLoading, error, discovery } = useCanvasWorkflowData({ context, actions });
+  const { storyboards, workflows, testTraces, dashboards, isLoading, error, discovery } = useCanvasWorkflowData({ context, actions });
 
   // Listen for selectNode events (requires storyboards to be loaded)
   useEffect(() => {
@@ -361,30 +364,63 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     return { otelCount: otel, staticCount: regular };
   }, [storyboards]);
 
+  // Collect unique instrumentation scopes from all OTEL workflows
+  // Uses instrumentationScope and instrumentationScopeLabel from DiscoveredWorkflow
+  // Returns array of { scope, label } for display in filter dropdown
+  const uniqueScopes = useMemo(() => {
+    const scopeMap = new Map<string, string | undefined>(); // scope -> label
+    for (const storyboard of storyboards) {
+      if (storyboard.canvas.type !== 'otel') continue;
+      for (const workflow of storyboard.workflows) {
+        const workflowWithScope = workflow as {
+          instrumentationScope?: string;
+          instrumentationScopeLabel?: string;
+        };
+        const scope = workflowWithScope.instrumentationScope;
+        if (scope) {
+          // Keep the label if we have one (don't overwrite with undefined)
+          if (!scopeMap.has(scope) || workflowWithScope.instrumentationScopeLabel) {
+            scopeMap.set(scope, workflowWithScope.instrumentationScopeLabel);
+          }
+        }
+      }
+    }
+    // Convert to array and sort by label (or scope if no label)
+    return Array.from(scopeMap.entries())
+      .map(([scope, label]) => ({ scope, label }))
+      .sort((a, b) => (a.label || a.scope).localeCompare(b.label || b.scope));
+  }, [storyboards]);
+
   // Collect unique span conventions from all OTEL workflows
   // Uses referencedSpans from DiscoveredWorkflow (populated when includeContent: true)
-  // Returns array of { pattern, label } for display in filter dropdown
+  // Returns array of { pattern, label, scope } for display in filter dropdown
+  // When scopeFilter is set, only returns surfaces belonging to that scope
   const uniqueSpanConventions = useMemo(() => {
-    const spanMap = new Map<string, string | undefined>(); // pattern -> label
+    const spanMap = new Map<string, { label?: string; scope?: string }>(); // pattern -> { label, scope }
     for (const storyboard of storyboards) {
       if (storyboard.canvas.type !== 'otel') continue;
       for (const workflow of storyboard.workflows) {
         const referencedSpans = (workflow as { referencedSpans?: ReferencedSpan[] }).referencedSpans;
         if (referencedSpans) {
           for (const span of referencedSpans) {
-            // Keep the label if we have one (don't overwrite with undefined)
-            if (!spanMap.has(span.pattern) || span.label) {
-              spanMap.set(span.pattern, span.label);
+            // Keep the label/scope if we have one (don't overwrite with undefined)
+            const existing = spanMap.get(span.pattern);
+            if (!existing || span.label || span.scope) {
+              spanMap.set(span.pattern, {
+                label: span.label || existing?.label,
+                scope: span.scope || existing?.scope,
+              });
             }
           }
         }
       }
     }
-    // Convert to array and sort by label (or pattern if no label)
+    // Convert to array, filter by scope if set, and sort by label (or pattern if no label)
     return Array.from(spanMap.entries())
-      .map(([pattern, label]) => ({ pattern, label }))
+      .map(([pattern, info]) => ({ pattern, label: info.label, scope: info.scope }))
+      .filter((span) => !scopeFilter || span.scope === scopeFilter)
       .sort((a, b) => (a.label || a.pattern).localeCompare(b.label || b.pattern));
-  }, [storyboards]);
+  }, [storyboards, scopeFilter]);
 
   // Telemetry for panel lifecycle and user interactions
   const telemetry = useStoryboardListPanelTelemetry({
@@ -569,7 +605,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     return statusMap;
   }, [storyboards]);
 
-  // Filter storyboards by search query, canvas type, and span convention
+  // Filter storyboards by search query, canvas type, scope, and span convention
   const filteredStoryboards = useMemo(() => {
     let filtered = storyboards;
 
@@ -582,6 +618,17 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
       }
       return storyboard.canvas.type === effectiveCanvasTypeFilter;
     });
+
+    // Filter by instrumentation scope (only applies to OTEL workflows)
+    if (scopeFilter && effectiveCanvasTypeFilter === 'otel') {
+      filtered = filtered.filter((storyboard) => {
+        // Check if any workflow in this storyboard belongs to the selected scope
+        return storyboard.workflows.some((workflow) => {
+          const workflowWithScope = workflow as { instrumentationScope?: string };
+          return workflowWithScope.instrumentationScope === scopeFilter;
+        });
+      });
+    }
 
     // Filter by span convention (only applies to OTEL workflows)
     if (spanConventionFilter && effectiveCanvasTypeFilter === 'otel') {
@@ -615,7 +662,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     }
 
     return filtered;
-  }, [storyboards, searchQuery, effectiveCanvasTypeFilter, spanConventionFilter]);
+  }, [storyboards, searchQuery, effectiveCanvasTypeFilter, scopeFilter, spanConventionFilter]);
 
   // Extract canvases for static canvas view (when canvasTypeFilter === 'regular')
   const filteredCanvases = useMemo(() => {
@@ -817,6 +864,27 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [showSpanFilterDropdown]);
+
+  // Close scope filter dropdown on click outside or escape
+  useEffect(() => {
+    if (!showScopeFilterDropdown) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (scopeFilterRef.current && !scopeFilterRef.current.contains(e.target as Node)) {
+        setShowScopeFilterDropdown(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowScopeFilterDropdown(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showScopeFilterDropdown]);
 
   // Keep ref updated for programmatic access from event handlers
   useEffect(() => {
@@ -1093,6 +1161,150 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             OTEL Workflows
           </button>
         </div>
+
+        {/* Scope filter - only show for OTEL workflows when scopes exist */}
+        {effectiveCanvasTypeFilter === 'otel' && uniqueScopes.length > 0 && (
+          <div
+            ref={scopeFilterRef}
+            style={{ position: 'relative' }}
+          >
+            <button
+              onClick={() => setShowScopeFilterDropdown(!showScopeFilterDropdown)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                padding: '8px 12px',
+                background: scopeFilter ? theme.colors.primary : theme.colors.backgroundSecondary,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: theme.radii[2],
+                cursor: 'pointer',
+                fontSize: theme.fontSizes[1],
+                fontFamily: theme.fonts.body,
+                color: scopeFilter ? theme.colors.textOnPrimary : theme.colors.text,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Layers size={14} />
+                <span>
+                  {scopeFilter
+                    ? `Scope: ${uniqueScopes.find(s => s.scope === scopeFilter)?.label || scopeFilter}`
+                    : 'Filter by Scope'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {scopeFilter && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setScopeFilter(null);
+                      // Also clear surface filter when scope is cleared (hierarchical)
+                      setSpanConventionFilter(null);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '2px',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      borderRadius: '4px',
+                    }}
+                    title="Clear filter"
+                  >
+                    <X size={14} color={scopeFilter ? theme.colors.textOnPrimary : theme.colors.textSecondary} />
+                  </button>
+                )}
+                <ChevronDown
+                  size={14}
+                  style={{
+                    transform: showScopeFilterDropdown ? 'rotate(180deg)' : 'none',
+                    transition: 'transform 0.2s ease',
+                  }}
+                />
+              </div>
+            </button>
+
+            {/* Dropdown menu */}
+            {showScopeFilterDropdown && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  marginTop: '4px',
+                  background: theme.colors.background,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.radii[2],
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  zIndex: 100,
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                }}
+              >
+                {uniqueScopes.map((scopeInfo) => (
+                  <button
+                    key={scopeInfo.scope}
+                    onClick={() => {
+                      const newScope = scopeInfo.scope === scopeFilter ? null : scopeInfo.scope;
+                      setScopeFilter(newScope);
+                      // Clear surface filter when scope changes (hierarchical)
+                      if (newScope !== scopeFilter) {
+                        setSpanConventionFilter(null);
+                      }
+                      setShowScopeFilterDropdown(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      gap: '2px',
+                      padding: '8px 12px',
+                      background: scopeInfo.scope === scopeFilter ? theme.colors.backgroundTertiary : 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (scopeInfo.scope !== scopeFilter) {
+                        e.currentTarget.style.background = theme.colors.backgroundSecondary;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (scopeInfo.scope !== scopeFilter) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    <span style={{
+                      fontSize: theme.fontSizes[1],
+                      fontFamily: theme.fonts.body,
+                      color: theme.colors.text,
+                    }}>
+                      {scopeInfo.label || scopeInfo.scope}
+                    </span>
+                    {scopeInfo.label && (
+                      <span style={{
+                        fontSize: theme.fontSizes[0],
+                        fontFamily: theme.fonts.monospace,
+                        color: theme.colors.textMuted,
+                      }}>
+                        {scopeInfo.scope}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Span convention filter - only show for OTEL workflows when conventions exist */}
         {effectiveCanvasTypeFilter === 'otel' && uniqueSpanConventions.length > 0 && (
@@ -1501,6 +1713,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
         ) : (
           <CanvasListTreeCore
             canvases={filteredCanvases}
+            dashboards={dashboards}
             theme={theme}
             onClick={handleTreeNodeClick as (node: CanvasListNodeData, event?: React.MouseEvent) => void}
             onContextMenu={handleContextMenu}

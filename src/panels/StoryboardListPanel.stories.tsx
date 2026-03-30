@@ -116,11 +116,41 @@ const createSpansCanvasFile = () => [{
   isDirectory: false,
 }];
 
+// Create scopes.canvas file for instrumentation scope definitions with labels
+const createScopesCanvasFile = () => [{
+  name: 'architecture.scopes.canvas',
+  relativePath: '.principal-views/architecture.scopes.canvas',
+  path: '.principal-views/architecture.scopes.canvas',
+  extension: '.canvas',
+  size: 1024,
+  lastModified: new Date('2024-01-10'),
+  isDirectory: false,
+}];
+
+// Helper to create dashboard files
+const createDashboardFile = (dashboardName: string) => ({
+  name: `${dashboardName}.dashboard.json`,
+  relativePath: `.principal-views/dashboards/${dashboardName}.dashboard.json`,
+  path: `.principal-views/dashboards/${dashboardName}.dashboard.json`,
+  extension: '.json',
+  size: 1024,
+  lastModified: new Date('2024-01-12'),
+  isDirectory: false,
+});
+
 // Build mock file tree with both static and runtime-validated canvas files
 const buildMockFileTree = (): FileTree => {
   const allFiles = [
-    // Spans canvas with span convention definitions (provides labels for filter)
+    // Scopes canvas with instrumentation scope definitions (provides labels for scope filter)
+    ...createScopesCanvasFile(),
+
+    // Spans canvas with span convention definitions (provides labels for surface filter)
     ...createSpansCanvasFile(),
+
+    // Dashboard files (.dashboard.json in dashboards/ folder)
+    createDashboardFile('checkout-health'),
+    createDashboardFile('api-performance'),
+    createDashboardFile('user-metrics'),
 
     // Static canvas files (documentation/design - .canvas files, no workflows)
     ...createStaticCanvasFile('architecture', true),        // with markdown
@@ -175,7 +205,53 @@ const createMockFileTreeSlice = (fileTreeData: FileTree | null, loading = false)
 const createMockReadFile = (fileTreeData: FileTree | null) => async (path: string) => {
   console.log('[Mock readFile] Called with path:', path);
 
-  // Return spans.canvas with otel-span-convention nodes (provides labels for filter)
+  // Return scopes.canvas with otel-scope nodes (provides labels for scope filter)
+  if (path.endsWith('.scopes.canvas')) {
+    const content = JSON.stringify({
+      pv: {
+        name: 'Instrumentation Scopes',
+        version: '1.0.0',
+        description: 'Defines instrumentation scopes (tracer instances) for the application',
+      },
+      nodes: [
+        {
+          id: 'auth-scope',
+          type: 'otel-scope',
+          label: 'Authentication Service',
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 80,
+          otel: { scope: 'auth-service' },
+        },
+        {
+          id: 'payment-scope',
+          type: 'otel-scope',
+          label: 'Payment Service',
+          x: 250,
+          y: 0,
+          width: 200,
+          height: 80,
+          otel: { scope: 'payment-service' },
+        },
+        {
+          id: 'user-scope',
+          type: 'otel-scope',
+          label: 'User Service',
+          x: 500,
+          y: 0,
+          width: 200,
+          height: 80,
+          otel: { scope: 'user-service' },
+        },
+      ],
+      edges: [],
+    });
+    console.log('[Mock readFile] Returning scopes.canvas content with instrumentation scopes');
+    return content;
+  }
+
+  // Return spans.canvas with otel-span-convention nodes (provides labels and scopes for filter)
   if (path.endsWith('.spans.canvas')) {
     const content = JSON.stringify({
       pv: {
@@ -184,7 +260,7 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
         description: 'Defines span naming conventions for the application',
       },
       nodes: [
-        // Authentication flow spans
+        // Authentication flow spans (scope: auth-service)
         {
           id: 'auth-session',
           type: 'otel-span-convention',
@@ -193,7 +269,7 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
           y: 0,
           width: 200,
           height: 80,
-          otel: { spanPattern: 'authentication-flow.session' },
+          otel: { spanPattern: 'authentication-flow.session', scope: 'auth-service' },
         },
         {
           id: 'auth-happy-path',
@@ -203,7 +279,7 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
           y: 100,
           width: 200,
           height: 80,
-          otel: { spanPattern: 'authentication-flow.happy-path.process' },
+          otel: { spanPattern: 'authentication-flow.happy-path.process', scope: 'auth-service' },
         },
         {
           id: 'auth-error-handling',
@@ -213,9 +289,9 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
           y: 200,
           width: 200,
           height: 80,
-          otel: { spanPattern: 'authentication-flow.error-handling.process' },
+          otel: { spanPattern: 'authentication-flow.error-handling.process', scope: 'auth-service' },
         },
-        // Payment processing spans
+        // Payment processing spans (scope: payment-service)
         {
           id: 'payment-session',
           type: 'otel-span-convention',
@@ -224,7 +300,7 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
           y: 0,
           width: 200,
           height: 80,
-          otel: { spanPattern: 'payment-processing.session' },
+          otel: { spanPattern: 'payment-processing.session', scope: 'payment-service' },
         },
         {
           id: 'payment-success',
@@ -234,9 +310,9 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
           y: 100,
           width: 200,
           height: 80,
-          otel: { spanPattern: 'payment-processing.successful-payment.process' },
+          otel: { spanPattern: 'payment-processing.successful-payment.process', scope: 'payment-service' },
         },
-        // User registration spans
+        // User registration spans (scope: user-service)
         {
           id: 'registration-session',
           type: 'otel-span-convention',
@@ -245,7 +321,7 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
           y: 0,
           width: 200,
           height: 80,
-          otel: { spanPattern: 'user-registration.session' },
+          otel: { spanPattern: 'user-registration.session', scope: 'user-service' },
         },
         {
           id: 'registration-new-user',
@@ -255,12 +331,12 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
           y: 100,
           width: 200,
           height: 80,
-          otel: { spanPattern: 'user-registration.new-user.process' },
+          otel: { spanPattern: 'user-registration.new-user.process', scope: 'user-service' },
         },
       ],
       edges: [],
     });
-    console.log('[Mock readFile] Returning spans.canvas content with span conventions');
+    console.log('[Mock readFile] Returning spans.canvas content with span conventions and scopes');
     return content;
   }
 
@@ -340,6 +416,19 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
       metadata: { timestamp: new Date().toISOString() },
     });
     console.log('[Mock readFile] Returning execution content');
+    return content;
+  }
+
+  // Return dashboard JSON for .dashboard.json files
+  if (path.endsWith('.dashboard.json')) {
+    const dashboardName = path.split('/').pop()?.replace('.dashboard.json', '') || 'Dashboard';
+    const content = JSON.stringify({
+      name: dashboardName.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      description: `Mock dashboard for ${dashboardName}`,
+      metrics: [],
+      layout: { rows: [] },
+    });
+    console.log('[Mock readFile] Returning dashboard content for:', dashboardName);
     return content;
   }
 

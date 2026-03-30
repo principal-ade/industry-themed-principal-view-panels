@@ -4,6 +4,7 @@ import type {
   DiscoveredCanvas,
   DiscoveredStoryboard,
   DiscoveredTestTrace,
+  DiscoveredDashboard,
   DiscoveredWorkflow,
   WorkflowTemplate
 } from '@principal-ai/principal-view-core';
@@ -23,6 +24,7 @@ interface UseCanvasNarrativeDataReturn {
   canvases: DiscoveredCanvas[];
   storyboards: DiscoveredStoryboard[];
   testTraces: DiscoveredTestTrace[];
+  dashboards: DiscoveredDashboard[];
   workflows: Array<{ file: DiscoveredWorkflow; template: WorkflowTemplate }>;
   isLoading: boolean;
   error: string | null;
@@ -42,11 +44,12 @@ export const useCanvasWorkflowData = ({
   context,
   actions,
 }: UseCanvasNarrativeDataParams): UseCanvasNarrativeDataReturn => {
-  // Reuse canvas discovery logic - now includes storyboards and test traces
+  // Reuse canvas discovery logic - now includes storyboards, test traces, and dashboards
   const {
     canvases,
     storyboards,
     testTraces,
+    dashboards,
     isLoading: canvasesLoading,
     error: canvasesError,
     refreshCanvases,
@@ -163,6 +166,7 @@ export const useCanvasWorkflowData = ({
     canvases,
     storyboards,
     testTraces,
+    dashboards,
     workflows,
     isLoading,
     error,
