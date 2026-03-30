@@ -673,16 +673,6 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     // Cast to CanvasListNodeData to access dashboard field (union type workaround)
     const asCanvasListNode = node as CanvasListNodeData;
 
-    // Debug: Log click info
-    console.log('[StoryboardListPanel] Tree node clicked:', {
-      nodeType: node.type,
-      nodeId: node.id,
-      nodeName: node.name,
-      hasDashboard: !!asCanvasListNode.dashboard,
-      dashboardId: asCanvasListNode.dashboard?.id,
-      hasCanvas: !!node.canvas,
-    });
-
     // Command-click (macOS) or Ctrl-click (Windows/Linux) opens file in editor tab
     if (event?.metaKey || event?.ctrlKey) {
       let filePath: string | undefined;
@@ -724,11 +714,6 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
       }
     } else if (node.type === 'canvas' && asCanvasListNode.dashboard) {
       // Dashboard click - open dashboard panel
-      console.log('[StoryboardListPanel] Dashboard click - emitting openDashboard event:', {
-        dashboardId: asCanvasListNode.dashboard.id,
-        dashboardName: asCanvasListNode.dashboard.name,
-        hasEvents: !!events,
-      });
       setSelectedNodeId(`dashboard:${asCanvasListNode.dashboard.id}`);
       if (events) {
         events.emit({
