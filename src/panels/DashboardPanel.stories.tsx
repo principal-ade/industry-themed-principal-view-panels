@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { DashboardPanel } from './DashboardPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
+import { MockDataProvider } from '@principal-ai/principal-view-react';
 import type { DashboardDefinition, DiscoveredCanvas } from '@principal-ai/principal-view-core';
 
 // Sample dashboard definition for stories
@@ -311,18 +312,74 @@ const minimalDashboard: DashboardDefinition = {
   ],
   layout: {
     columns: 12,
+    breakpoints: {
+      mobile: 768,
+      tablet: 1024,
+    },
     rows: [{ panels: [{ id: 'requests', span: 12 }] }],
   },
 };
 
-// Mock discovered canvas for file-loading stories
-const mockDiscoveredDashboard: DiscoveredCanvas = {
-  id: 'checkout-health',
-  name: 'Checkout Health',
-  path: '.principal-views/dashboards/checkout-health.dashboard.json',
-  basename: 'checkout-health',
+// Mock discovered dashboards for stories
+const activityFeedDiscovered: DiscoveredCanvas = {
+  id: 'activity-feed-analytics',
+  name: 'Activity Feed Analytics',
+  path: '.principal-views/dashboards/activity-feed-analytics.dashboard.json',
+  basename: 'activity-feed-analytics',
   type: 'dashboard',
   scope: 'root',
+};
+
+const minimalDiscovered: DiscoveredCanvas = {
+  id: 'minimal-dashboard',
+  name: 'Minimal Dashboard',
+  path: '.principal-views/dashboards/minimal.dashboard.json',
+  basename: 'minimal',
+  type: 'dashboard',
+  scope: 'root',
+};
+
+const missingDiscovered: DiscoveredCanvas = {
+  id: 'missing',
+  name: 'Missing Dashboard',
+  path: '.principal-views/dashboards/missing.dashboard.json',
+  basename: 'missing',
+  type: 'dashboard',
+  scope: 'root',
+};
+
+/**
+ * Helper component that loads a dashboard from file with mock data provider.
+ * This keeps mock data handling in Storybook, not in the production panel.
+ */
+const DashboardPanelWithMockData: React.FC<{
+  dashboard: DashboardDefinition;
+  discoveredDashboard: DiscoveredCanvas;
+  onSourceClick?: (source: import('@principal-ai/principal-view-core').MetricSource) => void;
+  onMetricClick?: (metricId: string) => void;
+}> = ({ dashboard, discoveredDashboard, onSourceClick, onMetricClick }) => {
+  const dataProvider = useMemo(() => new MockDataProvider(dashboard), [dashboard]);
+
+  return (
+    <MockPanelProvider
+      actionsOverrides={{
+        readFile: async (path: string) => {
+          console.log('[Mock] readFile:', path);
+          return JSON.stringify(dashboard);
+        },
+      }}
+    >
+      {(props) => (
+        <DashboardPanel
+          {...props}
+          selectedDashboard={discoveredDashboard}
+          dataProvider={dataProvider}
+          onSourceClick={onSourceClick}
+          onMetricClick={onMetricClick}
+        />
+      )}
+    </MockPanelProvider>
+  );
 };
 
 const meta = {
@@ -388,9 +445,10 @@ export const Empty: Story = {
  */
 export const ActivityFeedAnalytics: Story = {
   render: () => (
-    <MockPanelProvider>
-      {(props) => <DashboardPanel {...props} dashboardDefinition={sampleDashboard} />}
-    </MockPanelProvider>
+    <DashboardPanelWithMockData
+      dashboard={sampleDashboard}
+      discoveredDashboard={activityFeedDiscovered}
+    />
   ),
 };
 
@@ -399,30 +457,10 @@ export const ActivityFeedAnalytics: Story = {
  */
 export const MinimalDashboard: Story = {
   render: () => (
-    <MockPanelProvider>
-      {(props) => <DashboardPanel {...props} dashboardDefinition={minimalDashboard} />}
-    </MockPanelProvider>
-  ),
-};
-
-/**
- * Loading from file via selectedDashboard prop.
- * This simulates selecting a dashboard from the StoryboardListPanel.
- */
-export const LoadFromFile: Story = {
-  render: () => (
-    <MockPanelProvider
-      actions={{
-        readFile: async (path: string) => {
-          console.log('[Mock] readFile:', path);
-          // Simulate loading delay
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          return JSON.stringify(sampleDashboard);
-        },
-      }}
-    >
-      {(props) => <DashboardPanel {...props} selectedDashboard={mockDiscoveredDashboard} />}
-    </MockPanelProvider>
+    <DashboardPanelWithMockData
+      dashboard={minimalDashboard}
+      discoveredDashboard={minimalDiscovered}
+    />
   ),
 };
 
@@ -432,7 +470,7 @@ export const LoadFromFile: Story = {
 export const LoadError: Story = {
   render: () => (
     <MockPanelProvider
-      actions={{
+      actionsOverrides={{
         readFile: async () => {
           await new Promise((resolve) => setTimeout(resolve, 300));
           throw new Error('File not found: .principal-views/dashboards/missing.dashboard.json');
@@ -442,12 +480,7 @@ export const LoadError: Story = {
       {(props) => (
         <DashboardPanel
           {...props}
-          selectedDashboard={{
-            ...mockDiscoveredDashboard,
-            id: 'missing',
-            name: 'Missing Dashboard',
-            path: '.principal-views/dashboards/missing.dashboard.json',
-          }}
+          selectedDashboard={missingDiscovered}
         />
       )}
     </MockPanelProvider>
@@ -459,21 +492,17 @@ export const LoadError: Story = {
  */
 export const WithEventHandlers: Story = {
   render: () => (
-    <MockPanelProvider>
-      {(props) => (
-        <DashboardPanel
-          {...props}
-          dashboardDefinition={sampleDashboard}
-          onSourceClick={(source) => {
-            console.log('[Story] Source clicked:', source);
-            alert(`Navigate to: ${source.storyboard}/${source.workflow}`);
-          }}
-          onMetricClick={(metricId) => {
-            console.log('[Story] Metric clicked:', metricId);
-            alert(`Metric clicked: ${metricId}`);
-          }}
-        />
-      )}
-    </MockPanelProvider>
+    <DashboardPanelWithMockData
+      dashboard={sampleDashboard}
+      discoveredDashboard={activityFeedDiscovered}
+      onSourceClick={(source) => {
+        console.log('[Story] Source clicked:', source);
+        alert(`Navigate to: ${source.storyboard}/${source.workflow}`);
+      }}
+      onMetricClick={(metricId) => {
+        console.log('[Story] Metric clicked:', metricId);
+        alert(`Metric clicked: ${metricId}`);
+      }}
+    />
   ),
 };

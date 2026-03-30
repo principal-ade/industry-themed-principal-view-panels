@@ -1,29 +1,32 @@
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
-import { DashboardRenderer, MockDataProvider } from '@principal-ai/principal-view-react';
+import { DashboardRenderer } from '@principal-ai/principal-view-react';
 import type {
   DashboardDefinition,
   MetricSource,
   TimeRange,
   RefreshInterval,
   DiscoveredCanvas,
+  DataProvider,
 } from '@principal-ai/principal-view-core';
 import { Loader2 } from 'lucide-react';
 
 export interface DashboardPanelProps extends PanelComponentProps {
   /**
-   * The discovered dashboard canvas to display.
+   * The discovered dashboard to display.
    * Must be a DiscoveredCanvas with type 'dashboard'.
+   * The panel will load the dashboard definition from the file path.
    */
   selectedDashboard?: DiscoveredCanvas | null;
 
   /**
-   * Optional pre-loaded dashboard definition.
-   * If provided, skips file loading.
+   * Optional data provider for fetching metric values.
+   * If not provided, the dashboard will render without data.
+   * Use MockDataProvider from @principal-ai/principal-view-react for testing.
    */
-  dashboardDefinition?: DashboardDefinition | null;
+  dataProvider?: DataProvider;
 
   /**
    * Callback when a metric source link is clicked.
@@ -55,7 +58,7 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
   actions,
   events,
   selectedDashboard,
-  dashboardDefinition: propDashboard,
+  dataProvider,
   onSourceClick,
   onMetricClick,
 }) => {
@@ -63,7 +66,7 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
   const panelRef = useRef<HTMLDivElement>(null);
 
   // State for loaded dashboard
-  const [dashboard, setDashboard] = useState<DashboardDefinition | null>(propDashboard ?? null);
+  const [dashboard, setDashboard] = useState<DashboardDefinition | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,19 +78,10 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
 
   // Load dashboard from file when selectedDashboard changes
   useEffect(() => {
-    if (propDashboard) {
-      setDashboard(propDashboard);
-      setError(null);
-      return;
-    }
-
     if (!selectedDashboard) {
       setDashboard(null);
       return;
     }
-
-    // Dashboards are their own type (DiscoveredDashboard), not a CanvasType
-    // No type check needed here
 
     const loadDashboard = async () => {
       setLoading(true);
@@ -112,7 +106,7 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
     };
 
     loadDashboard();
-  }, [selectedDashboard, propDashboard, actions]);
+  }, [selectedDashboard, actions]);
 
   // Handle source clicks - emit event or call callback
   const handleSourceClick = useCallback(
@@ -153,12 +147,6 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
     },
     [onMetricClick, events]
   );
-
-  // Create mock data provider for now (will be replaced with real data)
-  const dataProvider = useMemo(() => {
-    if (!dashboard) return undefined;
-    return new MockDataProvider(dashboard);
-  }, [dashboard]);
 
   // Render loading state
   if (loading) {
