@@ -86,6 +86,12 @@ export const useCanvasData = ({
       }
 
       // Use new CanvasDiscovery system with FileTree (includes full FileInfo[] with lastModified)
+      console.log('[useCanvasData] Starting discovery with fileTree:', {
+        hasFileTree: !!fileTreeData,
+        fileCount: fileTreeData?.allFiles?.length,
+        sha: fileTreeData?.sha,
+      });
+
       const result = await discovery.current.discover(fileTreeData, {
         // Include content to extract markdown paths from pv.markdown field
         includeContent: true,
@@ -95,6 +101,14 @@ export const useCanvasData = ({
           }
           return await readFile(path);
         },
+      });
+
+      console.log('[useCanvasData] Discovery result:', {
+        canvasCount: result.canvases.length,
+        storyboardCount: result.storyboards.length,
+        dashboardCount: result.dashboards.length,
+        testTraceCount: result.testTraces.length,
+        errorCount: result.errors.length,
       });
 
       if (result.errors.length > 0) {
@@ -110,6 +124,9 @@ export const useCanvasData = ({
       setStoryboards(result.storyboards);
       setTestTraces(result.testTraces);
       setDashboards(result.dashboards);
+
+      // Debug: Log discovered dashboards
+      console.log('[useCanvasData] Discovered dashboards:', result.dashboards.length, result.dashboards.map(d => ({ id: d.id, name: d.name, path: d.path })));
 
       // Update tracking ref
       lastLoadedSha.current = fileTreeSha;

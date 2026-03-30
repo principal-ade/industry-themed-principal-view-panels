@@ -670,11 +670,27 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   }, [filteredStoryboards]);
 
   const handleTreeNodeClick = useCallback((node: StoryboardWorkflowNodeData | CanvasListNodeData, event?: React.MouseEvent) => {
+    // Cast to CanvasListNodeData to access dashboard field (union type workaround)
+    const asCanvasListNode = node as CanvasListNodeData;
+
+    // Debug: Log click info
+    console.log('[StoryboardListPanel] Tree node clicked:', {
+      nodeType: node.type,
+      nodeId: node.id,
+      nodeName: node.name,
+      hasDashboard: !!asCanvasListNode.dashboard,
+      dashboardId: asCanvasListNode.dashboard?.id,
+      hasCanvas: !!node.canvas,
+    });
+
     // Command-click (macOS) or Ctrl-click (Windows/Linux) opens file in editor tab
     if (event?.metaKey || event?.ctrlKey) {
       let filePath: string | undefined;
 
-      if (node.type === 'canvas' && node.canvas?.path) {
+      // Check for dashboard nodes (CanvasListNodeData with dashboard field)
+      if (node.type === 'canvas' && asCanvasListNode.dashboard?.path) {
+        filePath = asCanvasListNode.dashboard.path;
+      } else if (node.type === 'canvas' && node.canvas?.path) {
         filePath = node.canvas.path;
       } else if (node.type === 'workflow' && 'workflow' in node && node.workflow?.path) {
         filePath = node.workflow.path;
@@ -704,6 +720,27 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
           source: 'storyboard-list-panel',
           timestamp: Date.now(),
           payload: { path: node.markdownPath },
+        });
+      }
+    } else if (node.type === 'canvas' && asCanvasListNode.dashboard) {
+      // Dashboard click - open dashboard panel
+      console.log('[StoryboardListPanel] Dashboard click - emitting openDashboard event:', {
+        dashboardId: asCanvasListNode.dashboard.id,
+        dashboardName: asCanvasListNode.dashboard.name,
+        hasEvents: !!events,
+      });
+      setSelectedNodeId(`dashboard:${asCanvasListNode.dashboard.id}`);
+      if (events) {
+        events.emit({
+          type: 'custom',
+          source: 'storyboard-list-panel',
+          timestamp: Date.now(),
+          payload: {
+            action: 'openDashboard',
+            dashboardId: asCanvasListNode.dashboard.id,
+            dashboard: asCanvasListNode.dashboard,
+            openMode: 'editor',
+          },
         });
       }
     } else if (node.type === 'canvas' && node.canvas) {
@@ -775,7 +812,10 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
 
   // Helper to get the file path from a node (works for both tree types)
   const getNodeFilePath = useCallback((node: StoryboardWorkflowNodeData | CanvasListNodeData): string | undefined => {
-    if (node.type === 'canvas' && node.canvas?.path) {
+    const canvasNode = node as CanvasListNodeData;
+    if (node.type === 'canvas' && canvasNode.dashboard?.path) {
+      return canvasNode.dashboard.path;
+    } else if (node.type === 'canvas' && node.canvas?.path) {
       return node.canvas.path;
     } else if (node.type === 'workflow' && 'workflow' in node && node.workflow?.path) {
       return node.workflow.path;
