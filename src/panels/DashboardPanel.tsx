@@ -11,7 +11,7 @@ import type {
   DiscoveredCanvas,
   DataProvider,
 } from '@principal-ai/principal-view-core';
-import { Loader2 } from 'lucide-react';
+import { Loader2, DatabaseZap } from 'lucide-react';
 
 export interface DashboardPanelProps extends PanelComponentProps {
   /**
@@ -22,9 +22,10 @@ export interface DashboardPanelProps extends PanelComponentProps {
   selectedDashboard?: DiscoveredCanvas | null;
 
   /**
-   * Optional data provider for fetching metric values.
-   * If not provided, the dashboard will render without data.
-   * Use MockDataProvider from @principal-ai/principal-view-react for testing.
+   * Data provider for fetching metric values.
+   * Required for displaying dashboard data. If not provided, the panel will
+   * show a "no data provider" state instead of rendering metrics.
+   * For testing, pass MockDataProvider from @principal-ai/principal-view-react.
    */
   dataProvider?: DataProvider;
 
@@ -226,6 +227,43 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
         }}
       >
         Select a dashboard to view
+      </div>
+    );
+  }
+
+  // Render no data provider state
+  if (!dataProvider) {
+    return (
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        style={{
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.colors.background,
+          color: theme.colors.textSecondary,
+          padding: theme.space[4],
+          outline: 'none',
+        }}
+      >
+        <DatabaseZap
+          size={48}
+          style={{
+            marginBottom: theme.space[3],
+            opacity: 0.5,
+          }}
+        />
+        <div style={{ fontSize: theme.fontSizes[3], marginBottom: theme.space[2] }}>
+          No data provider configured
+        </div>
+        <div style={{ fontSize: theme.fontSizes[1], textAlign: 'center', maxWidth: 400 }}>
+          Pass a DataProvider to display metric values.
+          For testing, use MockDataProvider from @principal-ai/principal-view-react.
+        </div>
       </div>
     );
   }

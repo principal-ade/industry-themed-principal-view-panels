@@ -488,6 +488,28 @@ export const LoadError: Story = {
 };
 
 /**
+ * No data provider state - dashboard loaded but no dataProvider passed.
+ * This is the state shown when the panel needs a DataProvider to render metrics.
+ */
+export const NoDataProvider: Story = {
+  render: () => (
+    <MockPanelProvider
+      actionsOverrides={{
+        readFile: async () => JSON.stringify(sampleDashboard),
+      }}
+    >
+      {(props) => (
+        <DashboardPanel
+          {...props}
+          selectedDashboard={activityFeedDiscovered}
+          // Intentionally no dataProvider - shows "No data provider configured" state
+        />
+      )}
+    </MockPanelProvider>
+  ),
+};
+
+/**
  * With event callbacks to see source/metric clicks
  */
 export const WithEventHandlers: Story = {
