@@ -754,9 +754,12 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         hasUnsavedChanges: false,
       }));
 
-      // Reset GraphRenderer's internal edit state to match the saved canvas
-      // This prevents visual snap-back caused by stale pending changes
-      graphRef.current?.resetEditState();
+      // NOTE: We intentionally do NOT call resetEditState() here.
+      // The visual state (node positions) is already correct - it reflects what the user edited.
+      // Calling resetEditState() would reset visual state to xyflowNodesBase, which uses a
+      // stale closure (the old canvas prop) because React state updates are async.
+      // The pending changes in editStateRef will be overwritten by subsequent edits,
+      // and hasUnsavedChanges is already cleared above.
     } catch (error) {
       console.error('[PrincipalView] Error saving changes:', error);
       setState(prev => ({
