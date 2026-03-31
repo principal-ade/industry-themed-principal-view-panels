@@ -488,10 +488,10 @@ export const LoadError: Story = {
 };
 
 /**
- * No data provider state - dashboard loaded but no dataProvider passed.
- * This is the state shown when the panel needs a DataProvider to render metrics.
+ * Empty data state - dashboard loaded but no dataProvider passed.
+ * Metrics render with zero/empty values using the built-in EmptyDataProvider.
  */
-export const NoDataProvider: Story = {
+export const EmptyData: Story = {
   render: () => (
     <MockPanelProvider
       actionsOverrides={{
@@ -502,7 +502,7 @@ export const NoDataProvider: Story = {
         <DashboardPanel
           {...props}
           selectedDashboard={activityFeedDiscovered}
-          // Intentionally no dataProvider - shows "No data provider configured" state
+          // No dataProvider - metrics show with zero/empty values
         />
       )}
     </MockPanelProvider>

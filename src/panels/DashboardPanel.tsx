@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import type { PanelComponentProps } from '@principal-ade/panel-framework-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
@@ -10,8 +10,28 @@ import type {
   RefreshInterval,
   DiscoveredCanvas,
   DataProvider,
+  MetricData,
 } from '@principal-ai/principal-view-core';
-import { Loader2, DatabaseZap } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+
+/**
+ * A data provider that returns empty/zero values for all metrics.
+ * Used when no real data provider is configured, allowing the dashboard
+ * to render its layout with placeholder values instead of blocking.
+ */
+class EmptyDataProvider implements DataProvider {
+  getAll(): Record<string, MetricData> {
+    return {};
+  }
+
+  get(_metricId: string): MetricData {
+    // Return a minimal empty metric data structure
+    return {
+      current: 0,
+      series: [],
+    };
+  }
+}
 
 export interface DashboardPanelProps extends PanelComponentProps {
   /**
@@ -23,9 +43,8 @@ export interface DashboardPanelProps extends PanelComponentProps {
 
   /**
    * Data provider for fetching metric values.
-   * Required for displaying dashboard data. If not provided, the panel will
-   * show a "no data provider" state instead of rendering metrics.
-   * For testing, pass MockDataProvider from @principal-ai/principal-view-react.
+   * If not provided, metrics will display with zero/empty values.
+   * For testing with sample data, pass MockDataProvider from @principal-ai/principal-view-react.
    */
   dataProvider?: DataProvider;
 
@@ -231,42 +250,11 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
     );
   }
 
-  // Render no data provider state
-  if (!dataProvider) {
-    return (
-      <div
-        ref={panelRef}
-        tabIndex={-1}
-        style={{
-          height: '100%',
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.colors.background,
-          color: theme.colors.textSecondary,
-          padding: theme.space[4],
-          outline: 'none',
-        }}
-      >
-        <DatabaseZap
-          size={48}
-          style={{
-            marginBottom: theme.space[3],
-            opacity: 0.5,
-          }}
-        />
-        <div style={{ fontSize: theme.fontSizes[3], marginBottom: theme.space[2] }}>
-          No data provider configured
-        </div>
-        <div style={{ fontSize: theme.fontSizes[1], textAlign: 'center', maxWidth: 400 }}>
-          Pass a DataProvider to display metric values.
-          For testing, use MockDataProvider from @principal-ai/principal-view-react.
-        </div>
-      </div>
-    );
-  }
+  // Use provided dataProvider or fall back to EmptyDataProvider
+  const effectiveDataProvider = useMemo(
+    () => dataProvider ?? new EmptyDataProvider(),
+    [dataProvider]
+  );
 
   // Render dashboard
   return (
@@ -282,7 +270,7 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
     >
       <DashboardRenderer
         dashboard={dashboard}
-        dataProvider={dataProvider}
+        dataProvider={effectiveDataProvider}
         timeRange={timeRange}
         onTimeRangeChange={setTimeRange}
         refreshInterval={refreshInterval}
