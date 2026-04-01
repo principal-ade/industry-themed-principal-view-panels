@@ -168,6 +168,13 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
     [onMetricClick, events]
   );
 
+  // Use provided dataProvider or fall back to EmptyDataProvider
+  // NOTE: This must be before early returns to satisfy React's rules of hooks
+  const effectiveDataProvider = useMemo(
+    () => dataProvider ?? new EmptyDataProvider(),
+    [dataProvider]
+  );
+
   // Render loading state
   if (loading) {
     return (
@@ -249,12 +256,6 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
       </div>
     );
   }
-
-  // Use provided dataProvider or fall back to EmptyDataProvider
-  const effectiveDataProvider = useMemo(
-    () => dataProvider ?? new EmptyDataProvider(),
-    [dataProvider]
-  );
 
   // Render dashboard
   return (
