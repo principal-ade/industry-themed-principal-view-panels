@@ -9,6 +9,9 @@ import type {
   TimeRange,
   RefreshInterval,
   DiscoveredCanvas,
+  DiscoveredStoryboard,
+  DiscoveredWorkflow,
+  WorkflowTemplate,
   DataProvider,
   MetricData,
 } from '@principal-ai/principal-view-core';
@@ -33,6 +36,14 @@ class EmptyDataProvider implements DataProvider {
   }
 }
 
+/**
+ * Workflow with its loaded template, used for navigation from source links.
+ */
+export interface LoadedWorkflow {
+  file: DiscoveredWorkflow;
+  template: WorkflowTemplate;
+}
+
 export interface DashboardPanelProps extends PanelComponentProps {
   /**
    * The discovered dashboard to display.
@@ -47,6 +58,19 @@ export interface DashboardPanelProps extends PanelComponentProps {
    * For testing with sample data, pass MockDataProvider from @principal-ai/principal-view-react.
    */
   dataProvider?: DataProvider;
+
+  /**
+   * Discovered storyboards for navigating from source links to workflows.
+   * When provided, clicking a source link will emit an 'openCanvas' event
+   * with the matching storyboard and workflow.
+   */
+  storyboards?: DiscoveredStoryboard[];
+
+  /**
+   * Loaded workflows with their templates, for navigating from source links.
+   * Used to include the full workflow template in the 'openCanvas' event.
+   */
+  workflows?: LoadedWorkflow[];
 
   /**
    * Callback when a metric source link is clicked.
@@ -79,6 +103,8 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
   events,
   selectedDashboard,
   dataProvider,
+  storyboards,
+  workflows,
   onSourceClick,
   onMetricClick,
 }) => {
@@ -133,22 +159,77 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
     (source: MetricSource) => {
       if (onSourceClick) {
         onSourceClick(source);
-      } else if (events?.emit) {
-        // Emit navigation event for the host to handle
+        return;
+      }
+
+      if (!events?.emit) return;
+
+      // Try to find the matching storyboard and workflow for navigation
+      const matchingStoryboard = storyboards?.find(
+        (sb) => sb.basename === source.storyboard || sb.name === source.storyboard
+      );
+
+      if (matchingStoryboard) {
+        // Find the matching workflow within the storyboard
+        const matchingWorkflowMeta = matchingStoryboard.workflows.find(
+          (wf) => wf.name === source.workflow || wf.id.endsWith(`/${source.workflow}`)
+        );
+
+        if (matchingWorkflowMeta) {
+          // Look up the full workflow template
+          const fullWorkflow = workflows?.find(
+            (wf) => wf.file.path === matchingWorkflowMeta.path
+          );
+
+          // Emit openCanvas event like StoryboardListPanel does
+          events.emit({
+            type: 'custom',
+            source: 'dashboard-panel',
+            timestamp: Date.now(),
+            payload: {
+              action: 'openCanvas',
+              canvasId: matchingStoryboard.canvas.id,
+              canvas: matchingStoryboard.canvas,
+              workflowId: matchingWorkflowMeta.id,
+              workflow: fullWorkflow?.template,
+              openMode: 'detail',
+              // Include source info for potential node/event highlighting
+              sourceNodes: source.nodes,
+              sourceEvent: source.event,
+            },
+          });
+          return;
+        }
+
+        // Workflow not found, but storyboard exists - open canvas without workflow
         events.emit({
-          type: 'dashboard:source-click',
+          type: 'custom',
           source: 'dashboard-panel',
           timestamp: Date.now(),
           payload: {
-            source,
-            storyboard: source.storyboard,
-            workflow: source.workflow,
-            nodes: source.nodes,
+            action: 'openCanvas',
+            canvasId: matchingStoryboard.canvas.id,
+            canvas: matchingStoryboard.canvas,
+            openMode: 'editor',
           },
         });
+        return;
       }
+
+      // Fallback: emit the original event for host to handle
+      events.emit({
+        type: 'dashboard:source-click',
+        source: 'dashboard-panel',
+        timestamp: Date.now(),
+        payload: {
+          source,
+          storyboard: source.storyboard,
+          workflow: source.workflow,
+          nodes: source.nodes,
+        },
+      });
     },
-    [onSourceClick, events]
+    [onSourceClick, events, storyboards, workflows]
   );
 
   // Handle metric clicks
