@@ -16,6 +16,7 @@ import type {
   MetricData,
 } from '@principal-ai/principal-view-core';
 import { Loader2 } from 'lucide-react';
+import { useCanvasWorkflowData } from './canvas-list/hooks/useCanvasWorkflowData';
 
 /**
  * A data provider that returns empty/zero values for all metrics.
@@ -98,13 +99,13 @@ export interface DashboardPanelProps extends PanelComponentProps {
  * - Or pass `dashboardDefinition` directly if already loaded
  */
 export const DashboardPanel: React.FC<DashboardPanelProps> = ({
-  context: _context,
+  context,
   actions,
   events,
   selectedDashboard,
   dataProvider,
-  storyboards,
-  workflows,
+  storyboards: storyboardsProp,
+  workflows: workflowsProp,
   onSourceClick,
   onMetricClick,
 }) => {
@@ -121,6 +122,30 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
   const [refreshInterval, setRefreshInterval] = useState<RefreshInterval>('off');
 
   usePanelFocusListener('dashboard', events, () => panelRef.current?.focus());
+
+  // Load storyboards and workflows from discovery system if not provided via props
+  // Cast context to the shape expected by the hook - fileTree is available in typed contexts
+  type FileTreeContext = { fileTree: import('@principal-ade/panel-framework-core').DataSlice<import('@principal-ai/repository-abstraction').FileTree | null> };
+  const typedContext = context as unknown as FileTreeContext | undefined;
+  const fileTreeSlice = typedContext?.fileTree;
+
+  const { storyboards: discoveredStoryboards, workflows: discoveredWorkflows } = useCanvasWorkflowData({
+    context: fileTreeSlice ? { fileTree: fileTreeSlice } : {
+      fileTree: {
+        data: null,
+        loading: false,
+        error: null,
+        scope: 'repository' as const,
+        name: 'fileTree',
+        refresh: async () => {},
+      },
+    },
+    actions,
+  });
+
+  // Use props if provided, otherwise use discovered data
+  const storyboards = storyboardsProp ?? discoveredStoryboards;
+  const workflows = workflowsProp ?? discoveredWorkflows;
 
   // Load dashboard from file when selectedDashboard changes
   useEffect(() => {
