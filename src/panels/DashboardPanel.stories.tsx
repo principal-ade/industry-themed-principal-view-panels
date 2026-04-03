@@ -1,10 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useMemo } from 'react';
-import { DashboardPanel } from './DashboardPanel';
+import { DashboardPanel, type LoadedWorkflow } from './DashboardPanel';
 import { ThemeProvider } from '@principal-ade/industry-theme';
 import { MockPanelProvider } from '../mocks/panelContext';
 import { MockDataProvider } from '@principal-ai/principal-view-react';
-import type { DashboardDefinition, DiscoveredCanvas } from '@principal-ai/principal-view-core';
+import type {
+  DashboardDefinition,
+  DiscoveredCanvas,
+  DiscoveredStoryboard,
+  WorkflowTemplate,
+} from '@principal-ai/principal-view-core';
 
 // Sample dashboard definition for stories
 const sampleDashboard: DashboardDefinition = {
@@ -348,6 +353,77 @@ const missingDiscovered: DiscoveredCanvas = {
   scope: 'root',
 };
 
+// Mock storyboard and workflow for sequence diagram testing
+const mockApiStoryboard: DiscoveredStoryboard = {
+  canvas: {
+    id: 'api-storyboard',
+    name: 'API Storyboard',
+    path: '.principal-views/api/api.otel.canvas',
+    basename: 'api',
+    type: 'canvas',
+    scope: 'root',
+  },
+  basename: 'api',
+  name: 'API',
+  workflows: [
+    {
+      id: 'api/request',
+      name: 'request',
+      path: '.principal-views/api/request.workflow.json',
+    },
+  ],
+};
+
+const mockRequestWorkflowTemplate: WorkflowTemplate = {
+  version: '1.0.0',
+  canvas: '.principal-views/api/api.otel.canvas',
+  name: 'API Request Flow',
+  description: 'Standard API request handling workflow',
+  rootSpan: 'api.request',
+  scenarioSelection: 'first-match',
+  scenarios: [
+    {
+      id: 'successful-request',
+      priority: 1,
+      description: 'Successful API request with response',
+      template: {
+        events: {
+          'api.request.received': 'Request received from {{client.ip}}',
+          'api.auth.validated': 'Authentication validated for user {{user.id}}',
+          'api.handler.started': 'Handler started for {{route.path}}',
+          'database.query.executed': 'Query executed in {{duration}}ms',
+          'api.response.sent': 'Response sent with status {{status.code}}',
+        },
+        summary: 'Request completed successfully',
+      },
+    },
+    {
+      id: 'auth-failure',
+      priority: 2,
+      description: 'Request rejected due to authentication failure',
+      template: {
+        events: {
+          'api.request.received': 'Request received from {{client.ip}}',
+          'api.auth.failed': 'Authentication failed: {{error.message}}',
+          'api.response.sent': 'Response sent with status 401',
+        },
+        summary: 'Request rejected - authentication failed',
+      },
+    },
+  ],
+};
+
+const mockLoadedWorkflows: LoadedWorkflow[] = [
+  {
+    file: {
+      id: 'api/request',
+      name: 'request',
+      path: '.principal-views/api/request.workflow.json',
+    },
+    template: mockRequestWorkflowTemplate,
+  },
+];
+
 /**
  * Helper component that loads a dashboard from file with mock data provider.
  * This keeps mock data handling in Storybook, not in the production panel.
@@ -527,4 +603,32 @@ export const WithEventHandlers: Story = {
       }}
     />
   ),
+};
+
+/**
+ * With Sequence Diagram - Click on source link to see sequence diagram modal.
+ * This story provides mock storyboards and workflows so the sequence diagram feature works.
+ */
+export const WithSequenceDiagram: Story = {
+  render: () => {
+    const dataProvider = new MockDataProvider(minimalDashboard);
+
+    return (
+      <MockPanelProvider
+        actionsOverrides={{
+          readFile: async () => JSON.stringify(minimalDashboard),
+        }}
+      >
+        {(props) => (
+          <DashboardPanel
+            {...props}
+            selectedDashboard={minimalDiscovered}
+            dataProvider={dataProvider}
+            storyboards={[mockApiStoryboard]}
+            workflows={mockLoadedWorkflows}
+          />
+        )}
+      </MockPanelProvider>
+    );
+  },
 };
