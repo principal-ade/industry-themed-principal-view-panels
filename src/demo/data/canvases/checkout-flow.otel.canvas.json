@@ -1,9 +1,6 @@
 {
-  "pv": {
-    "name": "Checkout Flow",
-    "version": "1.0.0",
-    "description": "End-to-end checkout with payment processing"
-  },
+  "name": "Checkout Flow",
+  "description": "End-to-end checkout with payment processing",
   "nodes": [
     {
       "id": "user-validation",

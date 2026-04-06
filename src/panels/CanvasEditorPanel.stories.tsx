@@ -96,30 +96,27 @@ const sampleCanvas = {
       id: 'edge-1',
       fromNode: 'node-1',
       toNode: 'node-2',
-      pv: { edgeType: 'dataflow' },
+      edgeType: 'dataflow',
     },
     {
       id: 'edge-2',
       fromNode: 'node-2',
       toNode: 'node-3',
-      pv: { edgeType: 'dataflow' },
+      edgeType: 'dataflow',
     },
   ],
-  pv: {
-    version: '1.0.0',
-    name: 'Sample Validation Graph',
-    description: 'Example graph configuration',
-    edgeTypes: {
-      dataflow: {
-        style: 'solid' as const,
-        color: '#50E3C2',
-        directed: true,
-      },
-      dependency: {
-        style: 'dashed' as const,
-        color: '#F5A623',
-        directed: true,
-      },
+  name: 'Sample Validation Graph',
+  description: 'Example graph configuration',
+  edgeTypes: {
+    dataflow: {
+      style: 'solid' as const,
+      color: '#50E3C2',
+      directed: true,
+    },
+    dependency: {
+      style: 'dashed' as const,
+      color: '#F5A623',
+      directed: true,
     },
   },
 };
@@ -586,26 +583,23 @@ const libraryColorCanvas = {
       id: 'api-to-db',
       fromNode: 'api',
       toNode: 'db',
-      pv: { edgeType: 'data-flow' }, // Should be ORANGE from library
+      edgeType: 'data-flow', // Should be ORANGE from library
     },
     {
       id: 'db-to-processor',
       fromNode: 'db',
       toNode: 'processor',
-      pv: { edgeType: 'dependency' }, // Should be CYAN from library
+      edgeType: 'dependency', // Should be CYAN from library
     },
     {
       id: 'gateway-to-api',
       fromNode: 'gateway',
       toNode: 'api',
-      pv: { edgeType: 'data-flow' },
+      edgeType: 'data-flow',
     },
   ],
-  pv: {
-    version: '1.0.0',
-    name: 'Library Color Test',
-    description: 'Tests that colors from library.yaml nodeComponents are applied',
-  },
+  name: 'Library Color Test',
+  description: 'Tests that colors from library.yaml nodeComponents are applied',
 };
 
 // Convert library to YAML string for mock file
@@ -865,21 +859,18 @@ const scenarioCanvas = {
     },
   ],
   edges: [
-    { id: 'e1', fromNode: 'user-action', toNode: 'api-call', pv: { edgeType: 'flow' } },
-    { id: 'e2', fromNode: 'api-call', toNode: 'db-query', pv: { edgeType: 'flow' } },
-    { id: 'e3', fromNode: 'api-call', toNode: 'cache-check', pv: { edgeType: 'flow' } },
-    { id: 'e4', fromNode: 'db-query', toNode: 'response-sent', pv: { edgeType: 'flow' } },
-    { id: 'e5', fromNode: 'cache-check', toNode: 'response-sent', pv: { edgeType: 'flow' } },
-    { id: 'e6', fromNode: 'db-query', toNode: 'error-handler', pv: { edgeType: 'error', style: 'dashed' } },
+    { id: 'e1', fromNode: 'user-action', toNode: 'api-call', edgeType: 'flow' },
+    { id: 'e2', fromNode: 'api-call', toNode: 'db-query', edgeType: 'flow' },
+    { id: 'e3', fromNode: 'api-call', toNode: 'cache-check', edgeType: 'flow' },
+    { id: 'e4', fromNode: 'db-query', toNode: 'response-sent', edgeType: 'flow' },
+    { id: 'e5', fromNode: 'cache-check', toNode: 'response-sent', edgeType: 'flow' },
+    { id: 'e6', fromNode: 'db-query', toNode: 'error-handler', edgeType: 'error' },
   ],
-  pv: {
-    version: '1.0.0',
-    name: 'API Request Flow',
-    description: 'Sample workflow with multiple scenarios',
-    edgeTypes: {
-      flow: { style: 'solid' as const, color: '#64748b', directed: true },
-      error: { style: 'dashed' as const, color: '#ef4444', directed: true },
-    },
+  name: 'API Request Flow',
+  description: 'Sample workflow with multiple scenarios',
+  edgeTypes: {
+    flow: { style: 'solid' as const, color: '#64748b', directed: true },
+    error: { style: 'dashed' as const, color: '#ef4444', directed: true },
   },
 };
 
@@ -1419,7 +1410,7 @@ const spansCanvasData = {
       fromSide: 'bottom',
       toSide: 'top',
       label: 'child',
-      pv: { edgeType: 'provides' },
+      edgeType: 'provides',
     },
     {
       id: 'edge-cli-discover',
@@ -1428,7 +1419,7 @@ const spansCanvasData = {
       fromSide: 'bottom',
       toSide: 'top',
       label: 'child',
-      pv: { edgeType: 'provides' },
+      edgeType: 'provides',
     },
     {
       id: 'edge-validate-parse',
@@ -1437,7 +1428,7 @@ const spansCanvasData = {
       fromSide: 'bottom',
       toSide: 'top',
       label: 'child',
-      pv: { edgeType: 'provides' },
+      edgeType: 'provides',
     },
     {
       id: 'edge-discover-file',
@@ -1446,14 +1437,11 @@ const spansCanvasData = {
       fromSide: 'bottom',
       toSide: 'top',
       label: 'child',
-      pv: { edgeType: 'provides' },
+      edgeType: 'provides',
     },
   ],
-  pv: {
-    name: 'CLI Span Conventions',
-    version: '1.0.0',
-    description: 'Defines span hierarchy patterns for CLI operations',
-  },
+  name: 'CLI Span Conventions',
+  description: 'Defines span hierarchy patterns for CLI operations',
 };
 
 /**
@@ -1587,12 +1575,11 @@ This story demonstrates how \`.spans.canvas\` files render span conventions.
 \`\`\`json
 {
   "id": "validate",
-  "type": "text",
-  "text": "# validate\\n\\nSpan for validation operations",
-  "color": "#22C55E",  // Required - becomes event fill color
-  "pv": {
-    "nodeType": "span-convention",
-    "shape": "hexagon"
+  "type": "otel-span-convention",
+  "label": "validate",
+  "color": "#22C55E",
+  "otel": {
+    "spanPattern": "validate"
   }
 }
 \`\`\`
@@ -1694,17 +1681,14 @@ const otelEventsCanvas = {
     },
   ],
   edges: [
-    { id: 'e1', fromNode: 'command-start', toNode: 'validate-begin', pv: { edgeType: 'triggers' } },
-    { id: 'e2', fromNode: 'command-start', toNode: 'discover-files', pv: { edgeType: 'triggers' } },
-    { id: 'e3', fromNode: 'validate-begin', toNode: 'validate-complete', pv: { edgeType: 'triggers' } },
-    { id: 'e4', fromNode: 'validate-complete', toNode: 'command-end', pv: { edgeType: 'triggers' } },
-    { id: 'e5', fromNode: 'discover-files', toNode: 'command-end', pv: { edgeType: 'triggers' } },
+    { id: 'e1', fromNode: 'command-start', toNode: 'validate-begin', edgeType: 'triggers' },
+    { id: 'e2', fromNode: 'command-start', toNode: 'discover-files', edgeType: 'triggers' },
+    { id: 'e3', fromNode: 'validate-begin', toNode: 'validate-complete', edgeType: 'triggers' },
+    { id: 'e4', fromNode: 'validate-complete', toNode: 'command-end', edgeType: 'triggers' },
+    { id: 'e5', fromNode: 'discover-files', toNode: 'command-end', edgeType: 'triggers' },
   ],
-  pv: {
-    name: 'CLI Events',
-    version: '1.0.0',
-    description: 'OTEL events for CLI command execution',
-  },
+  name: 'CLI Events',
+  description: 'OTEL events for CLI command execution',
 };
 
 // Library with scopes defining scope colors (for borders) - YAML format for mock file
@@ -1942,11 +1926,8 @@ const newOtelFormatCanvas: ExtendedCanvas = {
       toSide: 'left',
     },
   ],
-  pv: {
-    name: 'Auth Flow - New OTEL Format',
-    version: '1.0.0',
-    description: 'Tests the new OTEL node format with top-level label and event fields',
-  },
+  name: 'Auth Flow - New OTEL Format',
+  description: 'Tests the new OTEL node format with top-level label and event fields',
 } as ExtendedCanvas;
 
 /**
@@ -2021,7 +2002,7 @@ export const NewOtelFormat: Story = {
 
 This story tests the migrated OTEL node format where nodes use semantic types:
 
-**Old Format (Legacy):**
+**Old Format (Legacy - DEPRECATED):**
 \`\`\`json
 {
   "id": "user-login",
@@ -2169,11 +2150,8 @@ const spanWorkflowChipsCanvas: ExtendedCanvas = {
       label: 'child',
     },
   ],
-  pv: {
-    name: 'Span Workflow Chips Demo',
-    version: '1.0.0',
-    description: 'Demonstrates workflow chips on span convention nodes',
-  },
+  name: 'Span Workflow Chips Demo',
+  description: 'Demonstrates workflow chips on span convention nodes',
 } as ExtendedCanvas;
 
 /**
@@ -2436,18 +2414,15 @@ const eventRefCanvas: ExtendedCanvas = {
     },
   ],
   edges: [
-    { id: 'e1', fromNode: 'auth-started-node', toNode: 'auth-validated-node', pv: { edgeType: 'flow' } },
-    { id: 'e2', fromNode: 'auth-started-node', toNode: 'auth-failed-node', pv: { edgeType: 'error' } },
-    { id: 'e3', fromNode: 'auth-validated-node', toNode: 'auth-session-created-node', pv: { edgeType: 'flow' } },
+    { id: 'e1', fromNode: 'auth-started-node', toNode: 'auth-validated-node', edgeType: 'flow' },
+    { id: 'e2', fromNode: 'auth-started-node', toNode: 'auth-failed-node', edgeType: 'error' },
+    { id: 'e3', fromNode: 'auth-validated-node', toNode: 'auth-session-created-node', edgeType: 'flow' },
   ],
-  pv: {
-    version: '1.0.0',
-    name: 'Auth Flow - eventRef Format',
-    description: 'Tests node highlighting with top-level eventRef format',
-    edgeTypes: {
-      flow: { style: 'solid' as const, color: '#64748b', directed: true },
-      error: { style: 'dashed' as const, color: '#ef4444', directed: true },
-    },
+  name: 'Auth Flow - eventRef Format',
+  description: 'Tests node highlighting with top-level eventRef format',
+  edgeTypes: {
+    flow: { style: 'solid' as const, color: '#64748b', directed: true },
+    error: { style: 'dashed' as const, color: '#ef4444', directed: true },
   },
 } as ExtendedCanvas;
 
