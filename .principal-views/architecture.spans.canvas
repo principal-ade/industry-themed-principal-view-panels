@@ -1,4 +1,7 @@
 {
+  "name": "Span Conventions",
+  "description": "Defines span hierarchy patterns for Principal View panels",
+  "markdown": ".principal-views/spans.md",
   "nodes": [
     {
       "id": "multi-canvas-panel.render",
@@ -126,9 +129,7 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "child",
-      "pv": {
-        "edgeType": "provides"
-      }
+      "edgeType": "provides"
     },
     {
       "id": "edge-render-layout",
@@ -137,9 +138,7 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "child",
-      "pv": {
-        "edgeType": "provides"
-      }
+      "edgeType": "provides"
     },
     {
       "id": "edge-session-scenario",
@@ -148,9 +147,7 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "child",
-      "pv": {
-        "edgeType": "provides"
-      }
+      "edgeType": "provides"
     },
     {
       "id": "edge-session-playback",
@@ -159,9 +156,7 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "child",
-      "pv": {
-        "edgeType": "provides"
-      }
+      "edgeType": "provides"
     },
     {
       "id": "edge-analysis-match",
@@ -170,9 +165,7 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "child",
-      "pv": {
-        "edgeType": "provides"
-      }
+      "edgeType": "provides"
     },
     {
       "id": "edge-analysis-coverage",
@@ -181,15 +174,7 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "child",
-      "pv": {
-        "edgeType": "provides"
-      }
+      "edgeType": "provides"
     }
-  ],
-  "pv": {
-    "name": "Span Conventions",
-    "version": "1.0.0",
-    "description": "Defines span hierarchy patterns for Principal View panels",
-    "markdown": ".principal-views/spans.md"
-  }
+  ]
 }

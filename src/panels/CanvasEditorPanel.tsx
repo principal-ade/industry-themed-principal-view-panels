@@ -1603,9 +1603,9 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                       Edges:
                     </span>
 
-                    {state.canvas?.pv?.edgeTypes && Object.keys(state.canvas.pv.edgeTypes).length > 0 ? (
+                    {state.canvas?.edgeTypes && Object.keys(state.canvas.edgeTypes).length > 0 ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[4], flexWrap: 'wrap' }}>
-                        {Object.entries(state.canvas.pv.edgeTypes).map(([typeName, edgeType]) => (
+                        {Object.entries(state.canvas.edgeTypes).map(([typeName, edgeType]) => (
                           <div
                             key={typeName}
                             style={{

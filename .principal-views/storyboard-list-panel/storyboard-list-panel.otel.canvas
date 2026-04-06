@@ -1,4 +1,6 @@
 {
+  "name": "Storyboard List Panel Events",
+  "markdown": ".principal-views/storyboard-list-panel/storyboard-list-panel.md",
   "nodes": [
     {
       "id": "panel-loading",

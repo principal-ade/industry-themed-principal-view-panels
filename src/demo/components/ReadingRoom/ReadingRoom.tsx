@@ -49,9 +49,7 @@ export const ReadingRoom: React.FC<ReadingRoomProps> = ({
       {/* Toolbar */}
       <div className="reading-room-toolbar texture-leather">
         <div className="toolbar-section">
-          <span className="toolbar-label text-gold">{canvas.pv.name}</span>
-          <span className="toolbar-separator">|</span>
-          <span className="toolbar-info text-cream">{canvas.pv.version}</span>
+          <span className="toolbar-label text-gold">{canvas.name}</span>
         </div>
         <div className="toolbar-section">
           {trace && (

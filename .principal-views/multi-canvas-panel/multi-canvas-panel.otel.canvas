@@ -1,4 +1,6 @@
 {
+  "name": "Multi Canvas Panel Events",
+  "markdown": ".principal-views/multi-canvas-panel/multi-canvas-panel.md",
   "nodes": [
     {
       "id": "props-received",

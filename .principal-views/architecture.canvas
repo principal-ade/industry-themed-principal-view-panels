@@ -1,54 +1,51 @@
 {
-  "pv": {
-    "name": "Principal View Panel Architecture",
-    "version": "1.0.0",
-    "description": "Architecture diagram of the Principal View Panel package",
-    "markdown": ".principal-views/architecture.md",
-    "nodeTypes": {
-      "panel": {
-        "description": "UI panel component",
-        "shape": "rectangle",
-        "color": "#6366f1"
-      },
-      "adapter": {
-        "description": "Adapter for external systems",
-        "shape": "diamond",
-        "color": "#06b6d4"
-      },
-      "loader": {
-        "description": "Data loader component",
-        "shape": "circle",
-        "color": "#10b981"
-      },
-      "tool": {
-        "description": "Interactive tool component",
-        "shape": "rectangle",
-        "color": "#f59e0b"
-      },
-      "external-lib": {
-        "description": "External library dependency",
-        "shape": "rectangle",
-        "color": "#64748b"
-      },
-      "context": {
-        "description": "React context provider",
-        "shape": "hexagon",
-        "color": "#84cc16"
-      }
+  "name": "Principal View Panel Architecture",
+  "description": "Architecture diagram of the Principal View Panel package",
+  "markdown": ".principal-views/architecture.md",
+  "nodeTypes": {
+    "panel": {
+      "description": "UI panel component",
+      "shape": "rectangle",
+      "color": "#6366f1"
     },
-    "edgeTypes": {
-      "uses": {
-        "color": "#8b5cf6",
-        "directed": true
-      },
-      "emits": {
-        "color": "#f59e0b",
-        "directed": true
-      },
-      "consumes": {
-        "color": "#ec4899",
-        "directed": true
-      }
+    "adapter": {
+      "description": "Adapter for external systems",
+      "shape": "diamond",
+      "color": "#06b6d4"
+    },
+    "loader": {
+      "description": "Data loader component",
+      "shape": "circle",
+      "color": "#10b981"
+    },
+    "tool": {
+      "description": "Interactive tool component",
+      "shape": "rectangle",
+      "color": "#f59e0b"
+    },
+    "external-lib": {
+      "description": "External library dependency",
+      "shape": "rectangle",
+      "color": "#64748b"
+    },
+    "context": {
+      "description": "React context provider",
+      "shape": "hexagon",
+      "color": "#84cc16"
+    }
+  },
+  "edgeTypes": {
+    "uses": {
+      "color": "#8b5cf6",
+      "directed": true
+    },
+    "emits": {
+      "color": "#f59e0b",
+      "directed": true
+    },
+    "consumes": {
+      "color": "#ec4899",
+      "directed": true
     }
   },
   "nodes": [
@@ -214,9 +211,7 @@
       "toNode": "principal-view-react",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "uses"
-      }
+      "edgeType": "uses"
     },
     {
       "id": "edge-pvg-cl",
@@ -224,9 +219,7 @@
       "toNode": "config-loader",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "uses"
-      }
+      "edgeType": "uses"
     },
     {
       "id": "edge-clb-ll",
@@ -234,9 +227,7 @@
       "toNode": "library-loader",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "uses"
-      }
+      "edgeType": "uses"
     },
     {
       "id": "edge-clb-cl",
@@ -244,9 +235,7 @@
       "toNode": "config-loader",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "uses"
-      }
+      "edgeType": "uses"
     },
     {
       "id": "edge-cl-pfa",
@@ -254,9 +243,7 @@
       "toNode": "panel-filesystem-adapter",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "uses"
-      }
+      "edgeType": "uses"
     },
     {
       "id": "edge-ll-pfa",
@@ -264,19 +251,15 @@
       "toNode": "panel-filesystem-adapter",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "uses"
-      }
+      "edgeType": "uses"
     },
-        {
+    {
       "id": "edge-pvr-pvc",
       "fromNode": "principal-view-react",
       "toNode": "principal-view-core",
       "fromSide": "right",
       "toSide": "left",
-      "pv": {
-        "edgeType": "uses"
-      }
+      "edgeType": "uses"
     },
     {
       "id": "edge-clb-pvg",
@@ -284,9 +267,7 @@
       "toNode": "principal-view-graph-panel",
       "fromSide": "left",
       "toSide": "right",
-      "pv": {
-        "edgeType": "emits"
-      }
+      "edgeType": "emits"
     },
     {
       "id": "edge-pvg-theme",
@@ -294,9 +275,7 @@
       "toNode": "industry-theme",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "consumes"
-      }
+      "edgeType": "consumes"
     }
   ]
 }

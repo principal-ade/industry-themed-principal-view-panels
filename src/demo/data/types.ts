@@ -77,11 +77,8 @@ export interface CanvasEdge {
 }
 
 export interface Canvas {
-  pv: {
-    name: string;
-    version: string;
-    description: string;
-  };
+  name?: string;
+  description?: string;
   nodes: CanvasNode[];
   edges: CanvasEdge[];
 }

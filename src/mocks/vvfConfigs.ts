@@ -60,37 +60,34 @@ export const mockSimpleCanvas: ExtendedCanvas = {
       id: 'edge-api-db',
       fromNode: 'api-handler',
       toNode: 'database',
-      pv: { edgeType: 'query' },
+      edgeType: 'query',
     },
     {
       id: 'edge-api-logger',
       fromNode: 'api-handler',
       toNode: 'logger',
-      pv: { edgeType: 'log' },
+      edgeType: 'log',
     },
     {
       id: 'edge-db-logger',
       fromNode: 'database',
       toNode: 'logger',
-      pv: { edgeType: 'log' },
+      edgeType: 'log',
     },
   ],
-  pv: {
-    name: 'Simple Service',
-    version: '1.0.0',
-    edgeTypes: {
-      query: {
-        style: 'solid',
-        color: '#64748b',
-        width: 2,
-        directed: true,
-      },
-      log: {
-        style: 'dashed',
-        color: '#9ca3af',
-        width: 1,
-        directed: true,
-      },
+  name: 'Simple Service',
+  edgeTypes: {
+    query: {
+      style: 'solid',
+      color: '#64748b',
+      width: 2,
+      directed: true,
+    },
+    log: {
+      style: 'dashed',
+      color: '#9ca3af',
+      width: 1,
+      directed: true,
     },
   },
 };
@@ -211,20 +208,18 @@ export const mockControlTowerCanvas: ExtendedCanvas = {
     },
   ],
   edges: [
-    { id: 'edge-client-transport', fromNode: 'client-a', toNode: 'transport', pv: { edgeType: 'websocket-connection' } },
-    { id: 'edge-transport-server', fromNode: 'transport', toNode: 'server', pv: { edgeType: 'websocket-connection' } },
-    { id: 'edge-server-auth', fromNode: 'server', toNode: 'auth', pv: { edgeType: 'auth-flow' } },
-    { id: 'edge-server-room', fromNode: 'server', toNode: 'room-manager', pv: { edgeType: 'service-call' } },
-    { id: 'edge-server-lock', fromNode: 'server', toNode: 'lock-manager', pv: { edgeType: 'service-call' } },
-    { id: 'edge-server-presence', fromNode: 'server', toNode: 'presence-manager', pv: { edgeType: 'service-call' } },
-    { id: 'edge-client-room', fromNode: 'client-a', toNode: 'room-manager', pv: { edgeType: 'room-flow' } },
-    { id: 'edge-client-lock', fromNode: 'client-a', toNode: 'lock-manager', pv: { edgeType: 'lock-flow' } },
-    { id: 'edge-client-presence', fromNode: 'client-a', toNode: 'presence-manager', pv: { edgeType: 'presence-flow' } },
+    { id: 'edge-client-transport', fromNode: 'client-a', toNode: 'transport', edgeType: 'websocket-connection' },
+    { id: 'edge-transport-server', fromNode: 'transport', toNode: 'server', edgeType: 'websocket-connection' },
+    { id: 'edge-server-auth', fromNode: 'server', toNode: 'auth', edgeType: 'auth-flow' },
+    { id: 'edge-server-room', fromNode: 'server', toNode: 'room-manager', edgeType: 'service-call' },
+    { id: 'edge-server-lock', fromNode: 'server', toNode: 'lock-manager', edgeType: 'service-call' },
+    { id: 'edge-server-presence', fromNode: 'server', toNode: 'presence-manager', edgeType: 'service-call' },
+    { id: 'edge-client-room', fromNode: 'client-a', toNode: 'room-manager', edgeType: 'room-flow' },
+    { id: 'edge-client-lock', fromNode: 'client-a', toNode: 'lock-manager', edgeType: 'lock-flow' },
+    { id: 'edge-client-presence', fromNode: 'client-a', toNode: 'presence-manager', edgeType: 'presence-flow' },
   ],
-  pv: {
-    name: 'Control Tower Core - Client-Server Demo',
-    version: '0.1.19',
-    edgeTypes: {
+  name: 'Control Tower Core - Client-Server Demo',
+  edgeTypes: {
       'websocket-connection': {
         style: 'solid',
         color: '#3b82f6',
@@ -267,7 +262,6 @@ export const mockControlTowerCanvas: ExtendedCanvas = {
         directed: true,
       },
     },
-  },
 };
 
 export const mockComplexCanvas: ExtendedCanvas = {
@@ -344,16 +338,14 @@ export const mockComplexCanvas: ExtendedCanvas = {
     },
   ],
   edges: [
-    { id: 'edge-handler-lock', fromNode: 'request-handler', toNode: 'lock-manager', pv: { edgeType: 'lock-request' } },
-    { id: 'edge-lock-github', fromNode: 'lock-manager', toNode: 'github-api', pv: { edgeType: 'api-call' } },
-    { id: 'edge-handler-github', fromNode: 'request-handler', toNode: 'github-api', pv: { edgeType: 'webhook-flow' } },
-    { id: 'edge-lock-db', fromNode: 'lock-manager', toNode: 'database', pv: { edgeType: 'db-query' } },
+    { id: 'edge-handler-lock', fromNode: 'request-handler', toNode: 'lock-manager', edgeType: 'lock-request' },
+    { id: 'edge-lock-github', fromNode: 'lock-manager', toNode: 'github-api', edgeType: 'api-call' },
+    { id: 'edge-handler-github', fromNode: 'request-handler', toNode: 'github-api', edgeType: 'webhook-flow' },
+    { id: 'edge-lock-db', fromNode: 'lock-manager', toNode: 'database', edgeType: 'db-query' },
   ],
-  pv: {
-    name: 'Repository Traffic Controller',
-    version: '2.1.0',
-    edgeTypes: {
-      'webhook-flow': {
+  name: 'Repository Traffic Controller',
+  edgeTypes: {
+    'webhook-flow': {
         style: 'solid',
         color: '#3b82f6',
         width: 3,
@@ -379,7 +371,6 @@ export const mockComplexCanvas: ExtendedCanvas = {
         directed: true,
       },
     },
-  },
 };
 
 /**
@@ -502,18 +493,16 @@ export const mockNodeColorsCanvas: ExtendedCanvas = {
     },
   ],
   edges: [
-    { id: 'edge-core-api', fromNode: 'pkg-core', toNode: 'pkg-api', pv: { edgeType: 'dependency' } },
-    { id: 'edge-core-button', fromNode: 'pkg-core', toNode: 'component-button', pv: { edgeType: 'exports' } },
-    { id: 'edge-api-auth', fromNode: 'pkg-api', toNode: 'hook-auth', pv: { edgeType: 'exports' } },
-    { id: 'edge-api-format', fromNode: 'pkg-api', toNode: 'util-format', pv: { edgeType: 'exports' } },
-    { id: 'edge-auth-user', fromNode: 'hook-auth', toNode: 'type-user', pv: { edgeType: 'uses-type' } },
-    { id: 'edge-format-lodash', fromNode: 'util-format', toNode: 'ext-lodash', pv: { edgeType: 'imports' } },
+    { id: 'edge-core-api', fromNode: 'pkg-core', toNode: 'pkg-api', edgeType: 'dependency' },
+    { id: 'edge-core-button', fromNode: 'pkg-core', toNode: 'component-button', edgeType: 'exports' },
+    { id: 'edge-api-auth', fromNode: 'pkg-api', toNode: 'hook-auth', edgeType: 'exports' },
+    { id: 'edge-api-format', fromNode: 'pkg-api', toNode: 'util-format', edgeType: 'exports' },
+    { id: 'edge-auth-user', fromNode: 'hook-auth', toNode: 'type-user', edgeType: 'uses-type' },
+    { id: 'edge-format-lodash', fromNode: 'util-format', toNode: 'ext-lodash', edgeType: 'imports' },
   ],
-  pv: {
-    name: 'Code City - Node Colors Demo',
-    version: '1.0.0',
-    edgeTypes: {
-      dependency: {
+  name: 'Code City - Node Colors Demo',
+  edgeTypes: {
+    dependency: {
         style: 'solid',
         color: '#64748b',
         width: 2,
@@ -538,7 +527,6 @@ export const mockNodeColorsCanvas: ExtendedCanvas = {
         directed: true,
       },
     },
-  },
 };
 
 /**
@@ -647,22 +635,19 @@ export const mockColorPriorityCanvas: ExtendedCanvas = {
     },
   ],
   edges: [
-    { id: 'e1', fromNode: 'node-pv-fill', toNode: 'node-canvas-color', pv: { edgeType: 'flow' } },
-    { id: 'e2', fromNode: 'node-canvas-color', toNode: 'node-no-color', pv: { edgeType: 'flow' } },
-    { id: 'e3', fromNode: 'node-pv-fill', toNode: 'node-stroke-only', pv: { edgeType: 'flow' } },
-    { id: 'e4', fromNode: 'node-stroke-only', toNode: 'node-shapes-circle', pv: { edgeType: 'flow' } },
-    { id: 'e5', fromNode: 'node-shapes-circle', toNode: 'node-shapes-diamond', pv: { edgeType: 'flow' } },
+    { id: 'e1', fromNode: 'node-pv-fill', toNode: 'node-canvas-color', edgeType: 'flow' },
+    { id: 'e2', fromNode: 'node-canvas-color', toNode: 'node-no-color', edgeType: 'flow' },
+    { id: 'e3', fromNode: 'node-pv-fill', toNode: 'node-stroke-only', edgeType: 'flow' },
+    { id: 'e4', fromNode: 'node-stroke-only', toNode: 'node-shapes-circle', edgeType: 'flow' },
+    { id: 'e5', fromNode: 'node-shapes-circle', toNode: 'node-shapes-diamond', edgeType: 'flow' },
   ],
-  pv: {
-    name: 'Color Priority Test',
-    version: '1.0.0',
-    edgeTypes: {
-      flow: {
-        style: 'solid',
-        color: '#64748b',
-        width: 2,
-        directed: true,
-      },
+  name: 'Color Priority Test',
+  edgeTypes: {
+    flow: {
+      style: 'solid',
+      color: '#64748b',
+      width: 2,
+      directed: true,
     },
   },
 };
