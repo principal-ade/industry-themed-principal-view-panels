@@ -8,6 +8,7 @@ import type {
   DashboardDefinition,
   DiscoveredCanvas,
   DiscoveredStoryboard,
+  DiscoveredCanvasWithContent,
   WorkflowTemplate,
 } from '@principal-ai/principal-view-core';
 
@@ -360,11 +361,88 @@ const mockApiStoryboard: DiscoveredStoryboard = {
     name: 'API Storyboard',
     path: '.principal-views/api/api.otel.canvas',
     basename: 'api',
-    type: 'canvas',
+    type: 'otel',
     scope: 'root',
-  },
+    // Include canvas content with scope metadata for sequence diagram
+    content: {
+      name: 'API Storyboard',
+      nodes: [
+        {
+          id: 'request-received',
+          type: 'otel-event',
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 80,
+          label: 'Request Received',
+          event: { name: 'api.request.received' },
+          otel: { scope: 'api-gateway', status: 'implemented' },
+        },
+        {
+          id: 'auth-validated',
+          type: 'otel-event',
+          x: 250,
+          y: 0,
+          width: 200,
+          height: 80,
+          label: 'Auth Validated',
+          event: { name: 'api.auth.validated' },
+          otel: { scope: 'auth-service', status: 'implemented' },
+        },
+        {
+          id: 'handler-started',
+          type: 'otel-event',
+          x: 500,
+          y: 0,
+          width: 200,
+          height: 80,
+          label: 'Handler Started',
+          event: { name: 'api.handler.started' },
+          otel: { scope: 'api-gateway', status: 'implemented' },
+        },
+        {
+          id: 'db-query',
+          type: 'otel-event',
+          x: 750,
+          y: 0,
+          width: 200,
+          height: 80,
+          label: 'DB Query',
+          event: { name: 'database.query.executed' },
+          otel: { scope: 'database-service', status: 'implemented' },
+        },
+        {
+          id: 'response-sent',
+          type: 'otel-event',
+          x: 1000,
+          y: 0,
+          width: 200,
+          height: 80,
+          label: 'Response Sent',
+          event: { name: 'api.response.sent' },
+          otel: { scope: 'api-gateway', status: 'implemented' },
+        },
+        // Auth failure scenario events
+        {
+          id: 'auth-failed',
+          type: 'otel-event',
+          x: 250,
+          y: 150,
+          width: 200,
+          height: 80,
+          label: 'Auth Failed',
+          event: { name: 'api.auth.failed' },
+          otel: { scope: 'auth-service', status: 'implemented' },
+        },
+      ],
+      edges: [],
+    },
+  } as import('@principal-ai/principal-view-core').DiscoveredCanvasWithContent,
   basename: 'api',
   name: 'API',
+  id: 'api-storyboard',
+  path: '.principal-views/api',
+  scope: 'root',
   workflows: [
     {
       id: 'api/request',
@@ -608,6 +686,13 @@ export const WithEventHandlers: Story = {
 /**
  * With Sequence Diagram - Click on source link to see sequence diagram modal.
  * This story provides mock storyboards and workflows so the sequence diagram feature works.
+ *
+ * The sequence diagram displays events grouped by their instrumentation scope (otel.scope):
+ * - api-gateway: Request received, Handler started, Response sent
+ * - auth-service: Auth validated, Auth failed
+ * - database-service: DB query
+ *
+ * Each scope appears as a separate swimlane in the sequence diagram.
  */
 export const WithSequenceDiagram: Story = {
   render: () => {

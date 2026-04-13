@@ -1867,6 +1867,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                   onDismiss={handleEventCarouselDismiss}
                   isExpanded={isCarouselExpanded}
                   onExpandToggle={() => setIsCarouselExpanded(prev => !prev)}
+                  canvas={state.canvas}
                   sources={(() => {
                     // Get sources for the current event
                     const eventNames = Object.keys(state.selectedScenario?.template.events || {});

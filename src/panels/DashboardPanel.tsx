@@ -20,6 +20,9 @@ import type {
   WorkflowScenario,
   DataProvider,
   MetricData,
+  Canvas,
+  ExtendedCanvas,
+  DiscoveredCanvasWithContent,
 } from '@principal-ai/principal-view-core';
 import { Loader2, X, ExternalLink } from 'lucide-react';
 import { useCanvasWorkflowData } from './canvas-list/hooks/useCanvasWorkflowData';
@@ -56,21 +59,43 @@ interface SelectedSequence {
 
 /**
  * Convert workflow scenario events to sequence diagram format.
- * Event keys become SequenceEvents and sequential edges connect them.
+ * Events are grouped into lanes based on their instrumentation scope (from canvas node metadata).
+ * Scopes define the swimlanes, and events within each scope are rendered sequentially.
  */
-function convertWorkflowToSequence(scenario: WorkflowScenario): {
+function convertWorkflowToSequence(
+  scenario: WorkflowScenario,
+  canvas?: Canvas | ExtendedCanvas | null
+): {
   events: SequenceEvent[];
   edges: SequenceEdge[];
 } {
   const templateEvents = scenario.template.events ?? {};
   const eventNames = Object.keys(templateEvents);
 
-  // Convert event names to SequenceEvents
-  const events: SequenceEvent[] = eventNames.map((name, index) => ({
-    id: `event-${index}`,
-    name,
-    label: name.split('.').pop() ?? name,
-  }));
+  // Build a map of event names to their scopes from canvas nodes
+  const eventToScopeMap = new Map<string, string>();
+  if (canvas?.nodes) {
+    for (const node of canvas.nodes) {
+      const otel = (node as { otel?: { scope?: string }; event?: { name?: string } }).otel;
+      const event = (node as { event?: { name?: string } }).event;
+      if (otel?.scope && event?.name) {
+        eventToScopeMap.set(event.name, otel.scope);
+      }
+    }
+  }
+
+  // Convert event names to SequenceEvents with scope-based namespacing
+  const events: SequenceEvent[] = eventNames.map((name, index) => {
+    const scope = eventToScopeMap.get(name) || 'unknown';
+
+    return {
+      id: `event-${index}`,
+      // Use scope as namespace prefix so lanes are created per scope
+      name: `${scope}.${name}`,
+      // Display only the last segment of the original event name
+      label: name.split('.').pop() ?? name,
+    };
+  });
 
   // Create sequential edges connecting events in order
   const edges: SequenceEdge[] = [];
@@ -101,10 +126,13 @@ function SequenceDiagramModal({
   onOpenCanvas,
   theme,
 }: SequenceDiagramModalProps) {
-  const { events, edges } = useMemo(
-    () => convertWorkflowToSequence(sequence.scenario),
-    [sequence.scenario]
-  );
+  const { events, edges } = useMemo(() => {
+    // Extract canvas content from storyboard for scope metadata
+    const canvasWithContent = sequence.storyboard.canvas as DiscoveredCanvasWithContent;
+    const canvas = canvasWithContent.content;
+
+    return convertWorkflowToSequence(sequence.scenario, canvas);
+  }, [sequence.scenario, sequence.storyboard.canvas]);
 
   return (
     <div
@@ -218,7 +246,7 @@ function SequenceDiagramModal({
                 laneWidth: 220,
                 laneGap: 60,
                 eventSpacing: 100,
-                namespaceStrategy: 'all-but-last',
+                namespaceStrategy: 'first',
               }}
               showControls
             />

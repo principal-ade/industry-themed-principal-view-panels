@@ -771,116 +771,104 @@ const scenarioCanvas = {
   nodes: [
     {
       id: 'user-action',
-      type: 'text' as const,
+      type: 'otel-event' as const,
       x: 200,
       y: 50,
       width: 160,
       height: 70,
-      text: 'User Action',
+      label: 'User Action',
       color: '#3b82f6',
-      pv: {
-        nodeType: 'event',
-        shape: 'rectangle' as const,
-        icon: 'User',
-        event: {
-          name: 'user.action',
-          description: 'User initiates action',
-        },
+      event: {
+        name: 'user.action',
+      },
+      otel: {
+        scope: 'frontend-app',
+        status: 'implemented' as const,
       },
     },
     {
       id: 'api-call',
-      type: 'text' as const,
+      type: 'otel-event' as const,
       x: 200,
       y: 160,
       width: 160,
       height: 70,
-      text: 'API Call',
+      label: 'API Call',
       color: '#10b981',
-      pv: {
-        nodeType: 'event',
-        shape: 'rectangle' as const,
-        icon: 'Server',
-        event: {
-          name: 'api.request',
-          description: 'API request made',
-        },
+      event: {
+        name: 'api.request',
+      },
+      otel: {
+        scope: 'api-gateway',
+        status: 'implemented' as const,
       },
     },
     {
       id: 'db-query',
-      type: 'text' as const,
+      type: 'otel-event' as const,
       x: 80,
       y: 270,
       width: 140,
       height: 70,
-      text: 'DB Query',
+      label: 'DB Query',
       color: '#8b5cf6',
-      pv: {
-        nodeType: 'event',
-        shape: 'circle' as const,
-        icon: 'Database',
-        event: {
-          name: 'db.query',
-          description: 'Database query executed',
-        },
+      event: {
+        name: 'db.query',
+      },
+      otel: {
+        scope: 'database-service',
+        status: 'implemented' as const,
       },
     },
     {
       id: 'cache-check',
-      type: 'text' as const,
+      type: 'otel-event' as const,
       x: 320,
       y: 270,
       width: 140,
       height: 70,
-      text: 'Cache Check',
+      label: 'Cache Check',
       color: '#f59e0b',
-      pv: {
-        nodeType: 'event',
-        shape: 'rectangle' as const,
-        icon: 'Zap',
-        event: {
-          name: 'cache.check',
-          description: 'Cache lookup',
-        },
+      event: {
+        name: 'cache.check',
+      },
+      otel: {
+        scope: 'cache-service',
+        status: 'implemented' as const,
       },
     },
     {
       id: 'response-sent',
-      type: 'text' as const,
+      type: 'otel-event' as const,
       x: 200,
       y: 380,
       width: 160,
       height: 70,
-      text: 'Response',
+      label: 'Response',
       color: '#22c55e',
-      pv: {
-        nodeType: 'event',
-        shape: 'rectangle' as const,
-        icon: 'Check',
-        event: {
-          name: 'api.response',
-          description: 'Response sent to user',
-        },
+      event: {
+        name: 'api.response',
+      },
+      otel: {
+        scope: 'api-gateway',
+        status: 'implemented' as const,
       },
     },
     {
       id: 'error-handler',
-      type: 'text' as const,
+      type: 'otel-event' as const,
       x: 400,
       y: 380,
       width: 140,
       height: 70,
-      text: 'Error Handler',
+      label: 'Error Handler',
       color: '#ef4444',
-      pv: {
-        nodeType: 'event',
-        shape: 'rectangle' as const,
-        icon: 'AlertTriangle',
-        event: {
-          name: 'error.occurred',
-          description: 'Error handling',
-        },
+      event: {
+        name: 'error.occurred',
+      },
+      otel: {
+        scope: 'api-gateway',
+        status: 'implemented' as const,
       },
     },
   ],
@@ -1308,6 +1296,15 @@ This story demonstrates how to control scenario and event selection programmatic
 **Display Modes (for selectScenario):**
 - \`list\` (default) - Expanded list view with full event details
 - \`carousel\` - Compact carousel for step-by-step navigation
+
+**Sequence Diagram:**
+Click the sequence diagram icon (layers) in the carousel header to view events in a sequence diagram with scope-based swimlanes:
+- **frontend-app** - User interactions
+- **api-gateway** - API request/response handling
+- **database-service** - Database queries
+- **cache-service** - Cache operations
+
+Each scope appears as a separate swimlane, showing events grouped by their instrumentation scope (\`otel.scope\`)
 
 **Usage:**
 \`\`\`typescript
