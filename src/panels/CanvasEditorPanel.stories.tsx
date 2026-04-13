@@ -2297,6 +2297,12 @@ export const SpanWorkflowChips: Story = {
           name: 'demo.spans.canvas',
           content: JSON.stringify(canvasWithChips, null, 2),
         },
+        {
+          path: '.principal-views/library.yaml',
+          relativePath: '.principal-views/library.yaml',
+          name: 'library.yaml',
+          content: spansLibraryYaml,
+        },
       ],
     };
 
