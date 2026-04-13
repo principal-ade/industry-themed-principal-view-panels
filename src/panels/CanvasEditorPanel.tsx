@@ -16,9 +16,26 @@ import { ScenariosList } from './execution-viewer/ScenariosList';
 import { EventCarousel } from './execution-viewer/EventCarousel';
 import { mapEventToNodeId } from './execution-viewer/EventNodeMapper';
 
+/**
+ * Default minimal library used when no library.yaml is found.
+ * Provides essential states for OTEL nodes.
+ */
+const DEFAULT_LIBRARY: ComponentLibrary = {
+  version: '1.0.0',
+  name: 'Default Library',
+  description: 'Minimal default library for rendering',
+  nodeComponents: {},
+  edgeComponents: {},
+  states: {
+    draft: { color: '#f59e0b', label: 'Draft' },
+    approved: { color: '#10b981', label: 'Approved' },
+    implemented: { color: '#6366f1', label: 'Implemented' },
+  },
+};
+
 interface GraphPanelState {
   canvas: ExtendedCanvas | null;
-  library: ComponentLibrary | null;
+  library: ComponentLibrary; // Always defined, uses default if no library.yaml found
   spansCanvas: ExtendedCanvas | null;
   loading: boolean;
   error: string | null;
@@ -164,7 +181,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
   const [state, setState] = useState<GraphPanelState>({
     canvas: null,
-    library: null,
+    library: DEFAULT_LIBRARY,
     spansCanvas: null,
     loading: true,
     error: null,
@@ -309,7 +326,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   const loadConfiguration = useCallback(async () => {
     // Early return if required props are missing
     if (!canvasPath) {
-      setState(prev => ({ ...prev, canvas: null, library: null, spansCanvas: null, loading: false, error: null }));
+      setState(prev => ({ ...prev, canvas: null, library: DEFAULT_LIBRARY, spansCanvas: null, loading: false, error: null }));
       return;
     }
 
@@ -387,10 +404,13 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         }
       }
 
+      // Ensure we always have a library with states (use default if none found)
+      const finalLibrary: ComponentLibrary = library || DEFAULT_LIBRARY;
+
       setState(prev => ({
         ...prev,
         canvas,
-        library,
+        library: finalLibrary,
         spansCanvas,
         loading: false,
         error: null,
@@ -398,10 +418,11 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       }));
     } catch (error) {
       console.error('[PrincipalView] Error during config load:', error);
+      // Provide default library even on error to prevent undefined access
       setState(prev => ({
         ...prev,
         canvas: null,
-        library: null,
+        library: DEFAULT_LIBRARY,
         spansCanvas: null,
         loading: false,
         error: (error as Error).message
@@ -1479,7 +1500,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                   <GraphRenderer
                         ref={graphRef}
                         canvas={state.canvas}
-                        library={state.library ?? undefined}
+                        library={state.library}
                         spansCanvas={state.spansCanvas ?? undefined}
                         workflowSpanPattern={workflowSpanPattern ?? undefined}
                         width="100%"
