@@ -4,7 +4,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, PVNodeExtension, ComponentLibrary, WorkflowTemplate, WorkflowScenario, OtelAttributes, OtelEvent } from '@principal-ai/principal-view-core';
-import { getNodeEventName } from '@principal-ai/principal-view-core';
+import { getNodeEventName, isStandardCanvasNode } from '@principal-ai/principal-view-core';
 import { getSpansFromTrace, type RegisteredTrace } from '../types/otel';
 import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import { ConfigLoader } from './principal-view/ConfigLoader';
@@ -461,37 +461,39 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         continue;
       }
 
-      // Search in pv extension fields
-      const pv = node.pv;
-      if (pv) {
-        // Search in pv.name
-        if (pv.name && pv.name.toLowerCase().includes(query)) {
-          matchedIds.push(node.id);
-          continue;
-        }
+      // Search in pv extension fields (only for standard canvas nodes)
+      if (isStandardCanvasNode(node)) {
+        const pv = node.pv;
+        if (pv) {
+          // Search in pv.name
+          if (pv.name && pv.name.toLowerCase().includes(query)) {
+            matchedIds.push(node.id);
+            continue;
+          }
 
-        // Search in pv.description
-        if (pv.description && pv.description.toLowerCase().includes(query)) {
-          matchedIds.push(node.id);
-          continue;
-        }
+          // Search in pv.description
+          if (pv.description && pv.description.toLowerCase().includes(query)) {
+            matchedIds.push(node.id);
+            continue;
+          }
 
-        // Search in pv.eventRef
-        if (pv.eventRef && pv.eventRef.toLowerCase().includes(query)) {
-          matchedIds.push(node.id);
-          continue;
-        }
+          // Search in pv.eventRef
+          if (pv.eventRef && pv.eventRef.toLowerCase().includes(query)) {
+            matchedIds.push(node.id);
+            continue;
+          }
 
-        // Search in pv.event.name
-        if (pv.event?.name && pv.event.name.toLowerCase().includes(query)) {
-          matchedIds.push(node.id);
-          continue;
-        }
+          // Search in pv.event.name
+          if (pv.event?.name && pv.event.name.toLowerCase().includes(query)) {
+            matchedIds.push(node.id);
+            continue;
+          }
 
-        // Search in pv.nodeType
-        if (pv.nodeType && pv.nodeType.toLowerCase().includes(query)) {
-          matchedIds.push(node.id);
-          continue;
+          // Search in pv.nodeType
+          if (pv.nodeType && pv.nodeType.toLowerCase().includes(query)) {
+            matchedIds.push(node.id);
+            continue;
+          }
         }
       }
     }
@@ -552,7 +554,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       const node = state.canvas!.nodes?.find(n => n.id === nodeId);
       if (!node) return null;
 
-      const pv = node.pv;
+      const pv = isStandardCanvasNode(node) ? node.pv : undefined;
 
       // Get label: prefer pv.name, fall back to text content for text nodes
       let label = pv?.name || nodeId;
@@ -1844,6 +1846,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
 
                     const sources: string[] = [];
                     state.canvas.nodes.forEach(node => {
+                      if (!isStandardCanvasNode(node)) return;
                       const nodePv = node.pv as PVNodeExtension | undefined;
                       const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
                       if (nodeEventName === currentEventName && nodePv?.sources) {
@@ -1861,6 +1864,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                     if (!state.canvas?.nodes) return [];
                     const sources: string[] = [];
                     state.canvas.nodes.forEach(node => {
+                      if (!isStandardCanvasNode(node)) return;
                       const nodePv = node.pv as PVNodeExtension | undefined;
                       const nodeEventName = nodePv?.eventRef || nodePv?.event?.name;
                       if (nodeEventName === eventName && nodePv?.sources) {
@@ -1944,7 +1948,7 @@ function applyChangesToCanvas(
 
       // Handle data updates
       if (updates.data) {
-        if (updates.data.icon && node.pv) {
+        if (updates.data.icon && isStandardCanvasNode(node) && node.pv) {
           node.pv.icon = updates.data.icon as string;
         }
         if (updates.data.label !== undefined && 'text' in node) {

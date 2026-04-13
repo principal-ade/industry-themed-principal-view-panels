@@ -3,7 +3,7 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { X, FileCode } from 'lucide-react';
 import yaml from 'js-yaml';
 import type { WorkflowTemplate, OtelAttributes, WorkflowScenario, ExtendedCanvas } from '@principal-ai/principal-view-core';
-import { renderWorkflow } from '@principal-ai/principal-view-core';
+import { renderWorkflow, isStandardCanvasNode } from '@principal-ai/principal-view-core';
 import { WorkflowRenderer } from './WorkflowRenderer';
 import { convertToOtelEvents } from './workflow-converter';
 import { SourceFileList } from './SourceFileList';
@@ -179,11 +179,11 @@ export const ScenarioDetailsPanel: React.FC<ScenarioDetailsPanelProps> = ({
     const sources = new Set<string>();
 
     canvas.nodes.forEach(node => {
-      const nodeEventName = node.pv?.event?.name ||
+      const nodeEventName = (isStandardCanvasNode(node) ? node.pv?.event?.name : undefined) ||
         ('metadata' in node ? (node.metadata as Record<string, unknown>)?.['pv.event'] : undefined);
 
       if (nodeEventName === eventName) {
-        const nodeSources = node.pv?.sources ||
+        const nodeSources = (isStandardCanvasNode(node) ? node.pv?.sources : undefined) ||
           ('metadata' in node ? (node.metadata as Record<string, unknown>)?.['pv.sources'] : undefined);
 
         if (Array.isArray(nodeSources)) {

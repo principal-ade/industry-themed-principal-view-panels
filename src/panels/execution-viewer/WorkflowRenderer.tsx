@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { renderWorkflow, parseTemplate, computeAggregates, getRequiredEvents, ParsedTemplate, getEventTemplateString } from '@principal-ai/principal-view-core';
+import { renderWorkflow, parseTemplate, computeAggregates, getRequiredEvents, ParsedTemplate, getEventTemplateString, isStandardCanvasNode } from '@principal-ai/principal-view-core';
 import type { WorkflowTemplate, OtelEvent, ExtendedCanvas, TemplateSegment, TemplateContext } from '@principal-ai/principal-view-core';
 import { useTheme } from '@principal-ade/industry-theme';
 import yaml from 'js-yaml';
@@ -69,11 +69,11 @@ export const WorkflowRenderer: React.FC<WorkflowRendererProps> = ({
     const sources = new Set<string>();
 
     canvas.nodes.forEach(node => {
-      const nodeEventName = node.pv?.event?.name ||
+      const nodeEventName = (isStandardCanvasNode(node) ? node.pv?.event?.name : undefined) ||
         ('metadata' in node ? (node.metadata as Record<string, unknown>)?.['pv.event'] : undefined);
 
       if (nodeEventName === eventName) {
-        const nodeSources = node.pv?.sources ||
+        const nodeSources = (isStandardCanvasNode(node) ? node.pv?.sources : undefined) ||
           ('metadata' in node ? (node.metadata as Record<string, unknown>)?.['pv.sources'] : undefined);
 
         if (Array.isArray(nodeSources)) {

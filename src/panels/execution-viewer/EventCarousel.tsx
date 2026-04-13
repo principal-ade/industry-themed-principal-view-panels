@@ -1,10 +1,42 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useTheme } from '@principal-ade/industry-theme';
-import { ChevronLeft, ChevronRight, X, FileCode, Maximize2, Minimize2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, FileCode, Maximize2, Minimize2, Layers, List } from 'lucide-react';
 import type { WorkflowScenario, OtelEvent, TemplateSegment } from '@principal-ai/principal-view-core';
 import { renderEventTemplate } from '@principal-ai/principal-view-core';
+import { SequenceDiagramRenderer, type SequenceEvent, type SequenceEdge } from '@principal-ai/principal-view-react';
 import { SourceFileList } from './SourceFileList';
 import { TemplateText } from './TemplateText';
+
+/**
+ * Convert workflow scenario events to sequence diagram format.
+ * Event keys become SequenceEvents and sequential edges connect them.
+ */
+function convertWorkflowToSequence(scenario: WorkflowScenario): {
+  events: SequenceEvent[];
+  edges: SequenceEdge[];
+} {
+  const templateEvents = scenario.template.events ?? {};
+  const eventNames = Object.keys(templateEvents);
+
+  // Convert event names to SequenceEvents
+  const events: SequenceEvent[] = eventNames.map((name, index) => ({
+    id: `event-${index}`,
+    name,
+    label: name.split('.').pop() ?? name,
+  }));
+
+  // Create sequential edges connecting events in order
+  const edges: SequenceEdge[] = [];
+  for (let i = 0; i < events.length - 1; i++) {
+    edges.push({
+      id: `edge-${i}`,
+      fromEvent: events[i].id,
+      toEvent: events[i + 1].id,
+    });
+  }
+
+  return { events, edges };
+}
 
 export interface EventCarouselProps {
   /** The selected scenario to display events from */
@@ -50,6 +82,7 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
 }) => {
   const { theme } = useTheme();
   const [showSources, setShowSources] = useState(false);
+  const [viewMode, setViewMode] = useState<'events' | 'sequence'>('events');
 
   // Get event entries from scenario template
   const eventEntries = Object.entries(scenario.template.events || {});
@@ -129,6 +162,11 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handlePrev, handleNext]);
+
+  // Reset view mode to events when scenario changes
+  useEffect(() => {
+    setViewMode('events');
+  }, [scenario.id]);
 
   // Only show "no events" if there are truly no events defined
   if (eventEntries.length === 0) {
@@ -220,6 +258,27 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
                 <FileCode size={16} />
               </button>
             )}
+            {/* View mode toggle button (Events vs Sequence) */}
+            <button
+              onClick={() => setViewMode(prev => prev === 'events' ? 'sequence' : 'events')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                color: viewMode === 'sequence' ? theme.colors.accent : theme.colors.text,
+                cursor: 'pointer',
+                opacity: viewMode === 'sequence' ? 1 : 0.6,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = viewMode === 'sequence' ? '1' : '0.6')}
+              title={viewMode === 'sequence' ? 'Show event list' : 'Show sequence diagram'}
+            >
+              {viewMode === 'sequence' ? <List size={16} /> : <Layers size={16} />}
+            </button>
             {/* Expand/Collapse button */}
             {onExpandToggle && (
               <button
@@ -292,157 +351,196 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
       </div>
 
       {/* Content */}
-      {isExpanded ? (
-        /* Expanded: List view - matches ScenarioDetailsPanel style */
-        <div
-          style={{
-            flex: 1,
-            overflow: 'auto',
-            fontFamily: theme.fonts.body,
-          }}
-        >
-          {eventEntries.map(([evtName, evtTemplate], idx) => {
-            const isActive = idx === currentEventIndex;
-            const traceEvent = traceEventMap.get(evtName);
-            const segments = getEventSegments(evtName, String(evtTemplate));
-            return (
-              <div
-                key={evtName}
-                onClick={() => {
-                  onEventIndexChange(idx);
-                  // Trigger event click for focusing (without highlighting)
-                  if (onEventClick) {
-                    const syntheticEvent: OtelEvent = {
-                      name: evtName,
-                      timestamp: traceEvent?.timestamp ?? 0,
-                      type: 'span',
-                      spanId: traceEvent?.spanId ?? 'preview',
-                      traceId: traceEvent?.traceId ?? 'preview',
-                      attributes: traceEvent?.attributes ?? {},
-                    };
-                    onEventClick(syntheticEvent, idx);
-                  }
+      {viewMode === 'sequence' ? (
+        /* Sequence Diagram View */
+        <div style={{ flex: 1, minHeight: 0, background: theme.colors.backgroundSecondary }}>
+          {(() => {
+            const { events, edges } = convertWorkflowToSequence(scenario);
+            return events.length > 0 ? (
+              <SequenceDiagramRenderer
+                events={events}
+                edges={edges}
+                height="100%"
+                layoutOptions={{
+                  laneWidth: 220,
+                  laneGap: 60,
+                  eventSpacing: 100,
+                  namespaceStrategy: 'all-but-last',
                 }}
+                showControls
+              />
+            ) : (
+              <div
                 style={{
-                  padding: '8px 20px 12px 20px',
-                  backgroundColor: isActive ? theme.colors.muted : theme.colors.backgroundSecondary,
-                  borderBottom: `1px solid ${theme.colors.border}`,
-                  fontSize: theme.fontSizes[1],
-                  lineHeight: '1.7',
-                  fontWeight: 500,
-                  color: theme.colors.text,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s ease',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: theme.colors.textMuted,
+                  fontFamily: theme.fonts.body,
                 }}
               >
-                <div style={{ marginTop: '4px' }}>
-                  <TemplateText segments={segments} />
-                </div>
-                {/* Show source paths for this event */}
-                {showSources && getSourcesForEvent && (
-                  <SourceFileList sources={getSourcesForEvent(evtName)} onSourceClick={onSourceClick} />
-                )}
+                No events to display
               </div>
             );
-          })}
+          })()}
         </div>
       ) : (
-        /* Collapsed: Carousel view */
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            padding: '16px 16px',
-            gap: '8px',
-            flex: 1,
-            minHeight: 0,
-          }}
-        >
-          {/* Prev Button */}
-          <button
-            onClick={handlePrev}
-            disabled={currentEventIndex === 0}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '24px',
-              height: '24px',
-              padding: 0,
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '4px',
-              color: currentEventIndex === 0 ? theme.colors.textMuted : theme.colors.text,
-              cursor: currentEventIndex === 0 ? 'not-allowed' : 'pointer',
-              opacity: currentEventIndex === 0 ? 0.3 : 0.7,
-              transition: 'all 0.2s',
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => { if (currentEventIndex > 0) e.currentTarget.style.opacity = '1'; }}
-            onMouseLeave={(e) => { if (currentEventIndex > 0) e.currentTarget.style.opacity = '0.7'; }}
-            title="Previous event (←)"
-          >
-            <ChevronLeft size={18} />
-          </button>
-
-          {/* Event Content */}
-          <div
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-              minWidth: 0,
-              overflow: 'auto',
-              maxHeight: '100%',
-            }}
-          >
-            {/* Event template text (filled in if trace events available) */}
+        /* Existing Events View (list or carousel) */
+        <>
+          {isExpanded ? (
+            /* Expanded: List view - matches ScenarioDetailsPanel style */
             <div
               style={{
-                fontSize: theme.fontSizes[2],
-                fontWeight: 500,
-                color: theme.colors.text,
-                lineHeight: 1.5,
+                flex: 1,
+                overflow: 'auto',
                 fontFamily: theme.fonts.body,
               }}
             >
-              <TemplateText segments={getEventSegments(effectiveEntry[0], String(eventTemplate))} />
+              {eventEntries.map(([evtName, evtTemplate], idx) => {
+                const isActive = idx === currentEventIndex;
+                const traceEvent = traceEventMap.get(evtName);
+                const segments = getEventSegments(evtName, String(evtTemplate));
+                return (
+                  <div
+                    key={evtName}
+                    onClick={() => {
+                      onEventIndexChange(idx);
+                      // Trigger event click for focusing (without highlighting)
+                      if (onEventClick) {
+                        const syntheticEvent: OtelEvent = {
+                          name: evtName,
+                          timestamp: traceEvent?.timestamp ?? 0,
+                          type: 'span',
+                          spanId: traceEvent?.spanId ?? 'preview',
+                          traceId: traceEvent?.traceId ?? 'preview',
+                          attributes: traceEvent?.attributes ?? {},
+                        };
+                        onEventClick(syntheticEvent, idx);
+                      }
+                    }}
+                    style={{
+                      padding: '8px 20px 12px 20px',
+                      backgroundColor: isActive ? theme.colors.muted : theme.colors.backgroundSecondary,
+                      borderBottom: `1px solid ${theme.colors.border}`,
+                      fontSize: theme.fontSizes[1],
+                      lineHeight: '1.7',
+                      fontWeight: 500,
+                      color: theme.colors.text,
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s ease',
+                    }}
+                  >
+                    <div style={{ marginTop: '4px' }}>
+                      <TemplateText segments={segments} />
+                    </div>
+                    {/* Show source paths for this event */}
+                    {showSources && getSourcesForEvent && (
+                      <SourceFileList sources={getSourcesForEvent(evtName)} onSourceClick={onSourceClick} />
+                    )}
+                  </div>
+                );
+              })}
             </div>
+          ) : (
+            /* Collapsed: Carousel view */
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                padding: '16px 16px',
+                gap: '8px',
+                flex: 1,
+                minHeight: 0,
+              }}
+            >
+              {/* Prev Button */}
+              <button
+                onClick={handlePrev}
+                disabled={currentEventIndex === 0}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '24px',
+                  height: '24px',
+                  padding: 0,
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: currentEventIndex === 0 ? theme.colors.textMuted : theme.colors.text,
+                  cursor: currentEventIndex === 0 ? 'not-allowed' : 'pointer',
+                  opacity: currentEventIndex === 0 ? 0.3 : 0.7,
+                  transition: 'all 0.2s',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => { if (currentEventIndex > 0) e.currentTarget.style.opacity = '1'; }}
+                onMouseLeave={(e) => { if (currentEventIndex > 0) e.currentTarget.style.opacity = '0.7'; }}
+                title="Previous event (←)"
+              >
+                <ChevronLeft size={18} />
+              </button>
 
-            {/* Source files */}
-            {showSources && sources.length > 0 && (
-              <SourceFileList sources={sources} onSourceClick={onSourceClick} />
-            )}
-          </div>
+              {/* Event Content */}
+              <div
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  minWidth: 0,
+                  overflow: 'auto',
+                  maxHeight: '100%',
+                }}
+              >
+                {/* Event template text (filled in if trace events available) */}
+                <div
+                  style={{
+                    fontSize: theme.fontSizes[2],
+                    fontWeight: 500,
+                    color: theme.colors.text,
+                    lineHeight: 1.5,
+                    fontFamily: theme.fonts.body,
+                  }}
+                >
+                  <TemplateText segments={getEventSegments(effectiveEntry[0], String(eventTemplate))} />
+                </div>
 
-          {/* Next Button */}
-          <button
-            onClick={handleNext}
-            disabled={currentEventIndex >= totalEvents - 1}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '24px',
-              height: '24px',
-              padding: 0,
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '4px',
-              color: currentEventIndex >= totalEvents - 1 ? theme.colors.textMuted : theme.colors.text,
-              cursor: currentEventIndex >= totalEvents - 1 ? 'not-allowed' : 'pointer',
-              opacity: currentEventIndex >= totalEvents - 1 ? 0.3 : 0.7,
-              transition: 'all 0.2s',
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => { if (currentEventIndex < totalEvents - 1) e.currentTarget.style.opacity = '1'; }}
-            onMouseLeave={(e) => { if (currentEventIndex < totalEvents - 1) e.currentTarget.style.opacity = '0.7'; }}
-            title="Next event (→)"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
+                {/* Source files */}
+                {showSources && sources.length > 0 && (
+                  <SourceFileList sources={sources} onSourceClick={onSourceClick} />
+                )}
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={handleNext}
+                disabled={currentEventIndex >= totalEvents - 1}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '24px',
+                  height: '24px',
+                  padding: 0,
+                  background: 'transparent',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: currentEventIndex >= totalEvents - 1 ? theme.colors.textMuted : theme.colors.text,
+                  cursor: currentEventIndex >= totalEvents - 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentEventIndex >= totalEvents - 1 ? 0.3 : 0.7,
+                  transition: 'all 0.2s',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => { if (currentEventIndex < totalEvents - 1) e.currentTarget.style.opacity = '1'; }}
+                onMouseLeave={(e) => { if (currentEventIndex < totalEvents - 1) e.currentTarget.style.opacity = '0.7'; }}
+                title="Next event (→)"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

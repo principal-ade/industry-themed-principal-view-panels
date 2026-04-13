@@ -1,3 +1,7 @@
+// xyflow CSS must be imported here to be bundled by vite-plugin-css-injected-by-js
+// This was removed from @principal-ai/principal-view-react in favor of consumer imports
+import '@xyflow/react/dist/style.css';
+
 import { CanvasEditorPanel } from './panels/CanvasEditorPanel';
 import { StoryboardListPanel } from './panels/StoryboardListPanel';
 import { TraceListPanel } from './panels/TraceListPanel';

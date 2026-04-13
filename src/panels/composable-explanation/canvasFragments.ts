@@ -10,6 +10,7 @@ import type {
   ExtendedCanvasNode,
   ExtendedCanvasEdge,
 } from '@principal-ai/principal-view-core';
+import { isStandardCanvasNode } from '@principal-ai/principal-view-core';
 
 /**
  * A fragment extracted from a canvas
@@ -184,8 +185,8 @@ export function composeFragments(
         id: composedId,
         x: (node.x || 0) + fragmentOffsetX,
         y: (node.y || 0) + fragmentOffsetY,
-        // Preserve existing pv extension
-        pv: node.pv,
+        // Preserve existing pv extension (only for standard canvas nodes)
+        ...(isStandardCanvasNode(node) && node.pv ? { pv: node.pv } : {}),
       };
 
       composedNodes.push(composedNode);
