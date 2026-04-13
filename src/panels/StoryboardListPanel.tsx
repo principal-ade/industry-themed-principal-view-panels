@@ -361,27 +361,49 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     return { otelCount: otel, staticCount: regular };
   }, [storyboards]);
 
-  // Collect unique instrumentation scopes from all OTEL workflows
-  // Uses instrumentationScope and instrumentationScopeLabel from DiscoveredWorkflow
+  // Collect unique scopes from OTEL canvas nodes and scope definitions
+  // Scopes are defined on canvas nodes via otel.scope field
+  // Scope labels come from .scopes.canvas files
   // Returns array of { scope, label } for display in filter dropdown
   const uniqueScopes = useMemo(() => {
     const scopeMap = new Map<string, string | undefined>(); // scope -> label
+
+    // First, collect scope labels from .scopes.canvas files
     for (const storyboard of storyboards) {
-      if (storyboard.canvas.type !== 'otel') continue;
-      for (const workflow of storyboard.workflows) {
-        const workflowWithScope = workflow as {
-          instrumentationScope?: string;
-          instrumentationScopeLabel?: string;
-        };
-        const scope = workflowWithScope.instrumentationScope;
-        if (scope) {
-          // Keep the label if we have one (don't overwrite with undefined)
-          if (!scopeMap.has(scope) || workflowWithScope.instrumentationScopeLabel) {
-            scopeMap.set(scope, workflowWithScope.instrumentationScopeLabel);
+      if (storyboard.canvas.type === 'scopes') {
+        const canvasWithContent = storyboard.canvas as DiscoveredCanvasWithContent;
+        const canvas = canvasWithContent.content;
+
+        if (canvas?.nodes) {
+          for (const node of canvas.nodes) {
+            const otel = (node as { otel?: { scope?: string }; label?: string }).otel;
+            const label = (node as { label?: string }).label;
+            if (otel?.scope) {
+              scopeMap.set(otel.scope, label);
+            }
           }
         }
       }
     }
+
+    // Then, collect scopes from OTEL canvas event nodes
+    for (const storyboard of storyboards) {
+      if (storyboard.canvas.type !== 'otel') continue;
+
+      const canvasWithContent = storyboard.canvas as DiscoveredCanvasWithContent;
+      const canvas = canvasWithContent.content;
+
+      if (canvas?.nodes) {
+        for (const node of canvas.nodes) {
+          const otel = (node as { otel?: { scope?: string } }).otel;
+          if (otel?.scope && !scopeMap.has(otel.scope)) {
+            // Add scope without label if not found in scope definitions
+            scopeMap.set(otel.scope, undefined);
+          }
+        }
+      }
+    }
+
     // Convert to array and sort by label (or scope if no label)
     return Array.from(scopeMap.entries())
       .map(([scope, label]) => ({ scope, label }))
@@ -585,13 +607,43 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
       return storyboard.canvas.type === effectiveCanvasTypeFilter;
     });
 
-    // Filter by instrumentation scope (only applies to OTEL workflows)
+    // Filter by scope (only applies to OTEL workflows)
+    // Scope is defined on canvas nodes via otel.scope
+    // Show storyboards where workflows have events matching canvas nodes with the selected scope
     if (scopeFilter && effectiveCanvasTypeFilter === 'otel') {
       filtered = filtered.filter((storyboard) => {
-        // Check if any workflow in this storyboard belongs to the selected scope
+        // Get canvas content to access nodes
+        const canvasWithContent = storyboard.canvas as DiscoveredCanvasWithContent;
+        const canvas = canvasWithContent.content;
+
+        if (!canvas?.nodes) return false;
+
+        // Build a map of event names to their scopes from canvas nodes
+        const eventToScopeMap = new Map<string, string>();
+        for (const node of canvas.nodes) {
+          const otel = (node as { otel?: { scope?: string }; event?: { name?: string } }).otel;
+          const event = (node as { event?: { name?: string } }).event;
+          if (otel?.scope && event?.name) {
+            eventToScopeMap.set(event.name, otel.scope);
+          }
+        }
+
+        // Check if any workflow in this storyboard has events matching the selected scope
         return storyboard.workflows.some((workflow) => {
-          const workflowWithScope = workflow as { instrumentationScope?: string };
-          return workflowWithScope.instrumentationScope === scopeFilter;
+          // Look up the full workflow template to get scenario events
+          const fullWorkflow = workflows.find(wf => wf.file.path === workflow.path);
+          if (!fullWorkflow?.template.scenarios) return false;
+
+          // Check if any scenario has events matching canvas nodes with the selected scope
+          return fullWorkflow.template.scenarios.some((scenario) => {
+            if (!scenario.template?.events) return false;
+
+            // Check if any event in this scenario matches a canvas node with the selected scope
+            return Object.keys(scenario.template.events).some((eventName) => {
+              const eventScope = eventToScopeMap.get(eventName);
+              return eventScope === scopeFilter;
+            });
+          });
         });
       });
     }

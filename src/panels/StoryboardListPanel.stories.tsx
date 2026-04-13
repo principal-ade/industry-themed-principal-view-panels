@@ -356,6 +356,61 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
     // Check if markdown file exists in allFiles (for static canvases only)
     const hasMarkdown = isStaticCanvas && fileTreeData?.allFiles.some(f => f.path === markdownPath);
 
+    // For OTEL canvases, add event nodes with scope information
+    const nodes = isStaticCanvas ? [] : [
+      {
+        id: 'event-1',
+        type: 'otel-event',
+        x: 0,
+        y: 0,
+        width: 200,
+        height: 100,
+        label: 'Workflow Started',
+        event: { name: 'workflow.started' },
+        otel: {
+          status: 'implemented',
+          scope: canvasName.includes('auth') ? 'auth-service'
+                 : canvasName.includes('payment') ? 'payment-service'
+                 : canvasName.includes('user') ? 'user-service'
+                 : 'default-service'
+        },
+      },
+      {
+        id: 'event-2',
+        type: 'otel-event',
+        x: 250,
+        y: 0,
+        width: 200,
+        height: 100,
+        label: 'Process Completed',
+        event: { name: 'process.completed' },
+        otel: {
+          status: 'approved',
+          scope: canvasName.includes('auth') ? 'auth-service'
+                 : canvasName.includes('payment') ? 'payment-service'
+                 : canvasName.includes('user') ? 'user-service'
+                 : 'default-service'
+        },
+      },
+      {
+        id: 'event-3',
+        type: 'otel-event',
+        x: 500,
+        y: 0,
+        width: 200,
+        height: 100,
+        label: 'Workflow Ended',
+        event: { name: 'workflow.ended' },
+        otel: {
+          status: 'draft',
+          scope: canvasName.includes('auth') ? 'auth-service'
+                 : canvasName.includes('payment') ? 'payment-service'
+                 : canvasName.includes('user') ? 'user-service'
+                 : 'default-service'
+        },
+      },
+    ];
+
     const content = JSON.stringify({
       pv: {
         name: canvasName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
@@ -364,7 +419,7 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
         // Add markdown path for static canvases with markdown files
         ...(hasMarkdown && { markdown: markdownPath }),
       },
-      nodes: [],
+      nodes,
       edges: [],
     });
     console.log('[Mock readFile] Returning canvas content for:', canvasName, isStaticCanvas ? '(static)' : '(otel)', hasMarkdown ? 'with markdown' : '');
