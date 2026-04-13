@@ -1858,6 +1858,8 @@ const newOtelFormatCanvas: ExtendedCanvas = {
       height: 80,
       color: '#6366f1',
       label: 'User Login',
+      icon: 'LogIn',
+      shape: 'roundedRect',
       event: {
         name: 'auth.user.login',
         attributes: {
@@ -1878,6 +1880,8 @@ const newOtelFormatCanvas: ExtendedCanvas = {
       height: 80,
       color: '#10b981',
       label: 'Session Created',
+      icon: 'CheckCircle2',
+      shape: 'roundedRect',
       event: {
         name: 'auth.session.created',
         attributes: {
@@ -1898,6 +1902,8 @@ const newOtelFormatCanvas: ExtendedCanvas = {
       height: 80,
       color: '#f59e0b',
       label: 'Token Issued',
+      icon: 'Key',
+      shape: 'roundedRect',
       event: {
         name: 'auth.token.issued',
         attributes: {
@@ -2054,6 +2060,8 @@ const spanWorkflowChipsCanvas: ExtendedCanvas = {
       height: 120,
       color: '#6366f1',
       label: 'Multi Canvas Panel Render',
+      icon: 'Hexagon',
+      shape: 'hexagon',
       otel: {
         spanPattern: 'multi-canvas-panel.render',
         status: 'implemented',
@@ -2068,6 +2076,8 @@ const spanWorkflowChipsCanvas: ExtendedCanvas = {
       height: 100,
       color: '#8b5cf6',
       label: 'Canvas Load',
+      icon: 'Hexagon',
+      shape: 'hexagon',
       otel: {
         spanPattern: 'canvas.load',
         status: 'implemented',
@@ -2082,6 +2092,8 @@ const spanWorkflowChipsCanvas: ExtendedCanvas = {
       height: 100,
       color: '#a855f7',
       label: 'Canvas Parse',
+      icon: 'Hexagon',
+      shape: 'hexagon',
       otel: {
         spanPattern: 'canvas.parse',
         status: 'approved',
@@ -2096,6 +2108,8 @@ const spanWorkflowChipsCanvas: ExtendedCanvas = {
       height: 100,
       color: '#22c55e',
       label: 'Workflow Match',
+      icon: 'Hexagon',
+      shape: 'hexagon',
       otel: {
         spanPattern: 'workflow.match',
         status: 'draft',
@@ -2110,6 +2124,8 @@ const spanWorkflowChipsCanvas: ExtendedCanvas = {
       height: 100,
       color: '#f59e0b',
       label: 'Trace Correlate',
+      icon: 'Hexagon',
+      shape: 'hexagon',
       otel: {
         spanPattern: 'trace.correlate',
         status: 'draft',
