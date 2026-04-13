@@ -507,6 +507,11 @@ const libraryColorTestLibrary: ComponentLibrary = {
       directed: true,
     },
   },
+  states: {
+    draft: { color: '#f59e0b', label: 'Draft' },
+    approved: { color: '#10b981', label: 'Approved' },
+    implemented: { color: '#6366f1', label: 'Implemented' },
+  },
 };
 
 const libraryColorCanvas = {
@@ -640,6 +645,16 @@ edgeComponents:
     style: dashed
     color: "#06B6D4"
     directed: true
+states:
+  draft:
+    color: "#f59e0b"
+    label: "Draft"
+  approved:
+    color: "#10b981"
+    label: "Approved"
+  implemented:
+    color: "#6366f1"
+    label: "Implemented"
 `;
 
 export const LibraryColors: Story = {
@@ -1468,6 +1483,11 @@ const spansLibrary: ComponentLibrary = {
       directed: true,
     },
   },
+  states: {
+    draft: { color: '#f59e0b', label: 'Draft' },
+    approved: { color: '#10b981', label: 'Approved' },
+    implemented: { color: '#6366f1', label: 'Implemented' },
+  },
 };
 
 // Convert spans library to YAML string for mock file
@@ -1488,6 +1508,16 @@ edgeComponents:
     style: solid
     color: "#84cc16"
     directed: true
+states:
+  draft:
+    color: "#f59e0b"
+    label: "Draft"
+  approved:
+    color: "#10b981"
+    label: "Approved"
+  implemented:
+    color: "#6366f1"
+    label: "Implemented"
 `;
 
 export const SpansCanvas: Story = {
@@ -1718,6 +1748,16 @@ scopes:
   react-package:
     color: "#10B981"
     description: React package scope
+states:
+  draft:
+    color: "#f59e0b"
+    label: "Draft"
+  approved:
+    color: "#10b981"
+    label: "Approved"
+  implemented:
+    color: "#6366f1"
+    label: "Implemented"
 `;
 
 export const ScopeSpanColorContract: Story = {
@@ -1943,6 +1983,26 @@ const newOtelFormatCanvas: ExtendedCanvas = {
 export const NewOtelFormat: Story = {
   args: {} as never,
   render: () => {
+    // Minimal library with states for OTEL nodes
+    const otelLibraryYaml = `
+version: "1.0.0"
+name: OTEL Library
+description: Library for OTEL event nodes
+resources: {}
+nodeComponents: {}
+edgeComponents: {}
+states:
+  draft:
+    color: "#f59e0b"
+    label: "Draft"
+  approved:
+    color: "#10b981"
+    label: "Approved"
+  implemented:
+    color: "#6366f1"
+    label: "Implemented"
+`;
+
     const fileTreeData = {
       allFiles: [
         {
@@ -1950,6 +2010,12 @@ export const NewOtelFormat: Story = {
           relativePath: '.principal-views/auth-flow.otel.canvas',
           name: 'auth-flow.otel.canvas',
           content: JSON.stringify(newOtelFormatCanvas, null, 2),
+        },
+        {
+          path: '.principal-views/library.yaml',
+          relativePath: '.principal-views/library.yaml',
+          name: 'library.yaml',
+          content: otelLibraryYaml,
         },
       ],
     };

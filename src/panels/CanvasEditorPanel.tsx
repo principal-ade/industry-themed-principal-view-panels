@@ -355,6 +355,14 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
               const libraryContent = await readFile(libraryFullPath);
               if (libraryContent && typeof libraryContent === 'string') {
                 library = ConfigLoader.parseLibrary(libraryContent);
+                // Ensure library has states property (add defaults if missing)
+                if (library && !library.states) {
+                  library.states = {
+                    draft: { color: '#f59e0b', label: 'Draft' },
+                    approved: { color: '#10b981', label: 'Approved' },
+                    implemented: { color: '#6366f1', label: 'Implemented' },
+                  };
+                }
               }
             } catch (libraryError) {
               // Library loading is optional, don't fail the whole operation
