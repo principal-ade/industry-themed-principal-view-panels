@@ -13,7 +13,8 @@
       "color": "#6366f1",
       "label": "Multi Canvas Panel Render",
       "otel": {
-        "spanPattern": "multi-canvas-panel.render"
+        "spanPattern": "multi-canvas-panel.render",
+        "status": "draft"
       }
     },
     {
@@ -26,7 +27,8 @@
       "color": "#8b5cf6",
       "label": "Canvas Load",
       "otel": {
-        "spanPattern": "canvas.load"
+        "spanPattern": "canvas.load",
+        "status": "draft"
       }
     },
     {
@@ -39,7 +41,8 @@
       "color": "#10b981",
       "label": "Layout Compute",
       "otel": {
-        "spanPattern": "layout.compute"
+        "spanPattern": "layout.compute",
+        "status": "draft"
       }
     },
     {
@@ -52,7 +55,8 @@
       "color": "#f59e0b",
       "label": "Workflow Scenarios Session",
       "otel": {
-        "spanPattern": "workflow-scenarios-panel.session"
+        "spanPattern": "workflow-scenarios-panel.session",
+        "status": "draft"
       }
     },
     {
@@ -65,7 +69,8 @@
       "color": "#ec4899",
       "label": "Scenario Interaction",
       "otel": {
-        "spanPattern": "scenario.interaction"
+        "spanPattern": "scenario.interaction",
+        "status": "draft"
       }
     },
     {
@@ -78,7 +83,8 @@
       "color": "#84cc16",
       "label": "Trace Playback",
       "otel": {
-        "spanPattern": "trace.playback"
+        "spanPattern": "trace.playback",
+        "status": "draft"
       }
     },
     {
@@ -91,7 +97,8 @@
       "color": "#06b6d4",
       "label": "Trace Analysis",
       "otel": {
-        "spanPattern": "workflow-scenarios-panel.trace-analysis"
+        "spanPattern": "workflow-scenarios-panel.trace-analysis",
+        "status": "draft"
       }
     },
     {
@@ -104,7 +111,8 @@
       "color": "#0ea5e9",
       "label": "Trace Match",
       "otel": {
-        "spanPattern": "trace.match"
+        "spanPattern": "trace.match",
+        "status": "draft"
       }
     },
     {
@@ -117,7 +125,8 @@
       "color": "#a855f7",
       "label": "Coverage Compute",
       "otel": {
-        "spanPattern": "coverage.compute"
+        "spanPattern": "coverage.compute",
+        "status": "draft"
       }
     }
   ],

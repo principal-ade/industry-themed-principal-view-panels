@@ -1,5 +1,6 @@
 {
-  "name": "Multi Canvas Panel Events",
+  "name": "Multi Canvas Panel",
+  "description": "OTEL event schema for the MultiCanvasPanel component - displays multiple canvases on a unified view",
   "markdown": ".principal-views/multi-canvas-panel/multi-canvas-panel.md",
   "nodes": [
     {
@@ -34,6 +35,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -61,6 +63,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -88,6 +91,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -122,6 +126,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -157,6 +162,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -199,6 +205,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -233,6 +240,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -267,6 +275,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -317,6 +326,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -338,6 +348,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -357,6 +368,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -376,6 +388,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -434,6 +447,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -468,6 +482,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     },
@@ -495,6 +510,7 @@
         }
       },
       "otel": {
+        "scope": "multi-canvas-panel",
         "status": "draft"
       }
     }
@@ -507,9 +523,7 @@
       "fromSide": "right",
       "toSide": "left",
       "label": "layout prop",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-props-dynamic",
@@ -518,9 +532,7 @@
       "fromSide": "right",
       "toSide": "left",
       "label": "canvasInfos prop",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-static-render",
@@ -529,9 +541,7 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "direct render",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-dynamic-loading",
@@ -539,9 +549,7 @@
       "toNode": "loading-started",
       "fromSide": "right",
       "toSide": "left",
-      "pv": {
-        "edgeType": "emits"
-      }
+      "edgeType": "emits"
     },
     {
       "id": "edge-loading-read",
@@ -550,9 +558,7 @@
       "fromSide": "right",
       "toSide": "left",
       "label": "for each canvas",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-read-parse",
@@ -560,9 +566,7 @@
       "toNode": "canvas-parsed",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-parse-complete",
@@ -570,9 +574,7 @@
       "toNode": "loading-complete",
       "fromSide": "bottom",
       "toSide": "right",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-loading-error",
@@ -581,9 +583,7 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "on error",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-complete-layout",
@@ -591,9 +591,7 @@
       "toNode": "layout-created",
       "fromSide": "left",
       "toSide": "right",
-      "pv": {
-        "edgeType": "emits"
-      }
+      "edgeType": "emits"
     },
     {
       "id": "edge-layout-grid",
@@ -602,9 +600,7 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "direction=grid",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-layout-vertical",
@@ -613,9 +609,7 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "direction=vertical",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-layout-horizontal",
@@ -624,9 +618,7 @@
       "fromSide": "bottom",
       "toSide": "top",
       "label": "direction=horizontal",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-grid-render",
@@ -634,9 +626,7 @@
       "toNode": "renderer-mounted",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-vertical-render",
@@ -644,9 +634,7 @@
       "toNode": "renderer-mounted",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-horizontal-render",
@@ -654,9 +642,7 @@
       "toNode": "renderer-mounted",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-render-click",
@@ -665,9 +651,7 @@
       "fromSide": "right",
       "toSide": "left",
       "label": "onNodeClick",
-      "pv": {
-        "edgeType": "emits"
-      }
+      "edgeType": "emits"
     },
     {
       "id": "edge-complete-empty",
@@ -676,15 +660,7 @@
       "fromSide": "right",
       "toSide": "left",
       "label": "0 loaded",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     }
-  ],
-  "pv": {
-    "name": "Multi Canvas Panel",
-    "version": "1.0.0",
-    "description": "OTEL event schema for the MultiCanvasPanel component - displays multiple canvases on a unified view",
-    "markdown": ".principal-views/multi-canvas-panel/multi-canvas-panel.md"
-  }
+  ]
 }

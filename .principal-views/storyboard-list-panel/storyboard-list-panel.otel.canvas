@@ -1,5 +1,6 @@
 {
-  "name": "Storyboard List Panel Events",
+  "name": "Storyboard List Panel",
+  "description": "OTEL event schema for the StoryboardListPanel component - a tree view for browsing and selecting canvases and workflows",
   "markdown": ".principal-views/storyboard-list-panel/storyboard-list-panel.md",
   "nodes": [
     {
@@ -33,6 +34,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -95,6 +97,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -136,6 +139,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -184,6 +188,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -239,6 +244,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -273,6 +279,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -307,6 +314,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -341,6 +349,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -368,6 +377,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -395,6 +405,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -429,6 +440,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -463,6 +475,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -497,6 +510,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -531,6 +545,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -572,6 +587,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -620,6 +636,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     },
@@ -654,6 +671,7 @@
         }
       },
       "otel": {
+        "scope": "storyboard-list-panel",
         "status": "draft"
       }
     }
@@ -665,9 +683,7 @@
       "toNode": "panel-loaded",
       "fromSide": "right",
       "toSide": "left",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-loading-error",
@@ -675,9 +691,7 @@
       "toNode": "panel-error",
       "fromSide": "right",
       "toSide": "left",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-loaded-canvas",
@@ -685,9 +699,7 @@
       "toNode": "canvas-selected",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-loaded-workflow",
@@ -695,9 +707,7 @@
       "toNode": "workflow-selected",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-loaded-overview",
@@ -705,9 +715,7 @@
       "toNode": "overview-selected",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-canvas-open",
@@ -715,9 +723,7 @@
       "toNode": "open-canvas-emitted",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "emits"
-      }
+      "edgeType": "emits"
     },
     {
       "id": "edge-workflow-open",
@@ -725,9 +731,7 @@
       "toNode": "open-canvas-emitted",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "emits"
-      }
+      "edgeType": "emits"
     },
     {
       "id": "edge-overview-file",
@@ -735,9 +739,7 @@
       "toNode": "file-open-emitted",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "emits"
-      }
+      "edgeType": "emits"
     },
     {
       "id": "edge-loaded-multi",
@@ -745,9 +747,7 @@
       "toNode": "open-multi-canvas-emitted",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-refresh-loading",
@@ -755,9 +755,7 @@
       "toNode": "panel-loading",
       "fromSide": "top",
       "toSide": "bottom",
-      "pv": {
-        "edgeType": "triggers"
-      }
+      "edgeType": "triggers"
     },
     {
       "id": "edge-loaded-tab",
@@ -765,9 +763,7 @@
       "toNode": "tab-switched",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-loaded-search",
@@ -775,9 +771,7 @@
       "toNode": "search-changed",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-loaded-toggle",
@@ -785,9 +779,7 @@
       "toNode": "node-toggled",
       "fromSide": "bottom",
       "toSide": "top",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     },
     {
       "id": "edge-select-received",
@@ -795,9 +787,7 @@
       "toNode": "canvas-selected",
       "fromSide": "left",
       "toSide": "right",
-      "pv": {
-        "edgeType": "triggers"
-      }
+      "edgeType": "triggers"
     },
     {
       "id": "edge-toggle-received",
@@ -805,9 +795,7 @@
       "toNode": "node-toggled",
       "fromSide": "left",
       "toSide": "right",
-      "pv": {
-        "edgeType": "triggers"
-      }
+      "edgeType": "triggers"
     },
     {
       "id": "edge-context-copy",
@@ -815,15 +803,7 @@
       "toNode": "path-copied",
       "fromSide": "right",
       "toSide": "left",
-      "pv": {
-        "edgeType": "data-flow"
-      }
+      "edgeType": "data-flow"
     }
-  ],
-  "pv": {
-    "name": "Storyboard List Panel",
-    "version": "1.0.0",
-    "description": "OTEL event schema for the StoryboardListPanel component - a tree view for browsing and selecting canvases and workflows",
-    "markdown": ".principal-views/storyboard-list-panel/storyboard-list-panel.md"
-  }
+  ]
 }
