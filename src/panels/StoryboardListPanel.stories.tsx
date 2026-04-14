@@ -707,11 +707,21 @@ export const SingleCanvas: Story = {
 export const ManyCanvases: Story = {
   args: {} as never,
   render: () => {
-    const manyStoryboards = Array.from({ length: 20 }, (_, i) =>
-      createStoryboardFiles(`workflow-${i + 1}`, [
+    const manyStoryboards = Array.from({ length: 20 }, (_, i) => {
+      const files = createStoryboardFiles(`workflow-${i + 1}`, [
         { name: 'scenario-1', executions: 1 },
-      ])
-    ).flat();
+      ]);
+      // Set varying lastModified dates to make sort toggle visible
+      // Use different dates spread across multiple days (deterministic based on index)
+      const baseDate = new Date('2024-03-01T00:00:00');
+      const daysOffset = i; // Each workflow gets a different day
+      const modifiedDate = new Date(baseDate.getTime() + (daysOffset * 24 * 60 * 60 * 1000));
+
+      files.forEach(f => {
+        f.lastModified = modifiedDate;
+      });
+      return files;
+    }).flat();
 
     const builder = new PathsFileTreeBuilder();
     const fileTree = builder.build({ files: manyStoryboards.map(f => f.path) });

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import type { StoryboardListPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { usePanelFocusListener } from '@principal-ade/panel-layouts';
-import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check, Network, Layers, ChevronDown } from 'lucide-react';
+import { AlertCircle, Search, X, RefreshCw, HelpCircle, Copy, Check, Network, Layers, ChevronDown, Clock, ArrowDownAZ } from 'lucide-react';
 import { useCanvasWorkflowData } from './canvas-list/hooks/useCanvasWorkflowData';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
 import { StoryboardLoadingGraph } from './canvas-list/components/StoryboardLoadingGraph';
@@ -168,6 +168,11 @@ function useStoryboardListPanelTelemetry(params: {
         'node.open': isOpen,
       });
     },
+    emitSortChanged: (sortOrder: 'alphabetical' | 'modified') => {
+      spanRef.current?.addEvent('sort.changed', {
+        'sort.order': sortOrder,
+      });
+    },
   }), []);
 }
 
@@ -259,6 +264,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   const [scopeFilter, setScopeFilter] = useState<string | null>(null);
   const [showScopeFilterDropdown, setShowScopeFilterDropdown] = useState(false);
   const scopeFilterRef = useRef<HTMLDivElement>(null);
+  const [sortOrder, setSortOrder] = useState<'alphabetical' | 'modified'>('alphabetical');
 
   // Context menu state for copying file paths
   const [contextMenu, setContextMenu] = useState<{
@@ -668,8 +674,32 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
       });
     }
 
+    // Sort by selected order - create new array to ensure React detects change
+    if (sortOrder === 'modified') {
+      // Sort by last modified date (most recent first)
+      filtered = [...filtered].sort((a, b) => {
+        const aFileInfo = allFiles?.find(f =>
+          f.path === a.canvas.path || f.relativePath === a.canvas.path
+        );
+        const bFileInfo = allFiles?.find(f =>
+          f.path === b.canvas.path || f.relativePath === b.canvas.path
+        );
+
+        // If we can't find file info, fall back to alphabetical
+        if (!aFileInfo || !bFileInfo) {
+          return a.name.localeCompare(b.name);
+        }
+
+        // Sort by modification time (most recent first)
+        return bFileInfo.lastModified.getTime() - aFileInfo.lastModified.getTime();
+      });
+    } else {
+      // Sort alphabetically by name
+      filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     return filtered;
-  }, [storyboards, searchQuery, effectiveCanvasTypeFilter, scopeFilter]);
+  }, [storyboards, searchQuery, effectiveCanvasTypeFilter, scopeFilter, workflows, sortOrder, allFiles]);
 
   // Extract canvases for static canvas view (when canvasTypeFilter === 'regular')
   const filteredCanvases = useMemo(() => {
@@ -1310,6 +1340,46 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
           </div>
         )}
 
+        {/* Sort toggle button - only show for OTEL workflows */}
+        {effectiveCanvasTypeFilter === 'otel' && (
+          <button
+            onClick={() => {
+              const newSortOrder = sortOrder === 'alphabetical' ? 'modified' : 'alphabetical';
+              setSortOrder(newSortOrder);
+              telemetry.emitSortChanged(newSortOrder);
+            }}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '8px 12px',
+              background: theme.colors.backgroundSecondary,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: theme.radii[2],
+              cursor: 'pointer',
+              fontSize: theme.fontSizes[1],
+              fontFamily: theme.fonts.body,
+              color: theme.colors.text,
+              transition: 'all 0.2s ease',
+            }}
+            title={sortOrder === 'alphabetical' ? 'Currently sorted alphabetically. Click to sort by last modified.' : 'Currently sorted by last modified. Click to sort alphabetically.'}
+          >
+            {sortOrder === 'alphabetical' ? (
+              <>
+                <ArrowDownAZ size={14} />
+                <span>Sorted Alphabetically</span>
+              </>
+            ) : (
+              <>
+                <Clock size={14} />
+                <span>Sorted by Last Modified</span>
+              </>
+            )}
+          </button>
+        )}
+
         {/* Search input - only show if there are 10 or more storyboards */}
         {storyboards.length >= 10 && (
           <div
@@ -1576,6 +1646,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             canvasNodeStatusMap={canvasNodeStatusMap}
             gitStatusData={gitStatusData}
             enablePanelDrag
+            preserveOrder={true}
           />
         ) : (
           <CanvasListTreeCore
