@@ -7,6 +7,14 @@ import { SequenceDiagramRenderer, type SequenceEvent, type SequenceEdge } from '
 import { SourceFileList } from './SourceFileList';
 import { TemplateText } from './TemplateText';
 
+// Type for accessing OTEL event node properties
+type NodeWithOtelProps = {
+  type?: string;
+  label?: string;
+  event?: { name?: string };
+  otel?: { scope?: string };
+};
+
 /**
  * Convert workflow scenario events to sequence diagram format.
  * Events are grouped into lanes based on their instrumentation scope (from canvas node metadata).
@@ -22,14 +30,19 @@ function convertWorkflowToSequence(
   const templateEvents = scenario.template.events ?? {};
   const eventNames = Object.keys(templateEvents);
 
-  // Build a map of event names to their scopes from canvas nodes
+  // Build maps of event names to their scopes and labels from canvas nodes
   const eventToScopeMap = new Map<string, string>();
+  const eventToLabelMap = new Map<string, string>();
   if (canvas?.nodes) {
     for (const node of canvas.nodes) {
-      const otel = (node as { otel?: { scope?: string }; event?: { name?: string } }).otel;
-      const event = (node as { event?: { name?: string } }).event;
-      if (otel?.scope && event?.name) {
-        eventToScopeMap.set(event.name, otel.scope);
+      // Cast to access OTEL node properties (they may be undefined on standard canvas nodes)
+      const otelNode = node as NodeWithOtelProps;
+
+      if (otelNode.type === 'otel-event' && otelNode.otel?.scope && otelNode.event?.name) {
+        eventToScopeMap.set(otelNode.event.name, otelNode.otel.scope);
+      }
+      if (otelNode.type === 'otel-event' && otelNode.event?.name && otelNode.label) {
+        eventToLabelMap.set(otelNode.event.name, otelNode.label);
       }
     }
   }
@@ -42,8 +55,8 @@ function convertWorkflowToSequence(
       id: `event-${index}`,
       // Use scope as namespace prefix so lanes are created per scope
       name: `${scope}.${name}`,
-      // Display only the last segment of the original event name
-      label: name.split('.').pop() ?? name,
+      // Use canvas node label if available, otherwise fall back to last segment of event name
+      label: eventToLabelMap.get(name) || name.split('.').pop() || name,
     };
   });
 
