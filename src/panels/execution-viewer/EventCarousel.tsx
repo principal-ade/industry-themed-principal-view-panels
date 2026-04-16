@@ -3,75 +3,9 @@ import { useTheme } from '@principal-ade/industry-theme';
 import { ChevronLeft, ChevronRight, X, FileCode, Maximize2, Minimize2, Layers, List } from 'lucide-react';
 import type { WorkflowScenario, OtelEvent, TemplateSegment, Canvas, ExtendedCanvas } from '@principal-ai/principal-view-core';
 import { renderEventTemplate } from '@principal-ai/principal-view-core';
-import { SequenceDiagramRenderer, type SequenceEvent, type SequenceEdge } from '@principal-ai/principal-view-react';
+import { WorkflowSequenceDiagram } from '@principal-ai/principal-view-react';
 import { SourceFileList } from './SourceFileList';
 import { TemplateText } from './TemplateText';
-
-// Type for accessing OTEL event node properties
-type NodeWithOtelProps = {
-  type?: string;
-  label?: string;
-  event?: { name?: string };
-  otel?: { scope?: string };
-};
-
-/**
- * Convert workflow scenario events to sequence diagram format.
- * Events are grouped into lanes based on their instrumentation scope (from canvas node metadata).
- * Scopes define the swimlanes, and events within each scope are rendered sequentially.
- */
-function convertWorkflowToSequence(
-  scenario: WorkflowScenario,
-  canvas?: Canvas | ExtendedCanvas | null
-): {
-  events: SequenceEvent[];
-  edges: SequenceEdge[];
-} {
-  const templateEvents = scenario.template.events ?? {};
-  const eventNames = Object.keys(templateEvents);
-
-  // Build maps of event names to their scopes and labels from canvas nodes
-  const eventToScopeMap = new Map<string, string>();
-  const eventToLabelMap = new Map<string, string>();
-  if (canvas?.nodes) {
-    for (const node of canvas.nodes) {
-      // Cast to access OTEL node properties (they may be undefined on standard canvas nodes)
-      const otelNode = node as NodeWithOtelProps;
-
-      if (otelNode.type === 'otel-event' && otelNode.otel?.scope && otelNode.event?.name) {
-        eventToScopeMap.set(otelNode.event.name, otelNode.otel.scope);
-      }
-      if (otelNode.type === 'otel-event' && otelNode.event?.name && otelNode.label) {
-        eventToLabelMap.set(otelNode.event.name, otelNode.label);
-      }
-    }
-  }
-
-  // Convert event names to SequenceEvents with scope-based namespacing
-  const events: SequenceEvent[] = eventNames.map((name, index) => {
-    const scope = eventToScopeMap.get(name) || 'unknown';
-
-    return {
-      id: `event-${index}`,
-      // Use scope as namespace prefix so lanes are created per scope
-      name: `${scope}.${name}`,
-      // Use canvas node label if available, otherwise fall back to last segment of event name
-      label: eventToLabelMap.get(name) || name.split('.').pop() || name,
-    };
-  });
-
-  // Create sequential edges connecting events in order
-  const edges: SequenceEdge[] = [];
-  for (let i = 0; i < events.length - 1; i++) {
-    edges.push({
-      id: `edge-${i}`,
-      fromEvent: events[i].id,
-      toEvent: events[i + 1].id,
-    });
-  }
-
-  return { events, edges };
-}
 
 export interface EventCarouselProps {
   /** The selected scenario to display events from */
@@ -392,36 +326,18 @@ export const EventCarousel: React.FC<EventCarouselProps> = ({
       {viewMode === 'sequence' ? (
         /* Sequence Diagram View */
         <div style={{ flex: 1, minHeight: 0, background: theme.colors.backgroundSecondary }}>
-          {(() => {
-            const { events, edges } = convertWorkflowToSequence(scenario, canvas);
-            return events.length > 0 ? (
-              <SequenceDiagramRenderer
-                events={events}
-                edges={edges}
-                height="100%"
-                layoutOptions={{
-                  laneWidth: 220,
-                  laneGap: 60,
-                  eventSpacing: 100,
-                  namespaceStrategy: 'first',
-                }}
-                showControls
-              />
-            ) : (
-              <div
-                style={{
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: theme.colors.textMuted,
-                  fontFamily: theme.fonts.body,
-                }}
-              >
-                No events to display
-              </div>
-            );
-          })()}
+          <WorkflowSequenceDiagram
+            scenario={scenario}
+            canvas={canvas}
+            height="100%"
+            layoutOptions={{
+              laneWidth: 220,
+              laneGap: 60,
+              eventSpacing: 100,
+              namespaceStrategy: 'first',
+            }}
+            showControls
+          />
         </div>
       ) : (
         /* Existing Events View (list or carousel) */
