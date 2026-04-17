@@ -1654,7 +1654,7 @@ const otelEventsCanvas = {
         nodeType: 'event',
         shape: 'rectangle' as const,
         event: { name: 'command.start' },
-        otel: { scope: 'cli-package' }, // Red border
+        otel: { scope: 'cli-package' }, // Red fill
       },
     },
     {
@@ -1669,7 +1669,7 @@ const otelEventsCanvas = {
         nodeType: 'event',
         shape: 'rectangle' as const,
         event: { name: 'validate.begin' },
-        otel: { scope: 'core-package' }, // Blue border
+        otel: { scope: 'core-package' }, // Blue fill
       },
     },
     {
@@ -1684,7 +1684,7 @@ const otelEventsCanvas = {
         nodeType: 'event',
         shape: 'rectangle' as const,
         event: { name: 'validate.complete' },
-        otel: { scope: 'core-package' }, // Blue border
+        otel: { scope: 'core-package' }, // Blue fill
       },
     },
     {
@@ -1699,7 +1699,7 @@ const otelEventsCanvas = {
         nodeType: 'event',
         shape: 'rectangle' as const,
         event: { name: 'discover.files' },
-        otel: { scope: 'react-package' }, // Green border
+        otel: { scope: 'react-package' }, // Green fill
       },
     },
     {
@@ -1714,7 +1714,7 @@ const otelEventsCanvas = {
         nodeType: 'event',
         shape: 'rectangle' as const,
         event: { name: 'command.end' },
-        otel: { scope: 'cli-package' }, // Red border
+        otel: { scope: 'cli-package' }, // Red fill
       },
     },
   ],
@@ -1725,11 +1725,18 @@ const otelEventsCanvas = {
     { id: 'e4', fromNode: 'validate-complete', toNode: 'command-end', edgeType: 'triggers' },
     { id: 'e5', fromNode: 'discover-files', toNode: 'command-end', edgeType: 'triggers' },
   ],
+  edgeTypes: {
+    triggers: {
+      style: 'solid' as const,
+      color: '#64748b',
+      directed: true,
+    },
+  },
   name: 'CLI Events',
   description: 'OTEL events for CLI command execution',
 };
 
-// Library with scopes defining scope colors (for borders) - YAML format for mock file
+// Library with scopes defining scope colors (for fills) - YAML format for mock file
 const scopeColorLibraryYaml = `
 version: "1.0.0"
 name: Scope Color Library
@@ -1794,15 +1801,17 @@ export const ScopeSpanColorContract: Story = {
       ],
     };
 
-    const mockSlices = new Map<string, DataSlice>();
-    mockSlices.set('fileTree', {
+    const fileTreeSlice: DataSlice = {
       scope: 'repository',
       name: 'fileTree',
       data: fileTreeData,
       loading: false,
       error: null,
       refresh: async () => {},
-    });
+    };
+
+    const mockSlices = new Map<string, DataSlice>();
+    mockSlices.set('fileTree', fileTreeSlice);
 
     return (
       <MockPanelProvider
@@ -1814,15 +1823,21 @@ export const ScopeSpanColorContract: Story = {
           hasSlice: (name: string) => mockSlices.has(name),
           isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
           repositoryPath: '/mock/repository',
+          fileTree: fileTreeSlice, // Add fileTree as direct property for typed access
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
         actionsOverrides={{
           readFile: async (path: string) => {
+            console.log('[ScopeSpanColorContract readFile] Requested path:', path);
             const fileName = path.split('/').pop() || '';
+            console.log('[ScopeSpanColorContract readFile] Looking for fileName:', fileName);
             const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            console.log('[ScopeSpanColorContract readFile] Found file:', file?.path);
             if (!file || !file.content) {
+              console.log('[ScopeSpanColorContract readFile] Available files:', fileTreeData.allFiles.map(f => f.path));
               throw new Error(`File not found: ${path}`);
             }
+            console.log('[ScopeSpanColorContract readFile] Returning content length:', file.content.length);
             return file.content;
           },
           writeFile: async (path: string, content: string) => {
@@ -1852,26 +1867,27 @@ export const ScopeSpanColorContract: Story = {
 This story demonstrates the color contract for event nodes:
 
 **Color Sources:**
-1. **Scope Color → Border** (from library.yaml \`scopes\`)
+1. **Scope Color → Fill** (from library.yaml \`scopes\`)
    - Represents which package/module owns the event
-   - Applied as the node's stroke/border color
-
-2. **Span Color → Fill** (from .spans.canvas via workflow context)
-   - Represents which telemetry span the event belongs to
    - Applied as the node's fill/background color
+
+2. **Span Color → Border** (from .spans.canvas via workflow context)
+   - Represents which telemetry span the event belongs to
+   - Applied as the node's stroke/border color
 
 **How It Works:**
 1. \`.otel.canvas\` event nodes do NOT require colors
 2. At render time, \`GraphRenderer\` receives:
    - \`spansCanvas\` - the .spans.canvas file with span colors
    - \`workflowSpanPattern\` - which span context to use
-3. The renderer builds a color map and injects \`spanColor\` into each node
+3. The renderer builds a color map and injects \`spanColor\` and \`scopeColor\` into each node
 4. \`scopeColor\` comes from the library's \`scopes\` based on \`pv.otel.scope\`
+5. \`spanColor\` comes from the .spans.canvas based on the workflow span pattern
 
 **Benefits:**
 - Events can be recolored dynamically based on workflow context
-- Same event can appear in different colors when viewed in different span contexts
-- Clear visual distinction between ownership (border) and behavior (fill)
+- Same event can appear with different border colors when viewed in different span contexts
+- Clear visual distinction between ownership (fill) and behavior (border)
 
 **Props:**
 \`\`\`tsx
@@ -1904,7 +1920,7 @@ const newOtelFormatCanvas: ExtendedCanvas = {
       y: 100,
       width: 200,
       height: 80,
-      color: '#6366f1',
+      // Color will be derived from scope (auth-service -> #3B82F6 blue)
       label: 'User Login',
       icon: 'LogIn',
       shape: 'roundedRect',
@@ -1916,6 +1932,7 @@ const newOtelFormatCanvas: ExtendedCanvas = {
         },
       },
       otel: {
+        scope: 'auth-service',
         status: 'implemented',
       },
     },
@@ -1926,7 +1943,7 @@ const newOtelFormatCanvas: ExtendedCanvas = {
       y: 100,
       width: 200,
       height: 80,
-      color: '#10b981',
+      // Color will be derived from scope (session-service -> #10B981 green)
       label: 'Session Created',
       icon: 'CheckCircle2',
       shape: 'roundedRect',
@@ -1938,6 +1955,7 @@ const newOtelFormatCanvas: ExtendedCanvas = {
         },
       },
       otel: {
+        scope: 'session-service',
         status: 'approved',
       },
     },
@@ -1948,7 +1966,7 @@ const newOtelFormatCanvas: ExtendedCanvas = {
       y: 100,
       width: 200,
       height: 80,
-      color: '#f59e0b',
+      // Color will be derived from scope (token-service -> #F59E0B amber)
       label: 'Token Issued',
       icon: 'Key',
       shape: 'roundedRect',
@@ -1960,6 +1978,7 @@ const newOtelFormatCanvas: ExtendedCanvas = {
         },
       },
       otel: {
+        scope: 'token-service',
         status: 'draft',
       },
     },
@@ -1991,14 +2010,24 @@ const newOtelFormatCanvas: ExtendedCanvas = {
 export const NewOtelFormat: Story = {
   args: {} as never,
   render: () => {
-    // Minimal library with states for OTEL nodes
+    // Minimal library with states and scopes for OTEL nodes
     const otelLibraryYaml = `
 version: "1.0.0"
 name: OTEL Library
-description: Library for OTEL event nodes
+description: Library for OTEL event nodes with scope-based coloring
 resources: {}
 nodeComponents: {}
 edgeComponents: {}
+scopes:
+  auth-service:
+    color: "#3B82F6"
+    description: "Authentication service scope"
+  session-service:
+    color: "#10B981"
+    description: "Session management service scope"
+  token-service:
+    color: "#F59E0B"
+    description: "Token issuance service scope"
 states:
   draft:
     color: "#f59e0b"
@@ -2028,15 +2057,17 @@ states:
       ],
     };
 
-    const mockSlices = new Map<string, DataSlice>();
-    mockSlices.set('fileTree', {
+    const fileTreeSlice: DataSlice = {
       scope: 'repository',
       name: 'fileTree',
       data: fileTreeData,
       loading: false,
       error: null,
       refresh: async () => {},
-    });
+    };
+
+    const mockSlices = new Map<string, DataSlice>();
+    mockSlices.set('fileTree', fileTreeSlice);
 
     return (
       <MockPanelProvider
@@ -2048,6 +2079,7 @@ states:
           hasSlice: (name: string) => mockSlices.has(name),
           isSliceLoading: (name: string) => mockSlices.get(name)?.loading || false,
           repositoryPath: '/mock/repository',
+          fileTree: fileTreeSlice, // Add fileTree as direct property for typed access
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
         actionsOverrides={{

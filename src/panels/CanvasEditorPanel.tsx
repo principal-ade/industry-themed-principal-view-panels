@@ -1675,14 +1675,16 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                     top: 0,
                     left: 0,
                     right: 0,
-                    height: 40,
+                    minHeight: 48,
+                    maxHeight: 96,
                     backgroundColor: theme.colors.background,
                     borderBottom: `1px solid ${theme.colors.border}`,
-                    padding: `0 ${theme.space[3]}`,
+                    padding: `${theme.space[3]}px ${theme.space[4]}px`,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: theme.space[4],
-                    overflowX: 'auto',
+                    gap: `${theme.space[4]}px`,
+                    overflowY: 'auto',
+                    flexWrap: 'wrap',
                     zIndex: 50,
                     boxSizing: 'border-box',
                   }}>
@@ -1696,14 +1698,14 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                     </span>
 
                     {state.canvas?.edgeTypes && Object.keys(state.canvas.edgeTypes).length > 0 ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[4], flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: `${theme.space[4]}px`, flexWrap: 'wrap' }}>
                         {Object.entries(state.canvas.edgeTypes).map(([typeName, edgeType]) => (
                           <div
                             key={typeName}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: theme.space[2],
+                              gap: `${theme.space[2]}px`,
                             }}
                           >
                             <svg width="40" height="12" style={{ flexShrink: 0 }}>
@@ -1755,6 +1757,50 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                       }}>
                         No edge types defined
                       </span>
+                    )}
+
+                    {/* Scopes Section */}
+                    {state.library?.scopes && Object.keys(state.library.scopes).length > 0 && (
+                      <>
+                        <span style={{
+                          fontSize: theme.fontSizes[1],
+                          fontWeight: theme.fontWeights.medium,
+                          color: theme.colors.textMuted,
+                          flexShrink: 0,
+                        }}>
+                          Scopes:
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: `${theme.space[4]}px`, flexWrap: 'wrap' }}>
+                          {Object.entries(state.library.scopes).map(([scopeName, scopeConfig]) => (
+                            <div
+                              key={scopeName}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: `${theme.space[2]}px`,
+                              }}
+                            >
+                                <div
+                                  style={{
+                                    width: 24,
+                                    height: 16,
+                                    backgroundColor: scopeConfig.color || '#64748b',
+                                    border: `1px solid ${theme.colors.border}`,
+                                    borderRadius: 2,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span style={{
+                                  fontSize: theme.fontSizes[1],
+                                  color: theme.colors.text,
+                                  whiteSpace: 'nowrap',
+                                }}>
+                                  {scopeName}
+                                </span>
+                              </div>
+                          ))}
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
