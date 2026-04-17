@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { CanvasEditorPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
-import { GraphRenderer } from '@principal-ai/principal-view-react';
+import { GraphRenderer, WorkflowSequenceDiagram } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
 import type { ExtendedCanvas, PVNodeExtension, ComponentLibrary, WorkflowTemplate, WorkflowScenario, OtelAttributes, OtelEvent } from '@principal-ai/principal-view-core';
 import { getNodeEventName, isStandardCanvasNode } from '@principal-ai/principal-view-core';
 import { getSpansFromTrace, type RegisteredTrace } from '../types/otel';
-import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw, Search, ChevronUp, ChevronDown } from 'lucide-react';
+import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw, Search, ChevronUp, ChevronDown, Layers } from 'lucide-react';
 import { ConfigLoader } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
@@ -59,6 +59,8 @@ interface GraphPanelState {
   // Search state
   isSearchOpen: boolean;
   searchQuery: string;
+  // Main view mode (canvas graph vs sequence diagram)
+  mainViewMode: 'canvas' | 'sequence';
 }
 
 /**
@@ -201,6 +203,8 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     // Search state
     isSearchOpen: false,
     searchQuery: '',
+    // Main view mode
+    mainViewMode: 'canvas',
   });
 
   // Track container dimensions using ref callback + ResizeObserver
@@ -438,6 +442,14 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   // Toggle grid lines
   const toggleGridLines = useCallback(() => {
     setState(prev => ({ ...prev, showGridLines: !prev.showGridLines }));
+  }, []);
+
+  // Toggle main view mode between canvas and sequence
+  const toggleMainViewMode = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      mainViewMode: prev.mainViewMode === 'canvas' ? 'sequence' : 'canvas'
+    }));
   }, []);
 
   // Copy current config path to clipboard
@@ -729,6 +741,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       currentEventIndex: 0,
       highlightedNodeId: null,
       focusedNodeId: null,
+      mainViewMode: 'canvas', // Switch back to canvas view when scenario is dismissed
     }));
     setIsCarouselExpanded(false);
   }, []);
@@ -1012,6 +1025,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         highlightedNodeId: null,
         focusedNodeId: null,
         currentEventIndex: 0,
+        mainViewMode: 'canvas', // Reset to canvas view when workflow changes
       }));
       setIsCarouselExpanded(false);
     }
@@ -1362,6 +1376,31 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
           </button>
         )}
 
+        {/* Sequence Diagram Toggle Button - only shown when scenario is selected */}
+        {state.selectedScenario && (
+          <button
+            onClick={toggleMainViewMode}
+            title={state.mainViewMode === 'sequence' ? 'Show Canvas Graph' : 'Show Sequence Diagram'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 40,
+              height: 39,
+              padding: 0,
+              backgroundColor: state.mainViewMode === 'sequence' ? theme.colors.primary : 'transparent',
+              color: state.mainViewMode === 'sequence' ? 'white' : theme.colors.textMuted,
+              border: 'none',
+              borderLeft: `1px solid ${theme.colors.border}`,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              flexShrink: 0,
+            }}
+          >
+            <Layers size={18} />
+          </button>
+        )}
+
         {/* Grid Lines Toggle Button */}
         <button
           onClick={toggleGridLines}
@@ -1486,7 +1525,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
             <div ref={containerRefCallback} style={{ height: '100%', width: '100%', background: theme.colors.background, display: 'flex', flexDirection: 'column' }}>
               {/* Canvas area - shrinks when carousel is visible */}
               <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-                {/* Show loading/error/empty states, or GraphRenderer when ready */}
+                {/* Show loading/error/empty states, or GraphRenderer/SequenceDiagram when ready */}
                 {canvasContent ? (
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {canvasContent}
@@ -1497,30 +1536,52 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                     <Loader className="animate-spin" size={24} style={{ opacity: 0.5 }} />
                   </div>
                 ) : (state.canvas && containerDimensions?.width && containerDimensions?.height) ? (
-                  <GraphRenderer
-                        ref={graphRef}
-                        canvas={state.canvas}
-                        library={state.library}
-                        spansCanvas={state.spansCanvas ?? undefined}
-                        workflowSpanPattern={workflowSpanPattern ?? undefined}
-                        width="100%"
-                        height="100%"
-                        editable={state.isEditMode}
-                        onPendingChangesChange={(hasChanges) => {
-                          setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
-                        }}
-                        onCopy={handleCopyNodes}
-                        showBackground={state.showGridLines}
-                        backgroundVariant="lines"
-                        showControls={true}
-                        highlightedNodeId={state.highlightedNodeId}
-                        activeNodeIds={activeNodeIds}
-                        fitViewToNodeIds={fitViewToNodeIds}
-                        fitViewPadding={0.15}
-                        containerWidth={containerDimensions.width}
-                        containerHeight={containerDimensions.height}
-                        scenarioEdges={scenarioEdges}
-                      />
+                  state.mainViewMode === 'sequence' && state.selectedScenario ? (
+                    // Render sequence diagram in main canvas area
+                    <WorkflowSequenceDiagram
+                      scenario={state.selectedScenario}
+                      canvas={state.canvas}
+                      height="100%"
+                      layoutOptions={{
+                        laneWidth: 220,
+                        laneGap: 60,
+                        eventSpacing: 100,
+                        namespaceStrategy: 'first',
+                      }}
+                      showControls
+                      selectedEventIndex={state.currentEventIndex}
+                      onEventIndexChange={(eventIndex) => {
+                        // Update current event index to sync with EventCarousel
+                        setState(prev => ({ ...prev, currentEventIndex: eventIndex }));
+                      }}
+                    />
+                  ) : (
+                    // Render canvas graph
+                    <GraphRenderer
+                      ref={graphRef}
+                      canvas={state.canvas}
+                      library={state.library}
+                      spansCanvas={state.spansCanvas ?? undefined}
+                      workflowSpanPattern={workflowSpanPattern ?? undefined}
+                      width="100%"
+                      height="100%"
+                      editable={state.isEditMode}
+                      onPendingChangesChange={(hasChanges) => {
+                        setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
+                      }}
+                      onCopy={handleCopyNodes}
+                      showBackground={state.showGridLines}
+                      backgroundVariant="lines"
+                      showControls={true}
+                      highlightedNodeId={state.highlightedNodeId}
+                      activeNodeIds={activeNodeIds}
+                      fitViewToNodeIds={fitViewToNodeIds}
+                      fitViewPadding={0.15}
+                      containerWidth={containerDimensions.width}
+                      containerHeight={containerDimensions.height}
+                      scenarioEdges={scenarioEdges}
+                    />
+                  )
                 ) : null}
 
                 {/* Save/Discard Overlay - top right corner */}
