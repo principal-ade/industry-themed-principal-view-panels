@@ -359,10 +359,10 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
   }, [events, storyboards]);
 
   // Count storyboards by type to determine default tab
-  // Architecture canvases: regular, scopes, resources, spans
+  // Architecture canvases: regular, scopes, resources, spans, events, dashboard
   const { otelCount, staticCount } = useMemo(() => {
     const otel = storyboards.filter(sb => sb.canvas.type === 'otel').length;
-    const architectureTypes = ['regular', 'scopes', 'resources', 'spans'];
+    const architectureTypes = ['regular', 'scopes', 'resources', 'spans', 'events', 'dashboard'];
     const regular = storyboards.filter(sb => architectureTypes.includes(sb.canvas.type)).length;
     return { otelCount: otel, staticCount: regular };
   }, [storyboards]);
@@ -604,10 +604,10 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     let filtered = storyboards;
 
     // Filter by canvas type (always filter to show one type)
-    // Architecture canvases: regular, scopes, resources, spans
+    // Architecture canvases: regular, scopes, resources, spans, events, dashboard
     filtered = filtered.filter((storyboard) => {
       if (effectiveCanvasTypeFilter === 'regular') {
-        const architectureTypes = ['regular', 'scopes', 'resources', 'spans', 'dashboard'];
+        const architectureTypes = ['regular', 'scopes', 'resources', 'spans', 'events', 'dashboard'];
         return architectureTypes.includes(storyboard.canvas.type);
       }
       return storyboard.canvas.type === effectiveCanvasTypeFilter;

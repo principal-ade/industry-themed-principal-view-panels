@@ -3526,7 +3526,7 @@ export const EnterpriseOtelWorkflows: Story = {
 // Helper to create architecture-specific canvas files
 const createArchitectureCanvasFile = (
   canvasName: string,
-  canvasType: 'resources' | 'scopes' | 'spans' | 'regular',
+  canvasType: 'resources' | 'scopes' | 'spans' | 'events' | 'regular',
   withMarkdown: boolean = true
 ) => {
   const extension = canvasType === 'regular' ? '.canvas' : `.${canvasType}.canvas`;
@@ -3560,10 +3560,12 @@ const createArchitectureCanvasFile = (
 // Build file tree with architecture canvas types for grouping demonstration
 const buildArchitectureFileTree = (): FileTree => {
   const allFiles = [
-    // Resources & Scopes group
+    // Resources group (separate)
     ...createArchitectureCanvasFile('otel-hierarchy', 'resources', true),
-    ...createArchitectureCanvasFile('instrumentation', 'scopes', true),
     ...createArchitectureCanvasFile('service-resources', 'resources', true),
+
+    // Scope Events group (scopes only, no events in this example)
+    ...createArchitectureCanvasFile('instrumentation', 'scopes', true),
 
     // Spans group
     ...createArchitectureCanvasFile('architecture', 'spans', true),
@@ -3595,6 +3597,7 @@ const architectureMockReadFile = async (path: string) => {
       .replace('.resources.canvas', '')
       .replace('.scopes.canvas', '')
       .replace('.spans.canvas', '')
+      .replace('.events.canvas', '')
       .replace('.canvas', '');
 
     // Determine markdown path
@@ -3621,13 +3624,15 @@ const architectureMockReadFile = async (path: string) => {
  * Architecture Canvas Grouping
  *
  * Demonstrates the new architecture canvas grouping feature that groups:
- * - **Resources & Scopes**: .resources.canvas and .scopes.canvas files
- * - **Spans**: .spans.canvas files
- * - Regular .canvas files remain ungrouped
+ * - **Resources**: .resources.canvas files (service identity)
+ * - **Scope Events**: .scopes.canvas and .events.canvas files (instrumentation scopes and event vocabularies)
+ * - **Spans**: .spans.canvas files (span conventions)
+ * - Regular .canvas files remain in Misc group
  *
  * This helps organize OTel instrumentation documentation:
  * - Resources define service identity (service.name, deployment.environment)
  * - Scopes define instrumentation libraries (tracer names)
+ * - Events define event vocabularies for each scope
  * - Spans define span conventions and naming patterns
  */
 export const ArchitectureCanvasGrouping: Story = {
@@ -3637,13 +3642,15 @@ export const ArchitectureCanvasGrouping: Story = {
       description: {
         story: `
 Shows the architecture canvas grouping feature. Architecture canvases are grouped by type:
-- **Resources & Scopes** (Layers icon): Groups \`.resources.canvas\` and \`.scopes.canvas\` files
-- **Spans** (Network icon): Groups \`.spans.canvas\` files
-- Regular \`.canvas\` files appear at the root level
+- **Resources** (Layers icon): Groups \`.resources.canvas\` files (flat structure)
+- **Scope Events** (Layers icon): Groups \`.scopes.canvas\` (flat) and \`.events.canvas\` files (folder structure)
+- **Spans** (Network icon): Groups \`.spans.canvas\` files (flat structure)
+- Regular \`.canvas\` files appear in the Misc group
 
 This organization helps teams document their OTel instrumentation strategy:
 - Resources: Service identity attributes (service.name, deployment.environment)
 - Scopes: Instrumentation library definitions (tracer names, versions)
+- Events: Event vocabularies for each scope
 - Spans: Span naming conventions and patterns
         `,
       },
@@ -3680,7 +3687,7 @@ export const ArchitectureCanvasChangeDetection: Story = {
     const [sha, setSha] = useState('arch-sha-1');
     const [addedCanvases, setAddedCanvases] = useState<Array<{
       name: string;
-      type: 'resources' | 'scopes' | 'spans' | 'regular';
+      type: 'resources' | 'scopes' | 'spans' | 'events' | 'regular';
     }>>([]);
 
     // Base architecture canvases
@@ -3727,24 +3734,26 @@ export const ArchitectureCanvasChangeDetection: Story = {
       return '';
     };
 
-    const addCanvas = (type: 'resources' | 'scopes' | 'spans' | 'regular') => {
+    const addCanvas = (type: 'resources' | 'scopes' | 'spans' | 'events' | 'regular') => {
       const timestamp = Date.now();
       const names: Record<string, string> = {
         resources: `resource-${timestamp}`,
         scopes: `scope-${timestamp}`,
         spans: `span-${timestamp}`,
+        events: `event-${timestamp}`,
         regular: `canvas-${timestamp}`,
       };
       setAddedCanvases(prev => [...prev, { name: names[type], type }]);
     };
 
     // Add canvas AND update SHA together (simulating real file system behavior)
-    const addCanvasWithSha = (type: 'resources' | 'scopes' | 'spans' | 'regular') => {
+    const addCanvasWithSha = (type: 'resources' | 'scopes' | 'spans' | 'events' | 'regular') => {
       const timestamp = Date.now();
       const names: Record<string, string> = {
         resources: `resource-${timestamp}`,
         scopes: `scope-${timestamp}`,
         spans: `span-${timestamp}`,
+        events: `event-${timestamp}`,
         regular: `canvas-${timestamp}`,
       };
       setAddedCanvases(prev => [...prev, { name: names[type], type }]);
@@ -3916,6 +3925,159 @@ export const ArchitectureCanvasChangeDetection: Story = {
           </div>
         </div>
       </div>
+    );
+  },
+};
+
+/**
+ * Events Canvas Support Story
+ *
+ * Demonstrates the new events canvas support added in v0.26.30 of principal-view-core.
+ * Events canvases document the event vocabulary for each instrumentation scope.
+ *
+ * Architecture groups are now organized as:
+ * - **Resources** (flat) - Service instance definitions
+ * - **Scope Events** - Scopes (flat) and Events (with folder structure)
+ * - **Spans** (flat) - Span conventions
+ */
+export const EventsCanvasSupport: Story = {
+  args: {} as never,
+  parameters: {
+    docs: {
+      description: {
+        story: `
+Demonstrates the new events canvas support with the updated architecture grouping:
+
+**New in v0.26.30:**
+- \`.events.canvas\` files document event vocabularies for each scope
+- Events canvases are grouped with scopes under "Scope Events"
+- Resources are now in a separate "Resources" group
+
+**File Structure:**
+\`\`\`
+.principal-views/
+├── architecture.resources.canvas  (flat in Resources group)
+├── architecture.scopes.canvas     (flat in Scope Events group)
+├── backlog-md.events.canvas       (folder structure in Scope Events)
+├── backlog-md-cli.events.canvas   (folder structure in Scope Events)
+└── architecture.spans.canvas      (flat in Spans group)
+\`\`\`
+
+**Grouping Behavior:**
+- Resources canvases: Direct clickable items
+- Scopes canvases: Direct clickable items
+- Events canvases: Folder with Canvas/Overview children
+- Spans canvases: Direct clickable items
+        `,
+      },
+    },
+  },
+  render: () => {
+    // Build file tree with events canvas support
+    const buildEventsFileTree = (): FileTree => {
+      const allFiles = [
+        // Resources group (flat canvases)
+        ...createArchitectureCanvasFile('architecture', 'resources', true),
+
+        // Scope Events group
+        ...createArchitectureCanvasFile('architecture', 'scopes', true),
+        ...createArchitectureCanvasFile('backlog-md', 'events', true),
+        ...createArchitectureCanvasFile('backlog-md-cli', 'events', true),
+        ...createArchitectureCanvasFile('backlog-md-mcp', 'events', true),
+
+        // Spans group (flat canvases)
+        ...createArchitectureCanvasFile('architecture', 'spans', true),
+      ];
+
+      const filePaths = allFiles.map(f => f.path);
+      const builder = new PathsFileTreeBuilder();
+      const fileTree = builder.build({ files: filePaths });
+      fileTree.allFiles = allFiles;
+
+      return fileTree;
+    };
+
+    const eventsFileTree = buildEventsFileTree();
+    const eventsFileTreeSlice = createMockFileTreeSlice(eventsFileTree);
+
+    // Mock readFile for events canvases
+    const eventsMockReadFile = async (path: string) => {
+      console.log('[Events Mock readFile] Called with path:', path);
+
+      if (path.endsWith('.canvas')) {
+        const filename = path.split('/').pop() || '';
+        const canvasName = filename
+          .replace('.resources.canvas', '')
+          .replace('.scopes.canvas', '')
+          .replace('.spans.canvas', '')
+          .replace('.events.canvas', '')
+          .replace('.canvas', '');
+
+        // Determine canvas type
+        let canvasType = 'regular';
+        if (filename.includes('.resources.')) canvasType = 'resources';
+        else if (filename.includes('.scopes.')) canvasType = 'scopes';
+        else if (filename.includes('.spans.')) canvasType = 'spans';
+        else if (filename.includes('.events.')) canvasType = 'events';
+
+        // Determine markdown path
+        const markdownPath = `.principal-views/${canvasName}.md`;
+        const hasMarkdown = eventsFileTree.allFiles.some(f => f.path === markdownPath);
+
+        const content = JSON.stringify({
+          pv: {
+            name: canvasName
+              .split('-')
+              .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(' '),
+            version: '1.0.0',
+            description: `${canvasType.charAt(0).toUpperCase() + canvasType.slice(1)} canvas for ${canvasName}`,
+            ...(hasMarkdown ? { markdown: markdownPath } : {}),
+          },
+          nodes: [
+            {
+              id: `${canvasName}-node-1`,
+              type: 'text',
+              x: 100,
+              y: 100,
+              width: 300,
+              height: 120,
+              color: '5',
+              text: `# ${canvasName}\n\nThis is a ${canvasType} canvas.\n\n${
+                canvasType === 'events'
+                  ? 'Documents event vocabulary for the ' + canvasName.replace('-', '.') + ' scope.'
+                  : canvasType === 'scopes'
+                  ? 'Defines instrumentation scopes for the application.'
+                  : canvasType === 'resources'
+                  ? 'Defines OTEL resource attributes (service.name, etc).'
+                  : 'Defines span naming conventions.'
+              }`,
+            },
+          ],
+          edges: [],
+        });
+
+        return content;
+      }
+
+      if (path.endsWith('.md')) {
+        return `# ${path.split('/').pop()?.replace('.md', '')}\n\nMarkdown documentation for this canvas.`;
+      }
+
+      throw new Error(`File not found: ${path}`);
+    };
+
+    return (
+      <MockPanelProvider
+        contextOverrides={{
+          fileTree: eventsFileTreeSlice,
+        }}
+        actionsOverrides={{
+          readFile: eventsMockReadFile,
+        }}
+      >
+        {(props) => <StoryboardListPanel {...props} />}
+      </MockPanelProvider>
     );
   },
 };

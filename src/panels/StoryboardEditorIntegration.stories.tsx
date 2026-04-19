@@ -1042,6 +1042,213 @@ export const WithMultipleMatches: Story = {
 };
 
 /**
+ * Events Canvas Editor - demonstrates opening an events canvas file
+ * Events canvases document the event vocabulary for each instrumentation scope
+ */
+export const EventsCanvasEditor: Story = {
+  render: () => {
+    const EventsCanvasWrapper: React.FC = () => {
+      const [editorState, setEditorState] = useState<EditorPanelState | null>({
+        canvasPath: '.principal-views/backlog-md.events.canvas',
+        canvasName: 'backlog.md Events',
+        // No workflowTemplate - pure editor mode for events canvas
+      });
+
+      // Mock events canvas with event vocabulary documentation
+      const eventsCanvasMock = {
+        pv: {
+          name: 'backlog.md Events',
+          version: '1.0.0',
+          description: 'Event vocabulary for the backlog.md instrumentation scope',
+          markdown: '.principal-views/backlog-md.events.md',
+        },
+        nodes: [
+          {
+            id: 'task-created',
+            type: 'text',
+            text: 'task.created',
+            x: 100,
+            y: 100,
+            width: 200,
+            height: 100,
+            pv: {
+              nodeType: 'event',
+              fill: '#3b82f6',
+              eventRef: 'task.created',
+              sources: ['src/tasks/create.ts:45'],
+            },
+          },
+          {
+            id: 'task-updated',
+            type: 'text',
+            text: 'task.updated',
+            x: 350,
+            y: 100,
+            width: 200,
+            height: 100,
+            pv: {
+              nodeType: 'event',
+              fill: '#f59e0b',
+              eventRef: 'task.updated',
+              sources: ['src/tasks/update.ts:32'],
+            },
+          },
+          {
+            id: 'task-completed',
+            type: 'text',
+            text: 'task.completed',
+            x: 600,
+            y: 100,
+            width: 200,
+            height: 100,
+            pv: {
+              nodeType: 'event',
+              fill: '#10b981',
+              eventRef: 'task.completed',
+              sources: ['src/tasks/complete.ts:28'],
+            },
+          },
+          {
+            id: 'task-deleted',
+            type: 'text',
+            text: 'task.deleted',
+            x: 350,
+            y: 250,
+            width: 200,
+            height: 100,
+            pv: {
+              nodeType: 'event',
+              fill: '#ef4444',
+              eventRef: 'task.deleted',
+              sources: ['src/tasks/delete.ts:19'],
+            },
+          },
+        ],
+        edges: [
+          { id: 'e1', fromNode: 'task-created', toNode: 'task-updated', pv: { edgeType: 'data-flow' } },
+          { id: 'e2', fromNode: 'task-updated', toNode: 'task-completed', pv: { edgeType: 'data-flow' } },
+          { id: 'e3', fromNode: 'task-updated', toNode: 'task-deleted', pv: { edgeType: 'data-flow' } },
+        ],
+      };
+
+      // Build file tree with events canvas
+      const buildEventsFileTree = (): FileTree => {
+        const files = [
+          {
+            name: 'backlog-md.events.canvas',
+            relativePath: '.principal-views/backlog-md.events.canvas',
+            path: '.principal-views/backlog-md.events.canvas',
+            extension: '.canvas',
+            size: 2048,
+            lastModified: new Date('2024-01-15'),
+            isDirectory: false,
+          },
+          {
+            name: 'backlog-md.events.md',
+            relativePath: '.principal-views/backlog-md.events.md',
+            path: '.principal-views/backlog-md.events.md',
+            extension: '.md',
+            size: 512,
+            lastModified: new Date('2024-01-15'),
+            isDirectory: false,
+          },
+        ];
+
+        const filePaths = files.map(f => f.path);
+        const builder = new PathsFileTreeBuilder();
+        const fileTree = builder.build({ files: filePaths });
+        fileTree.allFiles = files;
+        fileTree.sha = 'mock-sha-events-canvas';
+
+        return fileTree;
+      };
+
+      const eventsFileTree = buildEventsFileTree();
+
+      const mockReadFile = async (path: string) => {
+        // Return events canvas content
+        if (path.endsWith('.events.canvas')) {
+          return JSON.stringify(eventsCanvasMock);
+        }
+        // Return markdown documentation
+        if (path.endsWith('.events.md')) {
+          return `# backlog.md Event Vocabulary
+
+This canvas documents the event vocabulary for the backlog.md instrumentation scope.
+
+## Events
+
+### task.created
+Emitted when a new task is created in the backlog.
+
+**Attributes:**
+- \`task.id\`: string - Unique identifier for the task
+- \`task.title\`: string - Task title
+- \`task.priority\`: string - Priority level (high, medium, low)
+
+### task.updated
+Emitted when a task is updated.
+
+**Attributes:**
+- \`task.id\`: string - Task identifier
+- \`task.field\`: string - Field that was updated
+- \`task.old_value\`: string - Previous value
+- \`task.new_value\`: string - New value
+
+### task.completed
+Emitted when a task is marked as complete.
+
+**Attributes:**
+- \`task.id\`: string - Task identifier
+- \`task.completion_time\`: number - Time to complete in milliseconds
+
+### task.deleted
+Emitted when a task is deleted from the backlog.
+
+**Attributes:**
+- \`task.id\`: string - Task identifier
+- \`task.reason\`: string - Reason for deletion
+`;
+        }
+        return '{}';
+      };
+
+      return (
+        <MockPanelProvider
+          contextOverrides={{
+            fileTree: {
+              scope: 'repository' as const,
+              name: 'fileTree',
+              data: eventsFileTree,
+              loading: false,
+              error: null,
+              refresh: async () => {},
+            },
+            repositoryPath: '/mock/repository',
+          }}
+          actionsOverrides={{
+            readFile: mockReadFile,
+            writeFile: async (path: string, content: string) => {
+              console.log('[Mock writeFile]', path, content.slice(0, 100) + '...');
+            },
+          }}
+        >
+          {(props) => (
+            <PanelInner
+              props={props}
+              editorState={editorState}
+              setEditorState={setEditorState}
+            />
+          )}
+        </MockPanelProvider>
+      );
+    };
+
+    return <EventsCanvasWrapper />;
+  },
+};
+
+/**
  * Simulates opening CanvasEditorPanel in a tabbed container (like TabbedTerminalPanel).
  * This reproduces the issue where opening a canvas from StoryboardListPanel into a tab
  * causes dimension changes that affect the canvas fit.
