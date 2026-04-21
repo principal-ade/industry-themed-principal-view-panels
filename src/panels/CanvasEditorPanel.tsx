@@ -3,10 +3,10 @@ import type { CanvasEditorPanelPropsTyped } from '../types';
 import { useTheme } from '@principal-ade/industry-theme';
 import { GraphRenderer, WorkflowSequenceDiagram } from '@principal-ai/principal-view-react';
 import type { GraphRendererHandle, PendingChanges } from '@principal-ai/principal-view-react';
-import type { ExtendedCanvas, PVNodeExtension, ComponentLibrary, WorkflowTemplate, WorkflowScenario, OtelAttributes, OtelEvent } from '@principal-ai/principal-view-core';
-import { getNodeEventName, isStandardCanvasNode } from '@principal-ai/principal-view-core';
+import type { ExtendedCanvas, PVNodeExtension, ComponentLibrary, WorkflowTemplate, WorkflowScenario, OtelAttributes, OtelEvent, CanvasTextNode, CanvasGroupNode } from '@principal-ai/principal-view-core';
+import { getNodeEventName, isStandardCanvasNode, isOtelScopeNode } from '@principal-ai/principal-view-core';
 import { getSpansFromTrace, type RegisteredTrace } from '../types/otel';
-import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw, Search, ChevronUp, ChevronDown, Layers } from 'lucide-react';
+import { Loader, Save, X, Pencil, Copy, Check, Info, Grid3X3, RefreshCw, Search, ChevronUp, ChevronDown, Layers, FileText, Box } from 'lucide-react';
 import { ConfigLoader } from './principal-view/ConfigLoader';
 import { ErrorStateContent } from './principal-view/ErrorStateContent';
 import { EmptyStateContent } from './principal-view/EmptyStateContent';
@@ -32,6 +32,7 @@ interface GraphPanelState {
   library: ComponentLibrary; // Always defined, uses default if no library.yaml found
   libraryVersion: number; // Increment when library changes to force GraphRenderer refresh
   spansCanvas: ExtendedCanvas | null;
+  scopesCanvas: ExtendedCanvas | null;
   loading: boolean;
   error: string | null;
   // Legend overlay
@@ -59,6 +60,9 @@ interface GraphPanelState {
   // Color picker state for scopes
   colorPickerScope: string | null;
   colorPickerPosition: { x: number; y: number } | null;
+  // Text editor state
+  editingNodeId: string | null;
+  editingNodeText: string;
 }
 
 /**
@@ -182,11 +186,15 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   // Store library path for saving
   const libraryPathRef = useRef<string | null>(null);
 
+  // Store scopes canvas path for saving
+  const scopesCanvasPathRef = useRef<string | null>(null);
+
   const [state, setState] = useState<GraphPanelState>({
     canvas: null,
     library: DEFAULT_LIBRARY,
     libraryVersion: 0,
     spansCanvas: null,
+    scopesCanvas: null,
     loading: true,
     error: null,
     showLegend: false,
@@ -210,6 +218,9 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     // Color picker state
     colorPickerScope: null,
     colorPickerPosition: null,
+    // Text editor state
+    editingNodeId: null,
+    editingNodeText: '',
   });
 
   // Track container dimensions using ref callback + ResizeObserver
@@ -335,7 +346,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   const loadConfiguration = useCallback(async () => {
     // Early return if required props are missing
     if (!canvasPath) {
-      setState(prev => ({ ...prev, canvas: null, library: DEFAULT_LIBRARY, libraryVersion: prev.libraryVersion + 1, spansCanvas: null, loading: false, error: null }));
+      setState(prev => ({ ...prev, canvas: null, library: DEFAULT_LIBRARY, libraryVersion: prev.libraryVersion + 1, spansCanvas: null, scopesCanvas: null, loading: false, error: null }));
       return;
     }
 
@@ -407,6 +418,30 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         }
       }
 
+      // Load scopes canvas using discovery (finds .scopes.canvas files)
+      let scopesCanvas: ExtendedCanvas | null = null;
+      if (fileTreeSlice && !fileTreeSlice.loading) {
+        const fileTreeData = fileTreeSlice.data;
+
+        if (fileTreeData?.allFiles) {
+          const scopesCanvasPath = ConfigLoader.findScopesCanvasPath(fileTreeData.allFiles);
+          if (scopesCanvasPath) {
+            // Store scopes canvas path for saving
+            scopesCanvasPathRef.current = `${repositoryPath}/${scopesCanvasPath}`;
+            try {
+              const scopesFullPath = `${repositoryPath}/${scopesCanvasPath}`;
+              const scopesContent = await readFile(scopesFullPath);
+              if (scopesContent && typeof scopesContent === 'string') {
+                scopesCanvas = ConfigLoader.parseCanvas(scopesContent);
+              }
+            } catch (scopesError) {
+              // Scopes canvas loading is optional, don't fail the whole operation
+              console.warn('[PrincipalView] Failed to load scopes canvas:', scopesError);
+            }
+          }
+        }
+      }
+
       // Ensure we always have a library with states (use default if none found)
       const finalLibrary: ComponentLibrary = library || DEFAULT_LIBRARY;
 
@@ -416,6 +451,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         library: finalLibrary,
         libraryVersion: prev.libraryVersion + 1, // Increment when loading new library
         spansCanvas,
+        scopesCanvas,
         loading: false,
         error: null,
         hasUnsavedChanges: false
@@ -428,6 +464,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         canvas: null,
         library: DEFAULT_LIBRARY,
         spansCanvas: null,
+        scopesCanvas: null,
         loading: false,
         error: (error as Error).message
       }));
@@ -495,11 +532,33 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     setState(prev => ({ ...prev, colorPickerScope: null, colorPickerPosition: null }));
   }, []);
 
-  // Handle color change for a scope
-  // DEPRECATED: Scope colors are now managed in .scopes.canvas files
-  // const handleScopeColorChange = useCallback(async (scopeName: string, newColor: string) => {
-  //   // This functionality has been removed as scopes are no longer in library.yaml
-  // }, [actions]);
+  // Handle color change for a scope (updates scopes.canvas file)
+  const handleScopeColorChange = useCallback(async (scopeName: string, newColor: string) => {
+    if (!state.scopesCanvas || !state.scopesCanvas.nodes || !actions.writeFile || !scopesCanvasPathRef.current) {
+      return;
+    }
+
+    // Update the scope node's color in scopesCanvas
+    const updatedScopesCanvas: ExtendedCanvas = {
+      ...state.scopesCanvas,
+      nodes: state.scopesCanvas.nodes.map(node => {
+        if (isOtelScopeNode(node) && node.otel.scope === scopeName) {
+          return { ...node, color: newColor };
+        }
+        return node;
+      }),
+    };
+
+    // Save the updated scopes canvas using the discovered path
+    try {
+      await actions.writeFile(scopesCanvasPathRef.current, JSON.stringify(updatedScopesCanvas, null, 2));
+
+      // Update state with new scopesCanvas
+      setState(prev => ({ ...prev, scopesCanvas: updatedScopesCanvas }));
+    } catch (error) {
+      console.error('[PrincipalView] Error saving scopes canvas:', error);
+    }
+  }, [state.scopesCanvas, actions]);
 
   // Compute search results (matching node IDs)
   const searchMatchedNodeIds = useMemo(() => {
@@ -685,6 +744,175 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     setState(prev => ({ ...prev, hasUnsavedChanges: false }));
   }, [loadConfiguration]);
 
+  // Add a new text node
+  const addTextNode = useCallback(() => {
+    if (!state.canvas || !containerDimensions) return;
+
+    // Generate a unique ID
+    const timestamp = Date.now();
+    const nodeId = `text-node-${timestamp}`;
+
+    // Calculate center position (viewport center)
+    const centerX = Math.max(0, (containerDimensions.width / 2) - 100); // offset by half default width
+    const centerY = Math.max(0, (containerDimensions.height / 2) - 50); // offset by half default height
+
+    // Create new text node with default properties
+    const newNode: CanvasTextNode & { pv?: PVNodeExtension } = {
+      id: nodeId,
+      type: 'text',
+      x: Math.round(centerX),
+      y: Math.round(centerY),
+      width: 200,
+      height: 100,
+      text: 'New Text Node',
+      color: '#6366f1',
+      pv: {
+        nodeType: 'process',
+        shape: 'rectangle',
+      },
+    };
+
+    // Update canvas with new node
+    const updatedCanvas: ExtendedCanvas = {
+      ...state.canvas,
+      nodes: [...(state.canvas.nodes || []), newNode],
+    };
+
+    setState(prev => ({
+      ...prev,
+      canvas: updatedCanvas,
+      hasUnsavedChanges: true,
+    }));
+  }, [state.canvas, containerDimensions]);
+
+  // Add a new group node
+  const addGroupNode = useCallback(() => {
+    if (!state.canvas || !containerDimensions) return;
+
+    // Generate a unique ID
+    const timestamp = Date.now();
+    const nodeId = `group-${timestamp}`;
+
+    // Calculate center position (viewport center)
+    const centerX = Math.max(0, (containerDimensions.width / 2) - 200); // offset by half default width
+    const centerY = Math.max(0, (containerDimensions.height / 2) - 150); // offset by half default height
+
+    // Create new group node with default properties
+    const newNode: CanvasGroupNode = {
+      id: nodeId,
+      type: 'group',
+      x: Math.round(centerX),
+      y: Math.round(centerY),
+      width: 400,
+      height: 300,
+      label: 'New Group',
+      color: '#f3f4f6',
+    };
+
+    // Update canvas with new node
+    const updatedCanvas: ExtendedCanvas = {
+      ...state.canvas,
+      nodes: [...(state.canvas.nodes || []), newNode],
+    };
+
+    setState(prev => ({
+      ...prev,
+      canvas: updatedCanvas,
+      hasUnsavedChanges: true,
+    }));
+  }, [state.canvas, containerDimensions]);
+
+  // Open text editor for a node
+  const openTextEditor = useCallback((nodeId: string) => {
+    if (!state.canvas || !state.isEditMode) return;
+
+    const node = state.canvas.nodes?.find(n => n.id === nodeId);
+    if (!node) return;
+
+    // Support text nodes and group nodes
+    if (node.type !== 'text' && node.type !== 'group') return;
+
+    let currentText = '';
+    if (node.type === 'text' && 'text' in node) {
+      currentText = node.text || '';
+    } else if (node.type === 'group' && 'label' in node) {
+      currentText = node.label || '';
+    }
+
+    setState(prev => ({
+      ...prev,
+      editingNodeId: nodeId,
+      editingNodeText: currentText,
+    }));
+  }, [state.canvas, state.isEditMode]);
+
+  // Close text editor
+  const closeTextEditor = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      editingNodeId: null,
+      editingNodeText: '',
+    }));
+  }, []);
+
+  // Save text editor changes
+  const saveTextEditorChanges = useCallback(() => {
+    if (!state.canvas || !state.editingNodeId) return;
+
+    const updatedCanvas: ExtendedCanvas = {
+      ...state.canvas,
+      nodes: state.canvas.nodes?.map(node => {
+        if (node.id === state.editingNodeId) {
+          if (node.type === 'text') {
+            return {
+              ...node,
+              text: state.editingNodeText,
+            };
+          } else if (node.type === 'group') {
+            return {
+              ...node,
+              label: state.editingNodeText,
+            };
+          }
+        }
+        return node;
+      }),
+    };
+
+    // Update canvas and increment library version to force GraphRenderer refresh
+    setState(prev => ({
+      ...prev,
+      canvas: updatedCanvas,
+      libraryVersion: prev.libraryVersion + 1,
+      hasUnsavedChanges: true,
+      editingNodeId: null,
+      editingNodeText: '',
+    }));
+  }, [state.canvas, state.editingNodeId, state.editingNodeText]);
+
+  // Handle text change in editor
+  const handleTextEditorChange = useCallback((newText: string) => {
+    setState(prev => ({ ...prev, editingNodeText: newText }));
+  }, []);
+
+  // Track double-click on nodes
+  const lastClickTimeRef = useRef<{ nodeId: string; time: number } | null>(null);
+  const handleNodeClick = useCallback((nodeId: string, event: React.MouseEvent) => {
+    if (!state.isEditMode) return;
+
+    const now = Date.now();
+    const lastClick = lastClickTimeRef.current;
+
+    // Check if this is a double-click (within 300ms)
+    if (lastClick && lastClick.nodeId === nodeId && now - lastClick.time < 300) {
+      // Double-click detected - open text editor
+      openTextEditor(nodeId);
+      lastClickTimeRef.current = null;
+    } else {
+      // Single click - update last click time
+      lastClickTimeRef.current = { nodeId, time: now };
+    }
+  }, [state.isEditMode, openTextEditor]);
 
   // Handle scenario hover - highlight nodes that have events matching the scenario
   const handleScenarioHover = useCallback((eventNames: string[] | null) => {
@@ -1367,6 +1595,57 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: theme.space[2], flexShrink: 0 }}>
+          {/* Add Node Buttons - only shown in edit mode */}
+          {state.isEditMode && (
+            <>
+              <button
+                onClick={addTextNode}
+                disabled={!containerDimensions}
+                title="Add Text Node"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.space[1],
+                  padding: `${theme.space[1]} ${theme.space[2]}`,
+                  fontSize: theme.fontSizes[1],
+                  fontFamily: theme.fonts.body,
+                  color: theme.colors.text,
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.radii[1],
+                  cursor: containerDimensions ? 'pointer' : 'not-allowed',
+                  opacity: containerDimensions ? 1 : 0.5,
+                  transition: 'all 0.15s',
+                }}
+              >
+                <FileText size={14} />
+                <span>Add Text</span>
+              </button>
+              <button
+                onClick={addGroupNode}
+                disabled={!containerDimensions}
+                title="Add Group Node"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.space[1],
+                  padding: `${theme.space[1]} ${theme.space[2]}`,
+                  fontSize: theme.fontSizes[1],
+                  fontFamily: theme.fonts.body,
+                  color: theme.colors.text,
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  border: `1px solid ${theme.colors.border}`,
+                  borderRadius: theme.radii[1],
+                  cursor: containerDimensions ? 'pointer' : 'not-allowed',
+                  opacity: containerDimensions ? 1 : 0.5,
+                  transition: 'all 0.15s',
+                }}
+              >
+                <Box size={14} />
+                <span>Add Group</span>
+              </button>
+            </>
+          )}
           </div>
         </div>
 
@@ -1583,6 +1862,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                       canvas={state.canvas}
                       library={state.library}
                       spansCanvas={state.spansCanvas ?? undefined}
+                      scopesCanvas={state.scopesCanvas ?? undefined}
                       workflowSpanPattern={workflowSpanPattern ?? undefined}
                       width="100%"
                       height="100%"
@@ -1590,6 +1870,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                       onPendingChangesChange={(hasChanges) => {
                         setState(prev => ({ ...prev, hasUnsavedChanges: hasChanges }));
                       }}
+                      onNodeClick={handleNodeClick}
                       onCopy={handleCopyNodes}
                       showBackground={state.showGridLines}
                       backgroundVariant="lines"
@@ -1780,12 +2061,111 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                       </span>
                     )}
 
-                    {/* DEPRECATED: Scopes Section - scopes are now managed in .scopes.canvas files */}
-                    {/* Scopes color editing has been removed as scopes are no longer in library.yaml */}
+                    {/* Scopes Section - displays scopes from .scopes.canvas */}
+                    {state.scopesCanvas && state.scopesCanvas.nodes && state.scopesCanvas.nodes.length > 0 && (
+                      <>
+                        <div style={{
+                          width: '1px',
+                          height: '24px',
+                          backgroundColor: theme.colors.border,
+                          margin: `0 ${theme.space[2]}px`,
+                        }} />
+                        <span style={{
+                          fontSize: theme.fontSizes[1],
+                          fontWeight: theme.fontWeights.medium,
+                          color: theme.colors.textMuted,
+                          flexShrink: 0,
+                        }}>
+                          Scopes:
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: `${theme.space[4]}px`, flexWrap: 'wrap' }}>
+                          {state.scopesCanvas.nodes
+                            .filter(isOtelScopeNode)
+                            .map((node) => {
+                              const scopeName = node.otel.scope;
+                              const scopeColor = typeof node.color === 'string' ? node.color : '#6B7280';
+                              const scopeLabel = node.label || scopeName;
+
+                              return (
+                                <div
+                                  key={node.id}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: `${theme.space[2]}px`,
+                                  }}
+                                >
+                                  <button
+                                    onClick={(e) => openColorPicker(scopeName, e)}
+                                    style={{
+                                      width: '20px',
+                                      height: '20px',
+                                      borderRadius: '4px',
+                                      backgroundColor: scopeColor,
+                                      flexShrink: 0,
+                                      border: `2px solid ${state.colorPickerScope === scopeName ? theme.colors.primary : 'transparent'}`,
+                                      cursor: 'pointer',
+                                      padding: 0,
+                                      transition: 'border-color 0.2s',
+                                    }}
+                                    title={`Click to change ${scopeLabel} color`}
+                                  />
+                                  <span style={{
+                                    fontSize: theme.fontSizes[1],
+                                    color: theme.colors.text,
+                                    whiteSpace: 'nowrap',
+                                  }}>
+                                    {scopeLabel}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
-                {/* DEPRECATED: Color Picker Popover - removed as scopes are no longer in library.yaml */}
+                {/* Color Picker Popover - for editing scope colors from scopes.canvas */}
+                {state.colorPickerScope && state.colorPickerPosition && state.scopesCanvas && (
+                  <>
+                    {/* Backdrop to close picker when clicking outside */}
+                    <div
+                      style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        zIndex: 70,
+                      }}
+                      onClick={closeColorPicker}
+                    />
+                    {/* Color Picker */}
+                    <div
+                      style={{
+                        position: 'fixed',
+                        left: state.colorPickerPosition.x,
+                        top: state.colorPickerPosition.y,
+                        backgroundColor: theme.colors.background,
+                        border: `1px solid ${theme.colors.border}`,
+                        borderRadius: theme.radii[2],
+                        padding: theme.space[3],
+                        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
+                        zIndex: 80,
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div style={{ marginBottom: theme.space[2], fontSize: theme.fontSizes[1], fontWeight: theme.fontWeights.semibold, color: theme.colors.text }}>
+                        Change {state.scopesCanvas.nodes?.filter(isOtelScopeNode).find(n => n.otel.scope === state.colorPickerScope)?.label || state.colorPickerScope} Color
+                      </div>
+                      <HexColorPicker
+                        color={(state.scopesCanvas.nodes?.filter(isOtelScopeNode).find(n => n.otel.scope === state.colorPickerScope)?.color as string) || '#6B7280'}
+                        onChange={(newColor) => handleScopeColorChange(state.colorPickerScope!, newColor)}
+                      />
+                    </div>
+                  </>
+                )}
 
                 {/* Search Bar - top center */}
                 {state.isSearchOpen && (
@@ -1914,6 +2294,135 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                       <X size={16} />
                     </button>
                   </div>
+                )}
+
+                {/* Text Editor Modal */}
+                {state.editingNodeId && (
+                  <>
+                    {/* Backdrop */}
+                    <div
+                      style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        zIndex: 90,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      onClick={closeTextEditor}
+                    >
+                      {/* Modal */}
+                      <div
+                        style={{
+                          backgroundColor: theme.colors.background,
+                          border: `2px solid ${theme.colors.primary}`,
+                          borderRadius: theme.radii[2],
+                          padding: theme.space[4],
+                          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                          minWidth: 400,
+                          maxWidth: 600,
+                          width: '90%',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div style={{
+                          marginBottom: theme.space[3],
+                          fontSize: theme.fontSizes[2],
+                          fontWeight: theme.fontWeights.semibold,
+                          color: theme.colors.text,
+                        }}>
+                          {(() => {
+                            const node = state.canvas?.nodes?.find(n => n.id === state.editingNodeId);
+                            if (node?.type === 'group') return 'Edit Group Label';
+                            return 'Edit Text Node';
+                          })()}
+                        </div>
+                        <textarea
+                          autoFocus
+                          value={state.editingNodeText}
+                          onChange={(e) => handleTextEditorChange(e.target.value)}
+                          placeholder="Enter text..."
+                          style={{
+                            width: '100%',
+                            minHeight: 150,
+                            padding: theme.space[2],
+                            fontSize: theme.fontSizes[1],
+                            fontFamily: theme.fonts.body,
+                            color: theme.colors.text,
+                            backgroundColor: theme.colors.backgroundSecondary,
+                            border: `1px solid ${theme.colors.border}`,
+                            borderRadius: theme.radii[1],
+                            outline: 'none',
+                            resize: 'vertical',
+                            boxSizing: 'border-box',
+                          }}
+                          onKeyDown={(e) => {
+                            // Cmd+Enter or Ctrl+Enter to save
+                            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                              e.preventDefault();
+                              saveTextEditorChanges();
+                            }
+                            // Escape to cancel
+                            if (e.key === 'Escape') {
+                              e.preventDefault();
+                              closeTextEditor();
+                            }
+                          }}
+                        />
+                        <div style={{
+                          marginTop: theme.space[3],
+                          display: 'flex',
+                          gap: theme.space[2],
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}>
+                          <div style={{
+                            fontSize: theme.fontSizes[0],
+                            color: theme.colors.textMuted,
+                            fontStyle: 'italic',
+                          }}>
+                            ⌘+Enter to save • Esc to cancel
+                          </div>
+                          <div style={{ display: 'flex', gap: theme.space[2] }}>
+                            <button
+                              onClick={closeTextEditor}
+                              style={{
+                                padding: `${theme.space[2]} ${theme.space[3]}`,
+                                fontSize: theme.fontSizes[1],
+                                fontFamily: theme.fonts.body,
+                                color: theme.colors.text,
+                                backgroundColor: theme.colors.backgroundSecondary,
+                                border: `1px solid ${theme.colors.border}`,
+                                borderRadius: theme.radii[1],
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={saveTextEditorChanges}
+                              style={{
+                                padding: `${theme.space[2]} ${theme.space[3]}`,
+                                fontSize: theme.fontSizes[1],
+                                fontFamily: theme.fonts.body,
+                                color: 'white',
+                                backgroundColor: theme.colors.primary,
+                                border: 'none',
+                                borderRadius: theme.radii[1],
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 )}
 
                 {/* Copy nodes toast - bottom center */}

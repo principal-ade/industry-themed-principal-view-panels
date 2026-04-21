@@ -73,6 +73,33 @@ export class ConfigLoader {
   }
 
   /**
+   * Find the first .scopes.canvas file in the .principal-views/ folder
+   * Returns the relative path if found, null otherwise
+   *
+   * Looks for files like:
+   * - .principal-views/scopes.canvas
+   * - .principal-views/architecture.scopes.canvas
+   * - packages/foo/.principal-views/architecture.scopes.canvas
+   */
+  static findScopesCanvasPath(files: Array<{ path?: string; relativePath?: string; name?: string }>): string | null {
+    const VGC_FOLDER = '.principal-views';
+
+    for (const file of files) {
+      const filePath = file.relativePath || file.path || '';
+      const fileName = file.name || '';
+
+      // Look for .scopes.canvas files in any .principal-views/ folder (root or nested in packages/apps)
+      const isInPrincipalViews = filePath.startsWith(`${VGC_FOLDER}/`) || filePath.includes(`/${VGC_FOLDER}/`);
+
+      if (isInPrincipalViews && fileName.endsWith('.scopes.canvas')) {
+        return filePath;
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Find all .canvas files in any .principal-views/ folder (root or packages)
    * Returns array of config files with metadata
    */

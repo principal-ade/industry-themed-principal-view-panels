@@ -2006,28 +2006,72 @@ const newOtelFormatCanvas: ExtendedCanvas = {
 /**
  * Tests the new OTEL node format after migration.
  * Nodes should display their label (not ID) and show event.name underneath.
+ * Uses scopes.canvas for scope definitions (library.yaml scopes are deprecated).
  */
 export const NewOtelFormat: Story = {
   args: {} as never,
   render: () => {
-    // Minimal library with states and scopes for OTEL nodes
+    // Scopes canvas with otel-scope nodes (replaces deprecated library.yaml scopes)
+    const scopesCanvas = {
+      name: 'Auth Flow Scopes',
+      nodes: [
+        {
+          id: 'auth-service-scope',
+          type: 'otel-scope',
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 80,
+          color: '#3B82F6',
+          label: 'Auth Service',
+          description: 'Authentication service instrumentation scope',
+          otel: {
+            scope: 'auth-service',
+            status: 'implemented',
+          },
+        },
+        {
+          id: 'session-service-scope',
+          type: 'otel-scope',
+          x: 250,
+          y: 0,
+          width: 200,
+          height: 80,
+          color: '#10B981',
+          label: 'Session Service',
+          description: 'Session management service instrumentation scope',
+          otel: {
+            scope: 'session-service',
+            status: 'implemented',
+          },
+        },
+        {
+          id: 'token-service-scope',
+          type: 'otel-scope',
+          x: 500,
+          y: 0,
+          width: 200,
+          height: 80,
+          color: '#F59E0B',
+          label: 'Token Service',
+          description: 'Token issuance service instrumentation scope',
+          otel: {
+            scope: 'token-service',
+            status: 'implemented',
+          },
+        },
+      ],
+      edges: [],
+    };
+
+    // Minimal library with only states (scopes moved to scopes.canvas)
     const otelLibraryYaml = `
 version: "1.0.0"
 name: OTEL Library
-description: Library for OTEL event nodes with scope-based coloring
+description: Library for OTEL event nodes
 resources: {}
 nodeComponents: {}
 edgeComponents: {}
-scopes:
-  auth-service:
-    color: "#3B82F6"
-    description: "Authentication service scope"
-  session-service:
-    color: "#10B981"
-    description: "Session management service scope"
-  token-service:
-    color: "#F59E0B"
-    description: "Token issuance service scope"
 states:
   draft:
     color: "#f59e0b"
@@ -2047,6 +2091,12 @@ states:
           relativePath: '.principal-views/auth-flow.otel.canvas',
           name: 'auth-flow.otel.canvas',
           content: JSON.stringify(newOtelFormatCanvas, null, 2),
+        },
+        {
+          path: '.principal-views/architecture.scopes.canvas',
+          relativePath: '.principal-views/architecture.scopes.canvas',
+          name: 'architecture.scopes.canvas',
+          content: JSON.stringify(scopesCanvas, null, 2),
         },
         {
           path: '.principal-views/library.yaml',
@@ -2091,8 +2141,17 @@ states:
             }
             return file.content;
           },
-          // Read-only mode - no writeFile
-          writeFile: undefined,
+          // Mock writeFile to enable color editing in the story
+          writeFile: async (path: string, content: string) => {
+            const fileName = path.split('/').pop() || '';
+            const file = fileTreeData.allFiles.find((f) => f.path.endsWith(fileName) || f.name === fileName);
+            if (file) {
+              file.content = content;
+              console.log(`[Story] Updated ${fileName}:`, content);
+            } else {
+              console.warn(`[Story] File not found for write: ${path}`);
+            }
+          },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any}
       >
