@@ -20,19 +20,11 @@ import yaml from 'js-yaml';
 
 /**
  * Default minimal library used when no library.yaml is found.
- * Provides essential states for OTEL nodes.
  */
 const DEFAULT_LIBRARY: ComponentLibrary = {
   version: '1.0.0',
   name: 'Default Library',
   description: 'Minimal default library for rendering',
-  nodeComponents: {},
-  edgeComponents: {},
-  states: {
-    draft: { color: '#f59e0b', label: 'Draft' },
-    approved: { color: '#10b981', label: 'Approved' },
-    implemented: { color: '#6366f1', label: 'Implemented' },
-  },
 };
 
 interface GraphPanelState {
@@ -391,14 +383,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
               const libraryContent = await readFile(libraryFullPath);
               if (libraryContent && typeof libraryContent === 'string') {
                 library = ConfigLoader.parseLibrary(libraryContent);
-                // Ensure library has states property (add defaults if missing)
-                if (library && !library.states) {
-                  library.states = {
-                    draft: { color: '#f59e0b', label: 'Draft' },
-                    approved: { color: '#10b981', label: 'Approved' },
-                    implemented: { color: '#6366f1', label: 'Implemented' },
-                  };
-                }
               }
             } catch (libraryError) {
               // Library loading is optional, don't fail the whole operation
@@ -512,46 +496,10 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
   }, []);
 
   // Handle color change for a scope
-  const handleScopeColorChange = useCallback(async (scopeName: string, newColor: string) => {
-    // Update library in state and save to file
-    setState(prev => {
-      if (!prev.library.scopes) return prev;
-
-      const updatedLibrary = {
-        ...prev.library,
-        scopes: {
-          ...prev.library.scopes,
-          [scopeName]: {
-            ...prev.library.scopes[scopeName],
-            color: newColor
-          }
-        }
-      };
-
-      // Save to library.yaml file if writeFile is available
-      if (actions.writeFile && libraryPathRef.current) {
-        // Convert to YAML and write asynchronously
-        const yamlContent = yaml.dump(updatedLibrary, {
-          indent: 2,
-          lineWidth: -1,
-          quotingType: '"',
-          forceQuotes: false
-        });
-
-        actions.writeFile(libraryPathRef.current, yamlContent).catch(error => {
-          console.error('Failed to save library.yaml:', error);
-        });
-      } else {
-        console.warn('Cannot save library changes: writeFile action or libraryPath not available');
-      }
-
-      return {
-        ...prev,
-        library: updatedLibrary,
-        libraryVersion: prev.libraryVersion + 1, // Increment to force GraphRenderer refresh
-      };
-    });
-  }, [actions]);
+  // DEPRECATED: Scope colors are now managed in .scopes.canvas files
+  // const handleScopeColorChange = useCallback(async (scopeName: string, newColor: string) => {
+  //   // This functionality has been removed as scopes are no longer in library.yaml
+  // }, [actions]);
 
   // Compute search results (matching node IDs)
   const searchMatchedNodeIds = useMemo(() => {
@@ -1832,163 +1780,12 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                       </span>
                     )}
 
-                    {/* Scopes Section */}
-                    {state.library?.scopes && Object.keys(state.library.scopes).length > 0 && (
-                      <>
-                        <span style={{
-                          fontSize: theme.fontSizes[1],
-                          fontWeight: theme.fontWeights.medium,
-                          color: theme.colors.textMuted,
-                          flexShrink: 0,
-                        }}>
-                          Scopes:
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: `${theme.space[4]}px`, flexWrap: 'wrap' }}>
-                          {Object.entries(state.library.scopes).map(([scopeName, scopeConfig]) => (
-                            <div
-                              key={scopeName}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: `${theme.space[2]}px`,
-                              }}
-                            >
-                                <div
-                                  onClick={(e) => openColorPicker(scopeName, e)}
-                                  style={{
-                                    width: 24,
-                                    height: 16,
-                                    backgroundColor: scopeConfig.color || '#64748b',
-                                    border: `1px solid ${theme.colors.border}`,
-                                    borderRadius: 2,
-                                    flexShrink: 0,
-                                    cursor: 'pointer',
-                                    transition: 'transform 0.1s ease',
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    (e.currentTarget as HTMLElement).style.transform = 'scale(1.1)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-                                  }}
-                                  title="Click to change color"
-                                />
-                                <span style={{
-                                  fontSize: theme.fontSizes[1],
-                                  color: theme.colors.text,
-                                  whiteSpace: 'nowrap',
-                                }}>
-                                  {scopeName}
-                                </span>
-                              </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
+                    {/* DEPRECATED: Scopes Section - scopes are now managed in .scopes.canvas files */}
+                    {/* Scopes color editing has been removed as scopes are no longer in library.yaml */}
                   </div>
                 )}
 
-                {/* Color Picker Popover */}
-                {state.colorPickerScope && state.colorPickerPosition && (
-                  <>
-                    {/* Backdrop to close color picker */}
-                    <div
-                      onClick={closeColorPicker}
-                      style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        zIndex: 60,
-                      }}
-                    />
-                    {/* Color Picker */}
-                    <div
-                      style={{
-                        position: 'fixed',
-                        top: state.colorPickerPosition.y,
-                        left: state.colorPickerPosition.x,
-                        zIndex: 61,
-                        backgroundColor: theme.colors.background,
-                        border: `1px solid ${theme.colors.border}`,
-                        borderRadius: theme.radii[2],
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                        padding: theme.space[3],
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: theme.space[2],
-                      }}
-                    >
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: theme.space[2],
-                      }}>
-                        <span style={{
-                          fontSize: theme.fontSizes[1],
-                          fontWeight: theme.fontWeights.medium,
-                          color: theme.colors.text,
-                        }}>
-                          {state.colorPickerScope}
-                        </span>
-                        <button
-                          onClick={closeColorPicker}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: 2,
-                            display: 'flex',
-                            alignItems: 'center',
-                            color: theme.colors.textMuted,
-                          }}
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                      <HexColorPicker
-                        color={state.library.scopes?.[state.colorPickerScope]?.color || '#64748b'}
-                        onChange={(color) => handleScopeColorChange(state.colorPickerScope!, color)}
-                      />
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: theme.space[2],
-                        marginTop: theme.space[2],
-                      }}>
-                        <span style={{
-                          fontSize: theme.fontSizes[1],
-                          color: theme.colors.textMuted,
-                        }}>
-                          Color:
-                        </span>
-                        <input
-                          type="text"
-                          value={state.library.scopes?.[state.colorPickerScope]?.color || '#64748b'}
-                          onChange={(e) => {
-                            const color = e.target.value;
-                            if (/^#[0-9A-Fa-f]{0,6}$/.test(color)) {
-                              handleScopeColorChange(state.colorPickerScope!, color);
-                            }
-                          }}
-                          style={{
-                            padding: `${theme.space[1]} ${theme.space[2]}`,
-                            fontSize: theme.fontSizes[1],
-                            fontFamily: theme.fonts.monospace,
-                            color: theme.colors.text,
-                            backgroundColor: theme.colors.backgroundSecondary,
-                            border: `1px solid ${theme.colors.border}`,
-                            borderRadius: theme.radii[1],
-                            outline: 'none',
-                            width: 100,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
+                {/* DEPRECATED: Color Picker Popover - removed as scopes are no longer in library.yaml */}
 
                 {/* Search Bar - top center */}
                 {state.isSearchOpen && (

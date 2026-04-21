@@ -257,13 +257,6 @@ export const StoryGraphRenderer: React.FC<StoryGraphRendererProps> = ({
           library={{
             version: '1.0.0',
             name: 'Default Library',
-            nodeComponents: {},
-            edgeComponents: {},
-            states: {
-              draft: { color: '#f59e0b', label: 'Draft' },
-              approved: { color: '#10b981', label: 'Approved' },
-              implemented: { color: '#6366f1', label: 'Implemented' },
-            },
           }}
           showMinimap={showMinimap}
           showControls={showControls}
