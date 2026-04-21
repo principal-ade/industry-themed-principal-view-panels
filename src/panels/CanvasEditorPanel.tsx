@@ -63,6 +63,7 @@ interface GraphPanelState {
   // Text editor state
   editingNodeId: string | null;
   editingNodeText: string;
+  editingNodeScreenPosition: { x: number; y: number; width: number; height: number } | null;
 }
 
 /**
@@ -221,6 +222,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
     // Text editor state
     editingNodeId: null,
     editingNodeText: '',
+    editingNodeScreenPosition: null,
   });
 
   // Track container dimensions using ref callback + ResizeObserver
@@ -839,10 +841,26 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       currentText = node.label || '';
     }
 
+    // Query DOM to get the node's screen position
+    // ReactFlow renders nodes with data-id attribute
+    const nodeElement = document.querySelector(`[data-id="${nodeId}"]`);
+    let screenPosition: { x: number; y: number; width: number; height: number } | null = null;
+
+    if (nodeElement) {
+      const rect = nodeElement.getBoundingClientRect();
+      screenPosition = {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+      };
+    }
+
     setState(prev => ({
       ...prev,
       editingNodeId: nodeId,
       editingNodeText: currentText,
+      editingNodeScreenPosition: screenPosition,
     }));
   }, [state.canvas, state.isEditMode]);
 
@@ -852,6 +870,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       ...prev,
       editingNodeId: null,
       editingNodeText: '',
+      editingNodeScreenPosition: null,
     }));
   }, []);
 
@@ -887,6 +906,7 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
       hasUnsavedChanges: true,
       editingNodeId: null,
       editingNodeText: '',
+      editingNodeScreenPosition: null,
     }));
   }, [state.canvas, state.editingNodeId, state.editingNodeText]);
 
@@ -2296,51 +2316,39 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                   </div>
                 )}
 
-                {/* Text Editor Modal */}
-                {state.editingNodeId && (
-                  <>
-                    {/* Backdrop */}
-                    <div
-                      style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        zIndex: 90,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onClick={closeTextEditor}
-                    >
-                      {/* Modal */}
+                {/* Inline Text Editor - positioned over the node */}
+                {state.editingNodeId && state.editingNodeScreenPosition && (() => {
+                  const pos = state.editingNodeScreenPosition;
+
+                  return (
+                    <>
+                      {/* Backdrop to capture clicks outside */}
                       <div
                         style={{
-                          backgroundColor: theme.colors.background,
-                          border: `2px solid ${theme.colors.primary}`,
-                          borderRadius: theme.radii[2],
-                          padding: theme.space[4],
-                          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
-                          minWidth: 400,
-                          maxWidth: 600,
-                          width: '90%',
+                          position: 'fixed',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          zIndex: 90,
+                        }}
+                        onClick={() => {
+                          saveTextEditorChanges();
+                        }}
+                      />
+                      {/* Inline editor positioned at node's screen location */}
+                      <div
+                        style={{
+                          position: 'fixed',
+                          left: `${pos.x}px`,
+                          top: `${pos.y}px`,
+                          width: `${pos.width}px`,
+                          height: `${pos.height}px`,
+                          zIndex: 100,
+                          pointerEvents: 'auto',
                         }}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div style={{
-                          marginBottom: theme.space[3],
-                          fontSize: theme.fontSizes[2],
-                          fontWeight: theme.fontWeights.semibold,
-                          color: theme.colors.text,
-                        }}>
-                          {(() => {
-                            const node = state.canvas?.nodes?.find(n => n.id === state.editingNodeId);
-                            if (node?.type === 'group') return 'Edit Group Label';
-                            return 'Edit Text Node';
-                          })()}
-                        </div>
                         <textarea
                           autoFocus
                           value={state.editingNodeText}
@@ -2348,21 +2356,22 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                           placeholder="Enter text..."
                           style={{
                             width: '100%',
-                            minHeight: 150,
+                            height: '100%',
                             padding: theme.space[2],
                             fontSize: theme.fontSizes[1],
                             fontFamily: theme.fonts.body,
                             color: theme.colors.text,
-                            backgroundColor: theme.colors.backgroundSecondary,
-                            border: `1px solid ${theme.colors.border}`,
+                            backgroundColor: theme.colors.background,
+                            border: `3px solid ${theme.colors.primary}`,
                             borderRadius: theme.radii[1],
                             outline: 'none',
-                            resize: 'vertical',
+                            resize: 'none',
                             boxSizing: 'border-box',
+                            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
                           }}
                           onKeyDown={(e) => {
-                            // Cmd+Enter or Ctrl+Enter to save
-                            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                            // Enter to save (Shift+Enter for new line)
+                            if (e.key === 'Enter' && !e.shiftKey) {
                               e.preventDefault();
                               saveTextEditorChanges();
                             }
@@ -2372,58 +2381,12 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                               closeTextEditor();
                             }
                           }}
+                          onBlur={saveTextEditorChanges}
                         />
-                        <div style={{
-                          marginTop: theme.space[3],
-                          display: 'flex',
-                          gap: theme.space[2],
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}>
-                          <div style={{
-                            fontSize: theme.fontSizes[0],
-                            color: theme.colors.textMuted,
-                            fontStyle: 'italic',
-                          }}>
-                            ⌘+Enter to save • Esc to cancel
-                          </div>
-                          <div style={{ display: 'flex', gap: theme.space[2] }}>
-                            <button
-                              onClick={closeTextEditor}
-                              style={{
-                                padding: `${theme.space[2]} ${theme.space[3]}`,
-                                fontSize: theme.fontSizes[1],
-                                fontFamily: theme.fonts.body,
-                                color: theme.colors.text,
-                                backgroundColor: theme.colors.backgroundSecondary,
-                                border: `1px solid ${theme.colors.border}`,
-                                borderRadius: theme.radii[1],
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              onClick={saveTextEditorChanges}
-                              style={{
-                                padding: `${theme.space[2]} ${theme.space[3]}`,
-                                fontSize: theme.fontSizes[1],
-                                fontFamily: theme.fonts.body,
-                                color: 'white',
-                                backgroundColor: theme.colors.primary,
-                                border: 'none',
-                                borderRadius: theme.radii[1],
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Save
-                            </button>
-                          </div>
-                        </div>
                       </div>
-                    </div>
-                  </>
-                )}
+                    </>
+                  );
+                })()}
 
                 {/* Copy nodes toast - bottom center */}
                 {copiedNodesCount !== null && (
