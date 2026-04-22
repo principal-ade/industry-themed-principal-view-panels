@@ -473,6 +473,41 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
     );
   }, [allFiles]);
 
+  // Discover additional markdown files in storyboard folders
+  const additionalMarkdownFiles = useMemo(() => {
+    if (!allFiles || !storyboards || storyboards.length === 0) {
+      return {};
+    }
+
+    const result: Record<string, string[]> = {};
+
+    for (const storyboard of storyboards) {
+      // Get the storyboard directory path (parent directory of the canvas file)
+      const canvasPath = storyboard.canvas.path;
+      const storyboardDir = canvasPath.substring(0, canvasPath.lastIndexOf('/'));
+
+      // Find all .md files in the same directory
+      const mdFilesInDir = allFiles
+        .filter(file => {
+          const fileDir = file.path.substring(0, file.path.lastIndexOf('/'));
+          return fileDir === storyboardDir && file.path.endsWith('.md');
+        })
+        .map(file => file.path);
+
+      // Exclude the main markdown file (if it exists)
+      const additionalMdFiles = mdFilesInDir.filter(
+        path => path !== storyboard.canvas.markdownPath
+      );
+
+      // Only add to result if there are additional files
+      if (additionalMdFiles.length > 0) {
+        result[storyboard.id] = additionalMdFiles;
+      }
+    }
+
+    return result;
+  }, [allFiles, storyboards]);
+
   // Helper to extract workflow folder name from a test trace path
   // E.g., ".principal-views/authentication-flow/successful-login/execution-1.otel.json" → "successful-login"
   const getWorkflowFromPath = (path: string): string | null => {
@@ -1645,6 +1680,7 @@ export const StoryboardListPanel: React.FC<StoryboardListPanelPropsTyped> = ({
             workflowCoverageMap={workflowCoverageMap}
             canvasNodeStatusMap={canvasNodeStatusMap}
             gitStatusData={gitStatusData}
+            additionalMarkdownFiles={additionalMarkdownFiles}
             enablePanelDrag
             preserveOrder={true}
           />

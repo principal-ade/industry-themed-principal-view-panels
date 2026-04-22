@@ -65,7 +65,11 @@ const createStaticCanvasFile = (canvasName: string, withMarkdown: boolean = fals
 };
 
 // Helper to create a storyboard file structure
-const createStoryboardFiles = (storyboardName: string, workflows: Array<{ name: string; executions: number }> = []) => {
+const createStoryboardFiles = (
+  storyboardName: string,
+  workflows: Array<{ name: string; executions: number }> = [],
+  additionalMarkdownFiles: string[] = [] // e.g., ['design', 'architecture']
+) => {
   const files: any[] = [
     {
       name: `${storyboardName}.otel.canvas`,
@@ -76,7 +80,30 @@ const createStoryboardFiles = (storyboardName: string, workflows: Array<{ name: 
       lastModified: new Date('2024-01-15'),
       isDirectory: false,
     },
+    // Main markdown file
+    {
+      name: `${storyboardName}.md`,
+      relativePath: `.principal-views/${storyboardName}/${storyboardName}.md`,
+      path: `.principal-views/${storyboardName}/${storyboardName}.md`,
+      extension: '.md',
+      size: 512,
+      lastModified: new Date('2024-01-15'),
+      isDirectory: false,
+    },
   ];
+
+  // Add additional markdown files
+  additionalMarkdownFiles.forEach(mdName => {
+    files.push({
+      name: `${storyboardName}-${mdName}.md`,
+      relativePath: `.principal-views/${storyboardName}/${storyboardName}-${mdName}.md`,
+      path: `.principal-views/${storyboardName}/${storyboardName}-${mdName}.md`,
+      extension: '.md',
+      size: 512,
+      lastModified: new Date('2024-01-15'),
+      isDirectory: false,
+    });
+  });
 
   workflows.forEach(workflow => {
     files.push({
@@ -159,16 +186,17 @@ const buildMockFileTree = (): FileTree => {
     ...createStaticCanvasFile('deployment-diagram', false), // without markdown
 
     // Runtime-validated storyboards (.otel.canvas files with workflows)
+    // Some with additional markdown files to test the feature
     ...createStoryboardFiles('authentication-flow', [
       { name: 'happy-path', executions: 2 },
       { name: 'error-handling', executions: 1 },
-    ]),
+    ], ['design', 'api-reference']), // Additional markdown: design and api-reference
     ...createStoryboardFiles('payment-processing', [
       { name: 'successful-payment', executions: 3 },
-    ]),
+    ], ['architecture']), // Additional markdown: architecture
     ...createStoryboardFiles('user-registration', [
       { name: 'new-user', executions: 1 },
-    ]),
+    ]), // No additional markdown
   ];
 
   // Extract paths from the file objects
@@ -362,13 +390,9 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
     // Check if this is a static .canvas file (not .otel.canvas)
     const isStaticCanvas = path.endsWith('.canvas') && !path.endsWith('.otel.canvas');
 
-    // For static canvas files, check if markdown exists
-    const markdownPath = isStaticCanvas
-      ? `.principal-views/${canvasName}/${canvasName}.md`
-      : null;
-
-    // Check if markdown file exists in allFiles (for static canvases only)
-    const hasMarkdown = isStaticCanvas && fileTreeData?.allFiles.some(f => f.path === markdownPath);
+    // Check if markdown exists (for both static and OTEL canvases)
+    const markdownPath = `.principal-views/${canvasName}/${canvasName}.md`;
+    const hasMarkdown = fileTreeData?.allFiles.some(f => f.path === markdownPath);
 
     // For OTEL canvases, add event nodes with scope information
     const nodes = isStaticCanvas ? [] : [
@@ -436,7 +460,7 @@ const createMockReadFile = (fileTreeData: FileTree | null) => async (path: strin
         name: canvasName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
         version: '1.0.0',
         description: `Mock canvas for ${canvasName}`,
-        // Add markdown path for static canvases with markdown files
+        // Add markdown path for canvases with markdown files (both static and OTEL)
         ...(hasMarkdown && { markdown: markdownPath }),
       },
       nodes,
