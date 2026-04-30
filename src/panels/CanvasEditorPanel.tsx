@@ -1863,9 +1863,6 @@ export const CanvasEditorPanel: React.FC<CanvasEditorPanelProps> = ({
                       canvas={state.canvas}
                       height="100%"
                       layoutOptions={{
-                        laneWidth: 220,
-                        laneGap: 60,
-                        eventSpacing: 100,
                         namespaceStrategy: 'first',
                       }}
                       showControls
